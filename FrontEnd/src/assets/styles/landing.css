@@ -39,7 +39,58 @@
   color: #334155;
 }
 
-.primary-btn{
+.navbar__links a:hover {
+  color: #2563eb;
+}
+
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 4px;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.switch-btn {
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  padding: 12px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease,
+    transform 0.2s ease;
+}
+
+.switch-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
+  transform: translateY(-1px);
+}
+
+.navbar__actions:hover .switch-btn--active {
+  background: transparent;
+  color: #1e293b;
+  box-shadow: none;
+  transform: none;
+}
+
+.navbar__actions .switch-btn--active:hover {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
+}
+
+.switch-btn--active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
+}
+
+.primary-btn {
   border: none;
   border-radius: 10px;
   padding: 14px 24px;
@@ -249,6 +300,11 @@
   .navbar__links {
     flex-wrap: wrap;
     gap: 16px;
+  }
+
+  .navbar__actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .hero__content h1 {

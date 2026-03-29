@@ -13,7 +13,10 @@ export default function Navbar() {
         <a href="#contact">Contact</a>
       </nav>
 
-      <button className="primary-btn">Get Started</button>
+      <div className="navbar__actions">
+        <button className="switch-btn">Login</button>
+        <button className="switch-btn switch-btn--active">Get Started</button>
+      </div>
     </header>
   )
 }
