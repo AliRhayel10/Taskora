@@ -92,7 +92,7 @@ export default function Body() {
       <section className="cta">
         <h2>Start Streamlining Your Workflow Today</h2>
         <p>Boost your productivity and keep your team on track with Taskora.</p>
-        <button className="primary-btn">Get Started Free</button>
+        <button className="primary-btn">Get Started</button>
       </section>
     </main>
   )
