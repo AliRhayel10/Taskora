@@ -46,7 +46,7 @@
 .navbar__actions {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 6px;
   background: #f8fafc;
   border-radius: 14px;
   padding: 4px;
@@ -55,24 +55,32 @@
 
 .switch-btn {
   border: none;
-  background: transparent;
+  background: #ffffff;
+  background-image: linear-gradient(90deg, #ffffff 0%, #dbeafe 50%, #ffffff 100%);
+  background-size: 220% 100%;
+  background-position: 100% 0;
   color: #1e293b;
   padding: 12px 22px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease,
-    transform 0.2s ease;
+  transition:
+  background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+  color 0.3s ease,
+  box-shadow 0.3s ease,
+  transform 0.25s ease;
 }
 
 .switch-btn:hover {
-  background: #2563eb;
+  background-position: 0 0;
   color: #ffffff;
+  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
   transform: translateY(-1px);
 }
 
 .navbar__actions:hover .switch-btn--active {
-  background: transparent;
+  background: #ffffff;
+  background-image: none;
   color: #1e293b;
   box-shadow: none;
   transform: none;
