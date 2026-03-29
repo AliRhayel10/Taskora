@@ -1,8 +1,8 @@
 .navbar {
-  width: calc(100% - 48px);
-  max-width: 1200px;
-  margin: 24px auto 0;
-  padding: 16px 24px;
+  width: calc(100% - 32px);
+  max-width: 1400px;
+  margin: 16px auto 0;
+  padding: 16px 28px;
   background: #ffffff;
   border-radius: 18px;
   display: flex;
@@ -39,6 +39,11 @@
   color: #334155;
 }
 
+.navbar__links a {
+  text-decoration: none;
+  color: inherit;
+}
+
 .navbar__links a:hover {
   color: #2563eb;
 }
@@ -56,26 +61,34 @@
 .switch-btn {
   border: none;
   background: #ffffff;
-  background-image: linear-gradient(90deg, #ffffff 0%, #dbeafe 50%, #ffffff 100%);
-  background-size: 220% 100%;
-  background-position: 100% 0;
   color: #1e293b;
   padding: 12px 22px;
   border-radius: 10px;
   cursor: pointer;
   transition:
     background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    background-image 0s,
+    background-color 0s,
     color 0s,
     box-shadow 0.3s ease,
     transform 0.25s ease;
 }
 
 .switch-btn:hover {
+  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
+  background-size: 220% 100%;
   background-position: 0 0;
   color: #ffffff;
-  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
   transform: translateY(-1px);
+}
+
+.switch-btn--active {
+  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
 }
 
 .navbar__actions:hover .switch-btn--active {
@@ -87,13 +100,9 @@
 }
 
 .navbar__actions .switch-btn--active:hover {
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
-}
-
-.switch-btn--active {
-  background: #2563eb;
+  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
+  background-size: 220% 100%;
+  background-position: 0 0;
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
 }
@@ -103,17 +112,24 @@
   border-radius: 10px;
   padding: 14px 24px;
   cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.primary-btn {
   background: #2563eb;
+  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
+  background-size: 220% 100%;
+  background-position: 100% 0;
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
+  transition:
+    background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0s,
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
 }
 
 .primary-btn:hover {
-  background: #1d4ed8;
+  background-position: 0 0;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+  transform: translateY(-1px);
 }
 
 .secondary-btn {
@@ -127,9 +143,9 @@
 }
 
 .landing-body {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 28px 24px 60px;
+  padding: 28px 16px 60px;
 }
 
 .hero {
@@ -280,12 +296,32 @@
   background: #ffffff;
   color: #2563eb;
   box-shadow: none;
+  border: 1px solid transparent;
+  transition:
+    background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    background-image 0s,
+    background-color 0s,
+    color 0s,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+.cta .primary-btn:hover {
+  background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
+  background-size: 220% 100%;
+  background-position: 0 0;
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.22);
+  transform: translateY(-1px);
 }
 
 .footer {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 34px 24px 50px;
+  padding: 34px 16px 50px;
   text-align: center;
   color: #475569;
   font-size: 0.95rem;
@@ -303,6 +339,8 @@
   .navbar {
     flex-direction: column;
     align-items: flex-start;
+    width: calc(100% - 20px);
+    padding: 16px 18px;
   }
 
   .navbar__links {
@@ -313,6 +351,14 @@
   .navbar__actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .landing-body {
+    padding: 24px 12px 50px;
+  }
+
+  .footer {
+    padding: 30px 12px 40px;
   }
 
   .hero__content h1 {
