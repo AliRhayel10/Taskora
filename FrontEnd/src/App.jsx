@@ -1,8 +1,6 @@
+import LandingPage from './pages/LandingPage'
+import './assets/styles/global.css'
+
 export default function App() {
-  return (
-    <div>
-      <h1>Taskora FrontEnd</h1>
-      <p>React is running.</p>
-    </div>
-  )
+  return <LandingPage />
 }
