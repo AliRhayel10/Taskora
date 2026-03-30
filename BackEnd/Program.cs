@@ -1,7 +1,5 @@
 using BackEnd.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using BackEnd.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,8 +7,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
     ));
 
 builder.Services.AddControllersWithViews();
