@@ -23,16 +23,27 @@ namespace BackEnd.Data
             modelBuilder.Entity<Company>(entity =>
             {
                 entity.ToTable("Companies");
+
                 entity.HasKey(c => c.CompanyId);
+
+                entity.Property(c => c.CompanyName).IsRequired();
+                entity.Property(c => c.CompanyCode).IsRequired();
 
                 entity.HasIndex(c => c.CompanyName).IsUnique();
                 entity.HasIndex(c => c.CompanyCode).IsUnique();
 
-                entity.Property(c => c.CompanyName).IsRequired().HasMaxLength(255);
-                entity.Property(c => c.CompanyCode).IsRequired().HasMaxLength(255);
-                entity.Property(c => c.EmailDomain).IsRequired();
-                entity.Property(c => c.CompanyPhone).IsRequired();
-                entity.Property(c => c.Address).IsRequired();
+                entity.Property(c => c.EmailDomain);
+
+                entity.Property(c => c.CompanyPhone)
+                      .IsRequired()
+                      .HasMaxLength(30);
+
+                entity.Property(c => c.Address)
+                      .IsRequired()
+                      .HasMaxLength(255);
+
+                entity.Property(c => c.IsActive)
+                      .HasDefaultValue(true);
             });
 
             modelBuilder.Entity<User>(entity =>
@@ -76,31 +87,37 @@ namespace BackEnd.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            modelBuilder.Entity<PriorityMultiplier>(entity =>
-            {
-                entity.ToTable("PriorityMultipliers");
-                entity.HasKey(p => p.Id);
+modelBuilder.Entity<PriorityMultiplier>(entity =>
+{
+    entity.ToTable("PriorityMultipliers");
 
-                entity.Property(p => p.PriorityName).IsRequired();
+    entity.HasKey(p => p.Id);
 
-                entity.HasOne<Company>()
-                    .WithMany()
-                    .HasForeignKey(p => p.CompanyId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
+    entity.Property(p => p.Id)
+          .HasColumnName("PriorityMultiplierId");
 
-            modelBuilder.Entity<ComplexityMultiplier>(entity =>
-            {
-                entity.ToTable("ComplexityMultipliers");
-                entity.HasKey(c => c.Id);
+    entity.Property(p => p.Multiplier)
+          .HasColumnName("MultiplierValue"); // 🔥 THIS FIXES YOUR ERROR
 
-                entity.Property(c => c.ComplexityName).IsRequired();
+    entity.Property(p => p.PriorityName)
+          .IsRequired();
+});
 
-                entity.HasOne<Company>()
-                    .WithMany()
-                    .HasForeignKey(c => c.CompanyId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
+modelBuilder.Entity<ComplexityMultiplier>(entity =>
+{
+    entity.ToTable("ComplexityMultipliers");
+
+    entity.HasKey(c => c.Id);
+
+    entity.Property(c => c.Id)
+          .HasColumnName("ComplexityMultiplierId");
+
+    entity.Property(c => c.Multiplier)
+          .HasColumnName("MultiplierValue"); // 🔥 SAME FIX HERE
+
+    entity.Property(c => c.ComplexityName)
+          .IsRequired();
+});
         }
     }
 }
