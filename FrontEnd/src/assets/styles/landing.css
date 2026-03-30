@@ -149,11 +149,23 @@
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 40px;
+  position: relative;
+  display: flex;
   align-items: center;
-  padding: 40px 0 20px;
+  min-height: 650px;
+  padding: 60px 40px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 28px;
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+  max-width: 620px;
+  transform: translateY(-24px);
 }
 
 .hero__content h1 {
@@ -161,6 +173,7 @@
   line-height: 1.1;
   margin: 0 0 18px;
   max-width: 520px;
+  color: #0f1f4d;
 }
 
 .hero__content p {
@@ -178,8 +191,7 @@
 }
 
 .hero__visual {
-  display: flex;
-  justify-content: center;
+  display: none;
 }
 
 .mockup-card {
@@ -412,7 +424,10 @@
 
 @media (max-width: 900px) {
   .hero {
-    grid-template-columns: 1fr;
+    min-height: 500px;
+    padding: 40px 24px;
+    background-position: center;
+    border-radius: 22px;
   }
 
   .three-cols {
@@ -446,6 +461,10 @@
 
   .hero__content h1 {
     font-size: 3rem;
+  }
+
+  .hero__content p {
+    font-size: 1.1rem;
   }
 
   .role-card__image {
