@@ -97,7 +97,7 @@ modelBuilder.Entity<PriorityMultiplier>(entity =>
           .HasColumnName("PriorityMultiplierId");
 
     entity.Property(p => p.Multiplier)
-          .HasColumnName("MultiplierValue"); // 🔥 THIS FIXES YOUR ERROR
+          .HasColumnName("MultiplierValue"); 
 
     entity.Property(p => p.PriorityName)
           .IsRequired();
@@ -113,7 +113,7 @@ modelBuilder.Entity<ComplexityMultiplier>(entity =>
           .HasColumnName("ComplexityMultiplierId");
 
     entity.Property(c => c.Multiplier)
-          .HasColumnName("MultiplierValue"); // 🔥 SAME FIX HERE
+          .HasColumnName("MultiplierValue");
 
     entity.Property(c => c.ComplexityName)
           .IsRequired();
