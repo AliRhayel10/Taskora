@@ -258,8 +258,8 @@
 .card,
 .step-card {
   background: #ffffff;
-  border-radius: 18px;
-  padding: 26px 22px;
+  border-radius: 14px;
+  padding: 18px 14px;
   text-align: center;
   box-shadow: 0 6px 20px rgba(20, 33, 61, 0.06);
 }
@@ -366,6 +366,26 @@
   padding: 0 22px;
 }
 
+.how-card {
+  padding: 18px 14px;
+}
+
+.how-card__image {
+  width: 100%;
+  height: 290px;
+  object-fit: contain;
+  display: block;
+  margin: 10px auto 0;
+}
+
+.how-card h3,
+.how-card p {
+  padding: 0 8px;
+}
+
+.how-card .step-number {
+  margin-top: 0;
+}
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
@@ -406,4 +426,7 @@
     .role-card__image {
     height: 260px;
   }
+  .how-card__image {
+  height: 250px;
+}
 }
