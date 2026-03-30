@@ -5,6 +5,7 @@ import normalImg from "../assets/images/normal.png";
 import todoListImg from "../assets/images/TodoList.png";
 import analyticsImg from "../assets/images/analytics.png";
 import bodyImg from "../assets/images/body.png";
+import cloudImg from "../assets/images/cloud.png";
 
 export default function Body() {
   return (
@@ -139,7 +140,15 @@ export default function Body() {
         </div>
       </section>
 
-      <section className="cta">
+      <section
+        className="cta"
+        style={{
+          backgroundImage: `url(${cloudImg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <h2>Start Streamlining Your Workflow Today</h2>
         <p>Boost your productivity and keep your team on track with Taskora.</p>
         <button className="primary-btn">Get Started</button>
