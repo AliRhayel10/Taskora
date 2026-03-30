@@ -18,31 +18,89 @@ namespace BackEnd.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Unique constraints
-            modelBuilder.Entity<Company>()
-                .HasIndex(c => c.CompanyName).IsUnique();
+            base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Company>()
-                .HasIndex(c => c.CompanyCode).IsUnique();
+            modelBuilder.Entity<Company>(entity =>
+            {
+                entity.ToTable("Companies");
+                entity.HasKey(c => c.CompanyId);
 
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email).IsUnique();
+                entity.HasIndex(c => c.CompanyName).IsUnique();
+                entity.HasIndex(c => c.CompanyCode).IsUnique();
 
-            // Relationships
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Company)
-                .WithMany()
-                .HasForeignKey(u => u.CompanyId);
+                entity.Property(c => c.CompanyName).IsRequired().HasMaxLength(255);
+                entity.Property(c => c.CompanyCode).IsRequired().HasMaxLength(255);
+                entity.Property(c => c.EmailDomain).IsRequired();
+                entity.Property(c => c.CompanyPhone).IsRequired();
+                entity.Property(c => c.Address).IsRequired();
+            });
 
-            modelBuilder.Entity<UserRole>()
-                .HasOne(ur => ur.User)
-                .WithMany()
-                .HasForeignKey(ur => ur.UserId);
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.ToTable("Users");
+                entity.HasKey(u => u.UserId);
 
-            modelBuilder.Entity<UserRole>()
-                .HasOne(ur => ur.Role)
-                .WithMany()
-                .HasForeignKey(ur => ur.RoleId);
+                entity.HasIndex(u => u.Email).IsUnique();
+
+                entity.Property(u => u.FullName).IsRequired();
+                entity.Property(u => u.Email).IsRequired();
+                entity.Property(u => u.PasswordHash).IsRequired();
+
+                entity.HasOne(u => u.Company)
+                    .WithMany()
+                    .HasForeignKey(u => u.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Role>(entity =>
+            {
+                entity.ToTable("Roles");
+                entity.HasKey(r => r.RoleId);
+
+                entity.Property(r => r.RoleName).IsRequired();
+            });
+
+            modelBuilder.Entity<UserRole>(entity =>
+            {
+                entity.ToTable("UserRoles");
+                entity.HasKey(ur => ur.UserRoleId);
+
+                entity.HasOne(ur => ur.User)
+                    .WithMany()
+                    .HasForeignKey(ur => ur.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(ur => ur.Role)
+                    .WithMany()
+                    .HasForeignKey(ur => ur.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<PriorityMultiplier>(entity =>
+            {
+                entity.ToTable("PriorityMultipliers");
+                entity.HasKey(p => p.Id);
+
+                entity.Property(p => p.PriorityName).IsRequired();
+
+                entity.HasOne<Company>()
+                    .WithMany()
+                    .HasForeignKey(p => p.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ComplexityMultiplier>(entity =>
+            {
+                entity.ToTable("ComplexityMultipliers");
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.ComplexityName).IsRequired();
+
+                entity.HasOne<Company>()
+                    .WithMany()
+                    .HasForeignKey(c => c.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
         }
     }
 }

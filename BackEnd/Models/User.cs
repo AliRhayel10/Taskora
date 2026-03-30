@@ -1,11 +1,14 @@
-public class User
+namespace BackEnd.Models
 {
-    public int UserId { get; set; }
-    public int CompanyId { get; set; }
+    public class User
+    {
+        public int UserId { get; set; }
+        public int CompanyId { get; set; }
 
-    public string FullName { get; set; }
-    public string Email { get; set; }
-    public string PasswordHash { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
 
-    public Company Company { get; set; }
+        public Company Company { get; set; } = null!;
+    }
 }

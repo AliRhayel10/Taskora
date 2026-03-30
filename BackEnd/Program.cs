@@ -1,4 +1,5 @@
 using BackEnd.Data;
+using BackEnd.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,25 +12,32 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ServerVersion.AutoDetect(connectionString)
     ));
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
+
+// IMPORTANT: Controllers only (API mode)
+builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
-
 app.UseHttpsRedirection();
-app.UseStaticFiles();
-
 app.UseRouting();
+
+app.UseCors("AllowReactApp");
 
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+// IMPORTANT: this enables /api/... routes
+app.MapControllers();
 
 app.Run();

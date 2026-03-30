@@ -1,5 +1,8 @@
-public class Role
+namespace BackEnd.Models
 {
-    public int RoleId { get; set; }
-    public string RoleName { get; set; }
+    public class Role
+    {
+        public int RoleId { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+    }
 }

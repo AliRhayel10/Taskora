@@ -1,13 +1,16 @@
-namespace BackEnd.Models
+namespace BackEnd.DTOs
 {
-    public class Company
+    public class RegisterCompanyRequest
     {
-        public int CompanyId { get; set; }
         public string CompanyName { get; set; } = string.Empty;
         public string CompanyCode { get; set; } = string.Empty;
         public string EmailDomain { get; set; } = string.Empty;
         public string CompanyPhone { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
-        public bool IsActive { get; set; } = true;
+
+        public string AdminFullName { get; set; } = string.Empty;
+        public string AdminEmail { get; set; } = string.Empty;
+        public string AdminPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
     }
 }
