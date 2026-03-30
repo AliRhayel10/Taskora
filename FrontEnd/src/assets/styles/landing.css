@@ -278,6 +278,29 @@
   line-height: 1.6;
 }
 
+.feature-card {
+  padding-top: 24px;
+}
+
+.feature-icon-box {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+}
+
+.feature-icon {
+  color: #ffffff;
+  font-size: 1.45rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
 .step-number {
   width: 58px;
   height: 58px;
@@ -386,6 +409,7 @@
 .how-card .step-number {
   margin-top: 0;
 }
+
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
@@ -423,10 +447,12 @@
   .hero__content h1 {
     font-size: 3rem;
   }
-    .role-card__image {
+
+  .role-card__image {
     height: 260px;
   }
+
   .how-card__image {
-  height: 250px;
-}
+    height: 250px;
+  }
 }

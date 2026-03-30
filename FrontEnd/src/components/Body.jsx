@@ -37,18 +37,28 @@ export default function Body() {
                 <div className="section-title">
                     <h2>Key Features</h2>
                 </div>
+
                 <div className="cards three-cols">
-                    <div className="card">
+                    <div className="card feature-card">
+                        <div className="feature-icon-box">
+                            <span className="feature-icon">≡</span>
+                        </div>
                         <h3>Task Management</h3>
                         <p>Organize and prioritize tasks clearly and efficiently.</p>
                     </div>
 
-                    <div className="card">
+                    <div className="card feature-card">
+                        <div className="feature-icon-box">
+                            <span className="feature-icon">↗</span>
+                        </div>
                         <h3>Workload Tracking</h3>
                         <p>See who is available, moderate, or overloaded each week.</p>
                     </div>
 
-                    <div className="card">
+                    <div className="card feature-card">
+                        <div className="feature-icon-box">
+                            <span className="feature-icon">✓</span>
+                        </div>
                         <h3>Approvals & Acknowledgements</h3>
                         <p>Track changes, approvals, and confirmations with ease.</p>
                     </div>
@@ -100,9 +110,14 @@ export default function Body() {
                 <div className="section-title">
                     <h2>Taskora Fits Every Role</h2>
                 </div>
+
                 <div className="cards three-cols">
                     <div className="card role-card">
-                        <img src={adminImg} alt="Admin using Taskora" className="role-card__image" />
+                        <img
+                            src={adminImg}
+                            alt="Admin using Taskora"
+                            className="role-card__image"
+                        />
                         <h3>Admin</h3>
                         <p>Manage users, teams, and system settings.</p>
                     </div>
@@ -135,5 +150,5 @@ export default function Body() {
                 <button className="primary-btn">Get Started</button>
             </section>
         </main>
-    )
+    );
 }
