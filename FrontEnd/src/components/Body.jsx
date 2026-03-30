@@ -62,7 +62,7 @@ export default function Body() {
 
                 <div className="cards three-cols">
                     <div className="step-card how-card">
-                        <div className="step-number">01</div>
+                        <div className="step-number">1</div>
                         <h3>Create Tasks</h3>
                         <p>Add, assign, and organize tasks for your team.</p>
                         <img
@@ -73,7 +73,7 @@ export default function Body() {
                     </div>
 
                     <div className="step-card how-card">
-                        <div className="step-number">02</div>
+                        <div className="step-number">2</div>
                         <h3>Manage Workload</h3>
                         <p>Calculate effort and weight for fair task distribution.</p>
                         <img
@@ -84,7 +84,7 @@ export default function Body() {
                     </div>
 
                     <div className="step-card how-card">
-                        <div className="step-number">03</div>
+                        <div className="step-number">3</div>
                         <h3>Track Progress</h3>
                         <p>Monitor updates, workload, and approvals in real time.</p>
                         <img
