@@ -14,30 +14,26 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
 
-// IMPORTANT: Controllers only (API mode)
 builder.Services.AddControllers();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
 
 app.UseHttpsRedirection();
-app.UseRouting();
 
 app.UseCors("AllowReactApp");
 
 app.UseAuthorization();
 
-// IMPORTANT: this enables /api/... routes
 app.MapControllers();
 
 app.Run();
