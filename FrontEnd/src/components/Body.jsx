@@ -1,3 +1,7 @@
+import adminImg from "../assets/images/admin.jpeg";
+import teamLeaderImg from "../assets/images/teamLeader.jpeg";
+import employeeImg from "../assets/images/employee.jpeg";
+
 export default function Body() {
   return (
     <main className="landing-body">
@@ -27,7 +31,9 @@ export default function Body() {
       </section>
 
       <section id="features" className="section">
-        <h2>Key Features</h2>
+        <div className="section-title">
+  <h2>Key Features</h2>
+</div>
         <div className="cards three-cols">
           <div className="card">
             <h3>Task Management</h3>
@@ -47,7 +53,9 @@ export default function Body() {
       </section>
 
       <section id="how-it-works" className="section">
-        <h2>How Taskora Works</h2>
+        <div className="section-title">
+  <h2>How Taskora Works</h2>
+</div>
         <div className="cards three-cols">
           <div className="step-card">
             <div className="step-number">01</div>
@@ -70,19 +78,32 @@ export default function Body() {
       </section>
 
       <section id="roles" className="section">
-        <h2>Taskora Fits Every Role</h2>
+        <div className="section-title">
+  <h2>Taskora Fits Every Role</h2>
+</div>
         <div className="cards three-cols">
-          <div className="card">
+          <div className="card role-card">
+            <img src={adminImg} alt="Admin using Taskora" className="role-card__image" />
             <h3>Admin</h3>
             <p>Manage users, teams, and system settings.</p>
           </div>
 
-          <div className="card">
+          <div className="card role-card">
+            <img
+              src={teamLeaderImg}
+              alt="Team leader using Taskora"
+              className="role-card__image"
+            />
             <h3>Team Leader</h3>
             <p>Assign tasks, monitor workload, and approve changes.</p>
           </div>
 
-          <div className="card">
+          <div className="card role-card">
+            <img
+              src={employeeImg}
+              alt="Member using Taskora"
+              className="role-card__image"
+            />
             <h3>Member</h3>
             <p>View tasks, acknowledge assignments, and update status.</p>
           </div>

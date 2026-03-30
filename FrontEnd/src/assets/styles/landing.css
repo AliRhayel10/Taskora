@@ -221,9 +221,29 @@
 }
 
 .section h2 {
+  font-size: 2.5rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.section-title::before,
+.section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #c5c5c5;
+}
+
+.section-title h2 {
+  margin: 0;
   text-align: center;
   font-size: 2.5rem;
-  margin-bottom: 24px;
+  white-space: nowrap;
 }
 
 .cards {
@@ -327,6 +347,25 @@
   font-size: 0.95rem;
 }
 
+.role-card {
+  overflow: hidden;
+  padding: 0 0 26px;
+}
+
+.role-card__image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  display: block;
+  border-radius: 18px 18px 0 0;
+  margin-bottom: 20px;
+}
+
+.role-card h3,
+.role-card p {
+  padding: 0 22px;
+}
+
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
@@ -363,5 +402,8 @@
 
   .hero__content h1 {
     font-size: 3rem;
+  }
+    .role-card__image {
+    height: 260px;
   }
 }
