@@ -49,13 +49,13 @@
 }
 
 .navbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
 }
 
 .switch-btn {
