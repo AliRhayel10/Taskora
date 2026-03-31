@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import "./../assets/styles/register.css";
 
 export default function RegisterPage() {
@@ -50,14 +50,20 @@ export default function RegisterPage() {
   );
 
   const passwordsMatch = formData.adminPassword === formData.confirmPassword;
+  const hasConfirmPassword = formData.confirmPassword.trim() !== "";
 
   const isValidDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(formData.emailDomain);
+  const hasDomain = formData.emailDomain.trim() !== "";
 
+  const hasAdminEmail = formData.adminEmail.trim() !== "";
   const emailMatchesDomain =
+    hasDomain &&
+    hasAdminEmail &&
     formData.adminEmail.toLowerCase().endsWith(`@${formData.emailDomain.toLowerCase()}`);
 
   const isStrongPassword =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.adminPassword);
+  const hasPassword = formData.adminPassword.trim() !== "";
 
   const isFormValid =
     allFieldsFilled &&
@@ -141,6 +147,16 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
               />
+              {hasDomain && (
+                <p className={`register-hint ${isValidDomain ? "register-hint--success" : "register-hint--error"}`}>
+                  {isValidDomain ? <FiCheckCircle /> : <FiXCircle />}
+                  <span>
+                    {isValidDomain
+                      ? "Valid company domain"
+                      : "Enter a valid domain like example.com"}
+                  </span>
+                </p>
+              )}
             </div>
 
             <div className="register-form__group">
@@ -191,6 +207,16 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
               />
+              {hasAdminEmail && hasDomain && isValidDomain && (
+                <p className={`register-hint ${emailMatchesDomain ? "register-hint--success" : "register-hint--error"}`}>
+                  {emailMatchesDomain ? <FiCheckCircle /> : <FiXCircle />}
+                  <span>
+                    {emailMatchesDomain
+                      ? "Email matches company domain"
+                      : "Admin email must match the company domain"}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -215,6 +241,17 @@ export default function RegisterPage() {
                   {showAdminPassword ? <FiEye /> : <FiEyeOff />}
                 </button>
               </div>
+
+              {hasPassword && (
+                <p className={`register-hint ${isStrongPassword ? "register-hint--success" : "register-hint--error"}`}>
+                  {isStrongPassword ? <FiCheckCircle /> : <FiXCircle />}
+                  <span>
+                    {isStrongPassword
+                      ? "Strong password"
+                      : "Use at least 8 characters, with uppercase, lowercase, and a number"}
+                  </span>
+                </p>
+              )}
             </div>
 
             <div className="register-form__group">
@@ -237,26 +274,17 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <FiEye /> : <FiEyeOff />}
                 </button>
               </div>
+
+              {hasConfirmPassword && (
+                <p className={`register-hint ${passwordsMatch ? "register-hint--success" : "register-hint--error"}`}>
+                  {passwordsMatch ? <FiCheckCircle /> : <FiXCircle />}
+                  <span>
+                    {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
-
-          {!passwordsMatch && formData.confirmPassword && (
-            <p className="register-error">Passwords do not match.</p>
-          )}
-
-          {formData.emailDomain && !isValidDomain && (
-            <p className="register-error">Enter a valid company domain like example.com.</p>
-          )}
-
-          {formData.adminEmail && formData.emailDomain && isValidDomain && !emailMatchesDomain && (
-            <p className="register-error">Admin email must match the company domain.</p>
-          )}
-
-          {formData.adminPassword && !isStrongPassword && (
-            <p className="register-error">
-              Password must be at least 8 characters and include uppercase, lowercase, and a number.
-            </p>
-          )}
 
           <button type="submit" className="register-btn" disabled={!isFormValid}>
             Register Company
