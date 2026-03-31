@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiEye, FiEyeOff, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 import "./../assets/styles/register.css";
 
 export default function RegisterPage() {
@@ -50,6 +50,7 @@ export default function RegisterPage() {
   );
 
   const passwordsMatch = formData.adminPassword === formData.confirmPassword;
+  const hasPassword = formData.adminPassword.trim() !== "";
   const hasConfirmPassword = formData.confirmPassword.trim() !== "";
 
   const isValidDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(formData.emailDomain);
@@ -63,7 +64,6 @@ export default function RegisterPage() {
 
   const isStrongPassword =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.adminPassword);
-  const hasPassword = formData.adminPassword.trim() !== "";
 
   const isFormValid =
     allFieldsFilled &&
@@ -139,24 +139,23 @@ export default function RegisterPage() {
           <div className="register-form__row">
             <div className="register-form__group">
               <label htmlFor="emailDomain">Email Domain</label>
-              <input
-                id="emailDomain"
-                type="text"
-                placeholder="example.com"
-                value={formData.emailDomain}
-                onChange={handleChange}
-                required
-              />
-              {hasDomain && (
-                <p className={`register-hint ${isValidDomain ? "register-hint--success" : "register-hint--error"}`}>
-                  {isValidDomain ? <FiCheckCircle /> : <FiXCircle />}
-                  <span>
-                    {isValidDomain
-                      ? "Valid company domain"
-                      : "Enter a valid domain like example.com"}
+              <div className="register-input-wrap">
+                <input
+                  id="emailDomain"
+                  type="text"
+                  placeholder="example.com"
+                  value={formData.emailDomain}
+                  onChange={handleChange}
+                  className={hasDomain ? (isValidDomain ? "input-success" : "input-error") : ""}
+                  required
+                />
+                {hasDomain && (
+                  <span className={`input-badge ${isValidDomain ? "input-badge--success" : "input-badge--error"}`}>
+                    {isValidDomain ? <FiCheckCircle /> : <FiAlertCircle />}
+                    {isValidDomain ? "Valid" : "Invalid"}
                   </span>
-                </p>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="register-form__group">
@@ -199,24 +198,31 @@ export default function RegisterPage() {
 
             <div className="register-form__group">
               <label htmlFor="adminEmail">Admin Email</label>
-              <input
-                id="adminEmail"
-                type="email"
-                placeholder="Enter admin email"
-                value={formData.adminEmail}
-                onChange={handleChange}
-                required
-              />
-              {hasAdminEmail && hasDomain && isValidDomain && (
-                <p className={`register-hint ${emailMatchesDomain ? "register-hint--success" : "register-hint--error"}`}>
-                  {emailMatchesDomain ? <FiCheckCircle /> : <FiXCircle />}
-                  <span>
-                    {emailMatchesDomain
-                      ? "Email matches company domain"
-                      : "Admin email must match the company domain"}
+              <div className="register-input-wrap">
+                <input
+                  id="adminEmail"
+                  type="email"
+                  placeholder="Enter admin email"
+                  value={formData.adminEmail}
+                  onChange={handleChange}
+                  className={
+                    hasAdminEmail && hasDomain && isValidDomain
+                      ? emailMatchesDomain
+                        ? "input-success"
+                        : "input-error"
+                      : ""
+                  }
+                  required
+                />
+                {hasAdminEmail && hasDomain && isValidDomain && (
+                  <span
+                    className={`input-badge ${emailMatchesDomain ? "input-badge--success" : "input-badge--error"}`}
+                  >
+                    {emailMatchesDomain ? <FiCheckCircle /> : <FiAlertCircle />}
+                    {emailMatchesDomain ? "Match" : "No match"}
                   </span>
-                </p>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
@@ -230,8 +236,15 @@ export default function RegisterPage() {
                   placeholder="Enter password"
                   value={formData.adminPassword}
                   onChange={handleChange}
+                  className={hasPassword ? (isStrongPassword ? "input-success" : "input-error") : ""}
                   required
                 />
+                {hasPassword && (
+                  <span className={`input-badge input-badge--password ${isStrongPassword ? "input-badge--success" : "input-badge--error"}`}>
+                    {isStrongPassword ? <FiCheckCircle /> : <FiAlertCircle />}
+                    {isStrongPassword ? "Strong" : "Weak"}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="register-password-toggle"
@@ -241,17 +254,6 @@ export default function RegisterPage() {
                   {showAdminPassword ? <FiEye /> : <FiEyeOff />}
                 </button>
               </div>
-
-              {hasPassword && (
-                <p className={`register-hint ${isStrongPassword ? "register-hint--success" : "register-hint--error"}`}>
-                  {isStrongPassword ? <FiCheckCircle /> : <FiXCircle />}
-                  <span>
-                    {isStrongPassword
-                      ? "Strong password"
-                      : "Use at least 8 characters, with uppercase, lowercase, and a number"}
-                  </span>
-                </p>
-              )}
             </div>
 
             <div className="register-form__group">
@@ -263,8 +265,15 @@ export default function RegisterPage() {
                   placeholder="Confirm password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  className={hasConfirmPassword ? (passwordsMatch ? "input-success" : "input-error") : ""}
                   required
                 />
+                {hasConfirmPassword && (
+                  <span className={`input-badge input-badge--password ${passwordsMatch ? "input-badge--success" : "input-badge--error"}`}>
+                    {passwordsMatch ? <FiCheckCircle /> : <FiAlertCircle />}
+                    {passwordsMatch ? "Match" : "No match"}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="register-password-toggle"
@@ -274,15 +283,6 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <FiEye /> : <FiEyeOff />}
                 </button>
               </div>
-
-              {hasConfirmPassword && (
-                <p className={`register-hint ${passwordsMatch ? "register-hint--success" : "register-hint--error"}`}>
-                  {passwordsMatch ? <FiCheckCircle /> : <FiXCircle />}
-                  <span>
-                    {passwordsMatch ? "Passwords match" : "Passwords do not match"}
-                  </span>
-                </p>
-              )}
             </div>
           </div>
 

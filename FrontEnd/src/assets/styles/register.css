@@ -66,6 +66,13 @@
   color: #0f172a;
 }
 
+.register-input-wrap,
+.register-password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .register-form__group input {
   width: 100%;
   padding: 14px 16px;
@@ -78,32 +85,54 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.register-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-.register-hint--success {
-  color: #16a34a;
-}
-
-.register-hint--error {
-  color: #dc2626;
-}
-
-.register-password-field {
-  position: relative;
-  display: flex;
-  align-items: center;
+.register-input-wrap input {
+  padding-right: 110px;
 }
 
 .register-password-field input {
-  width: 100%;
-  padding-right: 48px;
+  padding-right: 150px;
+}
+
+.register-form__group input::placeholder {
+  color: #94a3b8;
+}
+
+.register-form__group input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+  background: #fdfefe;
+}
+
+.input-success {
+  border-color: #16a34a !important;
+}
+
+.input-error {
+  border-color: #dc2626 !important;
+}
+
+.input-badge {
+  position: absolute;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.input-badge--password {
+  right: 44px;
+}
+
+.input-badge--success {
+  color: #16a34a;
+}
+
+.input-badge--error {
+  color: #dc2626;
 }
 
 .register-password-toggle {
@@ -125,23 +154,6 @@
 
 .register-password-toggle:focus {
   outline: none;
-}
-
-.register-form__group input::placeholder {
-  color: #94a3b8;
-}
-
-.register-form__group input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
-  background: #fdfefe;
-}
-
-.register-error {
-  margin: -6px 0 0;
-  font-size: 0.92rem;
-  color: #dc2626;
-  font-weight: 600;
 }
 
 .register-btn {
@@ -187,5 +199,17 @@
 
   .register-card__header h1 {
     font-size: 1.7rem;
+  }
+
+  .register-input-wrap input {
+    padding-right: 100px;
+  }
+
+  .register-password-field input {
+    padding-right: 140px;
+  }
+
+  .input-badge {
+    font-size: 0.72rem;
   }
 }
