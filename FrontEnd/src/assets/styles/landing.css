@@ -35,7 +35,9 @@
 .navbar__links {
     display: flex;
     gap: 56px;
-    font-size: 1rem;
+    font-size: 1.14rem;
+    font-weight: 600;
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
     color: #334155;
 }
 
@@ -51,7 +53,7 @@
 .navbar__actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     background: transparent;
     border-radius: 0;
     padding: 0;
@@ -65,6 +67,9 @@
     padding: 12px 22px;
     border-radius: 10px;
     cursor: pointer;
+    font-size: 1.14rem;
+    font-weight: 600;
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
     transition:
         background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
         background-image 0s,
@@ -112,6 +117,9 @@
     border-radius: 10px;
     padding: 14px 24px;
     cursor: pointer;
+    font-size: 1.14rem;
+    font-weight: 600;
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
     background: #2563eb;
     background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
     background-size: 220% 100%;
@@ -363,12 +371,15 @@
 }
 
 .cta .primary-btn {
-    display:inline-block;
+    display: inline-block;
     margin-top: 20px;
     border: none;
     border-radius: 10px;
     padding: 14px 24px;
     cursor: pointer;
+    font-size: 1.14rem;
+    font-weight: 600;
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
     background: #2563eb;
     background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
     background-size: 220% 100%;
@@ -460,11 +471,20 @@
     .navbar__links {
         flex-wrap: wrap;
         gap: 16px;
+        font-size: 1.02rem;
     }
 
     .navbar__actions {
         width: 100%;
         justify-content: flex-start;
+    }
+
+    .switch-btn {
+        font-size: 1.02rem;
+    }
+
+    .primary-btn {
+        font-size: 1.02rem;
     }
 
     .landing-body {
