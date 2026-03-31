@@ -18,11 +18,30 @@ export default function RegisterPage() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const capitalizeWords = (value) => {
+    return value.replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   const handleChange = (e) => {
     const { id, value } = e.target;
+
+    let formattedValue = value;
+
+    if (["companyName", "address", "adminFullName"].includes(id)) {
+      formattedValue = capitalizeWords(value);
+    }
+
+    if (id === "companyCode") {
+      formattedValue = value.toUpperCase();
+    }
+
+    if (id === "emailDomain" || id === "adminEmail") {
+      formattedValue = value.toLowerCase().trim();
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [id]: value,
+      [id]: formattedValue,
     }));
   };
 
@@ -31,14 +50,49 @@ export default function RegisterPage() {
   );
 
   const passwordsMatch = formData.adminPassword === formData.confirmPassword;
-  const isFormValid = allFieldsFilled && passwordsMatch;
 
-  const handleSubmit = (e) => {
+  const isValidDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(formData.emailDomain);
+
+  const emailMatchesDomain =
+    formData.adminEmail.toLowerCase().endsWith(`@${formData.emailDomain.toLowerCase()}`);
+
+  const isStrongPassword =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.adminPassword);
+
+  const isFormValid =
+    allFieldsFilled &&
+    passwordsMatch &&
+    isValidDomain &&
+    emailMatchesDomain &&
+    isStrongPassword;
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!isFormValid) return;
 
-    alert("Company registered successfully");
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/register-company", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(data.message || "Registration failed");
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify(data));
+      window.location.href = "/admin";
+    } catch (error) {
+      console.error(error);
+      alert("Error connecting to server");
+    }
   };
 
   return (
@@ -188,6 +242,20 @@ export default function RegisterPage() {
 
           {!passwordsMatch && formData.confirmPassword && (
             <p className="register-error">Passwords do not match.</p>
+          )}
+
+          {formData.emailDomain && !isValidDomain && (
+            <p className="register-error">Enter a valid company domain like example.com.</p>
+          )}
+
+          {formData.adminEmail && formData.emailDomain && isValidDomain && !emailMatchesDomain && (
+            <p className="register-error">Admin email must match the company domain.</p>
+          )}
+
+          {formData.adminPassword && !isStrongPassword && (
+            <p className="register-error">
+              Password must be at least 8 characters and include uppercase, lowercase, and a number.
+            </p>
           )}
 
           <button type="submit" className="register-btn" disabled={!isFormValid}>
