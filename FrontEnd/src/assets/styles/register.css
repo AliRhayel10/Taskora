@@ -1,9 +1,10 @@
 .register-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 28px 16px;
+  overflow: hidden;
   background-image:
     linear-gradient(rgba(226, 236, 255, 0.18), rgba(240, 246, 255, 0.18)),
     url("../images/cloud.png");

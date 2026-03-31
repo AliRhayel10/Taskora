@@ -12,6 +12,7 @@ body {
   margin: 0;
   font-family: 'Poppins', Arial, sans-serif;
   background: #f7f9fc;
+  overflow-x: hidden;
   color: #14213d;
 }
 
