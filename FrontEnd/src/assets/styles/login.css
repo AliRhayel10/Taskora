@@ -178,6 +178,10 @@
 }
 
 .login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 12px;
   border: none;
   border-radius: 16px;

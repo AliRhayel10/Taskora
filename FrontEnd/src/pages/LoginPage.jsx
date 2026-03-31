@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 import "./../assets/styles/login.css";
 
 export default function LoginPage() {
@@ -99,9 +99,10 @@ export default function LoginPage() {
 
           {errorMessage && <p className="login-error">{errorMessage}</p>}
 
-          <button type="submit" className="login-btn" disabled={!isFormValid}>
-            Login
-          </button>
+<button type="submit" className="login-btn" disabled={!isFormValid}>
+  <FiArrowRight />
+  <span>Access Dashboard</span>
+</button>
         </form>
       </div>
     </main>
