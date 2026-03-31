@@ -256,7 +256,7 @@
     content: "";
     flex: 1;
     height: 1px;
-    background: #c5c5c5;
+    background: #b4b4b4;
 }
 
 .section-title h2 {
@@ -437,7 +437,7 @@
     height: 290px;
     object-fit: contain;
     display: block;
-    margin: 10px auto 0;
+    margin: 0 auto 0;
 }
 
 .how-card h3,

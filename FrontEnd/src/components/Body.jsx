@@ -71,7 +71,7 @@ export default function Body() {
           <div className="step-card how-card">
             <div className="step-number">1</div>
             <h3>Create Tasks</h3>
-            <p>Add, assign, and organize tasks for your team.</p>
+            <p>Create, assign, and manage tasks efficiently across your entire team.</p>
             <img
               src={normalImg}
               alt="Create tasks in Taskora"
