@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from "react-router-dom";
 
 export default function Navbar() {
   return (
@@ -16,11 +16,13 @@ export default function Navbar() {
       </nav>
 
       <div className="navbar__actions">
-        <button className="switch-btn">Login</button>
+        <Link to="/login" className="switch-btn">
+          Login
+        </Link>
         <Link to="/register" className="switch-btn switch-btn--active">
           Get Started
         </Link>
       </div>
     </header>
-  )
+  );
 }
