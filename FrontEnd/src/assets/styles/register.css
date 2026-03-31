@@ -5,7 +5,7 @@
   justify-content: center;
   padding: 40px 16px;
   background-image:
-    linear-gradient(rgba(226, 236, 255, 0.28), rgba(240, 246, 255, 0.28)),
+    linear-gradient(rgba(226, 236, 255, 0.18), rgba(240, 246, 255, 0.18)),
     url("../images/cloud.png");
   background-size: cover;
   background-position: center;
@@ -15,12 +15,13 @@
 .register-card {
   width: 100%;
   max-width: 760px;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 24px;
   padding: 36px 30px;
-  box-shadow: 0 18px 45px rgba(15, 31, 77, 0.16);
-  backdrop-filter: blur(4px);
+  box-shadow: 0 18px 45px rgba(15, 31, 77, 0.14);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .register-card__header {
@@ -31,15 +32,16 @@
 .register-card__header h1 {
   margin: 0 0 10px;
   font-size: 2rem;
-  color: #0b1f52;
+  color: #06173d;
   font-weight: 800;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 .register-card__header p {
   margin: 0;
-  color: #475569;
+  color: #334155;
   line-height: 1.6;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .register-form {
@@ -76,10 +78,10 @@
 .register-form__group input {
   width: 100%;
   padding: 14px 16px;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid rgba(203, 213, 225, 0.95);
   border-radius: 12px;
   font-size: 1rem;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   color: #0f172a;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -100,7 +102,7 @@
 .register-form__group input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
-  background: #fdfefe;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .input-success {
