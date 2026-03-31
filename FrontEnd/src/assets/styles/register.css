@@ -160,6 +160,10 @@
 }
 
 .register-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 8px;
   border: none;
   border-radius: 12px;

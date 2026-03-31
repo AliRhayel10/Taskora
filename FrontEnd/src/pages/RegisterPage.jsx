@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { FiEye, FiEyeOff, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
+import {
+  FiEye,
+  FiEyeOff,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiArrowRight,
+} from "react-icons/fi";
 import "./../assets/styles/register.css";
 
 export default function RegisterPage() {
@@ -60,7 +66,9 @@ export default function RegisterPage() {
   const emailMatchesDomain =
     hasDomain &&
     hasAdminEmail &&
-    formData.adminEmail.toLowerCase().endsWith(`@${formData.emailDomain.toLowerCase()}`);
+    formData.adminEmail
+      .toLowerCase()
+      .endsWith(`@${formData.emailDomain.toLowerCase()}`);
 
   const isStrongPassword =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.adminPassword);
@@ -150,7 +158,11 @@ export default function RegisterPage() {
                   required
                 />
                 {hasDomain && (
-                  <span className={`input-badge ${isValidDomain ? "input-badge--success" : "input-badge--error"}`}>
+                  <span
+                    className={`input-badge ${
+                      isValidDomain ? "input-badge--success" : "input-badge--error"
+                    }`}
+                  >
                     {isValidDomain ? <FiCheckCircle /> : <FiAlertCircle />}
                     {isValidDomain ? "Valid" : "Invalid"}
                   </span>
@@ -216,7 +228,9 @@ export default function RegisterPage() {
                 />
                 {hasAdminEmail && hasDomain && isValidDomain && (
                   <span
-                    className={`input-badge ${emailMatchesDomain ? "input-badge--success" : "input-badge--error"}`}
+                    className={`input-badge ${
+                      emailMatchesDomain ? "input-badge--success" : "input-badge--error"
+                    }`}
                   >
                     {emailMatchesDomain ? <FiCheckCircle /> : <FiAlertCircle />}
                     {emailMatchesDomain ? "Match" : "No match"}
@@ -240,7 +254,11 @@ export default function RegisterPage() {
                   required
                 />
                 {hasPassword && (
-                  <span className={`input-badge input-badge--password ${isStrongPassword ? "input-badge--success" : "input-badge--error"}`}>
+                  <span
+                    className={`input-badge input-badge--password ${
+                      isStrongPassword ? "input-badge--success" : "input-badge--error"
+                    }`}
+                  >
                     {isStrongPassword ? <FiCheckCircle /> : <FiAlertCircle />}
                     {isStrongPassword ? "Strong" : "Weak"}
                   </span>
@@ -269,7 +287,11 @@ export default function RegisterPage() {
                   required
                 />
                 {hasConfirmPassword && (
-                  <span className={`input-badge input-badge--password ${passwordsMatch ? "input-badge--success" : "input-badge--error"}`}>
+                  <span
+                    className={`input-badge input-badge--password ${
+                      passwordsMatch ? "input-badge--success" : "input-badge--error"
+                    }`}
+                  >
                     {passwordsMatch ? <FiCheckCircle /> : <FiAlertCircle />}
                     {passwordsMatch ? "Match" : "No match"}
                   </span>
@@ -287,7 +309,8 @@ export default function RegisterPage() {
           </div>
 
           <button type="submit" className="register-btn" disabled={!isFormValid}>
-            Register Company
+            <FiArrowRight />
+            <span>Create Workspace</span>
           </button>
         </form>
       </div>
