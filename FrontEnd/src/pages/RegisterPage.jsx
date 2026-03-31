@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import "./../assets/styles/register.css";
 
 export default function RegisterPage() {
@@ -14,6 +15,9 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({
@@ -26,9 +30,7 @@ export default function RegisterPage() {
     (value) => value.trim() !== ""
   );
 
-  const passwordsMatch =
-    formData.adminPassword === formData.confirmPassword;
-
+  const passwordsMatch = formData.adminPassword === formData.confirmPassword;
   const isFormValid = allFieldsFilled && passwordsMatch;
 
   const handleSubmit = (e) => {
@@ -141,26 +143,46 @@ export default function RegisterPage() {
           <div className="register-form__row">
             <div className="register-form__group">
               <label htmlFor="adminPassword">Admin Password</label>
-              <input
-                id="adminPassword"
-                type="password"
-                placeholder="Enter password"
-                value={formData.adminPassword}
-                onChange={handleChange}
-                required
-              />
+              <div className="register-password-field">
+                <input
+                  id="adminPassword"
+                  type={showAdminPassword ? "text" : "password"}
+                  placeholder="Enter password"
+                  value={formData.adminPassword}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={() => setShowAdminPassword((prev) => !prev)}
+                  aria-label={showAdminPassword ? "Hide password" : "Show password"}
+                >
+                  {showAdminPassword ? <FiEye /> : <FiEyeOff />}
+                </button>
+              </div>
             </div>
 
             <div className="register-form__group">
               <label htmlFor="confirmPassword">Confirm Password</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
+              <div className="register-password-field">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <FiEye /> : <FiEyeOff />}
+                </button>
+              </div>
             </div>
           </div>
 

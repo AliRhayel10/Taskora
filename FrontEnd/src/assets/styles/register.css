@@ -78,6 +78,38 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
+.register-password-field {
+  position: relative;
+}
+
+.register-password-field input {
+  padding-right: 52px;
+}
+
+.register-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1.2rem;
+}
+
+.register-password-toggle:hover {
+  color: #0f172a;
+}
+
+.register-password-toggle:focus {
+  outline: none;
+}
+
 .register-form__group input::placeholder {
   color: #94a3b8;
 }
