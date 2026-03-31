@@ -18,12 +18,25 @@ namespace BackEnd.Controllers
         [HttpGet("test")]
         public IActionResult Test()
         {
-            return Ok("API is working");
+            return Ok(new
+            {
+                success = true,
+                message = "API is working"
+            });
         }
 
         [HttpPost("register-company")]
         public async Task<IActionResult> RegisterCompany([FromBody] RegisterCompanyRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(new RegisterCompanyResponse
+                {
+                    Success = false,
+                    Message = "Request body is required"
+                });
+            }
+
             var result = await _companyRegistrationService.RegisterCompanyAsync(request);
 
             if (!result.Success)

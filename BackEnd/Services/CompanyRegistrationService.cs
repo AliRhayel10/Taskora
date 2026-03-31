@@ -16,17 +16,15 @@ namespace BackEnd.Services
 
         public async Task<RegisterCompanyResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
         {
-            // ✅ Password validation
-            if (request.AdminPassword != request.ConfirmPassword)
+            if (request == null)
             {
                 return new RegisterCompanyResponse
                 {
                     Success = false,
-                    Message = "Passwords do not match"
+                    Message = "Request data is required."
                 };
             }
 
-            // ✅ Required fields validation
             if (string.IsNullOrWhiteSpace(request.CompanyName) ||
                 string.IsNullOrWhiteSpace(request.CompanyCode) ||
                 string.IsNullOrWhiteSpace(request.EmailDomain) ||
@@ -34,7 +32,8 @@ namespace BackEnd.Services
                 string.IsNullOrWhiteSpace(request.Address) ||
                 string.IsNullOrWhiteSpace(request.AdminFullName) ||
                 string.IsNullOrWhiteSpace(request.AdminEmail) ||
-                string.IsNullOrWhiteSpace(request.AdminPassword))
+                string.IsNullOrWhiteSpace(request.AdminPassword) ||
+                string.IsNullOrWhiteSpace(request.ConfirmPassword))
             {
                 return new RegisterCompanyResponse
                 {
@@ -43,8 +42,24 @@ namespace BackEnd.Services
                 };
             }
 
-            // ✅ Check duplicates
-            if (await _context.Companies.AnyAsync(c => c.CompanyName == request.CompanyName))
+            if (request.AdminPassword != request.ConfirmPassword)
+            {
+                return new RegisterCompanyResponse
+                {
+                    Success = false,
+                    Message = "Passwords do not match."
+                };
+            }
+
+            var companyName = request.CompanyName.Trim();
+            var companyCode = request.CompanyCode.Trim();
+            var emailDomain = request.EmailDomain.Trim();
+            var companyPhone = request.CompanyPhone.Trim();
+            var address = request.Address.Trim();
+            var adminFullName = request.AdminFullName.Trim();
+            var adminEmail = request.AdminEmail.Trim().ToLower();
+
+            if (await _context.Companies.AnyAsync(c => c.CompanyName == companyName))
             {
                 return new RegisterCompanyResponse
                 {
@@ -53,7 +68,7 @@ namespace BackEnd.Services
                 };
             }
 
-            if (await _context.Companies.AnyAsync(c => c.CompanyCode == request.CompanyCode))
+            if (await _context.Companies.AnyAsync(c => c.CompanyCode == companyCode))
             {
                 return new RegisterCompanyResponse
                 {
@@ -62,7 +77,7 @@ namespace BackEnd.Services
                 };
             }
 
-            if (await _context.Users.AnyAsync(u => u.Email == request.AdminEmail))
+            if (await _context.Users.AnyAsync(u => u.Email.ToLower() == adminEmail))
             {
                 return new RegisterCompanyResponse
                 {
@@ -71,40 +86,36 @@ namespace BackEnd.Services
                 };
             }
 
-            // ✅ Start transaction
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // 🔹 1. Create Company
                 var company = new Company
                 {
-                    CompanyName = request.CompanyName,
-                    CompanyCode = request.CompanyCode,
-                    EmailDomain = request.EmailDomain,
-                    CompanyPhone = request.CompanyPhone,
-                    Address = request.Address,
+                    CompanyName = companyName,
+                    CompanyCode = companyCode,
+                    EmailDomain = emailDomain,
+                    CompanyPhone = companyPhone,
+                    Address = address,
                     IsActive = true
                 };
 
                 _context.Companies.Add(company);
                 await _context.SaveChangesAsync();
 
-                // 🔹 2. Create Admin User
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword);
 
                 var adminUser = new User
                 {
                     CompanyId = company.CompanyId,
-                    FullName = request.AdminFullName,
-                    Email = request.AdminEmail,
+                    FullName = adminFullName,
+                    Email = adminEmail,
                     PasswordHash = hashedPassword
                 };
 
                 _context.Users.Add(adminUser);
                 await _context.SaveChangesAsync();
 
-                // 🔹 3. Assign Role
                 var companyAdminRole = await _context.Roles
                     .FirstOrDefaultAsync(r => r.RoleName == "CompanyAdmin");
 
@@ -127,41 +138,69 @@ namespace BackEnd.Services
 
                 _context.UserRoles.Add(userRole);
 
-                // 🔹 4. Add Default Priority Multipliers
                 _context.PriorityMultipliers.AddRange(
-                    new PriorityMultiplier { CompanyId = company.CompanyId, PriorityName = "Low", Multiplier = 1.00m },
-                    new PriorityMultiplier { CompanyId = company.CompanyId, PriorityName = "Medium", Multiplier = 1.50m },
-                    new PriorityMultiplier { CompanyId = company.CompanyId, PriorityName = "High", Multiplier = 2.00m }
+                    new PriorityMultiplier
+                    {
+                        CompanyId = company.CompanyId,
+                        PriorityName = "Low",
+                        Multiplier = 1.00m
+                    },
+                    new PriorityMultiplier
+                    {
+                        CompanyId = company.CompanyId,
+                        PriorityName = "Medium",
+                        Multiplier = 1.50m
+                    },
+                    new PriorityMultiplier
+                    {
+                        CompanyId = company.CompanyId,
+                        PriorityName = "High",
+                        Multiplier = 2.00m
+                    }
                 );
 
-                // 🔹 5. Add Default Complexity Multipliers
                 _context.ComplexityMultipliers.AddRange(
-                    new ComplexityMultiplier { CompanyId = company.CompanyId, ComplexityName = "Simple", Multiplier = 1.00m },
-                    new ComplexityMultiplier { CompanyId = company.CompanyId, ComplexityName = "Medium", Multiplier = 1.50m },
-                    new ComplexityMultiplier { CompanyId = company.CompanyId, ComplexityName = "Complex", Multiplier = 2.00m }
+                    new ComplexityMultiplier
+                    {
+                        CompanyId = company.CompanyId,
+                        ComplexityName = "Simple",
+                        Multiplier = 1.00m
+                    },
+                    new ComplexityMultiplier
+                    {
+                        CompanyId = company.CompanyId,
+                        ComplexityName = "Medium",
+                        Multiplier = 1.50m
+                    },
+                    new ComplexityMultiplier
+                    {
+                        CompanyId = company.CompanyId,
+                        ComplexityName = "Complex",
+                        Multiplier = 2.00m
+                    }
                 );
 
-                // 🔹 Final save
                 await _context.SaveChangesAsync();
-
-                // 🔹 Commit transaction
                 await transaction.CommitAsync();
 
                 return new RegisterCompanyResponse
                 {
                     Success = true,
-                    Message = "Company registered successfully."
+                    Message = "Company registered successfully.",
+                    UserId = adminUser.UserId,
+                    FullName = adminUser.FullName,
+                    Email = adminUser.Email,
+                    Role = "CompanyAdmin"
                 };
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
 
-                // 🔥 FULL DEBUG MESSAGE
                 return new RegisterCompanyResponse
                 {
                     Success = false,
-                    Message = ex.ToString()
+                    Message = $"Registration failed: {ex.Message}"
                 };
             }
         }
