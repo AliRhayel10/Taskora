@@ -9,10 +9,14 @@ namespace BackEnd.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ICompanyRegistrationService _companyRegistrationService;
+        private readonly ILoginService _loginService;
 
-        public AuthController(ICompanyRegistrationService companyRegistrationService)
+        public AuthController(
+            ICompanyRegistrationService companyRegistrationService,
+            ILoginService loginService)
         {
             _companyRegistrationService = companyRegistrationService;
+            _loginService = loginService;
         }
 
         [HttpGet("test")]
@@ -38,6 +42,28 @@ namespace BackEnd.Controllers
             }
 
             var result = await _companyRegistrationService.RegisterCompanyAsync(request);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new LoginResponse
+                {
+                    Success = false,
+                    Message = "Request body is required"
+                });
+            }
+
+            var result = await _loginService.LoginAsync(request);
 
             if (!result.Success)
             {

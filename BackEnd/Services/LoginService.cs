@@ -1,0 +1,77 @@
+using BackEnd.Data;
+using BackEnd.DTOs;
+using Microsoft.EntityFrameworkCore;
+
+namespace BackEnd.Services
+{
+    public class LoginService : ILoginService
+    {
+        private readonly AppDbContext _context;
+
+        public LoginService(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<LoginResponse> LoginAsync(LoginRequest request)
+        {
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Email) ||
+                string.IsNullOrWhiteSpace(request.Password))
+            {
+                return new LoginResponse
+                {
+                    Success = false,
+                    Message = "Email and password are required."
+                };
+            }
+
+            var email = request.Email.Trim().ToLower();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+            if (user == null)
+            {
+                return new LoginResponse
+                {
+                    Success = false,
+                    Message = "Invalid email or password."
+                };
+            }
+
+            var passwordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+
+            if (!passwordValid)
+            {
+                return new LoginResponse
+                {
+                    Success = false,
+                    Message = "Invalid email or password."
+                };
+            }
+
+            var roleName = await _context.UserRoles
+                .Where(ur => ur.UserId == user.UserId)
+                .Join(
+                    _context.Roles,
+                    ur => ur.RoleId,
+                    r => r.RoleId,
+                    (ur, r) => r.RoleName
+                )
+                .FirstOrDefaultAsync();
+
+            return new LoginResponse
+            {
+                Success = true,
+                Message = "Login successful.",
+                UserId = user.UserId,
+                CompanyId = user.CompanyId,
+                FullName = user.FullName,
+                Email = user.Email,
+                Role = roleName ?? "User",
+                Token = string.Empty
+            };
+        }
+    }
+}

@@ -13,6 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     ));
 
 builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
+builder.Services.AddScoped<ILoginService, LoginService>();
 
 builder.Services.AddControllers();
 
