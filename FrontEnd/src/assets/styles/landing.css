@@ -363,6 +363,8 @@
 }
 
 .cta .primary-btn {
+    display:inline-block;
+    margin-top: 20px;
     border: none;
     border-radius: 10px;
     padding: 14px 24px;
