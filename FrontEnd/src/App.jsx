@@ -14,7 +14,11 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
+
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/teamleader" element={<div>Team Leader Page</div>} />
+      <Route path="/employee" element={<div>Employee Page</div>} />
+
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

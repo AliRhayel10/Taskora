@@ -10,11 +10,22 @@ export default function AdminDashboard() {
     return storedUser ? JSON.parse(storedUser) : null;
   }, []);
 
-  useEffect(() => {
-    if (!user) {
-      window.location.href = "/login";
-    }
-  }, [user]);
+useEffect(() => {
+  if (!user) {
+    window.location.href = "/login";
+    return;
+  }
+
+  const role = (user.role || "").toLowerCase().trim();
+
+  if (
+    role !== "admin" &&
+    role !== "company admin" &&
+    role !== "companyadmin"
+  ) {
+    window.location.href = "/login";
+  }
+}, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
