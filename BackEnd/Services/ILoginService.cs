@@ -6,6 +6,7 @@ namespace BackEnd.Services
     {
         Task<LoginResponse> LoginAsync(LoginRequest request);
         Task<string?> GeneratePasswordResetTokenAsync(string email);
-Task<bool> ResetPasswordAsync(string token, string newPassword, string confirmPassword);
+        Task<bool> ResetPasswordAsync(string token, string newPassword, string confirmPassword);
+        Task<bool> VerifyResetOtpAsync(string email, string otp);
     }
 }

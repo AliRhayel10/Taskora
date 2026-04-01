@@ -102,5 +102,18 @@ public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest r
 
     return Ok(new { success = true, message = "Password reset successful." });
 }
+
+[HttpPost("verify-reset-otp")]
+public async Task<IActionResult> VerifyResetOtp([FromBody] VerifyResetOtpRequest request)
+{
+    var result = await _loginService.VerifyResetOtpAsync(request.Email, request.Otp);
+
+    if (!result)
+    {
+        return BadRequest(new { success = false, message = "Invalid or expired code." });
+    }
+
+    return Ok(new { success = true, message = "OTP verified successfully." });
+}
     }
 }

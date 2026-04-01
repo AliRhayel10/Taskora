@@ -33,16 +33,11 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setErrorMessage(data.message || "Failed to send reset link.");
+        setErrorMessage(data.message || "Failed to send verification code.");
         return;
       }
 
-      if (data.token) {
-        navigate(`/reset-password?token=${encodeURIComponent(data.token)}`);
-        return;
-      }
-
-      setErrorMessage("No reset token was returned.");
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (error) {
       console.error(error);
       setErrorMessage("Error connecting to server.");
@@ -56,7 +51,7 @@ export default function ForgotPasswordPage() {
       <div className="login-card">
         <div className="login-card__header">
           <h1>Forgot Your Password?</h1>
-          <p>Enter your email and we’ll help you reset your password.</p>
+          <p>Enter your email and we’ll send you a verification code.</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -74,13 +69,9 @@ export default function ForgotPasswordPage() {
 
           {errorMessage && <p className="login-error">{errorMessage}</p>}
 
-          <button
-            type="submit"
-            className="login-btn"
-            disabled={!isFormValid || loading}
-          >
+          <button type="submit" className="login-btn" disabled={!isFormValid || loading}>
             <FiArrowRight />
-            <span>{loading ? "Sending..." : "Send Reset Link"}</span>
+            <span>{loading ? "Sending..." : "Send Code"}</span>
           </button>
         </form>
 

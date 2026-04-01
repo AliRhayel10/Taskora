@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 import "./../assets/styles/reset-password.css";
@@ -7,7 +7,8 @@ export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
+  const email = useMemo(() => searchParams.get("email") || "", [searchParams]);
+  const otp = useMemo(() => searchParams.get("otp") || "", [searchParams]);
 
   const [formData, setFormData] = useState({
     newPassword: "",
@@ -25,7 +26,8 @@ export default function ResetPasswordPage() {
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.newPassword);
 
   const isFormValid =
-    token.trim() !== "" &&
+    email.trim() !== "" &&
+    otp.trim() !== "" &&
     formData.newPassword.trim() !== "" &&
     formData.confirmPassword.trim() !== "" &&
     passwordsMatch &&
@@ -33,7 +35,6 @@ export default function ResetPasswordPage() {
 
   const handleChange = (e) => {
     const { id, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [id]: value,
@@ -47,17 +48,16 @@ export default function ResetPasswordPage() {
 
     setMessage("");
     setErrorMessage("");
+    setLoading(true);
 
     try {
-      setLoading(true);
-
       const response = await fetch("http://localhost:5000/api/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          token,
+          token: otp,
           newPassword: formData.newPassword,
           confirmPassword: formData.confirmPassword,
         }),
@@ -72,10 +72,11 @@ export default function ResetPasswordPage() {
       }
 
       setMessage(data.message || "Password reset successful.");
+      setLoading(false);
 
       setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+        navigate("/login", { replace: true });
+      }, 1200);
     } catch (error) {
       console.error(error);
       setErrorMessage("Error connecting to server.");
@@ -91,9 +92,9 @@ export default function ResetPasswordPage() {
           <p>Create a new password for your account.</p>
         </div>
 
-        {!token && (
+        {(!email || !otp) && (
           <p className="login-error">
-            Missing reset token. Please request a new password reset link.
+            Missing verification details. Please request a new code.
           </p>
         )}
 
@@ -155,7 +156,11 @@ export default function ResetPasswordPage() {
           {message && <p className="login-success">{message}</p>}
           {errorMessage && <p className="login-error">{errorMessage}</p>}
 
-          <button type="submit" className="login-btn" disabled={!isFormValid || loading}>
+          <button
+            type="submit"
+            className="login-btn"
+            disabled={!isFormValid || loading}
+          >
             <FiArrowRight />
             <span>{loading ? "Resetting..." : "Reset Password"}</span>
           </button>

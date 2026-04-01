@@ -130,5 +130,24 @@ namespace BackEnd.Services
 
             return true;
         }
+
+        public async Task<bool> VerifyResetOtpAsync(string email, string otp)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
+                return false;
+
+            email = email.Trim().ToLower();
+
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == email &&
+                u.PasswordResetToken == otp &&
+                u.PasswordResetTokenExpiresAt != null &&
+                u.PasswordResetTokenExpiresAt > DateTime.UtcNow);
+
+            if (user == null)
+                return false;
+
+            return true;
+        }
     }
 }
