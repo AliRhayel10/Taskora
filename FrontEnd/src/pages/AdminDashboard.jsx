@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       />
 
       <main className="admin-main">
-        <div className="admin-placeholder-card">
+        <div className="admin-page-header">
           <h1>{section.title}</h1>
           <p>{section.subtitle}</p>
         </div>

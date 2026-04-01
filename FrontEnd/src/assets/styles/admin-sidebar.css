@@ -5,7 +5,7 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 26px 18px 22px;
-  background: #0f172a;
+  background: #0b1736;
   border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
 
@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
 }
 
@@ -50,14 +50,14 @@
 
 .admin-sidebar__logo-text p {
   margin: 4px 0 0;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.58);
   font-size: 0.88rem;
   font-weight: 600;
 }
 
 .admin-sidebar__divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   margin: 0 8px;
 }
 
@@ -84,15 +84,15 @@
 }
 
 .admin-sidebar__link:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   color: #ffffff;
 }
 
 .admin-sidebar__link--active {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
-  border-left: 3px solid #ffffff;
-  padding-left: 11px;
+  border-left: 2px solid rgba(255, 255, 255, 0.72);
+  padding-left: 12px;
 }
 
 .admin-sidebar__link-icon {
@@ -114,7 +114,7 @@
   gap: 12px;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .admin-sidebar__avatar {
@@ -139,7 +139,7 @@
 
 .admin-sidebar__profile-info p {
   margin: 4px 0 0;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.58);
   font-size: 0.86rem;
   font-weight: 600;
 }
@@ -149,7 +149,7 @@
   border-radius: 14px;
   padding: 14px 16px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
   font-size: 0.98rem;
   font-weight: 800;
@@ -161,7 +161,7 @@
 }
 
 .admin-sidebar__logout:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 980px) {
