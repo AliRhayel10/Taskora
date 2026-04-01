@@ -6,8 +6,8 @@ import {
   FiBarChart2,
   FiSettings,
   FiLogOut,
-  FiCheck,
 } from "react-icons/fi";
+import BrandLogo from "./BrandLogo";
 import "./../assets/styles/admin-sidebar.css";
 
 export default function AdminSidebar({
@@ -37,15 +37,7 @@ export default function AdminSidebar({
     <aside className="admin-sidebar">
       <div className="admin-sidebar__top">
         <div className="admin-sidebar__brand">
-          <div className="admin-sidebar__logo">
-            <div className="admin-sidebar__logo-icon">
-              <FiCheck />
-            </div>
-            <div className="admin-sidebar__logo-text">
-              <h2>Taskora</h2>
-              <p>Admin Panel</p>
-            </div>
-          </div>
+          <BrandLogo subtitle="Admin Panel" dark />
         </div>
 
         <div className="admin-sidebar__divider"></div>

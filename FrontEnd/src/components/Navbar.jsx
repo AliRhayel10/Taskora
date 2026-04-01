@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 
 export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__logo">
-        <div className="navbar__logo-icon">✓</div>
-        <span>Taskora</span>
+        <BrandLogo />
       </div>
 
       <nav className="navbar__links">
