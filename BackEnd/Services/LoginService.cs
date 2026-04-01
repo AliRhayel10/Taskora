@@ -73,5 +73,58 @@ namespace BackEnd.Services
                 Token = string.Empty
             };
         }
+
+        public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return null;
+
+            email = email.Trim().ToLower();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+            if (user == null)
+                return null;
+
+            var token = Guid.NewGuid().ToString();
+
+            user.PasswordResetToken = token;
+            user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+
+            await _context.SaveChangesAsync();
+
+            return token;
+        }
+
+        public async Task<bool> ResetPasswordAsync(string token, string newPassword, string confirmPassword)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(newPassword) ||
+                string.IsNullOrWhiteSpace(confirmPassword))
+                return false;
+
+            if (newPassword != confirmPassword)
+                return false;
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u =>
+                    u.PasswordResetToken == token &&
+                    u.PasswordResetTokenExpiresAt != null &&
+                    u.PasswordResetTokenExpiresAt > DateTime.UtcNow);
+
+            if (user == null)
+                return false;
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiresAt = null;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
     }
 }

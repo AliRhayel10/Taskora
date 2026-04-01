@@ -72,5 +72,35 @@ namespace BackEnd.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("forgot-password")]
+public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+{
+    var token = await _loginService.GeneratePasswordResetTokenAsync(request.Email);
+
+    return Ok(new
+    {
+        success = true,
+        message = "If email exists, reset link sent.",
+        token = token // TEMP for testing
+    });
+}
+
+[HttpPost("reset-password")]
+public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+{
+    var result = await _loginService.ResetPasswordAsync(
+        request.Token,
+        request.NewPassword,
+        request.ConfirmPassword
+    );
+
+    if (!result)
+    {
+        return BadRequest(new { success = false, message = "Invalid token or passwords." });
+    }
+
+    return Ok(new { success = true, message = "Password reset successful." });
+}
     }
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 import "./../assets/styles/login.css";
 
@@ -76,7 +77,13 @@ export default function LoginPage() {
           </div>
 
           <div className="login-form__group">
-            <label htmlFor="password">Password</label>
+            <div className="login-form__label-row">
+              <label htmlFor="password">Password</label>
+              <Link to="/forgot-password" className="forgot-link">
+                Forgot password?
+              </Link>
+            </div>
+
             <div className="login-password-field">
               <input
                 id="password"
@@ -99,10 +106,10 @@ export default function LoginPage() {
 
           {errorMessage && <p className="login-error">{errorMessage}</p>}
 
-<button type="submit" className="login-btn" disabled={!isFormValid}>
-  <FiArrowRight />
-  <span>Access Dashboard</span>
-</button>
+          <button type="submit" className="login-btn" disabled={!isFormValid}>
+            <FiArrowRight />
+            <span>Access Dashboard</span>
+          </button>
         </form>
       </div>
     </main>
