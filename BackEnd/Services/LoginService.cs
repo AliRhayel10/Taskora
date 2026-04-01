@@ -7,10 +7,12 @@ namespace BackEnd.Services
     public class LoginService : ILoginService
     {
         private readonly AppDbContext _context;
+        private readonly EmailService _emailService;
 
-        public LoginService(AppDbContext context)
+        public LoginService(AppDbContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -87,14 +89,16 @@ namespace BackEnd.Services
             if (user == null)
                 return null;
 
-            var token = Guid.NewGuid().ToString();
+            var otp = new Random().Next(100000, 999999).ToString();
 
-            user.PasswordResetToken = token;
-            user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+            user.PasswordResetToken = otp;
+            user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(10);
 
             await _context.SaveChangesAsync();
 
-            return token;
+            await _emailService.SendOtpAsync(user.Email, otp);
+
+            return otp;
         }
 
         public async Task<bool> ResetPasswordAsync(string token, string newPassword, string confirmPassword)
