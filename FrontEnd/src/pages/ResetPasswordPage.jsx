@@ -1,6 +1,12 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
+import {
+  FiEye,
+  FiEyeOff,
+  FiArrowRight,
+  FiCheckCircle,
+  FiAlertCircle,
+} from "react-icons/fi";
 import "./../assets/styles/reset-password.css";
 
 export default function ResetPasswordPage() {
@@ -18,8 +24,11 @@ export default function ResetPasswordPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [resetFailed, setResetFailed] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const hasNewPassword = formData.newPassword.trim() !== "";
+  const hasConfirmPassword = formData.confirmPassword.trim() !== "";
 
   const passwordsMatch = formData.newPassword === formData.confirmPassword;
   const isStrongPassword =
@@ -28,17 +37,21 @@ export default function ResetPasswordPage() {
   const isFormValid =
     email.trim() !== "" &&
     otp.trim() !== "" &&
-    formData.newPassword.trim() !== "" &&
-    formData.confirmPassword.trim() !== "" &&
+    hasNewPassword &&
+    hasConfirmPassword &&
     passwordsMatch &&
     isStrongPassword;
 
   const handleChange = (e) => {
     const { id, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [id]: value,
     }));
+
+    setResetFailed(false);
+    setMessage("");
   };
 
   const handleSubmit = async (e) => {
@@ -47,7 +60,7 @@ export default function ResetPasswordPage() {
     if (!isFormValid || loading) return;
 
     setMessage("");
-    setErrorMessage("");
+    setResetFailed(false);
     setLoading(true);
 
     try {
@@ -66,7 +79,7 @@ export default function ResetPasswordPage() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setErrorMessage(data.message || "Password reset failed.");
+        setResetFailed(true);
         setLoading(false);
         return;
       }
@@ -79,7 +92,7 @@ export default function ResetPasswordPage() {
       }, 1200);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Error connecting to server.");
+      setResetFailed(true);
       setLoading(false);
     }
   };
@@ -93,7 +106,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {(!email || !otp) && (
-          <p className="login-error">
+          <p className="login-error-box">
             Missing verification details. Please request a new code.
           </p>
         )}
@@ -108,8 +121,27 @@ export default function ResetPasswordPage() {
                 placeholder="Enter new password"
                 value={formData.newPassword}
                 onChange={handleChange}
+                className={
+                  hasNewPassword
+                    ? isStrongPassword
+                      ? "input-success"
+                      : "input-error"
+                    : ""
+                }
                 required
               />
+
+              {hasNewPassword && (
+                <span
+                  className={`input-badge input-badge--password ${
+                    isStrongPassword ? "input-badge--success" : "input-badge--error"
+                  }`}
+                >
+                  {isStrongPassword ? <FiCheckCircle /> : <FiAlertCircle />}
+                  {isStrongPassword ? "Strong" : "Weak"}
+                </span>
+              )}
+
               <button
                 type="button"
                 className="login-password-toggle"
@@ -130,8 +162,34 @@ export default function ResetPasswordPage() {
                 placeholder="Confirm new password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                className={
+                  resetFailed
+                    ? "input-error"
+                    : hasConfirmPassword
+                    ? passwordsMatch
+                      ? "input-success"
+                      : "input-error"
+                    : ""
+                }
                 required
               />
+
+              {resetFailed ? (
+                <span className="input-badge input-badge--password input-badge--error">
+                  <FiAlertCircle />
+                  Failed
+                </span>
+              ) : hasConfirmPassword ? (
+                <span
+                  className={`input-badge input-badge--password ${
+                    passwordsMatch ? "input-badge--success" : "input-badge--error"
+                  }`}
+                >
+                  {passwordsMatch ? <FiCheckCircle /> : <FiAlertCircle />}
+                  {passwordsMatch ? "Match" : "No match"}
+                </span>
+              ) : null}
+
               <button
                 type="button"
                 className="login-password-toggle"
@@ -143,18 +201,7 @@ export default function ResetPasswordPage() {
             </div>
           </div>
 
-          {formData.newPassword && !isStrongPassword && (
-            <p className="login-error">
-              Password must be at least 8 characters and include uppercase, lowercase, and a number.
-            </p>
-          )}
-
-          {formData.confirmPassword && !passwordsMatch && (
-            <p className="login-error">Passwords do not match.</p>
-          )}
-
           {message && <p className="login-success">{message}</p>}
-          {errorMessage && <p className="login-error">{errorMessage}</p>}
 
           <button
             type="submit"
