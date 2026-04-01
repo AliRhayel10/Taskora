@@ -49,15 +49,15 @@ export default function LoginPage() {
 
       localStorage.setItem("user", JSON.stringify(data));
 
-const role = (data.role || "").toLowerCase().trim();
+      const role = (data.role || "").toLowerCase().trim();
 
-if (role === "admin" || role === "company admin" || role === "companyadmin") {
-  window.location.href = "/admin";
-} else if (role === "team leader" || role === "teamleader") {
-  window.location.href = "/teamleader";
-} else {
-  window.location.href = "/employee";
-}
+      if (role === "admin" || role === "company admin" || role === "companyadmin") {
+        window.location.href = "/admin";
+      } else if (role === "team leader" || role === "teamleader") {
+        window.location.href = "/teamleader";
+      } else {
+        window.location.href = "/employee";
+      }
     } catch (error) {
       console.error(error);
       setErrorMessage("Error connecting to server.");
