@@ -1,5 +1,57 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { FiCamera } from "react-icons/fi";
+import Cropper from "react-easy-crop";
 import "./../../assets/styles/admin/profile-section.css";
+
+function createImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.setAttribute("crossOrigin", "anonymous");
+    image.src = url;
+  });
+}
+
+async function getCroppedImage(src, cropPixels) {
+  const image = await createImage(src);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  canvas.width = cropPixels.width;
+  canvas.height = cropPixels.height;
+
+  context.drawImage(
+    image,
+    cropPixels.x,
+    cropPixels.y,
+    cropPixels.width,
+    cropPixels.height,
+    0,
+    0,
+    cropPixels.width,
+    cropPixels.height
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Failed to crop image."));
+          return;
+        }
+
+        const file = new File([blob], "profile-image.jpg", {
+          type: "image/jpeg",
+        });
+
+        resolve(file);
+      },
+      "image/jpeg",
+      0.95
+    );
+  });
+}
 
 export default function ProfileSection({ user }) {
   const fullName = user?.fullName || "Not available";
@@ -17,20 +69,55 @@ export default function ProfileSection({ user }) {
       .toUpperCase() || "AU";
 
   const [imagePreview, setImagePreview] = useState(
-    user?.profileImageUrl
-      ? `http://localhost:5000${user.profileImageUrl}`
-      : ""
+    user?.profileImageUrl ? `http://localhost:5000${user.profileImageUrl}` : ""
   );
+  const [selectedImage, setSelectedImage] = useState("");
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleImageUpload = async (e) => {
+  const onCropComplete = useCallback((_, croppedPixels) => {
+    setCroppedAreaPixels(croppedPixels);
+  }, []);
+
+  const handleSelectImage = (e) => {
     const file = e.target.files?.[0];
-    if (!file || !user?.userId) return;
+    if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("userId", user.userId);
+    const localUrl = URL.createObjectURL(file);
+    setSelectedImage(localUrl);
+    setCrop({ x: 0, y: 0 });
+    setShowCropModal(true);
+
+    e.target.value = "";
+  };
+
+  const handleCloseCropModal = () => {
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage);
+    }
+    setSelectedImage("");
+    setShowCropModal(false);
+    setCrop({ x: 0, y: 0 });
+    setCroppedAreaPixels(null);
+  };
+
+  const handleSaveCroppedImage = async () => {
+    if (!selectedImage || !croppedAreaPixels || !user?.userId) return;
 
     try {
+      setIsUploading(true);
+
+      const croppedFile = await getCroppedImage(
+        selectedImage,
+        croppedAreaPixels
+      );
+
+      const formData = new FormData();
+      formData.append("file", croppedFile);
+      formData.append("userId", String(user.userId));
+
       const response = await fetch(
         "http://localhost:5000/api/auth/upload-profile-image",
         {
@@ -43,6 +130,7 @@ export default function ProfileSection({ user }) {
 
       if (!response.ok || !data.success) {
         console.error(data.message || "Image upload failed.");
+        setIsUploading(false);
         return;
       }
 
@@ -59,8 +147,12 @@ export default function ProfileSection({ user }) {
           profileImageUrl: data.imageUrl,
         })
       );
+
+      handleCloseCropModal();
     } catch (error) {
       console.error("Error uploading image:", error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -86,8 +178,13 @@ export default function ProfileSection({ user }) {
           )}
 
           <label className="profile-upload-btn">
-            📷
-            <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+            <FiCamera />
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleSelectImage}
+            />
           </label>
         </div>
 
@@ -141,6 +238,38 @@ export default function ProfileSection({ user }) {
           </div>
         </div>
       </div>
+
+      {showCropModal && (
+        <div className="profile-crop-modal">
+          <div className="profile-crop-modal__card simple-crop-card">
+
+            <div className="profile-crop-modal__crop-area simple-crop-area">
+              <Cropper
+                image={selectedImage}
+                crop={crop}
+                zoom={1}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+
+            <div className="simple-crop-actions">
+              <button
+                type="button"
+                className="simple-save-btn"
+                onClick={handleSaveCroppedImage}
+                disabled={isUploading}
+              >
+                {isUploading ? "Saving..." : "Save"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </section>
   );
 }
