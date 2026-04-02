@@ -27,7 +27,6 @@ namespace BackEnd.Services
 
             if (string.IsNullOrWhiteSpace(request.CompanyName) ||
                 string.IsNullOrWhiteSpace(request.CompanyCode) ||
-                string.IsNullOrWhiteSpace(request.EmailDomain) ||
                 string.IsNullOrWhiteSpace(request.CompanyPhone) ||
                 string.IsNullOrWhiteSpace(request.Address) ||
                 string.IsNullOrWhiteSpace(request.AdminFullName) ||
@@ -53,7 +52,7 @@ namespace BackEnd.Services
 
             var companyName = request.CompanyName.Trim();
             var companyCode = request.CompanyCode.Trim();
-            var emailDomain = request.EmailDomain.Trim();
+            var emailDomain = request.EmailDomain?.Trim() ?? "";
             var companyPhone = request.CompanyPhone.Trim();
             var address = request.Address.Trim();
             var adminFullName = request.AdminFullName.Trim();

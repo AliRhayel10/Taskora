@@ -4,7 +4,7 @@ namespace BackEnd.DTOs
     {
         public string CompanyName { get; set; } = string.Empty;
         public string CompanyCode { get; set; } = string.Empty;
-        public string EmailDomain { get; set; } = string.Empty;
+        public string? EmailDomain { get; set; }
         public string CompanyPhone { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
 
