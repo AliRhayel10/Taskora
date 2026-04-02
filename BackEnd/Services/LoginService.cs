@@ -78,6 +78,7 @@ namespace BackEnd.Services
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = roleName ?? "User",
+                ProfileImageUrl = user.ProfileImageUrl,
                 Token = string.Empty
             };
         }

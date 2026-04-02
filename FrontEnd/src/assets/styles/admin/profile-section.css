@@ -56,6 +56,61 @@
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
 }
 
+.profile-hero-card__avatar-wrapper {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+}
+
+.profile-hero-card__avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+}
+
+.profile-hero-card__avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+}
+
+.profile-upload-btn {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.profile-upload-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
 .profile-hero-card__content h3 {
   margin: 0 0 8px;
   color: #0f172a;
@@ -157,14 +212,22 @@
     padding: 22px 20px;
   }
 
-  .profile-hero-card__avatar {
+  .profile-hero-card__avatar,
+  .profile-hero-card__avatar-wrapper {
     width: 92px;
     height: 92px;
+  }
+
+  .profile-hero-card__avatar {
+    font-size: 1.6rem;
+  }
+
+  .profile-hero-card__avatar-fallback {
     font-size: 1.6rem;
   }
 
   .profile-hero-card__content h3 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
 
   .profile-info-card {
@@ -182,6 +245,6 @@
   }
 
   .profile-page__title-row h2 {
-    font-size: 1.05rem;
+    font-size: 1.2rem;
   }
 }

@@ -1,3 +1,4 @@
+using BackEnd.Data;
 using BackEnd.DTOs;
 using BackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -10,13 +11,16 @@ namespace BackEnd.Controllers
     {
         private readonly ICompanyRegistrationService _companyRegistrationService;
         private readonly ILoginService _loginService;
+        private readonly AppDbContext _context;
 
         public AuthController(
             ICompanyRegistrationService companyRegistrationService,
-            ILoginService loginService)
+            ILoginService loginService,
+            AppDbContext context)
         {
             _companyRegistrationService = companyRegistrationService;
             _loginService = loginService;
+            _context = context;
         }
 
         [HttpGet("test")]
@@ -74,46 +78,118 @@ namespace BackEnd.Controllers
         }
 
         [HttpPost("forgot-password")]
-public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
-{
-    var token = await _loginService.GeneratePasswordResetTokenAsync(request.Email);
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            var token = await _loginService.GeneratePasswordResetTokenAsync(request.Email);
 
-    return Ok(new
-    {
-        success = true,
-        message = "If email exists, reset link sent.",
-        token = token // TEMP for testing
-    });
-}
+            return Ok(new
+            {
+                success = true,
+                message = "If email exists, reset link sent.",
+                token = token
+            });
+        }
 
-[HttpPost("reset-password")]
-public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
-{
-    var result = await _loginService.ResetPasswordAsync(
-        request.Token,
-        request.NewPassword,
-        request.ConfirmPassword
-    );
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            var result = await _loginService.ResetPasswordAsync(
+                request.Token,
+                request.NewPassword,
+                request.ConfirmPassword
+            );
 
-    if (!result)
-    {
-        return BadRequest(new { success = false, message = "Invalid token or passwords." });
-    }
+            if (!result)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid token or passwords."
+                });
+            }
 
-    return Ok(new { success = true, message = "Password reset successful." });
-}
+            return Ok(new
+            {
+                success = true,
+                message = "Password reset successful."
+            });
+        }
 
-[HttpPost("verify-reset-otp")]
-public async Task<IActionResult> VerifyResetOtp([FromBody] VerifyResetOtpRequest request)
-{
-    var result = await _loginService.VerifyResetOtpAsync(request.Email, request.Otp);
+        [HttpPost("verify-reset-otp")]
+        public async Task<IActionResult> VerifyResetOtp([FromBody] VerifyResetOtpRequest request)
+        {
+            var result = await _loginService.VerifyResetOtpAsync(request.Email, request.Otp);
 
-    if (!result)
-    {
-        return BadRequest(new { success = false, message = "Invalid or expired code." });
-    }
+            if (!result)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired code."
+                });
+            }
 
-    return Ok(new { success = true, message = "OTP verified successfully." });
-}
+            return Ok(new
+            {
+                success = true,
+                message = "OTP verified successfully."
+            });
+        }
+
+        [HttpPost("upload-profile-image")]
+        public async Task<IActionResult> UploadProfileImage(IFormFile file, [FromForm] int userId)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "No file uploaded."
+                });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var uploadsFolder = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "profile-images"
+            );
+
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var safeFileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadsFolder, safeFileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var imageUrl = $"/uploads/profile-images/{safeFileName}";
+            user.ProfileImageUrl = imageUrl;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Profile image uploaded successfully.",
+                imageUrl = imageUrl
+            });
+        }
     }
 }
