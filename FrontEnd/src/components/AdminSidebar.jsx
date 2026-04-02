@@ -4,6 +4,7 @@ import {
   FiLayers,
   FiCheckSquare,
   FiBarChart2,
+  FiUser,
   FiSettings,
   FiLogOut,
 } from "react-icons/fi";
@@ -22,16 +23,9 @@ export default function AdminSidebar({
     { name: "Teams", icon: <FiLayers /> },
     { name: "Tasks", icon: <FiCheckSquare /> },
     { name: "Reports", icon: <FiBarChart2 /> },
+    { name: "Profile", icon: <FiUser /> },
     { name: "Settings", icon: <FiSettings /> },
   ];
-
-  const initials =
-    user?.fullName
-      ?.split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "A";
 
   return (
     <aside className="admin-sidebar">
@@ -61,14 +55,6 @@ export default function AdminSidebar({
 
       <div className="admin-sidebar__bottom">
         <div className="admin-sidebar__divider"></div>
-
-        <div className="admin-sidebar__profile">
-          <div className="admin-sidebar__avatar">{initials}</div>
-          <div className="admin-sidebar__profile-info">
-            <h3>{user?.fullName || "Admin User"}</h3>
-            <p>{user?.role || "Company Admin"}</p>
-          </div>
-        </div>
 
         <button
           type="button"

@@ -10,22 +10,22 @@ export default function AdminDashboard() {
     return storedUser ? JSON.parse(storedUser) : null;
   }, []);
 
-useEffect(() => {
-  if (!user) {
-    window.location.href = "/login";
-    return;
-  }
+  useEffect(() => {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
 
-  const role = (user.role || "").toLowerCase().trim();
+    const role = (user.role || "").toLowerCase().trim();
 
-  if (
-    role !== "admin" &&
-    role !== "company admin" &&
-    role !== "companyadmin"
-  ) {
-    window.location.href = "/login";
-  }
-}, [user]);
+    if (
+      role !== "admin" &&
+      role !== "company admin" &&
+      role !== "companyadmin"
+    ) {
+      window.location.href = "/login";
+    }
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -53,6 +53,11 @@ useEffect(() => {
         return {
           title: "Reports",
           subtitle: "Review activity and performance insights.",
+        };
+      case "Profile":
+        return {
+          title: "Profile",
+          subtitle: "View and manage your personal admin information.",
         };
       case "Settings":
         return {

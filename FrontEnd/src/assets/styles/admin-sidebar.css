@@ -77,53 +77,6 @@
   align-items: center;
 }
 
-.admin-sidebar__profile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px 4px 10px;
-  border-radius: 0;
-  background: transparent;
-  border: none;
-  width: 100%;
-}
-
-.admin-sidebar__avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #1f2937;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.admin-sidebar__profile-info {
-  min-width: 0;
-  text-align: left;
-}
-
-.admin-sidebar__profile-info h3 {
-  margin: 0;
-  color: #ffffff;
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.admin-sidebar__profile-info p {
-  margin: 4px 0 0;
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 0.84rem;
-  font-weight: 500;
-  line-height: 1.2;
-}
-
 .admin-sidebar__logout {
   border: none;
   border-radius: 12px;
