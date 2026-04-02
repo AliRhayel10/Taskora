@@ -63,12 +63,18 @@ namespace BackEnd.Services
                 )
                 .FirstOrDefaultAsync();
 
+            var companyName = await _context.Companies
+                .Where(c => c.CompanyId == user.CompanyId)
+                .Select(c => c.CompanyName)
+                .FirstOrDefaultAsync();
+
             return new LoginResponse
             {
                 Success = true,
                 Message = "Login successful.",
                 UserId = user.UserId,
                 CompanyId = user.CompanyId,
+                CompanyName = companyName ?? string.Empty,
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = roleName ?? "User",

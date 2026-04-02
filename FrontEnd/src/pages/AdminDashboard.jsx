@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
+import ProfileSection from "../components/admin/ProfileSection";
 import "./../assets/styles/admin-dashboard.css";
 
 export default function AdminDashboard() {
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
       case "Profile":
         return {
           title: "Profile",
-          subtitle: "View and manage your personal admin information.",
+          subtitle: "View your account information and role details.",
         };
       case "Settings":
         return {
@@ -74,6 +75,15 @@ export default function AdminDashboard() {
 
   const section = getSectionText();
 
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case "Profile":
+        return <ProfileSection user={user} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="admin-layout">
       <AdminSidebar
@@ -88,6 +98,8 @@ export default function AdminDashboard() {
           <h1>{section.title}</h1>
           <p>{section.subtitle}</p>
         </div>
+
+        {renderSectionContent()}
       </main>
     </div>
   );
