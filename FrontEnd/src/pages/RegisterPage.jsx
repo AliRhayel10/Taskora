@@ -66,15 +66,13 @@ export default function RegisterPage() {
   const hasConfirmPassword = formData.confirmPassword.trim() !== "";
 
   const hasDomain = formData.emailDomain.trim() !== "";
-  const isValidDomain = !hasDomain || /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(formData.emailDomain);
+  const isValidDomain =
+    !hasDomain || /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(formData.emailDomain);
 
   const hasAdminEmail = formData.adminEmail.trim() !== "";
-  const emailMatchesDomain =
-    !hasDomain ||
-    !hasAdminEmail ||
+  const isValidAdminEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
     formData.adminEmail
-      .toLowerCase()
-      .endsWith(`@${formData.emailDomain.toLowerCase()}`);
+  );
 
   const isStrongPassword =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.adminPassword);
@@ -83,6 +81,7 @@ export default function RegisterPage() {
     allFieldsFilled &&
     passwordsMatch &&
     isValidDomain &&
+    isValidAdminEmail &&
     isStrongPassword;
 
   const handleSubmit = async (e) => {
@@ -163,8 +162,9 @@ export default function RegisterPage() {
                 />
                 {hasDomain && (
                   <span
-                    className={`input-badge ${isValidDomain ? "input-badge--success" : "input-badge--error"
-                      }`}
+                    className={`input-badge ${
+                      isValidDomain ? "input-badge--success" : "input-badge--error"
+                    }`}
                   >
                     {isValidDomain ? <FiCheckCircle /> : <FiAlertCircle />}
                     {isValidDomain ? "Valid" : "Invalid"}
@@ -220,9 +220,27 @@ export default function RegisterPage() {
                   placeholder="Enter admin email"
                   value={formData.adminEmail}
                   onChange={handleChange}
-                  className=""
+                  className={
+                    hasAdminEmail
+                      ? isValidAdminEmail
+                        ? "input-success"
+                        : "input-error"
+                      : ""
+                  }
                   required
                 />
+                {hasAdminEmail && (
+                  <span
+                    className={`input-badge ${
+                      isValidAdminEmail
+                        ? "input-badge--success"
+                        : "input-badge--error"
+                    }`}
+                  >
+                    {isValidAdminEmail ? <FiCheckCircle /> : <FiAlertCircle />}
+                    {isValidAdminEmail ? "Valid" : "Invalid"}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -242,8 +260,9 @@ export default function RegisterPage() {
                 />
                 {hasPassword && (
                   <span
-                    className={`input-badge input-badge--password ${isStrongPassword ? "input-badge--success" : "input-badge--error"
-                      }`}
+                    className={`input-badge input-badge--password ${
+                      isStrongPassword ? "input-badge--success" : "input-badge--error"
+                    }`}
                   >
                     {isStrongPassword ? <FiCheckCircle /> : <FiAlertCircle />}
                     {isStrongPassword ? "Strong" : "Weak"}
@@ -274,8 +293,9 @@ export default function RegisterPage() {
                 />
                 {hasConfirmPassword && (
                   <span
-                    className={`input-badge input-badge--password ${passwordsMatch ? "input-badge--success" : "input-badge--error"
-                      }`}
+                    className={`input-badge input-badge--password ${
+                      passwordsMatch ? "input-badge--success" : "input-badge--error"
+                    }`}
                   >
                     {passwordsMatch ? <FiCheckCircle /> : <FiAlertCircle />}
                     {passwordsMatch ? "Match" : "No match"}
