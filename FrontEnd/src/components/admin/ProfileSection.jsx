@@ -68,9 +68,13 @@ export default function ProfileSection({ user }) {
       .slice(0, 2)
       .toUpperCase() || "AU";
 
-  const [imagePreview, setImagePreview] = useState(
-    user?.profileImageUrl ? `http://localhost:5000${user.profileImageUrl}` : ""
-  );
+  const [imagePreview, setImagePreview] = useState(() => {
+    if (!user?.profileImageUrl || user.profileImageUrl.trim() === "") {
+      return "";
+    }
+    return `http://localhost:5000${user.profileImageUrl}`;
+  });
+
   const [selectedImage, setSelectedImage] = useState("");
   const [showCropModal, setShowCropModal] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -130,7 +134,6 @@ export default function ProfileSection({ user }) {
 
       if (!response.ok || !data.success) {
         console.error(data.message || "Image upload failed.");
-        setIsUploading(false);
         return;
       }
 
@@ -165,11 +168,12 @@ export default function ProfileSection({ user }) {
 
       <div className="profile-hero-card">
         <div className="profile-hero-card__avatar-wrapper">
-          {imagePreview ? (
+          {imagePreview && imagePreview.trim() !== "" ? (
             <img
               src={imagePreview}
               alt="Profile"
               className="profile-hero-card__avatar-img"
+              onError={() => setImagePreview("")}
             />
           ) : (
             <div className="profile-hero-card__avatar-fallback">
@@ -242,7 +246,6 @@ export default function ProfileSection({ user }) {
       {showCropModal && (
         <div className="profile-crop-modal">
           <div className="profile-crop-modal__card simple-crop-card">
-
             <div className="profile-crop-modal__crop-area simple-crop-area">
               <Cropper
                 image={selectedImage}
@@ -266,7 +269,6 @@ export default function ProfileSection({ user }) {
                 {isUploading ? "Saving..." : "Save"}
               </button>
             </div>
-
           </div>
         </div>
       )}
