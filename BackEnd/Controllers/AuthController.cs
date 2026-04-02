@@ -2,6 +2,7 @@ using BackEnd.Data;
 using BackEnd.DTOs;
 using BackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Controllers
 {
@@ -75,6 +76,48 @@ namespace BackEnd.Controllers
             }
 
             return Ok(result);
+        }
+
+        [HttpGet("profile/{userId}")]
+        public async Task<IActionResult> GetProfile(int userId)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var roleName = await _context.UserRoles
+                .Where(ur => ur.UserId == user.UserId)
+                .Join(
+                    _context.Roles,
+                    ur => ur.RoleId,
+                    r => r.RoleId,
+                    (ur, r) => r.RoleName
+                )
+                .FirstOrDefaultAsync();
+
+            var companyName = await _context.Companies
+                .Where(c => c.CompanyId == user.CompanyId)
+                .Select(c => c.CompanyName)
+                .FirstOrDefaultAsync();
+
+            return Ok(new
+            {
+                success = true,
+                userId = user.UserId,
+                fullName = user.FullName,
+                email = user.Email,
+                role = roleName ?? "User",
+                companyName = companyName ?? "",
+                profileImageUrl = user.ProfileImageUrl ?? ""
+            });
         }
 
         [HttpPost("forgot-password")]

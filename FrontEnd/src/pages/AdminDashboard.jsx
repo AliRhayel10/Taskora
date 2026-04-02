@@ -5,19 +5,21 @@ import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("Dashboard");
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const user = useMemo(() => {
-    const storedUser = localStorage.getItem("user");
-    return storedUser ? JSON.parse(storedUser) : null;
+  const storedUser = useMemo(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!storedUser) {
       window.location.href = "/login";
       return;
     }
 
-    const role = (user.role || "").toLowerCase().trim();
+    const role = (storedUser.role || "").toLowerCase().trim();
 
     if (
       role !== "admin" &&
@@ -25,8 +27,40 @@ export default function AdminDashboard() {
       role !== "companyadmin"
     ) {
       window.location.href = "/login";
+      return;
     }
-  }, [user]);
+
+    const fetchFreshProfile = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/auth/profile/${storedUser.userId}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Failed to fetch latest profile.");
+        }
+
+        setUser(data);
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            ...storedUser,
+            ...data,
+          })
+        );
+      } catch (error) {
+        console.error("Failed to fetch fresh profile:", error);
+        setUser(storedUser);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFreshProfile();
+  }, [storedUser]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -41,6 +75,14 @@ export default function AdminDashboard() {
         return null;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="admin-layout">
+        <main className="admin-main">Loading...</main>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-layout">
