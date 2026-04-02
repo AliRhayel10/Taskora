@@ -1,4 +1,4 @@
-namespace BackEnd.DTOs
+namespace BackEnd.DTOs.Admin
 {
     public class AdminUpdateProfileRequest
     {

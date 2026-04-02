@@ -3,6 +3,7 @@ using BackEnd.DTOs;
 using BackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BackEnd.DTOs.Admin;
 
 namespace BackEnd.Controllers
 {
@@ -120,30 +121,52 @@ namespace BackEnd.Controllers
             });
         }
 
-        [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
+[HttpPut("update-profile")]
+public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
+{
+    if (request == null || request.UserId <= 0)
+    {
+        return BadRequest(new
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+            success = false,
+            message = "Invalid request."
+        });
+    }
 
-            if (user == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "User not found."
-                });
-            }
+    var firstName = request.FirstName?.Trim() ?? "";
+    var lastName = request.LastName?.Trim() ?? "";
 
-            user.FullName = $"{request.FirstName} {request.LastName}".Trim();
+    if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "First name and last name are required."
+        });
+    }
 
-            await _context.SaveChangesAsync();
+    var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-            return Ok(new
-            {
-                success = true,
-                message = "Profile updated successfully."
-            });
-        }
+    if (user == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "User not found."
+        });
+    }
+
+    user.FullName = $"{firstName} {lastName}".Trim();
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        success = true,
+        message = "Profile updated successfully.",
+        fullName = user.FullName
+    });
+}
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
