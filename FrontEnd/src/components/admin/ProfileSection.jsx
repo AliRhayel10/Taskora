@@ -1,14 +1,14 @@
-import { useCallback, useState, useRef } from "react";
-import { FiCamera } from "react-icons/fi";
+import { useCallback, useRef, useState } from "react";
+import { FiCamera, FiX } from "react-icons/fi";
 import Cropper from "react-easy-crop";
 import "./../../assets/styles/admin/profile-section.css";
 
 function createImage(url) {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.setAttribute("crossOrigin", "anonymous");
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = (error) => reject(error);
     image.src = url;
   });
 }
@@ -40,9 +40,11 @@ async function getCroppedImage(src, cropPixels) {
           reject(new Error("Failed to crop image."));
           return;
         }
+
         const file = new File([blob], "profile-image.jpg", {
           type: "image/jpeg",
         });
+
         resolve(file);
       },
       "image/jpeg",
@@ -52,6 +54,8 @@ async function getCroppedImage(src, cropPixels) {
 }
 
 export default function ProfileSection({ user }) {
+  const fileInputRef = useRef(null);
+
   const fullName = user?.fullName || "Not available";
   const nameParts = fullName.trim().split(" ");
   const firstName = nameParts[0] || "Not available";
@@ -79,23 +83,21 @@ export default function ProfileSection({ user }) {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [shake, setShake] = useState(false);
-
-  const fileInputRef = useRef(null);
 
   const onCropComplete = useCallback((_, croppedPixels) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
-  const handleAvatarClick = () => {
-    if (imagePreview && imagePreview.trim() !== "") {
-      setSelectedImage(imagePreview);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setShowCropModal(true);
-    } else {
-      fileInputRef.current?.click();
-    }
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const openCropModalFromAvatar = () => {
+    if (!imagePreview || imagePreview.trim() === "") return;
+    setSelectedImage(imagePreview);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setShowCropModal(true);
   };
 
   const handleSelectImage = (e) => {
@@ -107,23 +109,29 @@ export default function ProfileSection({ user }) {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setShowCropModal(true);
-
     e.target.value = "";
   };
 
   const handleCloseCropModal = () => {
-    if (selectedImage && selectedImage !== imagePreview) {
+    if (selectedImage && selectedImage.startsWith("blob:")) {
       URL.revokeObjectURL(selectedImage);
     }
+
     setSelectedImage("");
     setShowCropModal(false);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
+    setIsUploading(false);
   };
 
   const handleSaveCroppedImage = async () => {
-    if (!selectedImage || !croppedAreaPixels || !user?.userId) return;
+    if (isUploading) return;
+
+    if (!selectedImage || !croppedAreaPixels || !user?.userId) {
+      alert("Please wait a moment and try again.");
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -148,7 +156,7 @@ export default function ProfileSection({ user }) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        console.error(data.message || "Image upload failed.");
+        alert(data.message || "Image upload failed.");
         return;
       }
 
@@ -169,15 +177,9 @@ export default function ProfileSection({ user }) {
       handleCloseCropModal();
     } catch (error) {
       console.error("Error uploading image:", error);
+      alert("Saving image failed. Check backend and try again.");
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
     }
   };
 
@@ -190,9 +192,10 @@ export default function ProfileSection({ user }) {
 
       <div className="profile-hero-card">
         <div className="profile-hero-card__avatar-wrapper">
-          <div
-            onClick={handleAvatarClick}
-            style={{ cursor: "pointer", width: "100%", height: "100%" }}
+          <button
+            type="button"
+            className="profile-hero-card__avatar-button"
+            onClick={openCropModalFromAvatar}
           >
             {imagePreview && imagePreview.trim() !== "" ? (
               <img
@@ -206,18 +209,24 @@ export default function ProfileSection({ user }) {
                 {initials}
               </div>
             )}
-          </div>
+          </button>
 
-          <label className="profile-upload-btn">
+          <button
+            type="button"
+            className="profile-upload-btn"
+            onClick={openFilePicker}
+            aria-label="Upload profile image"
+          >
             <FiCamera />
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              ref={fileInputRef}
-              onChange={handleSelectImage}
-            />
-          </label>
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleSelectImage}
+          />
         </div>
 
         <div className="profile-hero-card__content">
@@ -272,8 +281,20 @@ export default function ProfileSection({ user }) {
       </div>
 
       {showCropModal && (
-        <div className="profile-crop-modal" onClick={handleBackdropClick}>
-          <div className={`profile-crop-modal__card simple-crop-card ${shake ? "shake-card" : ""}`}>
+        <div className="profile-crop-modal">
+          <div className="profile-crop-modal__card simple-crop-card">
+            <button
+              type="button"
+              className="simple-close-btn"
+              onClick={handleCloseCropModal}
+              disabled={isUploading}
+              aria-label="Close"
+            >
+              <FiX />
+            </button>
+
+            <h3 className="simple-crop-title">Edit Image</h3>
+
             <div className="profile-crop-modal__crop-area simple-crop-area">
               <Cropper
                 image={selectedImage}
@@ -282,6 +303,7 @@ export default function ProfileSection({ user }) {
                 aspect={1}
                 cropShape="round"
                 showGrid={false}
+                zoomWithScroll={true}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropComplete}
@@ -297,6 +319,7 @@ export default function ProfileSection({ user }) {
               >
                 Cancel
               </button>
+
               <button
                 type="button"
                 className="simple-save-btn"
