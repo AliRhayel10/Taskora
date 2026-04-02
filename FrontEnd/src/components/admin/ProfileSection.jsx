@@ -92,14 +92,28 @@ export default function ProfileSection({ user }) {
     fileInputRef.current?.click();
   };
 
-  const openCropModalFromAvatar = () => {
-    if (!imagePreview || imagePreview.trim() === "") return;
+const openCropModalFromAvatar = async () => {
+  if (!imagePreview || imagePreview.trim() === "") return;
 
-    setSelectedImage(imagePreview);
+  try {
+    const response = await fetch(imagePreview, { mode: "cors" });
+
+    if (!response.ok) {
+      throw new Error("Could not load image.");
+    }
+
+    const blob = await response.blob();
+    const localUrl = URL.createObjectURL(blob);
+
+    setSelectedImage(localUrl);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setShowCropModal(true);
-  };
+  } catch (error) {
+    console.error("Failed to load image for editing:", error);
+    alert("Could not open current image for editing.");
+  }
+};
 
   const handleSelectImage = (e) => {
     const file = e.target.files?.[0];
@@ -113,17 +127,17 @@ export default function ProfileSection({ user }) {
     e.target.value = "";
   };
 
-  const handleCloseCropModal = () => {
-    if (selectedImage && selectedImage.startsWith("blob:")) {
-      URL.revokeObjectURL(selectedImage);
-    }
+const handleCloseCropModal = () => {
+  if (selectedImage && selectedImage.startsWith("blob:")) {
+    URL.revokeObjectURL(selectedImage);
+  }
 
-    setSelectedImage("");
-    setShowCropModal(false);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setCroppedAreaPixels(null);
-  };
+  setSelectedImage("");
+  setShowCropModal(false);
+  setCrop({ x: 0, y: 0 });
+  setZoom(1);
+  setCroppedAreaPixels(null);
+};
 
   const handleSaveCroppedImage = async () => {
     if (isUploading) return;
@@ -153,11 +167,17 @@ export default function ProfileSection({ user }) {
         }
       );
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data;
+
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(rawText || "Server did not return valid JSON.");
+      }
 
       if (!response.ok || !data.success) {
-        alert(data.message || "Image upload failed.");
-        return;
+        throw new Error(data.message || "Image upload failed.");
       }
 
       const fullImageUrl = `http://localhost:5000${data.imageUrl}`;
@@ -177,7 +197,7 @@ export default function ProfileSection({ user }) {
       handleCloseCropModal();
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert("Saving image failed. Check backend and try again.");
+      alert(error.message || "Saving image failed. Check backend and try again.");
     } finally {
       setIsUploading(false);
     }

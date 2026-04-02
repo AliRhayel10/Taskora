@@ -1,6 +1,7 @@
 using BackEnd.Data;
 using BackEnd.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +34,16 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 
 app.UseCors("AllowReactApp");
-app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Access-Control-Allow-Origin"] = "http://localhost:5173";
+        ctx.Context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+        ctx.Context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS";
+    }
+});
 
 app.UseAuthorization();
 
