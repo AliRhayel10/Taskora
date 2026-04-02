@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { FiCamera } from "react-icons/fi";
 import Cropper from "react-easy-crop";
 import "./../../assets/styles/admin/profile-section.css";
@@ -40,11 +40,9 @@ async function getCroppedImage(src, cropPixels) {
           reject(new Error("Failed to crop image."));
           return;
         }
-
         const file = new File([blob], "profile-image.jpg", {
           type: "image/jpeg",
         });
-
         resolve(file);
       },
       "image/jpeg",
@@ -78,12 +76,27 @@ export default function ProfileSection({ user }) {
   const [selectedImage, setSelectedImage] = useState("");
   const [showCropModal, setShowCropModal] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   const onCropComplete = useCallback((_, croppedPixels) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
+
+  const handleAvatarClick = () => {
+    if (imagePreview && imagePreview.trim() !== "") {
+      setSelectedImage(imagePreview);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setShowCropModal(true);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
 
   const handleSelectImage = (e) => {
     const file = e.target.files?.[0];
@@ -92,18 +105,20 @@ export default function ProfileSection({ user }) {
     const localUrl = URL.createObjectURL(file);
     setSelectedImage(localUrl);
     setCrop({ x: 0, y: 0 });
+    setZoom(1);
     setShowCropModal(true);
 
     e.target.value = "";
   };
 
   const handleCloseCropModal = () => {
-    if (selectedImage) {
+    if (selectedImage && selectedImage !== imagePreview) {
       URL.revokeObjectURL(selectedImage);
     }
     setSelectedImage("");
     setShowCropModal(false);
     setCrop({ x: 0, y: 0 });
+    setZoom(1);
     setCroppedAreaPixels(null);
   };
 
@@ -159,6 +174,13 @@ export default function ProfileSection({ user }) {
     }
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
   return (
     <section className="profile-page">
       <div className="profile-page__title-row">
@@ -168,18 +190,23 @@ export default function ProfileSection({ user }) {
 
       <div className="profile-hero-card">
         <div className="profile-hero-card__avatar-wrapper">
-          {imagePreview && imagePreview.trim() !== "" ? (
-            <img
-              src={imagePreview}
-              alt="Profile"
-              className="profile-hero-card__avatar-img"
-              onError={() => setImagePreview("")}
-            />
-          ) : (
-            <div className="profile-hero-card__avatar-fallback">
-              {initials}
-            </div>
-          )}
+          <div
+            onClick={handleAvatarClick}
+            style={{ cursor: "pointer", width: "100%", height: "100%" }}
+          >
+            {imagePreview && imagePreview.trim() !== "" ? (
+              <img
+                src={imagePreview}
+                alt="Profile"
+                className="profile-hero-card__avatar-img"
+                onError={() => setImagePreview("")}
+              />
+            ) : (
+              <div className="profile-hero-card__avatar-fallback">
+                {initials}
+              </div>
+            )}
+          </div>
 
           <label className="profile-upload-btn">
             <FiCamera />
@@ -187,6 +214,7 @@ export default function ProfileSection({ user }) {
               type="file"
               accept="image/*"
               hidden
+              ref={fileInputRef}
               onChange={handleSelectImage}
             />
           </label>
@@ -244,22 +272,31 @@ export default function ProfileSection({ user }) {
       </div>
 
       {showCropModal && (
-        <div className="profile-crop-modal">
-          <div className="profile-crop-modal__card simple-crop-card">
+        <div className="profile-crop-modal" onClick={handleBackdropClick}>
+          <div className={`profile-crop-modal__card simple-crop-card ${shake ? "shake-card" : ""}`}>
             <div className="profile-crop-modal__crop-area simple-crop-area">
               <Cropper
                 image={selectedImage}
                 crop={crop}
-                zoom={1}
+                zoom={zoom}
                 aspect={1}
                 cropShape="round"
                 showGrid={false}
                 onCropChange={setCrop}
+                onZoomChange={setZoom}
                 onCropComplete={onCropComplete}
               />
             </div>
 
             <div className="simple-crop-actions">
+              <button
+                type="button"
+                className="simple-cancel-btn"
+                onClick={handleCloseCropModal}
+                disabled={isUploading}
+              >
+                Cancel
+              </button>
               <button
                 type="button"
                 className="simple-save-btn"
