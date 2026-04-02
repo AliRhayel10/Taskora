@@ -9,7 +9,7 @@ import {
   FiLogOut,
 } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
-import "./../assets/styles/admin-sidebar.css";
+import "./../assets/styles/admin/admin-sidebar.css";
 
 export default function AdminSidebar({
   user,

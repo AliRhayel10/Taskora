@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import ProfileSection from "../components/admin/ProfileSection";
-import "./../assets/styles/admin-dashboard.css";
+import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("Dashboard");
@@ -33,48 +33,6 @@ export default function AdminDashboard() {
     window.location.href = "/login";
   };
 
-  const getSectionText = () => {
-    switch (activeSection) {
-      case "Users":
-        return {
-          title: "Users",
-          subtitle: "Manage user accounts, roles, and access.",
-        };
-      case "Teams":
-        return {
-          title: "Teams",
-          subtitle: "Create teams and organize members.",
-        };
-      case "Tasks":
-        return {
-          title: "Tasks",
-          subtitle: "Track assignments and task progress.",
-        };
-      case "Reports":
-        return {
-          title: "Reports",
-          subtitle: "Review activity and performance insights.",
-        };
-      case "Profile":
-        return {
-          title: "Profile",
-          subtitle: "View your account information and role details.",
-        };
-      case "Settings":
-        return {
-          title: "Settings",
-          subtitle: "Update company and admin preferences.",
-        };
-      default:
-        return {
-          title: "Dashboard",
-          subtitle: "Welcome to your admin workspace.",
-        };
-    }
-  };
-
-  const section = getSectionText();
-
   const renderSectionContent = () => {
     switch (activeSection) {
       case "Profile":
@@ -94,11 +52,6 @@ export default function AdminDashboard() {
       />
 
       <main className="admin-main">
-        <div className="admin-page-header">
-          <h1>{section.title}</h1>
-          <p>{section.subtitle}</p>
-        </div>
-
         {renderSectionContent()}
       </main>
     </div>

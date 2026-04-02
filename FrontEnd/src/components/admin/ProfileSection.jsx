@@ -1,4 +1,4 @@
-import "./../../assets/styles/profile-section.css";
+import "./../../assets/styles/admin/profile-section.css";
 
 export default function ProfileSection({ user }) {
   const fullName = user?.fullName || "Not available";
