@@ -94,6 +94,7 @@ export default function ProfileSection({ user }) {
 
   const openCropModalFromAvatar = () => {
     if (!imagePreview || imagePreview.trim() === "") return;
+
     setSelectedImage(imagePreview);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
@@ -122,7 +123,6 @@ export default function ProfileSection({ user }) {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
-    setIsUploading(false);
   };
 
   const handleSaveCroppedImage = async () => {
