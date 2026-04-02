@@ -159,6 +159,9 @@
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -169,6 +172,17 @@
   background: #f8fafc;
   border-color: #cbd5e1;
   transform: translateY(-1px);
+}
+
+.profile-edit-btn--primary {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.profile-edit-btn--primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .profile-info-card__divider {
@@ -183,20 +197,66 @@
   gap: 28px 36px;
 }
 
+.profile-info-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .profile-info-item__label {
-  display: block;
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #64748b;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
+.profile-info-item__label-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 0.95rem;
+}
+
 .profile-info-item__value {
+  display: block;
   color: #0f172a;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.5;
   word-break: break-word;
+  padding-left: 26px;
+}
+
+.profile-info-input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 0 14px;
+  color: #0f172a;
+  font-size: 0.98rem;
+  font-weight: 600;
+  outline: none;
+  margin-left: 26px;
+  max-width: calc(100% - 26px);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.profile-info-input:focus {
+  border-color: #93c5fd;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
 }
 
 .profile-crop-modal {
@@ -348,6 +408,11 @@
   .profile-info-card__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+    .profile-edit-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .profile-info-grid {

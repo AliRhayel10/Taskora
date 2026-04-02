@@ -120,6 +120,31 @@ namespace BackEnd.Controllers
             });
         }
 
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            user.FullName = $"{request.FirstName} {request.LastName}".Trim();
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Profile updated successfully."
+            });
+        }
+
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
