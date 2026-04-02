@@ -42,7 +42,8 @@
     gap: 56px;
     font-size: 1.14rem;
     font-weight: 600;
-    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", Arial, sans-serif;
     color: #334155;
 }
 
@@ -74,7 +75,8 @@
     cursor: pointer;
     font-size: 1.14rem;
     font-weight: 600;
-    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", Arial, sans-serif;
     transition:
         background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
         background-image 0s,
@@ -124,7 +126,8 @@
     cursor: pointer;
     font-size: 1.14rem;
     font-weight: 600;
-    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", Arial, sans-serif;
     background: #2563eb;
     background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
     background-size: 220% 100%;
@@ -168,24 +171,79 @@
     min-height: 650px;
     padding: 60px 40px;
     overflow: hidden;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
     border-radius: 28px;
+    isolation: isolate;
+}
+
+.hero__slider {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.hero__slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(1.03) saturate(1.18) contrast(1.08);
+  opacity: 0;
+  transform: scale(1.02);
+  transition:
+    opacity 1.2s ease-in-out,
+    transform 7s ease-in-out;
+}
+
+
+.hero__slide--active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 255, 255, 0.62) 38%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+}
+
+.hero__content-wrap {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 620px;
+    min-height: 280px;
 }
 
 .hero__content {
-    position: relative;
-    z-index: 2;
+    position: absolute;
+    inset: 0;
     max-width: 620px;
-    transform: translateY(-24px);
+    opacity: 0;
+    transform: translateY(18px);
+    pointer-events: none;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
+}
+
+.hero__content--active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .hero__content h1 {
     font-size: 4rem;
     line-height: 1.1;
     margin: 0 0 18px;
-    max-width: 520px;
+    max-width: 560px;
     color: #0f1f4d;
 }
 
@@ -201,6 +259,39 @@
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+.hero__dots {
+    position: absolute;
+    left: 40px;
+    bottom: 28px;
+    z-index: 3;
+    display: flex;
+    gap: 10px;
+}
+
+.hero__dot {
+    width: 11px;
+    height: 11px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.28);
+    cursor: pointer;
+    padding: 0;
+    transition:
+        transform 0.25s ease,
+        background 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.hero__dot:hover {
+    transform: scale(1.08);
+    background: rgba(37, 99, 235, 0.52);
+}
+
+.hero__dot--active {
+    background: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
 }
 
 .hero__visual {
@@ -384,7 +475,8 @@
     cursor: pointer;
     font-size: 1.14rem;
     font-weight: 600;
-    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", Arial, sans-serif;
     background: #2563eb;
     background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
     background-size: 220% 100%;
@@ -458,8 +550,25 @@
     .hero {
         min-height: 500px;
         padding: 40px 24px;
-        background-position: center;
         border-radius: 22px;
+    }
+
+    .hero__overlay {
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.9) 0%,
+            rgba(255, 255, 255, 0.78) 45%,
+            rgba(255, 255, 255, 0.34) 100%
+        );
+    }
+
+    .hero__content-wrap {
+        min-height: 320px;
+    }
+
+    .hero__dots {
+        left: 24px;
+        bottom: 22px;
     }
 
     .three-cols {
