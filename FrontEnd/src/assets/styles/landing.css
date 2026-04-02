@@ -1,3 +1,8 @@
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
 .navbar {
     position: sticky;
     top: 12px;
