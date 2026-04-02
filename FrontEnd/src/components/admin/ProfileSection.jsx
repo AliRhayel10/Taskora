@@ -102,12 +102,12 @@ export default function ProfileSection({ user }) {
   const initials =
     fullName !== "Not available"
       ? fullName
-          .split(" ")
-          .filter(Boolean)
-          .map((part) => part[0])
-          .join("")
-          .slice(0, 2)
-          .toUpperCase()
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
       : "AU";
 
   const [imagePreview, setImagePreview] = useState(() => {
