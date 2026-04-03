@@ -22,7 +22,7 @@ export default function SettingsSection({ resetSignal = 0 }) {
     {
       key: "workspace",
       title: "Workspace",
-      description: "Manage workspace name, domain, timezone, and working days.",
+      description: "Manage workspace name, domain, address and phone number. ",
       icon: <FiBriefcase />,
     },
     {
