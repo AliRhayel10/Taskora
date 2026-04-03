@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FiBriefcase,
   FiCheckSquare,
@@ -7,9 +8,12 @@ import {
   FiLock,
   FiChevronRight,
 } from "react-icons/fi";
+import WorkspaceSettings from "./settings/WorkspaceSettings";
 import "./../../assets/styles/admin/settings-section.css";
 
 export default function SettingsSection() {
+  const [activePage, setActivePage] = useState("menu");
+
   const settingsTabs = [
     {
       key: "workspace",
@@ -51,6 +55,10 @@ export default function SettingsSection() {
     },
   ];
 
+  if (activePage === "workspace") {
+    return <WorkspaceSettings onBack={() => setActivePage("menu")} />;
+  }
+
   return (
     <section className="settings-page">
       <div className="settings-page__title-row">
@@ -60,7 +68,12 @@ export default function SettingsSection() {
 
       <div className="settings-menu-card">
         {settingsTabs.map((tab) => (
-          <button key={tab.key} type="button" className="settings-menu-item">
+          <button
+            key={tab.key}
+            type="button"
+            className="settings-menu-item"
+            onClick={() => setActivePage(tab.key)}
+          >
             <span className="settings-menu-item__icon">{tab.icon}</span>
 
             <span className="settings-menu-item__content">
