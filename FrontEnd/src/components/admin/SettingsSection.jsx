@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiBriefcase,
   FiCheckSquare,
@@ -10,8 +10,49 @@ import WorkspaceSettings from "./settings/WorkspaceSettings";
 import "./../../assets/styles/admin/settings-section.css";
 import TaskSetupRulesSettings from "./settings/TaskSetupRulesSettings";
 
+function getStoredAuthData() {
+  try {
+    const possibleKeys = [
+      "user",
+      "authUser",
+      "loggedInUser",
+      "auth",
+      "currentUser",
+    ];
+
+    for (const key of possibleKeys) {
+      const rawValue = localStorage.getItem(key);
+
+      if (!rawValue) {
+        continue;
+      }
+
+      const parsed = JSON.parse(rawValue);
+
+      if (parsed?.companyId) {
+        return parsed;
+      }
+
+      if (parsed?.user?.companyId) {
+        return parsed.user;
+      }
+
+      if (parsed?.data?.companyId) {
+        return parsed.data;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to read user data from localStorage.", error);
+  }
+
+  return null;
+}
+
 export default function SettingsSection({ resetSignal = 0 }) {
   const [activePage, setActivePage] = useState("menu");
+
+  const currentUser = useMemo(() => getStoredAuthData(), []);
+  const companyId = currentUser?.companyId || 1;
 
   useEffect(() => {
     setActivePage("menu");
@@ -48,8 +89,14 @@ export default function SettingsSection({ resetSignal = 0 }) {
   if (activePage === "workspace") {
     return <WorkspaceSettings onBack={() => setActivePage("menu")} />;
   }
+
   if (activePage === "task-settings") {
-    return <TaskSetupRulesSettings onBack={() => setActivePage("menu")} />;
+    return (
+      <TaskSetupRulesSettings
+        onBack={() => setActivePage("menu")}
+        companyId={companyId}
+      />
+    );
   }
 
   return (

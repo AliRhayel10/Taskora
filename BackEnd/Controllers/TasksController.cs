@@ -3,7 +3,7 @@ using BackEnd.DTOs.Tasks;
 using BackEnd.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using TaskStatusEntity = BackEnd.Models.TaskStatus;
 namespace BackEnd.Controllers
 {
     [ApiController]
@@ -15,6 +15,24 @@ namespace BackEnd.Controllers
         public TasksController(AppDbContext context)
         {
             _context = context;
+        }
+
+        private class CleanedStatus
+        {
+            public string StatusName { get; set; } = string.Empty;
+            public int DisplayOrder { get; set; }
+        }
+
+        private class CleanedPriorityMultiplier
+        {
+            public string PriorityName { get; set; } = string.Empty;
+            public decimal Multiplier { get; set; }
+        }
+
+        private class CleanedComplexityMultiplier
+        {
+            public string ComplexityName { get; set; } = string.Empty;
+            public decimal Multiplier { get; set; }
         }
 
         [HttpGet("statuses/{companyId}")]
@@ -37,6 +55,220 @@ namespace BackEnd.Controllers
             {
                 success = true,
                 statuses
+            });
+        }
+
+        [HttpGet("setup-rules/{companyId}")]
+        public async Task<IActionResult> GetTaskSetupRules(int companyId)
+        {
+            var companyExists = await _context.Companies
+                .AnyAsync(c => c.CompanyId == companyId);
+
+            if (!companyExists)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var statuses = await _context.TaskStatuses
+                .Where(s => s.CompanyId == companyId && s.IsActive)
+                .OrderBy(s => s.DisplayOrder)
+                .Select(s => s.StatusName)
+                .ToListAsync();
+
+            var priorityMultipliers = await _context.PriorityMultipliers
+                .Where(p => p.CompanyId == companyId)
+                .ToListAsync();
+
+            var complexityMultipliers = await _context.ComplexityMultipliers
+                .Where(c => c.CompanyId == companyId)
+                .ToListAsync();
+
+            var response = new TaskSetupRulesResponse
+            {
+                Statuses = statuses,
+                PriorityMultipliers = priorityMultipliers
+                    .Where(p => !string.IsNullOrWhiteSpace(p.PriorityName))
+                    .GroupBy(p => p.PriorityName.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.First().PriorityName.Trim(), g => g.First().Multiplier),
+                ComplexityMultipliers = complexityMultipliers
+                    .Where(c => !string.IsNullOrWhiteSpace(c.ComplexityName))
+                    .GroupBy(c => c.ComplexityName.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.First().ComplexityName.Trim(), g => g.First().Multiplier),
+                EffortFormula = "Task Weight = Base Effort × Priority Multiplier × Complexity Multiplier"
+            };
+
+            return Ok(new
+            {
+                success = true,
+                data = response
+            });
+        }
+
+        [HttpPut("setup-rules/{companyId}")]
+        public async Task<IActionResult> UpdateTaskSetupRules(int companyId, [FromBody] TaskSetupRulesRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request body."
+                });
+            }
+
+            var companyExists = await _context.Companies
+                .AnyAsync(c => c.CompanyId == companyId);
+
+            if (!companyExists)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var cleanedStatuses = (request.Statuses ?? new List<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select((s, index) => new CleanedStatus
+                {
+                    StatusName = s.Trim(),
+                    DisplayOrder = index + 1
+                })
+                .GroupBy(x => x.StatusName, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            var cleanedPriorityMultipliers = (request.PriorityMultipliers ?? new Dictionary<string, decimal>())
+                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Value > 0)
+                .Select(x => new CleanedPriorityMultiplier
+                {
+                    PriorityName = x.Key.Trim(),
+                    Multiplier = x.Value
+                })
+                .GroupBy(x => x.PriorityName, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            var cleanedComplexityMultipliers = (request.ComplexityMultipliers ?? new Dictionary<string, decimal>())
+                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Value > 0)
+                .Select(x => new CleanedComplexityMultiplier
+                {
+                    ComplexityName = x.Key.Trim(),
+                    Multiplier = x.Value
+                })
+                .GroupBy(x => x.ComplexityName, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            if (!cleanedStatuses.Any())
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "At least one status is required."
+                });
+            }
+
+            if (!cleanedPriorityMultipliers.Any())
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "At least one priority multiplier is required."
+                });
+            }
+
+            if (!cleanedComplexityMultipliers.Any())
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "At least one complexity multiplier is required."
+                });
+            }
+
+            var existingStatuses = await _context.TaskStatuses
+                .Where(s => s.CompanyId == companyId)
+                .ToListAsync();
+
+            foreach (var existingStatus in existingStatuses)
+            {
+                existingStatus.IsActive = false;
+                existingStatus.IsDefault = false;
+            }
+
+            for (int i = 0; i < cleanedStatuses.Count; i++)
+            {
+                var status = cleanedStatuses[i];
+
+                var existing = existingStatuses.FirstOrDefault(s =>
+                    s.StatusName.ToLower() == status.StatusName.ToLower());
+
+                if (existing != null)
+                {
+                    existing.StatusName = status.StatusName;
+                    existing.DisplayOrder = status.DisplayOrder;
+                    existing.IsActive = true;
+                    existing.IsDefault = i == 0;
+                }
+                else
+                {
+_context.TaskStatuses.Add(new TaskStatusEntity
+{
+    CompanyId = companyId,
+    StatusName = status.StatusName,
+    DisplayOrder = status.DisplayOrder,
+    IsActive = true,
+    IsDefault = i == 0,
+    CreatedAt = DateTime.Now
+});
+                }
+            }
+
+            var existingPriorityMultipliers = await _context.PriorityMultipliers
+                .Where(p => p.CompanyId == companyId)
+                .ToListAsync();
+
+            _context.PriorityMultipliers.RemoveRange(existingPriorityMultipliers);
+
+            foreach (var item in cleanedPriorityMultipliers)
+            {
+                _context.PriorityMultipliers.Add(new PriorityMultiplier
+                {
+                    CompanyId = companyId,
+                    PriorityName = item.PriorityName,
+                    Multiplier = item.Multiplier
+                });
+            }
+
+            var existingComplexityMultipliers = await _context.ComplexityMultipliers
+                .Where(c => c.CompanyId == companyId)
+                .ToListAsync();
+
+            _context.ComplexityMultipliers.RemoveRange(existingComplexityMultipliers);
+
+            foreach (var item in cleanedComplexityMultipliers)
+            {
+                _context.ComplexityMultipliers.Add(new ComplexityMultiplier
+                {
+                    CompanyId = companyId,
+                    ComplexityName = item.ComplexityName,
+                    Multiplier = item.Multiplier
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Task setup rules updated successfully.",
+                note = "EffortFormula is currently returned for display only and is not stored in the database."
             });
         }
 
