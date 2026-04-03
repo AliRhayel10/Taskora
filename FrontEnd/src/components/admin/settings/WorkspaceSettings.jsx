@@ -4,8 +4,6 @@ import {
   FiGlobe,
   FiPhone,
   FiMapPin,
-  FiClock,
-  FiCalendar,
   FiArrowLeft,
   FiEdit2,
   FiCheck,
@@ -14,12 +12,10 @@ import "./../../../assets/styles/admin/settings/workspace-settings.css";
 
 export default function WorkspaceSettings({ onBack }) {
   const [workspaceData, setWorkspaceData] = useState({
-    workspaceName: "Taskora Workspace",
+    companyName: "Taskora",
     companyDomain: "taskora.com",
     companyPhone: "+961 70 000 000",
     address: "Beirut, Lebanon",
-    timezone: "GMT+02:00",
-    workingDays: "Monday - Friday",
   });
 
   const [draftData, setDraftData] = useState(workspaceData);
@@ -39,12 +35,10 @@ export default function WorkspaceSettings({ onBack }) {
 
   const handleSave = () => {
     const cleanedData = {
-      workspaceName: draftData.workspaceName.trim(),
+      companyName: draftData.companyName.trim(),
       companyDomain: draftData.companyDomain.trim(),
       companyPhone: draftData.companyPhone.trim(),
       address: draftData.address.trim(),
-      timezone: draftData.timezone.trim(),
-      workingDays: draftData.workingDays.trim(),
     };
 
     setWorkspaceData(cleanedData);
@@ -55,8 +49,8 @@ export default function WorkspaceSettings({ onBack }) {
   const workspaceItems = useMemo(
     () => [
       {
-        key: "workspaceName",
-        label: "Workspace Name",
+        key: "companyName",
+        label: "Company Name",
         icon: <FiBriefcase />,
       },
       {
@@ -73,16 +67,6 @@ export default function WorkspaceSettings({ onBack }) {
         key: "address",
         label: "Address",
         icon: <FiMapPin />,
-      },
-      {
-        key: "timezone",
-        label: "Timezone",
-        icon: <FiClock />,
-      },
-      {
-        key: "workingDays",
-        label: "Working Days",
-        icon: <FiCalendar />,
       },
     ],
     []
