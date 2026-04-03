@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import {
   FiBriefcase,
   FiCheckSquare,
-  FiBarChart2,
   FiShield,
   FiBell,
-  FiLock,
   FiChevronRight,
 } from "react-icons/fi";
 import WorkspaceSettings from "./settings/WorkspaceSettings";
 import "./../../assets/styles/admin/settings-section.css";
+import TaskSetupRulesSettings from "./settings/TaskSetupRulesSettings";
 
 export default function SettingsSection({ resetSignal = 0 }) {
   const [activePage, setActivePage] = useState("menu");
@@ -22,22 +21,15 @@ export default function SettingsSection({ resetSignal = 0 }) {
     {
       key: "workspace",
       title: "Workspace",
-      description: "Manage workspace name, domain, address and phone number. ",
+      description: "Manage workspace name, domain, address and phone number.",
       icon: <FiBriefcase />,
     },
     {
       key: "task-settings",
-      title: "Task Settings",
+      title: "Task Setup & Rules",
       description:
-        "Customize task statuses, priorities, categories, and estimation method.",
+        "Configure task statuses, priorities, complexity levels, effort calculation, and workload rules.",
       icon: <FiCheckSquare />,
-    },
-    {
-      key: "workload-rules",
-      title: "Workload Rules",
-      description:
-        "Define workload limits, capacity rules, and task balancing settings.",
-      icon: <FiBarChart2 />,
     },
     {
       key: "permissions",
@@ -51,16 +43,13 @@ export default function SettingsSection({ resetSignal = 0 }) {
       description: "Configure notification settings, reminders, and alerts.",
       icon: <FiBell />,
     },
-    {
-      key: "security",
-      title: "Security",
-      description: "Manage password policy, 2FA, and login history.",
-      icon: <FiLock />,
-    },
   ];
 
   if (activePage === "workspace") {
     return <WorkspaceSettings onBack={() => setActivePage("menu")} />;
+  }
+  if (activePage === "task-settings") {
+    return <TaskSetupRulesSettings onBack={() => setActivePage("menu")} />;
   }
 
   return (

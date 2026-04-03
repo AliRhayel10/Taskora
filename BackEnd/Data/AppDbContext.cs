@@ -15,6 +15,10 @@ namespace BackEnd.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<PriorityMultiplier> PriorityMultipliers { get; set; }
         public DbSet<ComplexityMultiplier> ComplexityMultipliers { get; set; }
+        public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<Team> Teams { get; set; }
+        public DbSet<BackEnd.Models.TaskStatus> TaskStatuses { get; set; }
+        public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,37 +91,194 @@ namespace BackEnd.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-modelBuilder.Entity<PriorityMultiplier>(entity =>
-{
-    entity.ToTable("PriorityMultipliers");
+            modelBuilder.Entity<PriorityMultiplier>(entity =>
+            {
+                entity.ToTable("PriorityMultipliers");
 
-    entity.HasKey(p => p.Id);
+                entity.HasKey(p => p.Id);
 
-    entity.Property(p => p.Id)
-          .HasColumnName("PriorityMultiplierId");
+                entity.Property(p => p.Id)
+                      .HasColumnName("PriorityMultiplierId");
 
-    entity.Property(p => p.Multiplier)
-          .HasColumnName("MultiplierValue"); 
+                entity.Property(p => p.Multiplier)
+                      .HasColumnName("MultiplierValue");
 
-    entity.Property(p => p.PriorityName)
-          .IsRequired();
-});
+                entity.Property(p => p.PriorityName)
+                      .IsRequired();
 
-modelBuilder.Entity<ComplexityMultiplier>(entity =>
-{
-    entity.ToTable("ComplexityMultipliers");
+                entity.HasOne<Company>()
+                      .WithMany()
+                      .HasForeignKey(p => p.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
 
-    entity.HasKey(c => c.Id);
+            modelBuilder.Entity<ComplexityMultiplier>(entity =>
+            {
+                entity.ToTable("ComplexityMultipliers");
 
-    entity.Property(c => c.Id)
-          .HasColumnName("ComplexityMultiplierId");
+                entity.HasKey(c => c.Id);
 
-    entity.Property(c => c.Multiplier)
-          .HasColumnName("MultiplierValue");
+                entity.Property(c => c.Id)
+                      .HasColumnName("ComplexityMultiplierId");
 
-    entity.Property(c => c.ComplexityName)
-          .IsRequired();
-});
+                entity.Property(c => c.Multiplier)
+                      .HasColumnName("MultiplierValue");
+
+                entity.Property(c => c.ComplexityName)
+                      .IsRequired();
+
+                entity.HasOne<Company>()
+                      .WithMany()
+                      .HasForeignKey(c => c.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<TaskItem>(entity =>
+            {
+                entity.ToTable("Tasks");
+
+                entity.HasKey(t => t.TaskId);
+
+                entity.Property(t => t.Title)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(t => t.Description);
+
+                entity.Property(t => t.Priority)
+                      .IsRequired()
+                      .HasMaxLength(20);
+
+                entity.Property(t => t.Complexity)
+                      .IsRequired()
+                      .HasMaxLength(20);
+
+                entity.Property(t => t.EstimatedEffortHours)
+                      .HasPrecision(10, 2);
+
+                entity.Property(t => t.Weight)
+                      .HasPrecision(10, 2);
+
+                entity.HasOne<Company>()
+                      .WithMany()
+                      .HasForeignKey(t => t.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<Team>()
+                      .WithMany()
+                      .HasForeignKey(t => t.TeamId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(t => t.AssignedToUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(t => t.CreatedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<BackEnd.Models.TaskStatus>()
+                      .WithMany()
+                      .HasForeignKey(t => t.TaskStatusId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<BackEnd.Models.TaskStatus>(entity =>
+            {
+                entity.ToTable("TaskStatuses");
+
+                entity.HasKey(ts => ts.TaskStatusId);
+
+                entity.Property(ts => ts.StatusName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(ts => ts.IsDefault)
+                      .HasDefaultValue(false);
+
+                entity.Property(ts => ts.IsActive)
+                      .HasDefaultValue(true);
+
+                entity.Property(ts => ts.CreatedAt)
+                      .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(ts => new { ts.CompanyId, ts.StatusName })
+                      .IsUnique();
+
+                entity.HasIndex(ts => new { ts.CompanyId, ts.DisplayOrder });
+
+                entity.HasOne<Company>()
+                      .WithMany()
+                      .HasForeignKey(ts => ts.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<TaskStatusHistory>(entity =>
+            {
+                entity.ToTable("TaskStatusHistory");
+
+                entity.HasKey(tsh => tsh.TaskStatusHistoryId);
+
+                entity.Property(tsh => tsh.ChangedAt)
+                      .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne<Company>()
+                      .WithMany()
+                      .HasForeignKey(tsh => tsh.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<TaskItem>()
+                      .WithMany()
+                      .HasForeignKey(tsh => tsh.TaskId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(tsh => tsh.ChangedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<BackEnd.Models.TaskStatus>()
+                      .WithMany()
+                      .HasForeignKey(tsh => tsh.OldTaskStatusId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<BackEnd.Models.TaskStatus>()
+                      .WithMany()
+                      .HasForeignKey(tsh => tsh.NewTaskStatusId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Team>(entity =>
+            {
+                entity.ToTable("Teams");
+
+                entity.HasKey(t => t.TeamId);
+
+                entity.Property(t => t.TeamName)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(t => t.Description)
+                      .HasMaxLength(255);
+
+                entity.Property(t => t.IsActive)
+                      .HasDefaultValue(true);
+
+                entity.HasIndex(t => new { t.CompanyId, t.TeamName })
+                      .IsUnique();
+
+                entity.HasOne<Company>()
+                      .WithMany()
+                      .HasForeignKey(t => t.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(t => t.TeamLeaderUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
         }
     }
 }
