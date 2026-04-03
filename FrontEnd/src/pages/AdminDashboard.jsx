@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import ProfileSection from "../components/admin/ProfileSection";
+import SettingsSection from "../components/admin/SettingsSection";
 import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
@@ -71,6 +72,8 @@ export default function AdminDashboard() {
     switch (activeSection) {
       case "Profile":
         return <ProfileSection user={user} />;
+      case "Settings":
+        return <SettingsSection />;
       default:
         return null;
     }
@@ -93,9 +96,7 @@ export default function AdminDashboard() {
         onLogout={handleLogout}
       />
 
-      <main className="admin-main">
-        {renderSectionContent()}
-      </main>
+      <main className="admin-main">{renderSectionContent()}</main>
     </div>
   );
 }

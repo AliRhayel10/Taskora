@@ -1,0 +1,118 @@
+.settings-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.settings-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.settings-page__title-row h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.45rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.settings-page__title-line {
+  flex: 1;
+  height: 1px;
+  background: #dbe3ee;
+}
+
+.settings-menu-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-menu-item {
+  width: 100%;
+  border: 1px solid #e7eef8;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.settings-menu-item:hover {
+  border-color: #cfe0ff;
+  background: #f8fbff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.06);
+}
+
+.settings-menu-item__icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #edf3ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.35rem;
+}
+
+.settings-menu-item__content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-menu-item__title {
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.settings-menu-item__description {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.settings-menu-item__arrow {
+  color: #64748b;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .settings-page__title-row h2 {
+    font-size: 1.2rem;
+  }
+
+  .settings-menu-item {
+    padding: 16px;
+  }
+
+  .settings-menu-item__icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    font-size: 1.2rem;
+  }
+}
