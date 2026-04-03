@@ -121,52 +121,52 @@ namespace BackEnd.Controllers
             });
         }
 
-[HttpPut("update-profile")]
-public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
-{
-    if (request == null || request.UserId <= 0)
-    {
-        return BadRequest(new
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
         {
-            success = false,
-            message = "Invalid request."
-        });
-    }
+            if (request == null || request.UserId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
 
-    var firstName = request.FirstName?.Trim() ?? "";
-    var lastName = request.LastName?.Trim() ?? "";
+            var firstName = request.FirstName?.Trim() ?? "";
+            var lastName = request.LastName?.Trim() ?? "";
 
-    if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
-    {
-        return BadRequest(new
-        {
-            success = false,
-            message = "First name and last name are required."
-        });
-    }
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "First name and last name are required."
+                });
+            }
 
-    var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-    if (user == null)
-    {
-        return NotFound(new
-        {
-            success = false,
-            message = "User not found."
-        });
-    }
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
 
-    user.FullName = $"{firstName} {lastName}".Trim();
+            user.FullName = $"{firstName} {lastName}".Trim();
 
-    await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-    return Ok(new
-    {
-        success = true,
-        message = "Profile updated successfully.",
-        fullName = user.FullName
-    });
-}
+            return Ok(new
+            {
+                success = true,
+                message = "Profile updated successfully.",
+                fullName = user.FullName
+            });
+        }
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
@@ -280,6 +280,128 @@ public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequ
                 success = true,
                 message = "Profile image uploaded successfully.",
                 imageUrl = imageUrl
+            });
+        }
+
+        [HttpGet("workspace/{userId}")]
+        public async Task<IActionResult> GetWorkspace(int userId)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == user.CompanyId);
+
+            if (company == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                companyId = company.CompanyId,
+                companyName = company.CompanyName,
+                emailDomain = company.EmailDomain ?? "",
+                companyPhone = company.CompanyPhone,
+                address = company.Address
+            });
+        }
+
+        [HttpPut("update-workspace")]
+        public async Task<IActionResult> UpdateWorkspace([FromBody] AdminUpdateWorkspaceRequest request)
+        {
+            if (request == null || request.UserId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
+
+            var companyName = request.CompanyName?.Trim() ?? "";
+            var emailDomain = request.EmailDomain?.Trim() ?? "";
+            var companyPhone = request.CompanyPhone?.Trim() ?? "";
+            var address = request.Address?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(companyName) ||
+                string.IsNullOrWhiteSpace(companyPhone) ||
+                string.IsNullOrWhiteSpace(address))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Company name, company phone, and address are required."
+                });
+            }
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == user.CompanyId);
+
+            if (company == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var existingCompanyWithSameName = await _context.Companies
+                .FirstOrDefaultAsync(c =>
+                    c.CompanyId != company.CompanyId &&
+                    c.CompanyName.ToLower() == companyName.ToLower());
+
+            if (existingCompanyWithSameName != null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Company name is already in use."
+                });
+            }
+
+            company.CompanyName = companyName;
+            company.EmailDomain = emailDomain;
+            company.CompanyPhone = companyPhone;
+            company.Address = address;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Workspace updated successfully.",
+                companyName = company.CompanyName,
+                emailDomain = company.EmailDomain,
+                companyPhone = company.CompanyPhone,
+                address = company.Address
             });
         }
     }
