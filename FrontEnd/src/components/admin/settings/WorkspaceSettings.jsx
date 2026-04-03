@@ -46,17 +46,23 @@ export default function WorkspaceSettings({ onBack }) {
   return (
     <section className="workspace-settings-page">
       <div className="workspace-settings-page__title-row">
-        <button type="button" className="workspace-back-btn" onClick={onBack}>
+        <button
+          type="button"
+          className="workspace-back-btn"
+          onClick={onBack}
+          aria-label="Back to Settings"
+        >
           <FiArrowLeft />
-          Back to Settings
         </button>
+
+        <h2>Workspace</h2>
+        <div className="workspace-settings-page__title-line"></div>
       </div>
 
       <div className="workspace-settings-card">
         <div className="workspace-settings-card__header">
           <div>
             <h3>Workspace Information</h3>
-            <p>Manage your workspace identity, schedule, and company details.</p>
           </div>
 
           <button type="button" className="workspace-settings-edit-btn">

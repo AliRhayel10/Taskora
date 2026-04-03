@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiBriefcase,
   FiCheckSquare,
@@ -11,8 +11,12 @@ import {
 import WorkspaceSettings from "./settings/WorkspaceSettings";
 import "./../../assets/styles/admin/settings-section.css";
 
-export default function SettingsSection() {
+export default function SettingsSection({ resetSignal = 0 }) {
   const [activePage, setActivePage] = useState("menu");
+
+  useEffect(() => {
+    setActivePage("menu");
+  }, [resetSignal]);
 
   const settingsTabs = [
     {

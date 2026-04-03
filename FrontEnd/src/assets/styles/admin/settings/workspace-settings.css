@@ -8,20 +8,35 @@
 .workspace-settings-page__title-row {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.workspace-settings-page__title-row h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.45rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.workspace-settings-page__title-line {
+  flex: 1;
+  height: 1px;
+  background: #dbe3ee;
 }
 
 .workspace-back-btn {
+  width: 40px;
+  height: 40px;
   border: 1px solid #2563eb;
   background: #ffffff;
   color: #2563eb;
   border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 0.95rem;
-  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  font-size: 1rem;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -58,12 +73,6 @@
   font-weight: 800;
 }
 
-.workspace-settings-card__header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 1rem;
-  line-height: 1.6;
-}
 
 .workspace-settings-edit-btn {
   border: 1px solid #2563eb;
@@ -153,5 +162,9 @@
   .workspace-settings-grid {
     grid-template-columns: 1fr;
     gap: 22px;
+  }
+
+  .workspace-settings-page__title-row h2 {
+    font-size: 1.2rem;
   }
 }

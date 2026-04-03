@@ -6,6 +6,7 @@ import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("Dashboard");
+  const [settingsResetSignal, setSettingsResetSignal] = useState(0);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -68,12 +69,20 @@ export default function AdminDashboard() {
     window.location.href = "/login";
   };
 
+  const handleSectionSelect = (section) => {
+    if (section === "Settings") {
+      setSettingsResetSignal((prev) => prev + 1);
+    }
+
+    setActiveSection(section);
+  };
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case "Profile":
         return <ProfileSection user={user} />;
       case "Settings":
-        return <SettingsSection />;
+        return <SettingsSection resetSignal={settingsResetSignal} />;
       default:
         return null;
     }
@@ -92,7 +101,7 @@ export default function AdminDashboard() {
       <AdminSidebar
         user={user}
         activeItem={activeSection}
-        onSelect={setActiveSection}
+        onSelect={handleSectionSelect}
         onLogout={handleLogout}
       />
 
