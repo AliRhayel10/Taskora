@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   FiBriefcase,
   FiGlobe,
@@ -6,42 +7,86 @@ import {
   FiClock,
   FiCalendar,
   FiArrowLeft,
+  FiEdit2,
+  FiCheck,
 } from "react-icons/fi";
 import "./../../../assets/styles/admin/settings/workspace-settings.css";
 
 export default function WorkspaceSettings({ onBack }) {
-  const workspaceItems = [
-    {
-      label: "Workspace Name",
-      value: "Taskora Workspace",
-      icon: <FiBriefcase />,
-    },
-    {
-      label: "Company Domain",
-      value: "taskora.com",
-      icon: <FiGlobe />,
-    },
-    {
-      label: "Company Phone",
-      value: "+961 70 000 000",
-      icon: <FiPhone />,
-    },
-    {
-      label: "Address",
-      value: "Beirut, Lebanon",
-      icon: <FiMapPin />,
-    },
-    {
-      label: "Timezone",
-      value: "GMT+02:00",
-      icon: <FiClock />,
-    },
-    {
-      label: "Working Days",
-      value: "Monday - Friday",
-      icon: <FiCalendar />,
-    },
-  ];
+  const [workspaceData, setWorkspaceData] = useState({
+    workspaceName: "Taskora Workspace",
+    companyDomain: "taskora.com",
+    companyPhone: "+961 70 000 000",
+    address: "Beirut, Lebanon",
+    timezone: "GMT+02:00",
+    workingDays: "Monday - Friday",
+  });
+
+  const [draftData, setDraftData] = useState(workspaceData);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleStartEditing = () => {
+    setDraftData(workspaceData);
+    setIsEditing(true);
+  };
+
+  const handleInputChange = (field, value) => {
+    setDraftData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSave = () => {
+    const cleanedData = {
+      workspaceName: draftData.workspaceName.trim(),
+      companyDomain: draftData.companyDomain.trim(),
+      companyPhone: draftData.companyPhone.trim(),
+      address: draftData.address.trim(),
+      timezone: draftData.timezone.trim(),
+      workingDays: draftData.workingDays.trim(),
+    };
+
+    setWorkspaceData(cleanedData);
+    setDraftData(cleanedData);
+    setIsEditing(false);
+  };
+
+  const workspaceItems = useMemo(
+    () => [
+      {
+        key: "workspaceName",
+        label: "Workspace Name",
+        icon: <FiBriefcase />,
+      },
+      {
+        key: "companyDomain",
+        label: "Company Domain",
+        icon: <FiGlobe />,
+      },
+      {
+        key: "companyPhone",
+        label: "Company Phone",
+        icon: <FiPhone />,
+      },
+      {
+        key: "address",
+        label: "Address",
+        icon: <FiMapPin />,
+      },
+      {
+        key: "timezone",
+        label: "Timezone",
+        icon: <FiClock />,
+      },
+      {
+        key: "workingDays",
+        label: "Working Days",
+        icon: <FiCalendar />,
+      },
+    ],
+    []
+  );
 
   return (
     <section className="workspace-settings-page">
@@ -65,8 +110,15 @@ export default function WorkspaceSettings({ onBack }) {
             <h3>Workspace Information</h3>
           </div>
 
-          <button type="button" className="workspace-settings-edit-btn">
-            Edit
+          <button
+            type="button"
+            className={`workspace-settings-edit-btn ${
+              isEditing ? "workspace-settings-edit-btn--primary" : ""
+            }`}
+            onClick={isEditing ? handleSave : handleStartEditing}
+          >
+            {isEditing ? <FiCheck /> : <FiEdit2 />}
+            {isEditing ? "Save" : "Edit"}
           </button>
         </div>
 
@@ -74,13 +126,26 @@ export default function WorkspaceSettings({ onBack }) {
 
         <div className="workspace-settings-grid">
           {workspaceItems.map((item) => (
-            <div className="workspace-settings-item" key={item.label}>
+            <div className="workspace-settings-item" key={item.key}>
               <span className="workspace-settings-item__label">
-                <span className="workspace-settings-item__label-icon">{item.icon}</span>
+                <span className="workspace-settings-item__label-icon">
+                  {item.icon}
+                </span>
                 {item.label}
               </span>
 
-              <strong className="workspace-settings-item__value">{item.value}</strong>
+              {isEditing ? (
+                <input
+                  type="text"
+                  className="workspace-settings-input"
+                  value={draftData[item.key]}
+                  onChange={(e) => handleInputChange(item.key, e.target.value)}
+                />
+              ) : (
+                <strong className="workspace-settings-item__value">
+                  {workspaceData[item.key]}
+                </strong>
+              )}
             </div>
           ))}
         </div>
