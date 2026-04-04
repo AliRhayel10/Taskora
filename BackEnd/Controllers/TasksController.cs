@@ -218,15 +218,15 @@ namespace BackEnd.Controllers
                 }
                 else
                 {
-_context.TaskStatuses.Add(new TaskStatusEntity
-{
-    CompanyId = companyId,
-    StatusName = status.StatusName,
-    DisplayOrder = status.DisplayOrder,
-    IsActive = true,
-    IsDefault = i == 0,
-    CreatedAt = DateTime.Now
-});
+                    _context.TaskStatuses.Add(new TaskStatusEntity
+                    {
+                        CompanyId = companyId,
+                        StatusName = status.StatusName,
+                        DisplayOrder = status.DisplayOrder,
+                        IsActive = true,
+                        IsDefault = i == 0,
+                        CreatedAt = DateTime.Now
+                    });
                 }
             }
 
