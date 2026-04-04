@@ -183,16 +183,16 @@ namespace BackEnd.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-return new RegisterCompanyResponse
-{
-    Success = true,
-    Message = "Company registered successfully.",
-    UserId = adminUser.UserId,
-    FullName = adminUser.FullName,
-    Email = adminUser.Email,
-    JobTitle = adminUser.JobTitle,
-    Role = "CompanyAdmin"
-};
+                return new RegisterCompanyResponse
+                {
+                    Success = true,
+                    Message = "Company registered successfully.",
+                    UserId = adminUser.UserId,
+                    FullName = adminUser.FullName,
+                    Email = adminUser.Email,
+                    JobTitle = adminUser.JobTitle,
+                    Role = "CompanyAdmin"
+                };
             }
             catch (Exception ex)
             {
