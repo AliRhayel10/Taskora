@@ -881,14 +881,14 @@ export default function TaskSetupRulesSettings({
                     </button>
 
                     {isEditingRow ? (
-                        <button
-                            type="button"
-                            className="task-setup-rules-icon-btn"
-                            onClick={() => cancelStatusEdit(index)}
-                            aria-label="Cancel status edit"
-                        >
-                            <FiX />
-                        </button>
+<button
+  type="button"
+  className="task-setup-rules-icon-btn task-setup-rules-icon-btn--cancel"
+  onClick={() => cancelStatusEdit(index)}
+  aria-label="Cancel status edit"
+>
+  <FiX />
+</button>
                     ) : (
                         <button
                             type="button"
@@ -967,7 +967,7 @@ export default function TaskSetupRulesSettings({
                     {isEditingRow ? (
                         <button
                             type="button"
-                            className="task-setup-rules-icon-btn"
+                            className="task-setup-rules-icon-btn task-setup-rules-icon-btn--cancel"
                             onClick={() => onCancel(index)}
                             aria-label={`Cancel ${section} edit`}
                         >
