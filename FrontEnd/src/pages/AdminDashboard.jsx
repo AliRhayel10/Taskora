@@ -3,6 +3,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import ProfileSection from "../components/admin/ProfileSection";
 import SettingsSection from "../components/admin/SettingsSection";
 import "./../assets/styles/admin/admin-dashboard.css";
+import TeamsSection from "../components/admin/TeamsSection";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("Dashboard");
@@ -83,6 +84,8 @@ export default function AdminDashboard() {
         return <ProfileSection user={user} />;
       case "Settings":
         return <SettingsSection resetSignal={settingsResetSignal} />;
+      case "Teams":
+        return <TeamsSection />;
       default:
         return null;
     }
