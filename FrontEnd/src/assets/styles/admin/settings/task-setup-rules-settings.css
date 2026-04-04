@@ -81,11 +81,18 @@
 
 .task-setup-rules-tab:hover {
   border-color: #93c5fd;
+  background: #eff6ff;
   color: #1d4ed8;
   transform: translateY(-1px);
 }
 
 .task-setup-rules-tab--active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.task-setup-rules-tab--active:hover {
   background: #2563eb;
   border-color: #2563eb;
   color: #ffffff;
@@ -187,6 +194,19 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.task-setup-rules-mini-head span:nth-child(1) {
+  text-align: left;
+}
+
+.task-setup-rules-mini-head span:nth-child(2),
+.task-setup-rules-mini-head span:nth-child(3) {
+  text-align: center;
+}
+
+.task-setup-rules-row-number {
+  text-align: center;
 }
 
 .task-setup-rules-row {
