@@ -373,8 +373,7 @@ export default function TaskSetupRulesSettings({
               </div>
             ))}
           </div>
-        )}
-      </div>
+        )}      </div>
     </section>
   );
 }
