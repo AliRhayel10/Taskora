@@ -10,6 +10,8 @@ import {
     FiTrash,
     FiEdit2,
     FiX,
+    FiChevronUp,
+    FiChevronDown,
 } from "react-icons/fi";
 import "./../../../assets/styles/admin/settings/task-setup-rules-settings.css";
 
@@ -589,6 +591,35 @@ export default function TaskSetupRulesSettings({
         syncComplexityRows(next);
     };
 
+    const stepMultiplierValue = (section, index, direction) => {
+    const step = 0.1;
+
+    if (section === "priority") {
+        const currentRow = priorityRows[index] || { name: "", multiplier: "" };
+        const currentValue = Number(currentRow.multiplier);
+        const safeValue = Number.isNaN(currentValue) || currentValue <= 0 ? 0.1 : currentValue;
+        const nextValue =
+            direction === "up"
+                ? safeValue + step
+                : Math.max(0.1, safeValue - step);
+
+        updatePriorityRow(index, "multiplier", nextValue.toFixed(1));
+        return;
+    }
+
+    if (section === "complexity") {
+        const currentRow = complexityRows[index] || { name: "", multiplier: "" };
+        const currentValue = Number(currentRow.multiplier);
+        const safeValue = Number.isNaN(currentValue) || currentValue <= 0 ? 0.1 : currentValue;
+        const nextValue =
+            direction === "up"
+                ? safeValue + step
+                : Math.max(0.1, safeValue - step);
+
+        updateComplexityRow(index, "multiplier", nextValue.toFixed(1));
+    }
+};
+
     const addStatus = () => {
         const next = [...statusesList, ""];
         setStatusesList(next);
@@ -764,9 +795,12 @@ export default function TaskSetupRulesSettings({
     const handlePriorityEditToggle = async (index, isEditingRow) => {
         if (isEditingRow) {
             const currentRow = priorityRows[index] || { name: "", multiplier: "" };
+            const multiplierValue = Number(currentRow.multiplier);
+
             if (
                 !String(currentRow.name || "").trim() ||
-                !String(currentRow.multiplier || "").trim()
+                Number.isNaN(multiplierValue) ||
+                multiplierValue <= 0
             ) {
                 return;
             }
@@ -801,9 +835,12 @@ export default function TaskSetupRulesSettings({
     const handleComplexityEditToggle = async (index, isEditingRow) => {
         if (isEditingRow) {
             const currentRow = complexityRows[index] || { name: "", multiplier: "" };
+            const multiplierValue = Number(currentRow.multiplier);
+
             if (
                 !String(currentRow.name || "").trim() ||
-                !String(currentRow.multiplier || "").trim()
+                Number.isNaN(multiplierValue) ||
+                multiplierValue <= 0
             ) {
                 return;
             }
@@ -920,13 +957,37 @@ export default function TaskSetupRulesSettings({
                             onChange={(e) => onUpdate(index, "name", e.target.value)}
                             placeholder={`${section} name`}
                         />
-                        <input
-                            type="text"
-                            className="task-setup-rules-input task-setup-rules-input--row task-setup-rules-input--small"
-                            value={row.multiplier}
-                            onChange={(e) => onUpdate(index, "multiplier", e.target.value)}
-                            placeholder="1.0"
-                        />
+<div className="task-setup-rules-stepper-field">
+    <input
+        type="number"
+        step="0.1"
+        min="0.1"
+        className="task-setup-rules-input task-setup-rules-input--row task-setup-rules-input--small task-setup-rules-input--with-stepper"
+        value={row.multiplier}
+        onChange={(e) => onUpdate(index, "multiplier", e.target.value)}
+        placeholder="1.0"
+    />
+
+<div className="task-setup-rules-stepper-buttons">
+    <button
+        type="button"
+        className="task-setup-rules-stepper-btn"
+        onClick={() => stepMultiplierValue(section, index, "down")}
+        aria-label={`Decrease ${section} multiplier`}
+    >
+        ↓
+    </button>
+
+    <button
+        type="button"
+        className="task-setup-rules-stepper-btn"
+        onClick={() => stepMultiplierValue(section, index, "up")}
+        aria-label={`Increase ${section} multiplier`}
+    >
+        ↑
+    </button>
+</div>
+</div>
                     </>
                 ) : (
                     <>
@@ -945,7 +1006,8 @@ export default function TaskSetupRulesSettings({
                             isEditingRow &&
                             (
                                 !String(row.name || "").trim() ||
-                                !String(row.multiplier || "").trim()
+                                Number(row.multiplier) <= 0 ||
+                                Number.isNaN(Number(row.multiplier))
                             )
                         }
                     >

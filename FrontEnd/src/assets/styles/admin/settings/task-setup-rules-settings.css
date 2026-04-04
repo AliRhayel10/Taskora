@@ -405,6 +405,64 @@
   justify-content: center;
 }
 
+.task-setup-rules-stepper-field {
+  position: relative;
+  width: 100%;
+}
+
+.task-setup-rules-input--with-stepper {
+  padding-right: 52px;
+  -moz-appearance: textfield;
+}
+
+.task-setup-rules-input--with-stepper::-webkit-outer-spin-button,
+.task-setup-rules-input--with-stepper::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.task-setup-rules-stepper-buttons {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+}
+
+.task-setup-rules-stepper-btn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.task-setup-rules-stepper-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.task-setup-rules-stepper-btn svg {
+  width: 11px;
+  height: 11px;
+}
+
 @media (max-width: 900px) {
   .task-setup-rules-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
