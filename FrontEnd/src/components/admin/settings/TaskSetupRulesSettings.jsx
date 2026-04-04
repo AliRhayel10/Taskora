@@ -8,6 +8,8 @@ import {
   FiEdit2,
   FiTrash2,
   FiPlus,
+  FiCheck,
+  FiX,
 } from "react-icons/fi";
 import "./../../../assets/styles/admin/settings/task-setup-rules-settings.css";
 
@@ -103,6 +105,9 @@ export default function TaskSetupRulesSettings({
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  const [editingMultiplier, setEditingMultiplier] = useState(null);
+  const [editingValue, setEditingValue] = useState("");
+
   const statusList = useMemo(
     () => parseCommaSeparated(taskData.statuses),
     [taskData.statuses]
@@ -142,6 +147,11 @@ export default function TaskSetupRulesSettings({
     window.setTimeout(() => {
       setSuccessMessage("");
     }, 2500);
+  };
+
+  const resetInlineEdit = () => {
+    setEditingMultiplier(null);
+    setEditingValue("");
   };
 
   const loadTaskSetupRules = async () => {
@@ -461,6 +471,71 @@ export default function TaskSetupRulesSettings({
     }
   };
 
+  const startEditMultiplier = (type, item) => {
+    clearMessages();
+    setEditingMultiplier({
+      type,
+      name: item.name,
+    });
+    setEditingValue(String(item.multiplier ?? ""));
+  };
+
+  const cancelEditMultiplier = () => {
+    resetInlineEdit();
+  };
+
+  const saveEditMultiplier = async () => {
+    if (!editingMultiplier) return;
+
+    clearMessages();
+
+    const multiplier = Number(editingValue);
+
+    if (Number.isNaN(multiplier) || multiplier <= 0) {
+      setErrorMessage("Please enter a valid multiplier greater than 0.");
+      return;
+    }
+
+    const endpoint =
+      editingMultiplier.type === "priority"
+        ? "priority-levels"
+        : "complexity-levels";
+
+    try {
+      setIsMutating(true);
+
+      const response = await fetch(
+        `${apiBaseUrl}/${endpoint}/${resolvedCompanyId}/${encodeURIComponent(
+          editingMultiplier.name
+        )}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: editingMultiplier.name,
+            multiplier,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to update multiplier.");
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || "Multiplier updated successfully.");
+      resetInlineEdit();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to update multiplier.");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
   const tabs = [
     { key: "statuses", label: "Task Statuses", icon: <FiList /> },
     { key: "priorities", label: "Priority Levels", icon: <FiFlag /> },
@@ -524,7 +599,10 @@ export default function TaskSetupRulesSettings({
                 className={`task-setup-rules-tab ${
                   activeTab === tab.key ? "task-setup-rules-tab--active" : ""
                 }`}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  resetInlineEdit();
+                }}
               >
                 <span className="task-setup-rules-tab__icon">{tab.icon}</span>
                 <span>{tab.label}</span>
@@ -738,33 +816,72 @@ export default function TaskSetupRulesSettings({
 
               <div className="task-setup-rules-entry-list">
                 {priorityRows.length ? (
-                  priorityRows.map((row) => (
-                    <div className="task-setup-rules-entry" key={row.name}>
-                      <span className="task-setup-rules-entry__text">
-                        {row.name} = {row.multiplier || "-"}
-                      </span>
-                      <div className="task-setup-rules-entry__actions">
-                        <button
-                          type="button"
-                          className="task-setup-rules-entry__btn"
-                          onClick={() => handleEditNamedItem("priority", row)}
-                          disabled={isMutating}
-                        >
-                          <FiEdit2 />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
-                          onClick={() => handleDeleteNamedItem("priority", row)}
-                          disabled={isMutating}
-                        >
-                          <FiTrash2 />
-                          Delete
-                        </button>
+                  priorityRows.map((row) => {
+                    const isEditingThisOne =
+                      editingMultiplier?.type === "priority" &&
+                      editingMultiplier?.name === row.name;
+
+                    return (
+                      <div className="task-setup-rules-entry" key={row.name}>
+                        <span className="task-setup-rules-entry__text">
+                          {row.name}
+                        </span>
+
+                        {isEditingThisOne ? (
+                          <div className="task-setup-rules-inline-edit">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="task-setup-rules-inline-edit__input"
+                              value={editingValue}
+                              onChange={(e) => setEditingValue(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="task-setup-rules-inline-edit__save"
+                              onClick={saveEditMultiplier}
+                              disabled={isMutating}
+                            >
+                              <FiCheck />
+                            </button>
+                            <button
+                              type="button"
+                              className="task-setup-rules-inline-edit__cancel"
+                              onClick={cancelEditMultiplier}
+                              disabled={isMutating}
+                            >
+                              <FiX />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="task-setup-rules-entry__actions">
+                            <span className="task-setup-rules-entry__multiplier">
+                              {row.multiplier || "-"}
+                            </span>
+                            <button
+                              type="button"
+                              className="task-setup-rules-entry__btn"
+                              onClick={() => startEditMultiplier("priority", row)}
+                              disabled={isMutating}
+                            >
+                              <FiEdit2 />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                              onClick={() => handleDeleteNamedItem("priority", row)}
+                              disabled={isMutating}
+                            >
+                              <FiTrash2 />
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <span className="task-setup-rules-empty">
                     No priority multipliers found.
@@ -795,33 +912,72 @@ export default function TaskSetupRulesSettings({
 
               <div className="task-setup-rules-entry-list">
                 {complexityRows.length ? (
-                  complexityRows.map((row) => (
-                    <div className="task-setup-rules-entry" key={row.name}>
-                      <span className="task-setup-rules-entry__text">
-                        {row.name} = {row.multiplier || "-"}
-                      </span>
-                      <div className="task-setup-rules-entry__actions">
-                        <button
-                          type="button"
-                          className="task-setup-rules-entry__btn"
-                          onClick={() => handleEditNamedItem("complexity", row)}
-                          disabled={isMutating}
-                        >
-                          <FiEdit2 />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
-                          onClick={() => handleDeleteNamedItem("complexity", row)}
-                          disabled={isMutating}
-                        >
-                          <FiTrash2 />
-                          Delete
-                        </button>
+                  complexityRows.map((row) => {
+                    const isEditingThisOne =
+                      editingMultiplier?.type === "complexity" &&
+                      editingMultiplier?.name === row.name;
+
+                    return (
+                      <div className="task-setup-rules-entry" key={row.name}>
+                        <span className="task-setup-rules-entry__text">
+                          {row.name}
+                        </span>
+
+                        {isEditingThisOne ? (
+                          <div className="task-setup-rules-inline-edit">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="task-setup-rules-inline-edit__input"
+                              value={editingValue}
+                              onChange={(e) => setEditingValue(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="task-setup-rules-inline-edit__save"
+                              onClick={saveEditMultiplier}
+                              disabled={isMutating}
+                            >
+                              <FiCheck />
+                            </button>
+                            <button
+                              type="button"
+                              className="task-setup-rules-inline-edit__cancel"
+                              onClick={cancelEditMultiplier}
+                              disabled={isMutating}
+                            >
+                              <FiX />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="task-setup-rules-entry__actions">
+                            <span className="task-setup-rules-entry__multiplier">
+                              {row.multiplier || "-"}
+                            </span>
+                            <button
+                              type="button"
+                              className="task-setup-rules-entry__btn"
+                              onClick={() => startEditMultiplier("complexity", row)}
+                              disabled={isMutating}
+                            >
+                              <FiEdit2 />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                              onClick={() => handleDeleteNamedItem("complexity", row)}
+                              disabled={isMutating}
+                            >
+                              <FiTrash2 />
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <span className="task-setup-rules-empty">
                     No complexity multipliers found.

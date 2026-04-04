@@ -229,6 +229,99 @@
   color: #dc2626;
 }
 
+.task-setup-rules-entry__multiplier {
+  min-width: 72px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-setup-rules-inline-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.task-setup-rules-inline-edit__input {
+  width: 110px;
+  height: 40px;
+  border: 1px solid #cfe0ff;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 0 12px;
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.task-setup-rules-inline-edit__input:focus {
+  border-color: #93c5fd;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+.task-setup-rules-inline-edit__save,
+.task-setup-rules-inline-edit__cancel {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.task-setup-rules-inline-edit__save {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.task-setup-rules-inline-edit__save:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.task-setup-rules-inline-edit__cancel {
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #64748b;
+}
+
+.task-setup-rules-inline-edit__cancel:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+  transform: translateY(-1px);
+}
+
+.task-setup-rules-inline-edit__save:disabled,
+.task-setup-rules-inline-edit__cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .task-setup-rules-add-row {
   padding: 14px 18px;
   border-top: 1px solid #e8eef5;
@@ -304,7 +397,13 @@
     padding: 14px 18px;
   }
 
-  .task-setup-rules-entry__actions {
-    gap: 18px;
+  .task-setup-rules-entry__actions,
+  .task-setup-rules-inline-edit {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .task-setup-rules-inline-edit__input {
+    width: 100%;
   }
 }
