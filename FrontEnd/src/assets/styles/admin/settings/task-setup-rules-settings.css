@@ -186,24 +186,48 @@
 
 .task-setup-rules-mini-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 90px 72px;
+  grid-template-columns: minmax(0, 1fr) 120px 96px;
   gap: 10px;
-  padding: 0 6px;
+  padding: 0 10px;
   color: #64748b;
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  align-items: center;
 }
 
 .task-setup-rules-mini-head span:nth-child(1) {
   text-align: left;
 }
 
-.task-setup-rules-mini-head span:nth-child(2),
+.task-setup-rules-mini-head span:nth-child(2) {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .task-setup-rules-mini-head span:nth-child(3) {
   text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
+.task-setup-rules-row--triple {
+  grid-template-columns: minmax(0, 1fr) 120px 96px;
+}
+
+.task-setup-rules-row-number {
+  text-align: center;
+  width: 100%;
+}
+
+.task-setup-rules-row--triple .task-setup-rules-input--small {
+  width: 100%;
+  text-align: center;
+}c
 
 .task-setup-rules-row-number {
   text-align: center;
@@ -283,6 +307,14 @@
 .task-setup-rules-icon-btn--danger:hover {
   background: #fef2f2;
   border-color: #fecaca;
+}
+
+.task-setup-rules-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #94a3b8;
 }
 
 .task-setup-rules-add-btn {

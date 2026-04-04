@@ -100,8 +100,9 @@ function TabButton({ isActive, icon, label, onClick }) {
     return (
         <button
             type="button"
-            className={`task-setup-rules-tab ${isActive ? "task-setup-rules-tab--active" : ""
-                }`}
+            className={`task-setup-rules-tab ${
+                isActive ? "task-setup-rules-tab--active" : ""
+            }`}
             onClick={onClick}
         >
             <span className="task-setup-rules-tab__icon">{icon}</span>
@@ -267,7 +268,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-            String(originalRow.multiplier || "").trim()
+                String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -278,8 +279,15 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-            String(originalRow.multiplier || "").trim()
+                String(originalRow.multiplier || "").trim()
         );
+    };
+
+    const resetDraftToSaved = () => {
+        setDraftData(taskData);
+        setStatusesList(parseCommaSeparated(taskData.statuses));
+        setPriorityRows(parseMultiplierRows(taskData.priorityMultipliers));
+        setComplexityRows(parseMultiplierRows(taskData.complexityMultipliers));
     };
 
     const syncStatuses = (nextStatuses) => {
@@ -315,32 +323,70 @@ export default function TaskSetupRulesSettings({
         setDraftData(nextDraftData);
     };
 
-    const cancelExistingEditing = () => {
-        let didCancel = false;
+    const cancelStatusEdit = (index) => {
+        const isPending =
+            pendingNewRow?.type === "status" && pendingNewRow?.index === index;
 
-        if (editingStatusIndex !== null && !pendingNewRow) {
-            setStatusesList(parseCommaSeparated(taskData.statuses));
-            setEditingStatusIndex(null);
-            didCancel = true;
-        }
-
-        if (editingPriorityIndex !== null && !pendingNewRow) {
-            setPriorityRows(parseMultiplierRows(taskData.priorityMultipliers));
-            setEditingPriorityIndex(null);
-            didCancel = true;
-        }
-
-        if (editingComplexityIndex !== null && !pendingNewRow) {
-            setComplexityRows(parseMultiplierRows(taskData.complexityMultipliers));
-            setEditingComplexityIndex(null);
-            didCancel = true;
-        }
-
-        if (didCancel) {
+        if (isPending) {
+            const nextStatuses = statusesList.filter((_, itemIndex) => itemIndex !== index);
+            setStatusesList(nextStatuses);
             setDraftData(taskData);
+            setPendingNewRow(null);
+            setEditingStatusIndex(null);
             setErrorMessage("");
             setSuccessMessage("");
+            return;
         }
+
+        resetDraftToSaved();
+        setEditingStatusIndex(null);
+        setPendingNewRow(null);
+        setErrorMessage("");
+        setSuccessMessage("");
+    };
+
+    const cancelPriorityEdit = (index) => {
+        const isPending =
+            pendingNewRow?.type === "priority" && pendingNewRow?.index === index;
+
+        if (isPending) {
+            const nextRows = priorityRows.filter((_, itemIndex) => itemIndex !== index);
+            setPriorityRows(nextRows);
+            setDraftData(taskData);
+            setPendingNewRow(null);
+            setEditingPriorityIndex(null);
+            setErrorMessage("");
+            setSuccessMessage("");
+            return;
+        }
+
+        resetDraftToSaved();
+        setEditingPriorityIndex(null);
+        setPendingNewRow(null);
+        setErrorMessage("");
+        setSuccessMessage("");
+    };
+
+    const cancelComplexityEdit = (index) => {
+        const isPending =
+            pendingNewRow?.type === "complexity" && pendingNewRow?.index === index;
+
+        if (isPending) {
+            const nextRows = complexityRows.filter((_, itemIndex) => itemIndex !== index);
+            setComplexityRows(nextRows);
+            setDraftData(taskData);
+            setPendingNewRow(null);
+            setEditingComplexityIndex(null);
+            setErrorMessage("");
+            setSuccessMessage("");
+            return;
+        }
+
+        resetDraftToSaved();
+        setEditingComplexityIndex(null);
+        setPendingNewRow(null);
+        setErrorMessage("");
+        setSuccessMessage("");
     };
 
     const removePendingRow = () => {
@@ -394,20 +440,44 @@ export default function TaskSetupRulesSettings({
         }
 
         const handleOutsideClick = (event) => {
-            if (!panelRef.current) {
-                return;
+            const clickedInsideAnyActiveRow = event.target.closest(".task-setup-rules-row");
+
+            if (editingStatusIndex !== null) {
+                const activeRow = panelRef.current?.querySelector(
+                    `[data-row-type="status"][data-row-index="${editingStatusIndex}"]`
+                );
+
+                if (activeRow && !activeRow.contains(event.target)) {
+                    cancelStatusEdit(editingStatusIndex);
+                    return;
+                }
             }
 
-            if (panelRef.current.contains(event.target)) {
-                return;
+            if (editingPriorityIndex !== null) {
+                const activeRow = panelRef.current?.querySelector(
+                    `[data-row-type="priority"][data-row-index="${editingPriorityIndex}"]`
+                );
+
+                if (activeRow && !activeRow.contains(event.target)) {
+                    cancelPriorityEdit(editingPriorityIndex);
+                    return;
+                }
             }
 
-            if (pendingNewRow) {
+            if (editingComplexityIndex !== null) {
+                const activeRow = panelRef.current?.querySelector(
+                    `[data-row-type="complexity"][data-row-index="${editingComplexityIndex}"]`
+                );
+
+                if (activeRow && !activeRow.contains(event.target)) {
+                    cancelComplexityEdit(editingComplexityIndex);
+                    return;
+                }
+            }
+
+            if (!clickedInsideAnyActiveRow && pendingNewRow) {
                 removePendingRow();
-                return;
             }
-
-            cancelExistingEditing();
         };
 
         document.addEventListener("mousedown", handleOutsideClick);
@@ -675,6 +745,7 @@ export default function TaskSetupRulesSettings({
             if (!currentValue) {
                 return;
             }
+
             const isPending =
                 pendingNewRow?.type === "status" && pendingNewRow?.index === index;
 
@@ -705,9 +776,13 @@ export default function TaskSetupRulesSettings({
     const handlePriorityEditToggle = async (index, isEditingRow) => {
         if (isEditingRow) {
             const currentRow = priorityRows[index] || { name: "", multiplier: "" };
-            if (!String(currentRow.name || "").trim() || !String(currentRow.multiplier || "").trim()) {
+            if (
+                !String(currentRow.name || "").trim() ||
+                !String(currentRow.multiplier || "").trim()
+            ) {
                 return;
             }
+
             const isPending =
                 pendingNewRow?.type === "priority" && pendingNewRow?.index === index;
 
@@ -738,9 +813,13 @@ export default function TaskSetupRulesSettings({
     const handleComplexityEditToggle = async (index, isEditingRow) => {
         if (isEditingRow) {
             const currentRow = complexityRows[index] || { name: "", multiplier: "" };
-            if (!String(currentRow.name || "").trim() || !String(currentRow.multiplier || "").trim()) {
+            if (
+                !String(currentRow.name || "").trim() ||
+                !String(currentRow.multiplier || "").trim()
+            ) {
                 return;
             }
+
             const isPending =
                 pendingNewRow?.type === "complexity" && pendingNewRow?.index === index;
 
@@ -772,7 +851,12 @@ export default function TaskSetupRulesSettings({
         const isEditingRow = editingStatusIndex === index;
 
         return (
-            <div className="task-setup-rules-row" key={`status-${index}`}>
+            <div
+                className="task-setup-rules-row"
+                key={`status-${index}`}
+                data-row-type="status"
+                data-row-index={index}
+            >
                 {isEditingRow ? (
                     <input
                         type="text"
@@ -796,14 +880,25 @@ export default function TaskSetupRulesSettings({
                         {isEditingRow ? <FiCheck /> : <FiEdit2 />}
                     </button>
 
-                    <button
-                        type="button"
-                        className="task-setup-rules-icon-btn task-setup-rules-icon-btn--danger"
-                        onClick={() => deleteStatus(index)}
-                        aria-label="Delete status"
-                    >
-                        <FiTrash />
-                    </button>
+                    {isEditingRow ? (
+                        <button
+                            type="button"
+                            className="task-setup-rules-icon-btn"
+                            onClick={() => cancelStatusEdit(index)}
+                            aria-label="Cancel status edit"
+                        >
+                            <FiX />
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            className="task-setup-rules-icon-btn task-setup-rules-icon-btn--danger"
+                            onClick={() => deleteStatus(index)}
+                            aria-label="Delete status"
+                        >
+                            <FiTrash />
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -816,7 +911,8 @@ export default function TaskSetupRulesSettings({
         editingIndex,
         onEditToggle,
         onUpdate,
-        onDelete
+        onDelete,
+        onCancel
     ) => {
         const isEditingRow = editingIndex === index;
 
@@ -824,6 +920,8 @@ export default function TaskSetupRulesSettings({
             <div
                 className="task-setup-rules-row task-setup-rules-row--triple"
                 key={`${section}-${index}`}
+                data-row-type={section}
+                data-row-index={index}
             >
                 {isEditingRow ? (
                     <>
@@ -866,14 +964,25 @@ export default function TaskSetupRulesSettings({
                         {isEditingRow ? <FiCheck /> : <FiEdit2 />}
                     </button>
 
-                    <button
-                        type="button"
-                        className="task-setup-rules-icon-btn task-setup-rules-icon-btn--danger"
-                        onClick={() => onDelete(index)}
-                        aria-label={`Delete ${section}`}
-                    >
-                        <FiTrash />
-                    </button>
+                    {isEditingRow ? (
+                        <button
+                            type="button"
+                            className="task-setup-rules-icon-btn"
+                            onClick={() => onCancel(index)}
+                            aria-label={`Cancel ${section} edit`}
+                        >
+                            <FiX />
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            className="task-setup-rules-icon-btn task-setup-rules-icon-btn--danger"
+                            onClick={() => onDelete(index)}
+                            aria-label={`Delete ${section}`}
+                        >
+                            <FiTrash />
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -923,7 +1032,8 @@ export default function TaskSetupRulesSettings({
                                     editingPriorityIndex,
                                     handlePriorityEditToggle,
                                     updatePriorityRow,
-                                    deletePriority
+                                    deletePriority,
+                                    cancelPriorityEdit
                                 )
                             )
                         ) : (
@@ -965,7 +1075,8 @@ export default function TaskSetupRulesSettings({
                                     editingComplexityIndex,
                                     handleComplexityEditToggle,
                                     updateComplexityRow,
-                                    deleteComplexity
+                                    deleteComplexity,
+                                    cancelComplexityEdit
                                 )
                             )
                         ) : (
