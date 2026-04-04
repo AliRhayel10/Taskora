@@ -100,9 +100,8 @@ function TabButton({ isActive, icon, label, onClick }) {
     return (
         <button
             type="button"
-            className={`task-setup-rules-tab ${
-                isActive ? "task-setup-rules-tab--active" : ""
-            }`}
+            className={`task-setup-rules-tab ${isActive ? "task-setup-rules-tab--active" : ""
+                }`}
             onClick={onClick}
         >
             <span className="task-setup-rules-tab__icon">{icon}</span>
@@ -268,7 +267,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-                String(originalRow.multiplier || "").trim()
+            String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -279,7 +278,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-                String(originalRow.multiplier || "").trim()
+            String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -881,14 +880,14 @@ export default function TaskSetupRulesSettings({
                     </button>
 
                     {isEditingRow ? (
-<button
-  type="button"
-  className="task-setup-rules-icon-btn task-setup-rules-icon-btn--cancel"
-  onClick={() => cancelStatusEdit(index)}
-  aria-label="Cancel status edit"
->
-  <FiX />
-</button>
+                        <button
+                            type="button"
+                            className="task-setup-rules-icon-btn task-setup-rules-icon-btn--cancel"
+                            onClick={() => cancelStatusEdit(index)}
+                            aria-label="Cancel status edit"
+                        >
+                            <FiX />
+                        </button>
                     ) : (
                         <button
                             type="button"

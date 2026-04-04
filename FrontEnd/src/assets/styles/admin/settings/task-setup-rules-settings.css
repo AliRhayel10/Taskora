@@ -227,9 +227,9 @@
 .task-setup-rules-row--triple .task-setup-rules-input--small {
   width: 100%;
   text-align: center;
-}c
+}
 
-.task-setup-rules-row-number {
+c .task-setup-rules-row-number {
   text-align: center;
 }
 
@@ -331,7 +331,7 @@
   background: transparent;
   color: inherit;
   padding: 0;
-  margin: 0;
+  margin: 10px 0 0;
   display: inline-flex;
   align-self: flex-start;
 }
@@ -344,10 +344,24 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .task-setup-rules-add-btn__text:hover {
   color: #1d4ed8;
+  background: #dbeafe;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.1);
 }
 
 .task-setup-rules-input {
