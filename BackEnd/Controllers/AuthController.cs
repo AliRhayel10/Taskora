@@ -118,7 +118,7 @@ namespace BackEnd.Controllers
                 role = roleName ?? "User",
                 companyName = companyName ?? "",
                 profileImageUrl = user.ProfileImageUrl ?? "",
-                jobTitle = user.JobTitle ?? ""
+                jobTitle = user.JobTitle
             });
         }
 
@@ -137,12 +137,16 @@ namespace BackEnd.Controllers
             var firstName = request.FirstName?.Trim() ?? "";
             var lastName = request.LastName?.Trim() ?? "";
 
-            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+            if (
+                string.IsNullOrWhiteSpace(firstName) ||
+                string.IsNullOrWhiteSpace(lastName) ||
+                string.IsNullOrWhiteSpace(request.JobTitle)
+            )
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "First name and last name are required."
+                    message = "First name, last name, and job title are required."
                 });
             }
 
@@ -161,13 +165,13 @@ namespace BackEnd.Controllers
             user.JobTitle = request.JobTitle.Trim();
             await _context.SaveChangesAsync();
 
-return Ok(new
-{
-    success = true,
-    message = "Profile updated successfully.",
-    fullName = user.FullName,
-    jobTitle = user.JobTitle ?? ""
-});
+            return Ok(new
+            {
+                success = true,
+                message = "Profile updated successfully.",
+                fullName = user.FullName,
+                jobTitle = user.JobTitle
+            });
         }
 
         [HttpPost("forgot-password")]
