@@ -222,7 +222,20 @@
 }
 
 .task-setup-rules-row--triple {
-  grid-template-columns: minmax(0, 1fr) 90px 72px;
+  grid-template-columns: minmax(0, 1fr) 120px 96px;
+}
+
+.task-setup-rules-row--triple .task-setup-rules-input--small {
+  width: 100%;
+  text-align: center;
+}
+
+.task-setup-rules-row--triple .task-setup-rules-row-number {
+  text-align: center;
+}
+
+.task-setup-rules-row--triple .task-setup-rules-row-actions {
+  justify-content: center;
 }
 
 .task-setup-rules-row-value,
