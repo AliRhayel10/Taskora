@@ -100,8 +100,9 @@ function TabButton({ isActive, icon, label, onClick }) {
     return (
         <button
             type="button"
-            className={`task-setup-rules-tab ${isActive ? "task-setup-rules-tab--active" : ""
-                }`}
+            className={`task-setup-rules-tab ${
+                isActive ? "task-setup-rules-tab--active" : ""
+            }`}
             onClick={onClick}
         >
             <span className="task-setup-rules-tab__icon">{icon}</span>
@@ -162,7 +163,6 @@ export default function TaskSetupRulesSettings({
     const [successMessage, setSuccessMessage] = useState("");
 
     const panelRef = useRef(null);
-
     const [pendingNewRow, setPendingNewRow] = useState(null);
 
     useEffect(() => {
@@ -267,7 +267,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-            String(originalRow.multiplier || "").trim()
+                String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -278,7 +278,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-            String(originalRow.multiplier || "").trim()
+                String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -291,35 +291,29 @@ export default function TaskSetupRulesSettings({
 
     const syncStatuses = (nextStatuses) => {
         const cleaned = nextStatuses.map((item) => item.trim()).filter(Boolean);
-        const nextDraftData = {
-            ...draftData,
-            statuses: cleaned.join(", "),
-        };
-
         setStatusesList(nextStatuses);
-        setDraftData(nextDraftData);
+        setDraftData((prev) => ({
+            ...prev,
+            statuses: cleaned.join(", "),
+        }));
     };
 
     const syncPriorityRows = (nextRows) => {
-        const nextDraftData = {
-            ...draftData,
+        setPriorityRows(nextRows);
+        setDraftData((prev) => ({
+            ...prev,
             priorities: nextRows.map((row) => row.name.trim()).filter(Boolean).join(", "),
             priorityMultipliers: buildMultiplierString(nextRows),
-        };
-
-        setPriorityRows(nextRows);
-        setDraftData(nextDraftData);
+        }));
     };
 
     const syncComplexityRows = (nextRows) => {
-        const nextDraftData = {
-            ...draftData,
+        setComplexityRows(nextRows);
+        setDraftData((prev) => ({
+            ...prev,
             complexityLevels: nextRows.map((row) => row.name.trim()).filter(Boolean).join(", "),
             complexityMultipliers: buildMultiplierString(nextRows),
-        };
-
-        setComplexityRows(nextRows);
-        setDraftData(nextDraftData);
+        }));
     };
 
     const cancelStatusEdit = (index) => {
@@ -417,11 +411,7 @@ export default function TaskSetupRulesSettings({
             setEditingComplexityIndex(null);
         }
 
-        const resetDraftData = {
-            ...taskData,
-        };
-
-        setDraftData(resetDraftData);
+        setDraftData(taskData);
         setPendingNewRow(null);
         setErrorMessage("");
         setSuccessMessage("");
@@ -439,7 +429,7 @@ export default function TaskSetupRulesSettings({
         }
 
         const handleOutsideClick = (event) => {
-            const clickedInsideAnyActiveRow = event.target.closest(".task-setup-rules-row");
+            const clickedInsideAnyRow = event.target.closest(".task-setup-rules-row");
 
             if (editingStatusIndex !== null) {
                 const activeRow = panelRef.current?.querySelector(
@@ -474,7 +464,7 @@ export default function TaskSetupRulesSettings({
                 }
             }
 
-            if (!clickedInsideAnyActiveRow && pendingNewRow) {
+            if (!clickedInsideAnyRow && pendingNewRow) {
                 removePendingRow();
             }
         };
@@ -581,11 +571,47 @@ export default function TaskSetupRulesSettings({
         syncStatuses(next);
     };
 
+    const updatePriorityRow = (index, field, value) => {
+        const next = [...priorityRows];
+        next[index] = {
+            ...next[index],
+            [field]: value,
+        };
+        syncPriorityRows(next);
+    };
+
+    const updateComplexityRow = (index, field, value) => {
+        const next = [...complexityRows];
+        next[index] = {
+            ...next[index],
+            [field]: value,
+        };
+        syncComplexityRows(next);
+    };
+
     const addStatus = () => {
         const next = [...statusesList, ""];
         setStatusesList(next);
         setEditingStatusIndex(next.length - 1);
         setPendingNewRow({ type: "status", index: next.length - 1 });
+        setErrorMessage("");
+        setSuccessMessage("");
+    };
+
+    const addPriority = () => {
+        const next = [...priorityRows, { name: "", multiplier: "" }];
+        setPriorityRows(next);
+        setEditingPriorityIndex(next.length - 1);
+        setPendingNewRow({ type: "priority", index: next.length - 1 });
+        setErrorMessage("");
+        setSuccessMessage("");
+    };
+
+    const addComplexity = () => {
+        const next = [...complexityRows, { name: "", multiplier: "" }];
+        setComplexityRows(next);
+        setEditingComplexityIndex(next.length - 1);
+        setPendingNewRow({ type: "complexity", index: next.length - 1 });
         setErrorMessage("");
         setSuccessMessage("");
     };
@@ -605,7 +631,6 @@ export default function TaskSetupRulesSettings({
 
         const nextStatuses = statusesList.filter((_, itemIndex) => itemIndex !== index);
         const cleaned = nextStatuses.map((item) => item.trim()).filter(Boolean);
-
         const nextDraftData = {
             ...draftData,
             statuses: cleaned.join(", "),
@@ -626,24 +651,6 @@ export default function TaskSetupRulesSettings({
         }
 
         await saveSetupRules(nextDraftData, { showSuccess: true });
-    };
-
-    const updatePriorityRow = (index, field, value) => {
-        const next = [...priorityRows];
-        next[index] = {
-            ...next[index],
-            [field]: value,
-        };
-        syncPriorityRows(next);
-    };
-
-    const addPriority = () => {
-        const next = [...priorityRows, { name: "", multiplier: "" }];
-        setPriorityRows(next);
-        setEditingPriorityIndex(next.length - 1);
-        setPendingNewRow({ type: "priority", index: next.length - 1 });
-        setErrorMessage("");
-        setSuccessMessage("");
     };
 
     const deletePriority = async (index) => {
@@ -681,24 +688,6 @@ export default function TaskSetupRulesSettings({
         }
 
         await saveSetupRules(nextDraftData, { showSuccess: true });
-    };
-
-    const updateComplexityRow = (index, field, value) => {
-        const next = [...complexityRows];
-        next[index] = {
-            ...next[index],
-            [field]: value,
-        };
-        syncComplexityRows(next);
-    };
-
-    const addComplexity = () => {
-        const next = [...complexityRows, { name: "", multiplier: "" }];
-        setComplexityRows(next);
-        setEditingComplexityIndex(next.length - 1);
-        setPendingNewRow({ type: "complexity", index: next.length - 1 });
-        setErrorMessage("");
-        setSuccessMessage("");
     };
 
     const deleteComplexity = async (index) => {
