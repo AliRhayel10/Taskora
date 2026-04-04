@@ -215,23 +215,12 @@
   align-items: center;
 }
 
-.task-setup-rules-row--triple {
-  grid-template-columns: minmax(0, 1fr) 120px 96px;
-}
 
 .task-setup-rules-row-number {
   text-align: center;
   width: 100%;
 }
 
-.task-setup-rules-row--triple .task-setup-rules-input--small {
-  width: 100%;
-  text-align: center;
-}
-
-c .task-setup-rules-row-number {
-  text-align: center;
-}
 
 .task-setup-rules-row {
   display: grid;
