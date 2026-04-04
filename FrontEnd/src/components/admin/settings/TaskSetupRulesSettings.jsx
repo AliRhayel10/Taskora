@@ -7,6 +7,7 @@ import {
   FiSliders,
   FiEdit2,
   FiTrash2,
+  FiPlus,
 } from "react-icons/fi";
 import "./../../../assets/styles/admin/settings/task-setup-rules-settings.css";
 
@@ -98,7 +99,9 @@ export default function TaskSetupRulesSettings({
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const statusList = useMemo(
     () => parseCommaSeparated(taskData.statuses),
@@ -129,67 +132,349 @@ export default function TaskSetupRulesSettings({
     [taskData.complexityLevels, taskData.complexityMultipliers]
   );
 
+  const clearMessages = () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+  const showSuccess = (message) => {
+    setSuccessMessage(message);
+    window.setTimeout(() => {
+      setSuccessMessage("");
+    }, 2500);
+  };
+
+  const loadTaskSetupRules = async () => {
+    if (!resolvedCompanyId) {
+      setErrorMessage("Company ID is missing.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/setup-rules/${resolvedCompanyId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to load task setup rules.");
+      }
+
+      const mappedData = mapApiDataToForm(result.data || result);
+      setTaskData(mappedData);
+    } catch (error) {
+      setErrorMessage(
+        error.message || "Something went wrong while loading the settings."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let ignore = false;
-
-    const fetchTaskSetupRules = async () => {
-      if (!resolvedCompanyId) {
-        setErrorMessage("Company ID is missing.");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setErrorMessage("");
-
-      try {
-        const response = await fetch(
-          `${apiBaseUrl}/setup-rules/${resolvedCompanyId}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const result = await response.json();
-
-        if (!response.ok || !result?.success) {
-          throw new Error(result?.message || "Failed to load task setup rules.");
-        }
-
-        const mappedData = mapApiDataToForm(result.data || result);
-
-        if (!ignore) {
-          setTaskData(mappedData);
-        }
-      } catch (error) {
-        if (!ignore) {
-          setErrorMessage(
-            error.message || "Something went wrong while loading the settings."
-          );
-        }
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchTaskSetupRules();
-
-    return () => {
-      ignore = true;
-    };
+    loadTaskSetupRules();
   }, [apiBaseUrl, resolvedCompanyId]);
+
+  const getStatusByName = async (statusName) => {
+    const response = await fetch(`${apiBaseUrl}/statuses/${resolvedCompanyId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.message || "Failed to load statuses.");
+    }
+
+    const matchedStatus = (result.statuses || []).find(
+      (item) => item.statusName === statusName
+    );
+
+    if (!matchedStatus) {
+      throw new Error("Status not found.");
+    }
+
+    return matchedStatus;
+  };
+
+  const handleAddStatus = async () => {
+    clearMessages();
+
+    const statusName = window.prompt("Enter new task status name:");
+    if (!statusName?.trim()) return;
+
+    try {
+      setIsMutating(true);
+
+      const response = await fetch(`${apiBaseUrl}/statuses/${resolvedCompanyId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          statusName: statusName.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to add status.");
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || "Status added successfully.");
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to add status.");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleEditStatus = async (statusName) => {
+    clearMessages();
+
+    const newStatusName = window.prompt("Edit status name:", statusName);
+    if (!newStatusName?.trim() || newStatusName.trim() === statusName) return;
+
+    try {
+      setIsMutating(true);
+
+      const status = await getStatusByName(statusName);
+
+      const response = await fetch(
+        `${apiBaseUrl}/statuses/${status.taskStatusId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            statusName: newStatusName.trim(),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to update status.");
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || "Status updated successfully.");
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to update status.");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleDeleteStatus = async (statusName) => {
+    clearMessages();
+
+    const confirmed = window.confirm(`Delete "${statusName}"?`);
+    if (!confirmed) return;
+
+    try {
+      setIsMutating(true);
+
+      const status = await getStatusByName(statusName);
+
+      const response = await fetch(
+        `${apiBaseUrl}/statuses/${status.taskStatusId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to delete status.");
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || "Status deleted successfully.");
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to delete status.");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleAddNamedItem = async (type) => {
+    clearMessages();
+
+    const itemLabel = type === "priority" ? "priority" : "complexity";
+    const endpoint =
+      type === "priority" ? "priority-levels" : "complexity-levels";
+
+    const name = window.prompt(`Enter new ${itemLabel} name:`);
+    if (!name?.trim()) return;
+
+    const multiplierInput = window.prompt(
+      `Enter multiplier for "${name.trim()}":`
+    );
+    const multiplier = Number(multiplierInput);
+
+    if (Number.isNaN(multiplier) || multiplier <= 0) {
+      setErrorMessage("Please enter a valid multiplier greater than 0.");
+      return;
+    }
+
+    try {
+      setIsMutating(true);
+
+      const response = await fetch(
+        `${apiBaseUrl}/${endpoint}/${resolvedCompanyId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            multiplier,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || `Failed to add ${itemLabel}.`);
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || `${itemLabel} added successfully.`);
+    } catch (error) {
+      setErrorMessage(error.message || `Failed to add ${itemLabel}.`);
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleEditNamedItem = async (type, item) => {
+    clearMessages();
+
+    const itemLabel = type === "priority" ? "priority" : "complexity";
+    const endpoint =
+      type === "priority" ? "priority-levels" : "complexity-levels";
+
+    const newName = window.prompt(`Edit ${itemLabel} name:`, item.name);
+    if (!newName?.trim()) return;
+
+    const multiplierInput = window.prompt(
+      `Edit multiplier for "${item.name}":`,
+      String(item.multiplier ?? "")
+    );
+    const multiplier = Number(multiplierInput);
+
+    if (Number.isNaN(multiplier) || multiplier <= 0) {
+      setErrorMessage("Please enter a valid multiplier greater than 0.");
+      return;
+    }
+
+    try {
+      setIsMutating(true);
+
+      const response = await fetch(
+        `${apiBaseUrl}/${endpoint}/${resolvedCompanyId}/${encodeURIComponent(
+          item.name
+        )}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newName.trim(),
+            multiplier,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || `Failed to update ${itemLabel}.`);
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || `${itemLabel} updated successfully.`);
+    } catch (error) {
+      setErrorMessage(error.message || `Failed to update ${itemLabel}.`);
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleDeleteNamedItem = async (type, item) => {
+    clearMessages();
+
+    const itemLabel = type === "priority" ? "priority" : "complexity";
+    const endpoint =
+      type === "priority" ? "priority-levels" : "complexity-levels";
+
+    const confirmed = window.confirm(`Delete "${item.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      setIsMutating(true);
+
+      const response = await fetch(
+        `${apiBaseUrl}/${endpoint}/${resolvedCompanyId}/${encodeURIComponent(
+          item.name
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || `Failed to delete ${itemLabel}.`);
+      }
+
+      await loadTaskSetupRules();
+      showSuccess(result.message || `${itemLabel} deleted successfully.`);
+    } catch (error) {
+      setErrorMessage(error.message || `Failed to delete ${itemLabel}.`);
+    } finally {
+      setIsMutating(false);
+    }
+  };
 
   const tabs = [
     { key: "statuses", label: "Task Statuses", icon: <FiList /> },
     { key: "priorities", label: "Priority Levels", icon: <FiFlag /> },
     { key: "complexities", label: "Complexity Levels", icon: <FiLayers /> },
-    { key: "priorityMultipliers", label: "Priority Multipliers", icon: <FiSliders /> },
-    { key: "complexityMultipliers", label: "Complexity Multipliers", icon: <FiSliders /> },
+    {
+      key: "priorityMultipliers",
+      label: "Priority Multipliers",
+      icon: <FiSliders />,
+    },
+    {
+      key: "complexityMultipliers",
+      label: "Complexity Multipliers",
+      icon: <FiSliders />,
+    },
     { key: "formula", label: "Effort Calculation Rule", icon: <FiSliders /> },
   ];
 
@@ -208,6 +493,12 @@ export default function TaskSetupRulesSettings({
         <h2>Task Setup & Rules</h2>
         <div className="task-setup-rules-page__title-line"></div>
       </div>
+
+      {successMessage && (
+        <div className="task-setup-rules-banner task-setup-rules-banner--success">
+          {successMessage}
+        </div>
+      )}
 
       {errorMessage && (
         <div className="task-setup-rules-banner task-setup-rules-banner--error">
@@ -260,13 +551,20 @@ export default function TaskSetupRulesSettings({
                     <div className="task-setup-rules-entry" key={item}>
                       <span className="task-setup-rules-entry__text">{item}</span>
                       <div className="task-setup-rules-entry__actions">
-                        <button type="button" className="task-setup-rules-entry__btn">
+                        <button
+                          type="button"
+                          className="task-setup-rules-entry__btn"
+                          onClick={() => handleEditStatus(item)}
+                          disabled={isMutating}
+                        >
                           <FiEdit2 />
                           Edit
                         </button>
                         <button
                           type="button"
                           className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                          onClick={() => handleDeleteStatus(item)}
+                          disabled={isMutating}
                         >
                           <FiTrash2 />
                           Delete
@@ -277,6 +575,18 @@ export default function TaskSetupRulesSettings({
                 ) : (
                   <span className="task-setup-rules-empty">No statuses found.</span>
                 )}
+
+                <div className="task-setup-rules-add-row">
+                  <button
+                    type="button"
+                    className="task-setup-rules-add-btn"
+                    onClick={handleAddStatus}
+                    disabled={isMutating}
+                  >
+                    <FiPlus />
+                    Add Status
+                  </button>
+                </div>
               </div>
             </div>
           ) : !errorMessage && activeTab === "priorities" ? (
@@ -290,29 +600,62 @@ export default function TaskSetupRulesSettings({
 
               <div className="task-setup-rules-entry-list">
                 {priorityNames.length ? (
-                  priorityNames.map((item) => (
-                    <div className="task-setup-rules-entry" key={item}>
-                      <span className="task-setup-rules-entry__text">{item}</span>
-                      <div className="task-setup-rules-entry__actions">
-                        <button type="button" className="task-setup-rules-entry__btn">
-                          <FiEdit2 />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
-                        >
-                          <FiTrash2 />
-                          Delete
-                        </button>
+                  priorityNames.map((item) => {
+                    const row = priorityRows.find((entry) => entry.name === item);
+
+                    return (
+                      <div className="task-setup-rules-entry" key={item}>
+                        <span className="task-setup-rules-entry__text">{item}</span>
+                        <div className="task-setup-rules-entry__actions">
+                          <button
+                            type="button"
+                            className="task-setup-rules-entry__btn"
+                            onClick={() =>
+                              handleEditNamedItem("priority", {
+                                name: item,
+                                multiplier: row?.multiplier ?? "",
+                              })
+                            }
+                            disabled={isMutating}
+                          >
+                            <FiEdit2 />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                            onClick={() =>
+                              handleDeleteNamedItem("priority", {
+                                name: item,
+                                multiplier: row?.multiplier ?? "",
+                              })
+                            }
+                            disabled={isMutating}
+                          >
+                            <FiTrash2 />
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <span className="task-setup-rules-empty">
                     No priority levels found.
                   </span>
                 )}
+
+                <div className="task-setup-rules-add-row">
+                  <button
+                    type="button"
+                    className="task-setup-rules-add-btn"
+                    onClick={() => handleAddNamedItem("priority")}
+                    disabled={isMutating}
+                  >
+                    <FiPlus />
+                    Add Priority
+                  </button>
+                </div>
               </div>
             </div>
           ) : !errorMessage && activeTab === "complexities" ? (
@@ -326,29 +669,62 @@ export default function TaskSetupRulesSettings({
 
               <div className="task-setup-rules-entry-list">
                 {complexityNames.length ? (
-                  complexityNames.map((item) => (
-                    <div className="task-setup-rules-entry" key={item}>
-                      <span className="task-setup-rules-entry__text">{item}</span>
-                      <div className="task-setup-rules-entry__actions">
-                        <button type="button" className="task-setup-rules-entry__btn">
-                          <FiEdit2 />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
-                        >
-                          <FiTrash2 />
-                          Delete
-                        </button>
+                  complexityNames.map((item) => {
+                    const row = complexityRows.find((entry) => entry.name === item);
+
+                    return (
+                      <div className="task-setup-rules-entry" key={item}>
+                        <span className="task-setup-rules-entry__text">{item}</span>
+                        <div className="task-setup-rules-entry__actions">
+                          <button
+                            type="button"
+                            className="task-setup-rules-entry__btn"
+                            onClick={() =>
+                              handleEditNamedItem("complexity", {
+                                name: item,
+                                multiplier: row?.multiplier ?? "",
+                              })
+                            }
+                            disabled={isMutating}
+                          >
+                            <FiEdit2 />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                            onClick={() =>
+                              handleDeleteNamedItem("complexity", {
+                                name: item,
+                                multiplier: row?.multiplier ?? "",
+                              })
+                            }
+                            disabled={isMutating}
+                          >
+                            <FiTrash2 />
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <span className="task-setup-rules-empty">
                     No complexity levels found.
                   </span>
                 )}
+
+                <div className="task-setup-rules-add-row">
+                  <button
+                    type="button"
+                    className="task-setup-rules-add-btn"
+                    onClick={() => handleAddNamedItem("complexity")}
+                    disabled={isMutating}
+                  >
+                    <FiPlus />
+                    Add Complexity
+                  </button>
+                </div>
               </div>
             </div>
           ) : !errorMessage && activeTab === "priorityMultipliers" ? (
@@ -368,13 +744,20 @@ export default function TaskSetupRulesSettings({
                         {row.name} = {row.multiplier || "-"}
                       </span>
                       <div className="task-setup-rules-entry__actions">
-                        <button type="button" className="task-setup-rules-entry__btn">
+                        <button
+                          type="button"
+                          className="task-setup-rules-entry__btn"
+                          onClick={() => handleEditNamedItem("priority", row)}
+                          disabled={isMutating}
+                        >
                           <FiEdit2 />
                           Edit
                         </button>
                         <button
                           type="button"
                           className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                          onClick={() => handleDeleteNamedItem("priority", row)}
+                          disabled={isMutating}
                         >
                           <FiTrash2 />
                           Delete
@@ -387,6 +770,18 @@ export default function TaskSetupRulesSettings({
                     No priority multipliers found.
                   </span>
                 )}
+
+                <div className="task-setup-rules-add-row">
+                  <button
+                    type="button"
+                    className="task-setup-rules-add-btn"
+                    onClick={() => handleAddNamedItem("priority")}
+                    disabled={isMutating}
+                  >
+                    <FiPlus />
+                    Add Priority Multiplier
+                  </button>
+                </div>
               </div>
             </div>
           ) : !errorMessage && activeTab === "complexityMultipliers" ? (
@@ -406,13 +801,20 @@ export default function TaskSetupRulesSettings({
                         {row.name} = {row.multiplier || "-"}
                       </span>
                       <div className="task-setup-rules-entry__actions">
-                        <button type="button" className="task-setup-rules-entry__btn">
+                        <button
+                          type="button"
+                          className="task-setup-rules-entry__btn"
+                          onClick={() => handleEditNamedItem("complexity", row)}
+                          disabled={isMutating}
+                        >
                           <FiEdit2 />
                           Edit
                         </button>
                         <button
                           type="button"
                           className="task-setup-rules-entry__btn task-setup-rules-entry__btn--danger"
+                          onClick={() => handleDeleteNamedItem("complexity", row)}
+                          disabled={isMutating}
                         >
                           <FiTrash2 />
                           Delete
@@ -425,6 +827,18 @@ export default function TaskSetupRulesSettings({
                     No complexity multipliers found.
                   </span>
                 )}
+
+                <div className="task-setup-rules-add-row">
+                  <button
+                    type="button"
+                    className="task-setup-rules-add-btn"
+                    onClick={() => handleAddNamedItem("complexity")}
+                    disabled={isMutating}
+                  >
+                    <FiPlus />
+                    Add Complexity Multiplier
+                  </button>
+                </div>
               </div>
             </div>
           ) : !errorMessage && activeTab === "formula" ? (

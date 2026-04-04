@@ -3,7 +3,7 @@ using BackEnd.DTOs.Tasks;
 using BackEnd.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TaskStatusEntity = BackEnd.Models.TaskStatus;
+
 namespace BackEnd.Controllers
 {
     [ApiController]
@@ -15,24 +15,6 @@ namespace BackEnd.Controllers
         public TasksController(AppDbContext context)
         {
             _context = context;
-        }
-
-        private class CleanedStatus
-        {
-            public string StatusName { get; set; } = string.Empty;
-            public int DisplayOrder { get; set; }
-        }
-
-        private class CleanedPriorityMultiplier
-        {
-            public string PriorityName { get; set; } = string.Empty;
-            public decimal Multiplier { get; set; }
-        }
-
-        private class CleanedComplexityMultiplier
-        {
-            public string ComplexityName { get; set; } = string.Empty;
-            public decimal Multiplier { get; set; }
         }
 
         [HttpGet("statuses/{companyId}")]
@@ -61,10 +43,10 @@ namespace BackEnd.Controllers
         [HttpGet("setup-rules/{companyId}")]
         public async Task<IActionResult> GetTaskSetupRules(int companyId)
         {
-            var companyExists = await _context.Companies
-                .AnyAsync(c => c.CompanyId == companyId);
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
 
-            if (!companyExists)
+            if (company == null)
             {
                 return NotFound(new
                 {
@@ -81,30 +63,30 @@ namespace BackEnd.Controllers
 
             var priorityMultipliers = await _context.PriorityMultipliers
                 .Where(p => p.CompanyId == companyId)
-                .ToListAsync();
+                .OrderBy(p => p.Id)
+                .ToDictionaryAsync(
+                    p => p.PriorityName,
+                    p => p.Multiplier
+                );
 
             var complexityMultipliers = await _context.ComplexityMultipliers
                 .Where(c => c.CompanyId == companyId)
-                .ToListAsync();
-
-            var response = new TaskSetupRulesResponse
-            {
-                Statuses = statuses,
-                PriorityMultipliers = priorityMultipliers
-                    .Where(p => !string.IsNullOrWhiteSpace(p.PriorityName))
-                    .GroupBy(p => p.PriorityName.Trim(), StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.First().PriorityName.Trim(), g => g.First().Multiplier),
-                ComplexityMultipliers = complexityMultipliers
-                    .Where(c => !string.IsNullOrWhiteSpace(c.ComplexityName))
-                    .GroupBy(c => c.ComplexityName.Trim(), StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.First().ComplexityName.Trim(), g => g.First().Multiplier),
-                EffortFormula = "Task Weight = Base Effort × Priority Multiplier × Complexity Multiplier"
-            };
+                .OrderBy(c => c.Id)
+                .ToDictionaryAsync(
+                    c => c.ComplexityName,
+                    c => c.Multiplier
+                );
 
             return Ok(new
             {
                 success = true,
-                data = response
+                data = new TaskSetupRulesResponse
+                {
+                    Statuses = statuses,
+                    PriorityMultipliers = priorityMultipliers,
+                    ComplexityMultipliers = complexityMultipliers,
+                    EffortFormula = "Task Weight = Base Effort × Priority Multiplier × Complexity Multiplier"
+                }
             });
         }
 
@@ -116,14 +98,14 @@ namespace BackEnd.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Invalid request body."
+                    message = "Invalid request."
                 });
             }
 
-            var companyExists = await _context.Companies
-                .AnyAsync(c => c.CompanyId == companyId);
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
 
-            if (!companyExists)
+            if (company == null)
             {
                 return NotFound(new
                 {
@@ -132,40 +114,7 @@ namespace BackEnd.Controllers
                 });
             }
 
-            var cleanedStatuses = (request.Statuses ?? new List<string>())
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select((s, index) => new CleanedStatus
-                {
-                    StatusName = s.Trim(),
-                    DisplayOrder = index + 1
-                })
-                .GroupBy(x => x.StatusName, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
-
-            var cleanedPriorityMultipliers = (request.PriorityMultipliers ?? new Dictionary<string, decimal>())
-                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Value > 0)
-                .Select(x => new CleanedPriorityMultiplier
-                {
-                    PriorityName = x.Key.Trim(),
-                    Multiplier = x.Value
-                })
-                .GroupBy(x => x.PriorityName, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
-
-            var cleanedComplexityMultipliers = (request.ComplexityMultipliers ?? new Dictionary<string, decimal>())
-                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Value > 0)
-                .Select(x => new CleanedComplexityMultiplier
-                {
-                    ComplexityName = x.Key.Trim(),
-                    Multiplier = x.Value
-                })
-                .GroupBy(x => x.ComplexityName, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
-
-            if (!cleanedStatuses.Any())
+            if (request.Statuses == null || !request.Statuses.Any())
             {
                 return BadRequest(new
                 {
@@ -174,7 +123,7 @@ namespace BackEnd.Controllers
                 });
             }
 
-            if (!cleanedPriorityMultipliers.Any())
+            if (request.PriorityMultipliers == null || !request.PriorityMultipliers.Any())
             {
                 return BadRequest(new
                 {
@@ -183,7 +132,7 @@ namespace BackEnd.Controllers
                 });
             }
 
-            if (!cleanedComplexityMultipliers.Any())
+            if (request.ComplexityMultipliers == null || !request.ComplexityMultipliers.Any())
             {
                 return BadRequest(new
                 {
@@ -196,79 +145,479 @@ namespace BackEnd.Controllers
                 .Where(s => s.CompanyId == companyId)
                 .ToListAsync();
 
-            foreach (var existingStatus in existingStatuses)
-            {
-                existingStatus.IsActive = false;
-                existingStatus.IsDefault = false;
-            }
+            _context.TaskStatuses.RemoveRange(existingStatuses);
 
-            for (int i = 0; i < cleanedStatuses.Count; i++)
-            {
-                var status = cleanedStatuses[i];
-
-                var existing = existingStatuses.FirstOrDefault(s =>
-                    s.StatusName.ToLower() == status.StatusName.ToLower());
-
-                if (existing != null)
+            var newStatuses = request.Statuses
+                .Distinct()
+                .Select((statusName, index) => new BackEnd.Models.TaskStatus
                 {
-                    existing.StatusName = status.StatusName;
-                    existing.DisplayOrder = status.DisplayOrder;
-                    existing.IsActive = true;
-                    existing.IsDefault = i == 0;
-                }
-                else
-                {
-                    _context.TaskStatuses.Add(new TaskStatusEntity
-                    {
-                        CompanyId = companyId,
-                        StatusName = status.StatusName,
-                        DisplayOrder = status.DisplayOrder,
-                        IsActive = true,
-                        IsDefault = i == 0,
-                        CreatedAt = DateTime.Now
-                    });
-                }
-            }
+                    CompanyId = companyId,
+                    StatusName = statusName.Trim(),
+                    DisplayOrder = index + 1,
+                    IsDefault = index == 0,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now
+                })
+                .ToList();
 
-            var existingPriorityMultipliers = await _context.PriorityMultipliers
+            await _context.TaskStatuses.AddRangeAsync(newStatuses);
+
+            var existingPriorities = await _context.PriorityMultipliers
                 .Where(p => p.CompanyId == companyId)
                 .ToListAsync();
 
-            _context.PriorityMultipliers.RemoveRange(existingPriorityMultipliers);
+            _context.PriorityMultipliers.RemoveRange(existingPriorities);
 
-            foreach (var item in cleanedPriorityMultipliers)
-            {
-                _context.PriorityMultipliers.Add(new PriorityMultiplier
+            var newPriorities = request.PriorityMultipliers
+                .Select(x => new PriorityMultiplier
                 {
                     CompanyId = companyId,
-                    PriorityName = item.PriorityName,
-                    Multiplier = item.Multiplier
-                });
-            }
+                    PriorityName = x.Key.Trim(),
+                    Multiplier = x.Value
+                })
+                .ToList();
 
-            var existingComplexityMultipliers = await _context.ComplexityMultipliers
+            await _context.PriorityMultipliers.AddRangeAsync(newPriorities);
+
+            var existingComplexities = await _context.ComplexityMultipliers
                 .Where(c => c.CompanyId == companyId)
                 .ToListAsync();
 
-            _context.ComplexityMultipliers.RemoveRange(existingComplexityMultipliers);
+            _context.ComplexityMultipliers.RemoveRange(existingComplexities);
 
-            foreach (var item in cleanedComplexityMultipliers)
-            {
-                _context.ComplexityMultipliers.Add(new ComplexityMultiplier
+            var newComplexities = request.ComplexityMultipliers
+                .Select(x => new ComplexityMultiplier
                 {
                     CompanyId = companyId,
-                    ComplexityName = item.ComplexityName,
-                    Multiplier = item.Multiplier
-                });
-            }
+                    ComplexityName = x.Key.Trim(),
+                    Multiplier = x.Value
+                })
+                .ToList();
+
+            await _context.ComplexityMultipliers.AddRangeAsync(newComplexities);
 
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 success = true,
-                message = "Task setup rules updated successfully.",
-                note = "EffortFormula is currently returned for display only and is not stored in the database."
+                message = "Task setup rules updated successfully."
+            });
+        }
+
+        [HttpPost("statuses/{companyId}")]
+        public async Task<IActionResult> AddTaskStatus(int companyId, [FromBody] AddTaskStatusRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.StatusName))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Status name is required."
+                });
+            }
+
+            var normalizedName = request.StatusName.Trim();
+
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
+
+            if (company == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var exists = await _context.TaskStatuses.AnyAsync(s =>
+                s.CompanyId == companyId &&
+                s.StatusName == normalizedName);
+
+            if (exists)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Status already exists."
+                });
+            }
+
+            var lastDisplayOrder = await _context.TaskStatuses
+                .Where(s => s.CompanyId == companyId)
+                .Select(s => (int?)s.DisplayOrder)
+                .MaxAsync() ?? 0;
+
+            var status = new BackEnd.Models.TaskStatus
+            {
+                CompanyId = companyId,
+                StatusName = normalizedName,
+                DisplayOrder = lastDisplayOrder + 1,
+                IsDefault = false,
+                IsActive = true,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.TaskStatuses.Add(status);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Status added successfully."
+            });
+        }
+
+        [HttpPut("statuses/{taskStatusId}")]
+        public async Task<IActionResult> UpdateTaskStatusItem(int taskStatusId, [FromBody] UpdateTaskStatusItemRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.StatusName))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Status name is required."
+                });
+            }
+
+            var status = await _context.TaskStatuses
+                .FirstOrDefaultAsync(s => s.TaskStatusId == taskStatusId);
+
+            if (status == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Status not found."
+                });
+            }
+
+            var normalizedName = request.StatusName.Trim();
+
+            var exists = await _context.TaskStatuses.AnyAsync(s =>
+                s.CompanyId == status.CompanyId &&
+                s.TaskStatusId != taskStatusId &&
+                s.StatusName == normalizedName);
+
+            if (exists)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Another status with the same name already exists."
+                });
+            }
+
+            status.StatusName = normalizedName;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Status updated successfully."
+            });
+        }
+
+        [HttpDelete("statuses/{taskStatusId}")]
+        public async Task<IActionResult> DeleteTaskStatusItem(int taskStatusId)
+        {
+            var status = await _context.TaskStatuses
+                .FirstOrDefaultAsync(s => s.TaskStatusId == taskStatusId);
+
+            if (status == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Status not found."
+                });
+            }
+
+            var isUsedByTasks = await _context.Tasks.AnyAsync(t => t.TaskStatusId == taskStatusId);
+
+            if (isUsedByTasks)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "This status is already used by tasks and cannot be deleted."
+                });
+            }
+
+            _context.TaskStatuses.Remove(status);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Status deleted successfully."
+            });
+        }
+
+        [HttpPost("priority-levels/{companyId}")]
+        public async Task<IActionResult> AddPriorityLevel(int companyId, [FromBody] AddNamedMultiplierRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Name) || request.Multiplier <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Priority name and valid multiplier are required."
+                });
+            }
+
+            var normalizedName = request.Name.Trim();
+
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
+
+            if (company == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var exists = await _context.PriorityMultipliers.AnyAsync(p =>
+                p.CompanyId == companyId &&
+                p.PriorityName == normalizedName);
+
+            if (exists)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Priority already exists."
+                });
+            }
+
+            var priority = new PriorityMultiplier
+            {
+                CompanyId = companyId,
+                PriorityName = normalizedName,
+                Multiplier = request.Multiplier
+            };
+
+            _context.PriorityMultipliers.Add(priority);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Priority added successfully."
+            });
+        }
+
+        [HttpPut("priority-levels/{companyId}/{name}")]
+        public async Task<IActionResult> UpdatePriorityLevel(int companyId, string name, [FromBody] UpdateNamedMultiplierRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Name) || request.Multiplier <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Priority name and valid multiplier are required."
+                });
+            }
+
+            var existing = await _context.PriorityMultipliers
+                .FirstOrDefaultAsync(p => p.CompanyId == companyId && p.PriorityName == name);
+
+            if (existing == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Priority not found."
+                });
+            }
+
+            var normalizedName = request.Name.Trim();
+
+            var duplicate = await _context.PriorityMultipliers.AnyAsync(p =>
+                p.CompanyId == companyId &&
+                p.PriorityName == normalizedName &&
+                p.Id != existing.Id);
+
+            if (duplicate)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Another priority with the same name already exists."
+                });
+            }
+
+            existing.PriorityName = normalizedName;
+            existing.Multiplier = request.Multiplier;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Priority updated successfully."
+            });
+        }
+
+        [HttpDelete("priority-levels/{companyId}/{name}")]
+        public async Task<IActionResult> DeletePriorityLevel(int companyId, string name)
+        {
+            var existing = await _context.PriorityMultipliers
+                .FirstOrDefaultAsync(p => p.CompanyId == companyId && p.PriorityName == name);
+
+            if (existing == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Priority not found."
+                });
+            }
+
+            _context.PriorityMultipliers.Remove(existing);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Priority deleted successfully."
+            });
+        }
+
+        [HttpPost("complexity-levels/{companyId}")]
+        public async Task<IActionResult> AddComplexityLevel(int companyId, [FromBody] AddNamedMultiplierRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Name) || request.Multiplier <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Complexity name and valid multiplier are required."
+                });
+            }
+
+            var normalizedName = request.Name.Trim();
+
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
+
+            if (company == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var exists = await _context.ComplexityMultipliers.AnyAsync(c =>
+                c.CompanyId == companyId &&
+                c.ComplexityName == normalizedName);
+
+            if (exists)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Complexity already exists."
+                });
+            }
+
+            var complexity = new ComplexityMultiplier
+            {
+                CompanyId = companyId,
+                ComplexityName = normalizedName,
+                Multiplier = request.Multiplier
+            };
+
+            _context.ComplexityMultipliers.Add(complexity);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Complexity added successfully."
+            });
+        }
+
+        [HttpPut("complexity-levels/{companyId}/{name}")]
+        public async Task<IActionResult> UpdateComplexityLevel(int companyId, string name, [FromBody] UpdateNamedMultiplierRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Name) || request.Multiplier <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Complexity name and valid multiplier are required."
+                });
+            }
+
+            var existing = await _context.ComplexityMultipliers
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId && c.ComplexityName == name);
+
+            if (existing == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Complexity not found."
+                });
+            }
+
+            var normalizedName = request.Name.Trim();
+
+            var duplicate = await _context.ComplexityMultipliers.AnyAsync(c =>
+                c.CompanyId == companyId &&
+                c.ComplexityName == normalizedName &&
+                c.Id != existing.Id);
+
+            if (duplicate)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Another complexity with the same name already exists."
+                });
+            }
+
+            existing.ComplexityName = normalizedName;
+            existing.Multiplier = request.Multiplier;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Complexity updated successfully."
+            });
+        }
+
+        [HttpDelete("complexity-levels/{companyId}/{name}")]
+        public async Task<IActionResult> DeleteComplexityLevel(int companyId, string name)
+        {
+            var existing = await _context.ComplexityMultipliers
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId && c.ComplexityName == name);
+
+            if (existing == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Complexity not found."
+                });
+            }
+
+            _context.ComplexityMultipliers.Remove(existing);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Complexity deleted successfully."
             });
         }
 
