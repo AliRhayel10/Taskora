@@ -13,5 +13,6 @@ namespace BackEnd.DTOs
         public string Role { get; set; } = string.Empty;
         public string? ProfileImageUrl { get; set; }
         public string Token { get; set; } = string.Empty;
+        public string JobTitle { get; set; } = string.Empty;
     }
 }

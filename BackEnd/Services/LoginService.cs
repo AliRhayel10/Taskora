@@ -68,19 +68,20 @@ namespace BackEnd.Services
                 .Select(c => c.CompanyName)
                 .FirstOrDefaultAsync();
 
-            return new LoginResponse
-            {
-                Success = true,
-                Message = "Login successful.",
-                UserId = user.UserId,
-                CompanyId = user.CompanyId,
-                CompanyName = companyName ?? string.Empty,
-                FullName = user.FullName,
-                Email = user.Email,
-                Role = roleName ?? "User",
-                ProfileImageUrl = user.ProfileImageUrl,
-                Token = string.Empty
-            };
+return new LoginResponse
+{
+    Success = true,
+    Message = "Login successful.",
+    UserId = user.UserId,
+    CompanyId = user.CompanyId,
+    CompanyName = companyName ?? string.Empty,
+    FullName = user.FullName,
+    Email = user.Email,
+    Role = roleName ?? "User",
+    ProfileImageUrl = user.ProfileImageUrl,
+    JobTitle = user.JobTitle,
+    Token = string.Empty
+};
         }
 
         public async Task<string?> GeneratePasswordResetTokenAsync(string email)

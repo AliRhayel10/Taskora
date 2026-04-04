@@ -109,7 +109,8 @@ namespace BackEnd.Services
                     CompanyId = company.CompanyId,
                     FullName = adminFullName,
                     Email = adminEmail,
-                    PasswordHash = hashedPassword
+                    PasswordHash = hashedPassword,
+                    JobTitle = "Administrator"
                 };
 
                 _context.Users.Add(adminUser);
@@ -182,15 +183,16 @@ namespace BackEnd.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return new RegisterCompanyResponse
-                {
-                    Success = true,
-                    Message = "Company registered successfully.",
-                    UserId = adminUser.UserId,
-                    FullName = adminUser.FullName,
-                    Email = adminUser.Email,
-                    Role = "CompanyAdmin"
-                };
+return new RegisterCompanyResponse
+{
+    Success = true,
+    Message = "Company registered successfully.",
+    UserId = adminUser.UserId,
+    FullName = adminUser.FullName,
+    Email = adminUser.Email,
+    JobTitle = adminUser.JobTitle,
+    Role = "CompanyAdmin"
+};
             }
             catch (Exception ex)
             {

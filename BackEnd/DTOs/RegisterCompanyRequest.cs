@@ -11,6 +11,7 @@ namespace BackEnd.DTOs
         public string AdminFullName { get; set; } = string.Empty;
         public string AdminEmail { get; set; } = string.Empty;
         public string AdminPassword { get; set; } = string.Empty;
+        public string AdminJobTitle { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

@@ -117,7 +117,8 @@ namespace BackEnd.Controllers
                 email = user.Email,
                 role = roleName ?? "User",
                 companyName = companyName ?? "",
-                profileImageUrl = user.ProfileImageUrl ?? ""
+                profileImageUrl = user.ProfileImageUrl ?? "",
+                jobTitle = user.JobTitle ?? ""
             });
         }
 
@@ -157,15 +158,16 @@ namespace BackEnd.Controllers
             }
 
             user.FullName = $"{firstName} {lastName}".Trim();
-
+            user.JobTitle = request.JobTitle.Trim();
             await _context.SaveChangesAsync();
 
-            return Ok(new
-            {
-                success = true,
-                message = "Profile updated successfully.",
-                fullName = user.FullName
-            });
+return Ok(new
+{
+    success = true,
+    message = "Profile updated successfully.",
+    fullName = user.FullName,
+    jobTitle = user.JobTitle ?? ""
+});
         }
 
         [HttpPost("forgot-password")]
