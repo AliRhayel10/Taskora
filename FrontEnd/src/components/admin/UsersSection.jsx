@@ -546,7 +546,7 @@ export default function UsersSection() {
                     onClick={() => setShowPassword((prev) => !prev)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                    {showPassword ? <FiEye /> : <FiEyeOff />}
                   </button>
                 </div>
               </div>
