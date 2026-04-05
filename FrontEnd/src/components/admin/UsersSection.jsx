@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiChevronDown, FiPlus, FiSearch, FiUsers, FiX } from "react-icons/fi";
+import {
+  FiPlus,
+  FiSearch,
+  FiUsers,
+  FiX,
+  FiChevronDown,
+  FiEye,
+  FiEyeOff,
+} from "react-icons/fi";
 import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
 
 const initialCreateForm = {
   fullName: "",
-  role: "",
   jobType: "",
+  role: "",
   email: "",
   password: "",
   sendInvitation: true,
@@ -24,6 +32,14 @@ function getStoredUser() {
   }
 }
 
+function normalizeUsersResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.users)) return data.users;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.employees)) return data.employees;
+  return [];
+}
+
 function getUserName(user) {
   const fullName =
     user?.fullName ||
@@ -38,91 +54,39 @@ function getUserTeam(user) {
     return user.team;
   }
 
-  return (
-    user?.teamName ||
-    user?.team?.teamName ||
-    user?.team?.name ||
-    "No team assigned"
-  );
-}
-
-function getUserStatus(user) {
-  if (typeof user?.isActive === "boolean") {
-    return user.isActive ? "Active" : "Inactive";
-  }
-
-  if (typeof user?.active === "boolean") {
-    return user.active ? "Active" : "Inactive";
-  }
-
-  if (typeof user?.status === "string" && user.status.trim()) {
-    return user.status;
-  }
-
-  return "Active";
+  return user?.teamName || user?.team?.teamName || user?.team?.name || "No team assigned";
 }
 
 function getUserPhone(user) {
   return user?.phoneNumber || user?.phone || "-";
 }
 
-function normalizeUsersResponse(data) {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.users)) {
-    return data.users;
-  }
-
-  if (Array.isArray(data?.data)) {
-    return data.data;
-  }
-
-  if (Array.isArray(data?.employees)) {
-    return data.employees;
-  }
-
-  return [];
+function getUserStatus(user) {
+  if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
+  if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
+  if (typeof user?.status === "string" && user.status.trim()) return user.status;
+  return "Active";
 }
 
-function buildCreatePayload(createForm, companyId) {
-  const trimmedFullName = createForm.fullName.trim();
-  const nameParts = trimmedFullName.split(/\s+/).filter(Boolean);
-  const firstName = nameParts[0] || trimmedFullName;
-  const lastName = nameParts.slice(1).join(" ");
-  const normalizedRole =
-    createForm.role === "Team Leader" ? "team leader" : "employee";
-
-  return {
-    companyId,
-    fullName: trimmedFullName,
-    name: trimmedFullName,
-    firstName,
-    lastName,
-    role: normalizedRole,
-    displayRole: createForm.role,
-    jobType: createForm.jobType.trim(),
-    email: createForm.email.trim(),
-    password: createForm.password,
-    sendInvitation: createForm.sendInvitation,
-    isActive: createForm.isActive,
-    active: createForm.isActive,
-    status: createForm.isActive ? "Active" : "Inactive",
-  };
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
-async function tryJsonRequest(url, options) {
-  const response = await fetch(url, options);
-  let data = null;
+function isStrongPassword(password) {
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /\d/.test(password)
+  );
+}
 
+async function readJsonSafe(response) {
   try {
-    data = await response.json();
+    return await response.json();
   } catch {
-    data = null;
+    return null;
   }
-
-  return { response, data };
 }
 
 export default function UsersSection() {
@@ -136,6 +100,7 @@ export default function UsersSection() {
   const [createError, setCreateError] = useState("");
   const [createSuccess, setCreateSuccess] = useState("");
   const [createForm, setCreateForm] = useState(initialCreateForm);
+  const [showPassword, setShowPassword] = useState(false);
 
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = useMemo(() => {
@@ -147,6 +112,18 @@ export default function UsersSection() {
 
     return rawCompanyId == null ? "" : String(rawCompanyId).trim();
   }, [currentUser]);
+
+  const emailTouched = createForm.email.trim().length > 0;
+  const passwordTouched = createForm.password.length > 0;
+  const emailIsValid = isValidEmail(createForm.email);
+  const passwordIsStrong = isStrongPassword(createForm.password);
+
+  const isCreateFormValid =
+    createForm.fullName.trim() &&
+    createForm.jobType.trim() &&
+    createForm.role.trim() &&
+    emailIsValid &&
+    passwordIsStrong;
 
   const fetchUsers = async (abortSignal) => {
     if (!companyId) {
@@ -168,48 +145,25 @@ export default function UsersSection() {
       ];
 
       let resolvedUsers = null;
-      let lastErrorMessage = "Failed to load users.";
 
       for (const url of candidateUrls) {
         try {
-          const { response, data } = await tryJsonRequest(url, {
-            method: "GET",
-            signal: abortSignal,
-          });
-
-          if (!response.ok) {
-            lastErrorMessage =
-              data?.message || data?.error || "Failed to load users.";
-            continue;
-          }
-
+          const response = await fetch(url, { method: "GET", signal: abortSignal });
+          const data = await readJsonSafe(response);
+          if (!response.ok) continue;
           const normalized = normalizeUsersResponse(data);
           if (Array.isArray(normalized)) {
             resolvedUsers = normalized;
             break;
           }
         } catch (error) {
-          if (error.name === "AbortError") {
-            throw error;
-          }
+          if (error.name === "AbortError") throw error;
         }
       }
 
-      if (!resolvedUsers) {
-        throw new Error(lastErrorMessage);
-      }
-
-      const filteredBackendUsers = resolvedUsers.filter((user) => {
-        const role = String(user?.role || "").toLowerCase().trim();
-        return role !== "company admin" && role !== "admin";
-      });
-
-      setUsers(filteredBackendUsers);
+      setUsers(Array.isArray(resolvedUsers) ? resolvedUsers : []);
     } catch (error) {
-      if (error.name === "AbortError") {
-        return;
-      }
-
+      if (error.name === "AbortError") return;
       console.error("Failed to fetch users:", error);
       setUsers([]);
       setErrorMessage("");
@@ -226,194 +180,159 @@ export default function UsersSection() {
 
   const filteredUsers = useMemo(() => {
     const value = searchTerm.trim().toLowerCase();
+    if (!value) return users;
 
-    if (!value) {
-      return users;
-    }
-
-    return users.filter((user) => {
-      return [
+    return users.filter((user) =>
+      [
         getUserName(user),
         user?.email || "",
         getUserPhone(user),
         getUserTeam(user),
         getUserStatus(user),
-        user?.role || "",
         user?.jobType || "",
-      ].some((field) => String(field).toLowerCase().includes(value));
-    });
+        user?.role || "",
+      ].some((field) => String(field).toLowerCase().includes(value))
+    );
   }, [searchTerm, users]);
 
   const openCreateModal = () => {
     setCreateForm(initialCreateForm);
     setCreateError("");
     setCreateSuccess("");
+    setShowPassword(false);
     setIsCreateModalOpen(true);
   };
 
   const closeCreateModal = () => {
-    if (isSubmittingCreate) {
-      return;
-    }
-
+    if (isSubmittingCreate) return;
     setIsCreateModalOpen(false);
     setCreateError("");
     setCreateForm(initialCreateForm);
+    setShowPassword(false);
   };
 
   const handleCreateFormChange = (field, value) => {
-    setCreateForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setCreateForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isCreateFormValid =
-    createForm.fullName.trim() &&
-    createForm.jobType.trim() &&
-    createForm.role.trim() &&
-    createForm.email.trim() &&
-    createForm.password.trim();
-
-  const sendInvitationEmail = async (payload, createdUser) => {
-    if (!payload.sendInvitation) {
-      return;
-    }
-
-    const invitePayload = {
-      companyId: payload.companyId,
-      userId:
-        createdUser?.userId ||
-        createdUser?.id ||
-        createdUser?._id ||
-        createdUser?.data?.userId ||
-        createdUser?.data?.id,
-      fullName: payload.fullName,
-      email: payload.email,
-      password: payload.password,
-      role: payload.role,
-      jobType: payload.jobType,
-      loginUrl: `${window.location.origin}/login`,
+  const sendInvitationEmail = async ({ fullName, email, password, role }) => {
+    const invitationPayload = {
+      fullName,
+      email,
+      password,
+      role,
+      companyId,
+      invitationType: "user-created",
     };
 
-    const invitationEndpoints = [
+    const invitationUrls = [
+      `${API_BASE_URL}/api/auth/send-user-invitation`,
+      `${API_BASE_URL}/api/auth/send-invitation`,
       `${API_BASE_URL}/api/users/send-invitation`,
       `${API_BASE_URL}/api/users/invite`,
-      `${API_BASE_URL}/api/user/send-invitation`,
-      `${API_BASE_URL}/api/invitations/user`,
     ];
 
-    let inviteSucceeded = false;
-    let inviteMessage =
-      "User was created, but the invitation email could not be sent.";
-
-    for (const url of invitationEndpoints) {
+    for (const url of invitationUrls) {
       try {
-        const { response, data } = await tryJsonRequest(url, {
+        const response = await fetch(url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(invitePayload),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(invitationPayload),
         });
 
-        if (!response.ok) {
-          inviteMessage =
-            data?.message ||
-            data?.error ||
-            "User was created, but the invitation email could not be sent.";
-          continue;
+        if (response.ok) {
+          return true;
         }
-
-        inviteSucceeded = true;
-        break;
       } catch (error) {
         console.error(`Invitation request failed for ${url}:`, error);
       }
     }
 
-    if (!inviteSucceeded) {
-      throw new Error(inviteMessage);
-    }
+    return false;
   };
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
-
-    if (!isCreateFormValid || !companyId) {
-      return;
-    }
+    if (!isCreateFormValid || !companyId) return;
 
     try {
       setIsSubmittingCreate(true);
       setCreateError("");
       setCreateSuccess("");
 
-      const payload = buildCreatePayload(createForm, companyId);
+      const normalizedRole = createForm.role === "Team Leader" ? "team leader" : "employee";
 
-      const candidateRequests = [
-        {
-          url: `${API_BASE_URL}/api/users`,
-          body: payload,
-        },
-        {
-          url: `${API_BASE_URL}/api/users/create`,
-          body: payload,
-        },
-        {
-          url: `${API_BASE_URL}/api/user/create`,
-          body: payload,
-        },
-        {
-          url: `${API_BASE_URL}/api/employees`,
-          body: {
-            ...payload,
-            employeeName: payload.fullName,
-          },
-        },
+      const payload = {
+        companyId,
+        fullName: createForm.fullName.trim(),
+        name: createForm.fullName.trim(),
+        jobType: createForm.jobType.trim(),
+        role: normalizedRole,
+        email: createForm.email.trim(),
+        password: createForm.password,
+        sendInvitation: createForm.sendInvitation,
+        isActive: createForm.isActive,
+        active: createForm.isActive,
+        status: createForm.isActive ? "Active" : "Inactive",
+      };
+
+      const createRequests = [
+        { url: `${API_BASE_URL}/api/users`, body: payload },
+        { url: `${API_BASE_URL}/api/users/create`, body: payload },
+        { url: `${API_BASE_URL}/api/user/create`, body: payload },
+        { url: `${API_BASE_URL}/api/employees`, body: { ...payload, employeeName: payload.fullName } },
       ];
 
-      let createSucceeded = false;
-      let createdUser = null;
+      let created = false;
       let lastMessage = "Failed to create user.";
 
-      for (const request of candidateRequests) {
+      for (const request of createRequests) {
         try {
-          const { response, data } = await tryJsonRequest(request.url, {
+          const response = await fetch(request.url, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(request.body),
           });
 
+          const data = await readJsonSafe(response);
+
           if (!response.ok) {
-            lastMessage =
-              data?.message || data?.error || "Failed to create user.";
+            lastMessage = data?.message || data?.error || "Failed to create user.";
             continue;
           }
 
-          createSucceeded = true;
-          createdUser = data;
+          created = true;
           break;
         } catch (error) {
           console.error(`Create user failed for ${request.url}:`, error);
         }
       }
 
-      if (!createSucceeded) {
+      if (!created) {
         throw new Error(lastMessage);
       }
 
-      await sendInvitationEmail(payload, createdUser);
+      let successMessage = "User created successfully.";
 
-      setCreateSuccess(
-        payload.sendInvitation
-          ? "User created and invitation email sent successfully."
-          : "User created successfully."
-      );
+      if (createForm.sendInvitation) {
+        const invitationSent = await sendInvitationEmail({
+          fullName: createForm.fullName.trim(),
+          email: createForm.email.trim(),
+          password: createForm.password,
+          role: normalizedRole,
+        });
+
+        if (invitationSent) {
+          successMessage = "User created and invitation email sent.";
+        } else {
+          successMessage = "User created, but no invitation endpoint responded.";
+        }
+      }
+
+      setCreateSuccess(successMessage);
       setIsCreateModalOpen(false);
       setCreateForm(initialCreateForm);
+      setShowPassword(false);
       await fetchUsers();
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -441,11 +360,7 @@ export default function UsersSection() {
           />
         </div>
 
-        <button
-          type="button"
-          className="users-section__create-btn"
-          onClick={openCreateModal}
-        >
+        <button type="button" className="users-section__create-btn" onClick={openCreateModal}>
           <FiPlus />
           <span>Create User</span>
         </button>
@@ -483,10 +398,7 @@ export default function UsersSection() {
             <FiUsers />
           </div>
           <h3>No users found</h3>
-          <p>
-            There are no employees to display yet. Once users are added, they
-            will appear here.
-          </p>
+          <p>There are no employees to display yet. Once users are added, they will appear here.</p>
         </div>
       )}
 
@@ -505,13 +417,7 @@ export default function UsersSection() {
               </thead>
               <tbody>
                 {filteredUsers.map((user, index) => {
-                  const userId =
-                    user?.userId ||
-                    user?.id ||
-                    user?._id ||
-                    user?.email ||
-                    `user-row-${index}`;
-
+                  const userId = user?.userId || user?.id || user?._id || user?.email || `user-row-${index}`;
                   const name = getUserName(user);
                   const email = user?.email || "No email";
                   const phone = getUserPhone(user);
@@ -526,9 +432,7 @@ export default function UsersSection() {
                     <tr key={String(userId)}>
                       <td>
                         <div className="users-section__user-cell">
-                          <div className="users-section__avatar">
-                            {name.charAt(0).toUpperCase()}
-                          </div>
+                          <div className="users-section__avatar">{name.charAt(0).toUpperCase()}</div>
                           <div className="users-section__user-details">
                             <strong>{name}</strong>
                           </div>
@@ -551,10 +455,7 @@ export default function UsersSection() {
 
       {isCreateModalOpen && (
         <div className="users-section__modal-overlay" onClick={closeCreateModal}>
-          <div
-            className="users-section__modal"
-            onClick={(event) => event.stopPropagation()}
-          >
+          <div className="users-section__modal" onClick={(event) => event.stopPropagation()}>
             <div className="users-section__modal-header users-section__modal-header--lined">
               <div>
                 <h3>Create User</h3>
@@ -585,10 +486,20 @@ export default function UsersSection() {
                 <input
                   type="text"
                   value={createForm.fullName}
-                  onChange={(event) =>
-                    handleCreateFormChange("fullName", event.target.value)
-                  }
+                  onChange={(event) => handleCreateFormChange("fullName", event.target.value)}
                   placeholder="Enter full name"
+                />
+              </div>
+
+              <div className="users-section__form-group">
+                <label>
+                  Job Type <span className="users-section__required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.jobType}
+                  onChange={(event) => handleCreateFormChange("jobType", event.target.value)}
+                  placeholder="Enter job type"
                 />
               </div>
 
@@ -599,9 +510,7 @@ export default function UsersSection() {
                 <div className="users-section__select-wrapper">
                   <select
                     value={createForm.role}
-                    onChange={(event) =>
-                      handleCreateFormChange("role", event.target.value)
-                    }
+                    onChange={(event) => handleCreateFormChange("role", event.target.value)}
                   >
                     <option value="">Select role</option>
                     <option value="Employee">Employee</option>
@@ -613,44 +522,62 @@ export default function UsersSection() {
 
               <div className="users-section__form-group">
                 <label>
-                  Job Type <span className="users-section__required">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={createForm.jobType}
-                  onChange={(event) =>
-                    handleCreateFormChange("jobType", event.target.value)
-                  }
-                  placeholder="Enter job type"
-                />
-              </div>
-
-              <div className="users-section__form-group">
-                <label>
                   Email <span className="users-section__required">*</span>
                 </label>
-                <input
-                  type="email"
-                  value={createForm.email}
-                  onChange={(event) =>
-                    handleCreateFormChange("email", event.target.value)
-                  }
-                  placeholder="Enter email address"
-                />
+                <div className="users-section__input-wrap">
+                  <input
+                    type="email"
+                    className={emailTouched ? (emailIsValid ? "input-success" : "input-error") : ""}
+                    value={createForm.email}
+                    onChange={(event) => handleCreateFormChange("email", event.target.value)}
+                    placeholder="Enter email address"
+                  />
+                  {emailTouched && (
+                    <span
+                      className={`users-section__input-badge ${
+                        emailIsValid
+                          ? "users-section__input-badge--success"
+                          : "users-section__input-badge--error"
+                      }`}
+                    >
+                      {emailIsValid ? "Valid" : "Invalid"}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="users-section__form-group">
                 <label>
                   Password <span className="users-section__required">*</span>
                 </label>
-                <input
-                  type="password"
-                  value={createForm.password}
-                  onChange={(event) =>
-                    handleCreateFormChange("password", event.target.value)
-                  }
-                  placeholder="Enter password"
-                />
+                <div className="users-section__password-field">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className={passwordTouched ? (passwordIsStrong ? "input-success" : "input-error") : ""}
+                    value={createForm.password}
+                    onChange={(event) => handleCreateFormChange("password", event.target.value)}
+                    placeholder="Enter password"
+                  />
+                  {passwordTouched && (
+                    <span
+                      className={`users-section__input-badge users-section__input-badge--password ${
+                        passwordIsStrong
+                          ? "users-section__input-badge--success"
+                          : "users-section__input-badge--error"
+                      }`}
+                    >
+                      {passwordIsStrong ? "Strong" : "Weak"}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="users-section__password-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
               </div>
 
               <div className="users-section__checkbox-row">
@@ -658,29 +585,21 @@ export default function UsersSection() {
                   id="sendInvitation"
                   type="checkbox"
                   checked={createForm.sendInvitation}
-                  onChange={(event) =>
-                    handleCreateFormChange("sendInvitation", event.target.checked)
-                  }
+                  onChange={(event) => handleCreateFormChange("sendInvitation", event.target.checked)}
                 />
                 <span>Send user an email invitation with login instructions</span>
               </div>
 
               <div className="users-section__status-row">
                 <label>Status</label>
-
                 <button
                   type="button"
-                  className={`users-section__switch ${
-                    createForm.isActive ? "users-section__switch--active" : ""
-                  }`}
-                  onClick={() =>
-                    handleCreateFormChange("isActive", !createForm.isActive)
-                  }
+                  className={`users-section__switch ${createForm.isActive ? "users-section__switch--active" : ""}`}
+                  onClick={() => handleCreateFormChange("isActive", !createForm.isActive)}
                   aria-label="Toggle status"
                 >
                   <span className="users-section__switch-thumb" />
                 </button>
-
                 <span className="users-section__status-text">
                   {createForm.isActive ? "Active" : "Inactive"}
                 </span>
