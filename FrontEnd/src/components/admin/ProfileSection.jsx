@@ -571,18 +571,13 @@ export default function ProfileSection({ user }) {
       label: "Email Address",
       icon: <FiMail />,
       value: isEditingProfile ? (
-        <>
-          <input
-            type="email"
-            className="profile-info-input"
-            value={draftData.email}
-            onChange={(e) => handleInputChange("email", e.target.value)}
-            placeholder="Enter email address"
-          />
-          {emailErrorMessage ? (
-            <p className="profile-field-error">{emailErrorMessage}</p>
-          ) : null}
-        </>
+        <input
+          type="email"
+          className="profile-info-input"
+          value={draftData.email}
+          onChange={(e) => handleInputChange("email", e.target.value)}
+          placeholder="Enter email address"
+        />
       ) : (
         <strong className="profile-info-item__value">
           {profileData.email || "Not available"}
@@ -614,18 +609,13 @@ export default function ProfileSection({ user }) {
             label: "Current Password",
             icon: <FiLock />,
             value: (
-              <>
-                <input
-                  type="password"
-                  className="profile-info-input"
-                  value={currentPassword}
-                  onChange={(e) => handlePasswordChange(e.target.value)}
-                  placeholder="Enter current password"
-                />
-                {passwordErrorMessage ? (
-                  <p className="profile-field-error">{passwordErrorMessage}</p>
-                ) : null}
-              </>
+              <input
+                type="password"
+                className="profile-info-input"
+                value={currentPassword}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                placeholder="Enter current password"
+              />
             ),
           },
         ]
