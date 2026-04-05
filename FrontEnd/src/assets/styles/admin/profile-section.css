@@ -200,6 +200,27 @@
   gap: 10px;
 }
 
+.profile-form-message {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.profile-form-message--success {
+  color: #166534;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+}
+
+.profile-form-message--error {
+  color: #b42318;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+}
+
 .profile-info-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

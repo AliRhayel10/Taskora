@@ -13,6 +13,8 @@ import {
 import Cropper from "react-easy-crop";
 import "./../../assets/styles/admin/profile-section.css";
 
+const API_BASE_URL = "http://localhost:5000";
+
 function createImage(url) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -71,64 +73,134 @@ export default function ProfileSection({ user }) {
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
 
-  const derivedFullName = useMemo(() => user?.fullName || "Not available", [user]);
-
-  const derivedNameParts = useMemo(() => {
-    return derivedFullName.trim().split(" ").filter(Boolean);
-  }, [derivedFullName]);
-
-  const derivedFirstName = derivedNameParts[0] || "Not available";
-  const derivedLastName =
-    derivedNameParts.length > 1
-      ? derivedNameParts.slice(1).join(" ")
-      : "Not available";
-
-  const derivedJobTitle = useMemo(() => user?.jobTitle || "", [user]);
-  const derivedCompanyName = useMemo(() => user?.companyName || "", [user]);
-  const derivedEmail = useMemo(() => user?.email || "", [user]);
-
   const [profileData, setProfileData] = useState({
-    firstName: derivedFirstName === "Not available" ? "" : derivedFirstName,
-    lastName: derivedLastName === "Not available" ? "" : derivedLastName,
-    jobTitle: derivedJobTitle,
-    companyName: derivedCompanyName,
-    email: derivedEmail,
+    firstName: "",
+    lastName: "",
+    jobTitle: "",
+    companyName: "",
+    email: "",
+    fullName: "",
+    role: "",
+    profileImageUrl: "",
   });
 
-  const [draftData, setDraftData] = useState(profileData);
+  const [draftData, setDraftData] = useState({
+    firstName: "",
+    lastName: "",
+    jobTitle: "",
+    companyName: "",
+    email: "",
+  });
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
+  const [formMessage, setFormMessage] = useState({ type: "", text: "" });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
-  useEffect(() => {
-    const nextData = {
-      firstName: derivedFirstName === "Not available" ? "" : derivedFirstName,
-      lastName: derivedLastName === "Not available" ? "" : derivedLastName,
-      jobTitle: derivedJobTitle,
-      companyName: derivedCompanyName,
-      email: derivedEmail,
+  const userId = user?.userId || 0;
+
+  const syncProfileStateFromBackend = useCallback((profile) => {
+    const fullName = profile?.fullName || "Not available";
+    const nameParts = fullName.trim().split(" ").filter(Boolean);
+
+    const nextProfileData = {
+      firstName: nameParts[0] || "",
+      lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+      jobTitle: profile?.jobTitle || "",
+      companyName: profile?.companyName || "",
+      email: profile?.email || "",
+      fullName,
+      role: profile?.role || "Not available",
+      profileImageUrl: profile?.profileImageUrl || "",
     };
 
-    setProfileData(nextData);
-    setDraftData(nextData);
-    setCurrentPassword("");
-    setEmailErrorMessage("");
-    setPasswordErrorMessage("");
-  }, [
-    derivedFirstName,
-    derivedLastName,
-    derivedJobTitle,
-    derivedCompanyName,
-    derivedEmail,
-  ]);
+    setProfileData(nextProfileData);
+    setDraftData({
+      firstName: nextProfileData.firstName,
+      lastName: nextProfileData.lastName,
+      jobTitle: nextProfileData.jobTitle,
+      companyName: nextProfileData.companyName,
+      email: nextProfileData.email,
+    });
+  }, []);
+
+  const fetchProfileFromBackend = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setIsLoadingProfile(true);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${userId}`);
+      const rawText = await response.text();
+
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        throw new Error(rawText || "Server did not return valid JSON.");
+      }
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Failed to load profile.");
+      }
+
+      syncProfileStateFromBackend(data);
+    } catch (error) {
+      console.error("Failed to fetch profile from backend:", error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [syncProfileStateFromBackend, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchProfileFromBackend();
+  }, [userId, fetchProfileFromBackend]);
+
+  useEffect(() => {
+    if (!userId || profileData.fullName) return;
+
+    if (user?.fullName) {
+      const fullName = user.fullName || "Not available";
+      const nameParts = fullName.trim().split(" ").filter(Boolean);
+
+      const fallbackProfile = {
+        firstName: nameParts[0] || "",
+        lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+        jobTitle: user?.jobTitle || "",
+        companyName: user?.companyName || "",
+        email: user?.email || "",
+        fullName,
+        role: user?.role || "Not available",
+        profileImageUrl: user?.profileImageUrl || "",
+      };
+
+      setProfileData(fallbackProfile);
+      setDraftData({
+        firstName: fallbackProfile.firstName,
+        lastName: fallbackProfile.lastName,
+        jobTitle: fallbackProfile.jobTitle,
+        companyName: fallbackProfile.companyName,
+        email: fallbackProfile.email,
+      });
+    }
+  }, [user, userId, profileData.fullName]);
 
   const cancelEditingProfile = useCallback(() => {
-    setDraftData(profileData);
+    setDraftData({
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      jobTitle: profileData.jobTitle,
+      companyName: profileData.companyName,
+      email: profileData.email,
+    });
     setCurrentPassword("");
     setEmailErrorMessage("");
     setPasswordErrorMessage("");
+    setFormMessage({ type: "", text: "" });
     setIsEditingProfile(false);
   }, [profileData]);
 
@@ -155,9 +227,7 @@ export default function ProfileSection({ user }) {
     };
   }, [isEditingProfile, cancelEditingProfile]);
 
-  const fullName =
-    [profileData.firstName, profileData.lastName].filter(Boolean).join(" ").trim() ||
-    "Not available";
+  const fullName = profileData.fullName || "Not available";
 
   const initials =
     fullName !== "Not available"
@@ -173,21 +243,17 @@ export default function ProfileSection({ user }) {
   const emailChanged =
     draftData.email.trim().toLowerCase() !== profileData.email.trim().toLowerCase();
 
-  const [imagePreview, setImagePreview] = useState(() => {
-    if (!user?.profileImageUrl || user.profileImageUrl.trim() === "") {
+  const imagePreview = useMemo(() => {
+    if (!profileData.profileImageUrl || profileData.profileImageUrl.trim() === "") {
       return "";
     }
-    return `http://localhost:5000${user.profileImageUrl}`;
-  });
 
-  useEffect(() => {
-    if (!user?.profileImageUrl || user.profileImageUrl.trim() === "") {
-      setImagePreview("");
-      return;
+    if (profileData.profileImageUrl.startsWith("http")) {
+      return profileData.profileImageUrl;
     }
 
-    setImagePreview(`http://localhost:5000${user.profileImageUrl}`);
-  }, [user?.profileImageUrl]);
+    return `${API_BASE_URL}${profileData.profileImageUrl}`;
+  }, [profileData.profileImageUrl]);
 
   const [selectedImage, setSelectedImage] = useState("");
   const [showCropModal, setShowCropModal] = useState(false);
@@ -252,10 +318,17 @@ export default function ProfileSection({ user }) {
   };
 
   const handleStartEditingProfile = () => {
-    setDraftData(profileData);
+    setDraftData({
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      jobTitle: profileData.jobTitle,
+      companyName: profileData.companyName,
+      email: profileData.email,
+    });
     setCurrentPassword("");
     setEmailErrorMessage("");
     setPasswordErrorMessage("");
+    setFormMessage({ type: "", text: "" });
     setIsEditingProfile(true);
   };
 
@@ -268,6 +341,7 @@ export default function ProfileSection({ user }) {
     if (field === "email") {
       setEmailErrorMessage("");
       setPasswordErrorMessage("");
+      setFormMessage({ type: "", text: "" });
 
       if (value.trim().toLowerCase() === profileData.email.trim().toLowerCase()) {
         setCurrentPassword("");
@@ -278,10 +352,11 @@ export default function ProfileSection({ user }) {
   const handlePasswordChange = (value) => {
     setCurrentPassword(value);
     setPasswordErrorMessage("");
+    setFormMessage({ type: "", text: "" });
   };
 
   const handleSaveProfile = async () => {
-    if (!user?.userId || isSavingProfile) return;
+    if (!userId || isSavingProfile) return;
 
     const cleanedData = {
       firstName: draftData.firstName.trim(),
@@ -293,6 +368,7 @@ export default function ProfileSection({ user }) {
 
     setEmailErrorMessage("");
     setPasswordErrorMessage("");
+    setFormMessage({ type: "", text: "" });
 
     if (
       !cleanedData.firstName ||
@@ -301,17 +377,19 @@ export default function ProfileSection({ user }) {
       !cleanedData.companyName ||
       !cleanedData.email
     ) {
-      alert("Please enter first name, last name, job title, company name, and email.");
+      setFormMessage({ type: "error", text: "Invalid email or password." });
       return;
     }
 
     if (!validateEmail(cleanedData.email)) {
-      setEmailErrorMessage("Please enter a valid email address.");
+      setEmailErrorMessage("Invalid email or password.");
+      setFormMessage({ type: "error", text: "Invalid email or password." });
       return;
     }
 
     if (emailChanged && !currentPassword.trim()) {
-      setPasswordErrorMessage("Please enter your current password.");
+      setPasswordErrorMessage("Invalid email or password.");
+      setFormMessage({ type: "error", text: "Invalid email or password." });
       return;
     }
 
@@ -323,13 +401,13 @@ export default function ProfileSection({ user }) {
     try {
       setIsSavingProfile(true);
 
-      const response = await fetch("http://localhost:5000/api/auth/update-profile", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: user.userId,
+          userId,
           firstName: cleanedData.firstName,
           lastName: cleanedData.lastName,
           fullName: nextFullName,
@@ -350,34 +428,26 @@ export default function ProfileSection({ user }) {
       }
 
       if (!response.ok || data.success === false) {
-        const backendMessage = data.message || "Failed to update profile.";
-
-        if (backendMessage.toLowerCase().includes("password")) {
-          setPasswordErrorMessage(backendMessage);
-          return;
-        }
-
-        if (backendMessage.toLowerCase().includes("email")) {
-          setEmailErrorMessage(backendMessage);
-          return;
-        }
-
-        throw new Error(backendMessage);
+        setEmailErrorMessage("Invalid email or password.");
+        setPasswordErrorMessage("Invalid email or password.");
+        setFormMessage({ type: "error", text: "Invalid email or password." });
+        return;
       }
 
-      const nextProfileData = {
-        ...cleanedData,
-      };
+      await fetchProfileFromBackend();
 
-      setProfileData(nextProfileData);
-      setDraftData(nextProfileData);
       setCurrentPassword("");
       setEmailErrorMessage("");
       setPasswordErrorMessage("");
+      setFormMessage(
+        emailChanged
+          ? { type: "success", text: "Email updated successfully." }
+          : { type: "success", text: "Profile updated successfully." }
+      );
       setIsEditingProfile(false);
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert(error.message || "Saving profile failed. Check backend and try again.");
+      setFormMessage({ type: "error", text: "Invalid email or password." });
     } finally {
       setIsSavingProfile(false);
     }
@@ -386,7 +456,7 @@ export default function ProfileSection({ user }) {
   const handleSaveCroppedImage = async () => {
     if (isUploading) return;
 
-    if (!selectedImage || !croppedAreaPixels || !user?.userId) {
+    if (!selectedImage || !croppedAreaPixels || !userId) {
       alert("Please wait a moment and try again.");
       return;
     }
@@ -398,10 +468,10 @@ export default function ProfileSection({ user }) {
 
       const formData = new FormData();
       formData.append("file", croppedFile);
-      formData.append("userId", String(user.userId));
+      formData.append("userId", String(userId));
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/upload-profile-image",
+        `${API_BASE_URL}/api/auth/upload-profile-image`,
         {
           method: "POST",
           body: formData,
@@ -421,9 +491,7 @@ export default function ProfileSection({ user }) {
         throw new Error(data.message || "Image upload failed.");
       }
 
-      const fullImageUrl = `http://localhost:5000${data.imageUrl}`;
-      setImagePreview(fullImageUrl);
-
+      await fetchProfileFromBackend();
       handleCloseCropModal();
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -494,7 +562,7 @@ export default function ProfileSection({ user }) {
       icon: <FiShield />,
       value: (
         <strong className="profile-info-item__value">
-          {user?.role || "Not available"}
+          {profileData.role || "Not available"}
         </strong>
       ),
     },
@@ -583,7 +651,7 @@ export default function ProfileSection({ user }) {
                 src={imagePreview}
                 alt="Profile"
                 className="profile-hero-card__avatar-img"
-                onError={() => setImagePreview("")}
+                onError={() => setSelectedImage("")}
               />
             ) : (
               <div className="profile-hero-card__avatar-fallback">{initials}</div>
@@ -610,7 +678,7 @@ export default function ProfileSection({ user }) {
 
         <div className="profile-hero-card__content">
           <h3>{fullName}</h3>
-          <p>{profileData.jobTitle || user?.role || "Not available"}</p>
+          <p>{profileData.jobTitle || profileData.role || "Not available"}</p>
           <span>{profileData.email || "Not available"}</span>
         </div>
       </div>
@@ -636,7 +704,7 @@ export default function ProfileSection({ user }) {
               type="button"
               className={`profile-edit-btn ${isEditingProfile ? "profile-edit-btn--primary" : ""}`.trim()}
               onClick={isEditingProfile ? handleSaveProfile : handleStartEditingProfile}
-              disabled={isSavingProfile}
+              disabled={isSavingProfile || isLoadingProfile}
             >
               {isEditingProfile ? <FiCheck /> : <FiEdit2 />}
               {isSavingProfile ? "Saving..." : isEditingProfile ? "Save Changes" : "Edit"}
@@ -645,6 +713,14 @@ export default function ProfileSection({ user }) {
         </div>
 
         <div className="profile-info-card__divider"></div>
+
+        {formMessage.text ? (
+          <div
+            className={`profile-form-message profile-form-message--${formMessage.type}`.trim()}
+          >
+            {formMessage.text}
+          </div>
+        ) : null}
 
         <div className="profile-info-grid">
           {infoItems.map((item) => (
