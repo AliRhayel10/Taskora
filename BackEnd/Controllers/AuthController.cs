@@ -122,63 +122,119 @@ namespace BackEnd.Controllers
             });
         }
 
-[HttpPut("update-profile")]
-public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
-{
-    var firstName = request.FirstName?.Trim() ?? "";
-    var lastName = request.LastName?.Trim() ?? "";
-
-    if (
-        string.IsNullOrWhiteSpace(firstName) ||
-        string.IsNullOrWhiteSpace(lastName) ||
-        string.IsNullOrWhiteSpace(request.JobTitle) ||
-        string.IsNullOrWhiteSpace(request.CompanyName)
-    )
-    {
-        return BadRequest(new
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
         {
-            success = false,
-            message = "First name, last name, job title, and company name are required."
-        });
-    }
+            if (request == null || request.UserId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
 
-    var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+            var firstName = request.FirstName?.Trim() ?? "";
+            var lastName = request.LastName?.Trim() ?? "";
+            var jobTitle = request.JobTitle?.Trim() ?? "";
+            var companyName = request.CompanyName?.Trim() ?? "";
+            var email = request.Email?.Trim() ?? "";
+            var currentPassword = request.CurrentPassword?.Trim() ?? "";
 
-    if (user == null)
-    {
-        return NotFound(new
-        {
-            success = false,
-            message = "User not found."
-        });
-    }
+            if (
+                string.IsNullOrWhiteSpace(firstName) ||
+                string.IsNullOrWhiteSpace(lastName) ||
+                string.IsNullOrWhiteSpace(jobTitle) ||
+                string.IsNullOrWhiteSpace(companyName) ||
+                string.IsNullOrWhiteSpace(email)
+            )
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "First name, last name, job title, company name, and email are required."
+                });
+            }
 
-    var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == user.CompanyId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-    if (company == null)
-    {
-        return NotFound(new
-        {
-            success = false,
-            message = "Company not found."
-        });
-    }
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
 
-    user.FullName = $"{firstName} {lastName}".Trim();
-    user.JobTitle = request.JobTitle.Trim();
-    company.CompanyName = request.CompanyName.Trim();
+            var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == user.CompanyId);
 
-    await _context.SaveChangesAsync();
+            if (company == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
 
-    return Ok(new
-    {
-        success = true,
-        message = "Profile updated successfully.",
-        fullName = user.FullName,
-        jobTitle = user.JobTitle,
-        companyName = company.CompanyName
-    });
-}
+            var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
+
+            if (emailChanged)
+            {
+                if (string.IsNullOrWhiteSpace(currentPassword))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Current password is required to change email."
+                    });
+                }
+
+                var isPasswordValid = BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash);
+
+                if (!isPasswordValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Current password is incorrect."
+                    });
+                }
+
+                var existingUserWithSameEmail = await _context.Users
+                    .FirstOrDefaultAsync(u =>
+                        u.UserId != user.UserId &&
+                        u.Email.ToLower() == email.ToLower());
+
+                if (existingUserWithSameEmail != null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Email is already in use."
+                    });
+                }
+
+                user.Email = email;
+            }
+
+            user.FullName = $"{firstName} {lastName}".Trim();
+            user.JobTitle = jobTitle;
+            company.CompanyName = companyName;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Profile updated successfully.",
+                fullName = user.FullName,
+                email = user.Email,
+                jobTitle = user.JobTitle,
+                companyName = company.CompanyName
+            });
+        }
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
