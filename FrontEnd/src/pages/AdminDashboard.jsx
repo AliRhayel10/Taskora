@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import ProfileSection from "../components/admin/ProfileSection";
 import SettingsSection from "../components/admin/SettingsSection";
-import "./../assets/styles/admin/admin-dashboard.css";
 import TeamsSection from "../components/admin/TeamsSection";
+import UsersSection from "../components/admin/UsersSection";
+import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("Dashboard");
@@ -80,12 +81,15 @@ export default function AdminDashboard() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
+      case "Users":
+        return <UsersSection />;
       case "Profile":
         return <ProfileSection user={user} />;
       case "Settings":
         return <SettingsSection resetSignal={settingsResetSignal} />;
       case "Teams":
         return <TeamsSection />;
+      case "Dashboard":
       default:
         return null;
     }
