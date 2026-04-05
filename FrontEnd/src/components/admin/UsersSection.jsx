@@ -1,606 +1,686 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-    FiPlus,
-    FiSearch,
-    FiUsers,
-    FiX,
-    FiChevronDown,
-    FiEye,
-    FiEyeOff,
+  FiChevronLeft,
+  FiChevronRight,
+  FiEdit2,
+  FiEye,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+  FiUsers,
+  FiX,
+  FiChevronDown,
+  FiEyeOff,
 } from "react-icons/fi";
 import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
+const PAGE_SIZE = 6;
 
 const initialCreateForm = {
-    fullName: "",
-    jobType: "",
-    role: "",
-    email: "",
-    password: "",
-    sendInvitation: true,
-    isActive: true,
+  fullName: "",
+  jobType: "",
+  role: "",
+  email: "",
+  password: "",
+  sendInvitation: true,
+  isActive: true,
 };
 
 function getStoredUser() {
-    try {
-        const rawUser = localStorage.getItem("user");
-        return rawUser ? JSON.parse(rawUser) : null;
-    } catch (error) {
-        console.error("Failed to read user from localStorage.", error);
-        return null;
-    }
+  try {
+    const rawUser = localStorage.getItem("user");
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch (error) {
+    console.error("Failed to read user from localStorage.", error);
+    return null;
+  }
 }
 
 function normalizeUsersResponse(data) {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.users)) return data.users;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.employees)) return data.employees;
-    return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.users)) return data.users;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.employees)) return data.employees;
+  return [];
 }
 
 function getUserName(user) {
-    const fullName =
-        user?.fullName ||
-        user?.name ||
-        [user?.firstName, user?.lastName].filter(Boolean).join(" ");
+  const fullName =
+    user?.fullName ||
+    user?.name ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ");
 
-    return fullName?.trim() || user?.email || "Unnamed user";
+  return fullName?.trim() || user?.email || "Unnamed user";
+}
+
+function getUserJobType(user) {
+  return user?.jobType?.trim() || user?.jobTitle?.trim() || "No job type";
 }
 
 function getUserTeam(user) {
-    if (typeof user?.team === "string" && user.team.trim()) {
-        return user.team;
-    }
-
-    return (
-        user?.teamName ||
-        user?.team?.teamName ||
-        user?.team?.name ||
-        "No team assigned"
-    );
-}
-
-function getUserPhone(user) {
-    return user?.phoneNumber || user?.phone || "-";
+  if (typeof user?.team === "string" && user.team.trim()) return user.team;
+  if (typeof user?.teamName === "string" && user.teamName.trim()) return user.teamName;
+  if (typeof user?.department === "string" && user.department.trim()) return user.department;
+  if (typeof user?.groupName === "string" && user.groupName.trim()) return user.groupName;
+  return "Unassigned";
 }
 
 function getUserStatus(user) {
-    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
-    if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
-    if (typeof user?.status === "string" && user.status.trim()) return user.status;
-    return "Active";
+  if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
+  if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
+  if (typeof user?.status === "string" && user.status.trim()) return user.status;
+  return "Active";
+}
+
+function getInitials(name) {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
 function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
 function isStrongPassword(password) {
-    return (
-        password.length >= 8 &&
-        /[A-Z]/.test(password) &&
-        /[a-z]/.test(password) &&
-        /\d/.test(password)
-    );
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /\d/.test(password)
+  );
 }
 
 async function readJsonSafe(response) {
-    try {
-        return await response.json();
-    } catch {
-        return null;
-    }
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function buildPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 1) return [1];
+
+  const pages = new Set([1, totalPages, currentPage]);
+  if (currentPage - 1 > 1) pages.add(currentPage - 1);
+  if (currentPage + 1 < totalPages) pages.add(currentPage + 1);
+  if (currentPage - 2 > 1) pages.add(currentPage - 2);
+  if (currentPage + 2 < totalPages) pages.add(currentPage + 2);
+
+  return Array.from(pages).sort((a, b) => a - b);
 }
 
 export default function UsersSection() {
-    const [users, setUsers] = useState([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isLoading, setIsLoading] = useState(true);
-    const [errorMessage, setErrorMessage] = useState("");
+  const [users, setUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
-    const [createError, setCreateError] = useState("");
-    const [createSuccess, setCreateSuccess] = useState("");
-    const [createForm, setCreateForm] = useState(initialCreateForm);
-    const [showPassword, setShowPassword] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createSuccess, setCreateSuccess] = useState("");
+  const [createForm, setCreateForm] = useState(initialCreateForm);
+  const [showPassword, setShowPassword] = useState(false);
 
-    const currentUser = useMemo(() => getStoredUser(), []);
-    const companyId = useMemo(() => {
-        const rawCompanyId =
-            currentUser?.companyId ||
-            currentUser?.company?.companyId ||
-            currentUser?.company?.id ||
-            currentUser?.companyID;
+  const currentUser = useMemo(() => getStoredUser(), []);
+  const companyId = useMemo(() => {
+    const rawCompanyId =
+      currentUser?.companyId ||
+      currentUser?.company?.companyId ||
+      currentUser?.company?.id ||
+      currentUser?.companyID;
 
-        return rawCompanyId == null ? "" : String(rawCompanyId).trim();
-    }, [currentUser]);
+    return rawCompanyId == null ? "" : String(rawCompanyId).trim();
+  }, [currentUser]);
 
-    const emailTouched = createForm.email.trim().length > 0;
-    const passwordTouched = createForm.password.length > 0;
-    const emailIsValid = isValidEmail(createForm.email);
-    const passwordIsStrong = isStrongPassword(createForm.password);
+  const emailTouched = createForm.email.trim().length > 0;
+  const passwordTouched = createForm.password.length > 0;
+  const emailIsValid = isValidEmail(createForm.email);
+  const passwordIsStrong = isStrongPassword(createForm.password);
 
-    const isCreateFormValid =
-        createForm.fullName.trim() &&
-        createForm.jobType.trim() &&
-        createForm.role.trim() &&
-        emailIsValid &&
-        passwordIsStrong;
+  const isCreateFormValid =
+    createForm.fullName.trim() &&
+    createForm.jobType.trim() &&
+    createForm.role.trim() &&
+    emailIsValid &&
+    passwordIsStrong;
 
-    const fetchUsers = async (abortSignal) => {
-        if (!companyId) {
-            setUsers([]);
-            setErrorMessage("");
-            setIsLoading(false);
-            return;
-        }
+  const fetchUsers = async (page = 1, search = "", abortSignal) => {
+    if (!companyId) {
+      setUsers([]);
+      setTotalUsers(0);
+      setTotalPages(1);
+      setErrorMessage("");
+      setIsLoading(false);
+      return;
+    }
 
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+
+      if (search.trim()) {
+        params.set("search", search.trim());
+      }
+
+      const candidateUrls = [
+        `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${params.toString()}`,
+        `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+        `${API_BASE_URL}/api/user/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+        `${API_BASE_URL}/api/employees/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+      ];
+
+      let resolvedPayload = null;
+
+      for (const url of candidateUrls) {
         try {
-            setIsLoading(true);
-            setErrorMessage("");
+          const response = await fetch(url, {
+            method: "GET",
+            signal: abortSignal,
+          });
 
-            const candidateUrls = [
-                `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}`,
-                `${API_BASE_URL}/api/user/company/${encodeURIComponent(companyId)}`,
-                `${API_BASE_URL}/api/employees/company/${encodeURIComponent(companyId)}`,
-                `${API_BASE_URL}/api/employees/${encodeURIComponent(companyId)}`,
-            ];
+          const data = await readJsonSafe(response);
+          if (!response.ok) continue;
 
-            let resolvedUsers = null;
-
-            for (const url of candidateUrls) {
-                try {
-                    const response = await fetch(url, {
-                        method: "GET",
-                        signal: abortSignal,
-                    });
-
-                    const data = await readJsonSafe(response);
-                    if (!response.ok) continue;
-
-                    const normalized = normalizeUsersResponse(data);
-                    if (Array.isArray(normalized)) {
-                        resolvedUsers = normalized;
-                        break;
-                    }
-                } catch (error) {
-                    if (error.name === "AbortError") throw error;
-                }
-            }
-
-            setUsers(Array.isArray(resolvedUsers) ? resolvedUsers : []);
+          resolvedPayload = data;
+          break;
         } catch (error) {
-            if (error.name === "AbortError") return;
-            console.error("Failed to fetch users:", error);
-            setUsers([]);
-            setErrorMessage("");
-        } finally {
-            setIsLoading(false);
+          if (error.name === "AbortError") throw error;
         }
-    };
+      }
 
-    useEffect(() => {
-        const abortController = new AbortController();
-        fetchUsers(abortController.signal);
-        return () => abortController.abort();
-    }, [companyId]);
+      if (!resolvedPayload) {
+        setUsers([]);
+        setTotalUsers(0);
+        setTotalPages(1);
+        return;
+      }
 
-    const filteredUsers = useMemo(() => {
-        const value = searchTerm.trim().toLowerCase();
-        if (!value) return users;
+      const normalizedUsers = normalizeUsersResponse(resolvedPayload);
+      const backendPage = Number(resolvedPayload?.page || page) || page;
+      const backendPageSize = Number(resolvedPayload?.pageSize || PAGE_SIZE) || PAGE_SIZE;
+      const backendTotal = Number(resolvedPayload?.totalCount ?? normalizedUsers.length) || 0;
+      const calculatedTotalPages = Math.max(
+        1,
+        Number(resolvedPayload?.totalPages || Math.ceil(backendTotal / backendPageSize) || 1)
+      );
 
-        return users.filter((user) =>
-            [
-                getUserName(user),
-                user?.email || "",
-                getUserPhone(user),
-                getUserTeam(user),
-                getUserStatus(user),
-                user?.jobTitle || "",
-                user?.role || "",
-            ].some((field) => String(field).toLowerCase().includes(value))
-        );
-    }, [searchTerm, users]);
+      setUsers(Array.isArray(normalizedUsers) ? normalizedUsers : []);
+      setCurrentPage(Math.min(backendPage, calculatedTotalPages));
+      setTotalUsers(backendTotal);
+      setTotalPages(calculatedTotalPages);
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      console.error("Failed to fetch users:", error);
+      setUsers([]);
+      setTotalUsers(0);
+      setTotalPages(1);
+      setErrorMessage("Failed to load users.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const openCreateModal = () => {
-        setCreateForm(initialCreateForm);
-        setCreateError("");
-        setCreateSuccess("");
-        setShowPassword(false);
-        setIsCreateModalOpen(true);
-    };
+  useEffect(() => {
+    const abortController = new AbortController();
+    fetchUsers(currentPage, searchTerm, abortController.signal);
+    return () => abortController.abort();
+  }, [companyId, currentPage]);
 
-    const closeCreateModal = () => {
-        if (isSubmittingCreate) return;
-        setIsCreateModalOpen(false);
-        setCreateError("");
-        setCreateForm(initialCreateForm);
-        setShowPassword(false);
-    };
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setCurrentPage(1);
+      fetchUsers(1, searchTerm);
+    }, 300);
 
-    const handleCreateFormChange = (field, value) => {
-        setCreateForm((prev) => ({ ...prev, [field]: value }));
-    };
+    return () => clearTimeout(delay);
+  }, [searchTerm]);
 
-    const handleCreateUser = async (event) => {
-        event.preventDefault();
+  const pageNumbers = useMemo(
+    () => buildPageNumbers(currentPage, totalPages),
+    [currentPage, totalPages]
+  );
 
-        if (!isCreateFormValid || !companyId) return;
+  const openCreateModal = () => {
+    setCreateForm(initialCreateForm);
+    setCreateError("");
+    setCreateSuccess("");
+    setShowPassword(false);
+    setIsCreateModalOpen(true);
+  };
 
-        try {
-            setIsSubmittingCreate(true);
-            setCreateError("");
-            setCreateSuccess("");
+  const closeCreateModal = () => {
+    if (isSubmittingCreate) return;
+    setIsCreateModalOpen(false);
+    setCreateError("");
+    setCreateForm(initialCreateForm);
+    setShowPassword(false);
+  };
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/create-user`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    companyId: Number(companyId),
-                    fullName: createForm.fullName.trim(),
-                    jobTitle: createForm.jobType.trim(),
-                    email: createForm.email.trim(),
-                    password: createForm.password.trim(),
-                    role: createForm.role.trim(),
-                    sendInvitation: createForm.sendInvitation,
-                }),
-            });
+  const handleCreateFormChange = (field, value) => {
+    setCreateForm((prev) => ({ ...prev, [field]: value }));
+  };
 
-            const data = await readJsonSafe(response);
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
 
-            if (!response.ok || data?.success === false) {
-                throw new Error(data?.message || data?.error || "Failed to create user.");
-            }
+    if (!isCreateFormValid || !companyId) return;
 
-            setCreateSuccess(
-                createForm.sendInvitation
-                    ? "User created and invitation email sent."
-                    : "User created successfully."
-            );
+    try {
+      setIsSubmittingCreate(true);
+      setCreateError("");
+      setCreateSuccess("");
 
-            setIsCreateModalOpen(false);
-            setCreateForm(initialCreateForm);
-            setShowPassword(false);
+      const response = await fetch(`${API_BASE_URL}/api/auth/create-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          companyId: Number(companyId),
+          fullName: createForm.fullName.trim(),
+          jobTitle: createForm.jobType.trim(),
+          jobType: createForm.jobType.trim(),
+          email: createForm.email.trim(),
+          password: createForm.password.trim(),
+          role: createForm.role.trim(),
+          sendInvitation: createForm.sendInvitation,
+        }),
+      });
 
-            await fetchUsers();
-        } catch (error) {
-            console.error("Failed to create user:", error);
-            setCreateError(error.message || "Failed to create user.");
-        } finally {
-            setIsSubmittingCreate(false);
-        }
-    };
+      const data = await readJsonSafe(response);
 
-    return (
-        <section className="users-section">
-            <div className="users-section__title-row">
-                <h2>Users</h2>
-                <div className="users-section__title-line" />
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.message || data?.error || "Failed to create user.");
+      }
+
+      setCreateSuccess(
+        createForm.sendInvitation
+          ? "User created and invitation email sent."
+          : "User created successfully."
+      );
+
+      setIsCreateModalOpen(false);
+      setCreateForm(initialCreateForm);
+      setShowPassword(false);
+      setCurrentPage(1);
+      await fetchUsers(1, searchTerm);
+    } catch (error) {
+      console.error("Failed to create user:", error);
+      setCreateError(error.message || "Failed to create user.");
+    } finally {
+      setIsSubmittingCreate(false);
+    }
+  };
+
+  return (
+    <section className="users-section">
+      <div className="users-section__title-row">
+        <h2>Users</h2>
+        <div className="users-section__title-line" />
+      </div>
+
+      <div className="users-section__toolbar">
+        <div className="users-section__search">
+          <FiSearch />
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </div>
+
+        <button
+          type="button"
+          className="users-section__create-btn"
+          onClick={openCreateModal}
+        >
+          <FiPlus />
+          <span>Create User</span>
+        </button>
+      </div>
+
+      {createSuccess && (
+        <div className="users-section__feedback users-section__feedback--success">
+          {createSuccess}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="users-section__state-card">
+          <div className="users-section__state-icon">
+            <FiUsers />
+          </div>
+          <h3>Loading users</h3>
+          <p>Please wait while the user list is being loaded.</p>
+        </div>
+      )}
+
+      {!isLoading && errorMessage && (
+        <div className="users-section__state-card users-section__state-card--error">
+          <div className="users-section__state-icon">
+            <FiUsers />
+          </div>
+          <h3>Unable to load users</h3>
+          <p>{errorMessage}</p>
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && users.length === 0 && (
+        <div className="users-section__state-card">
+          <div className="users-section__state-icon">
+            <FiUsers />
+          </div>
+          <h3>No users found</h3>
+          <p>There are no users to display yet. Once users are added, they will appear here.</p>
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && users.length > 0 && (
+        <div className="users-section__table-card">
+          <div className="users-section__table-wrap">
+            <table className="users-section__table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Job Type</th>
+                  <th>Team</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user, index) => {
+                  const userId =
+                    user?.userId || user?.id || user?._id || user?.email || `user-row-${index}`;
+
+                  const name = getUserName(user);
+                  const email = user?.email || "No email";
+                  const jobType = getUserJobType(user);
+                  const team = getUserTeam(user);
+                  const status = getUserStatus(user);
+                  const statusClass =
+                    String(status).toLowerCase() === "active"
+                      ? "users-section__status users-section__status--active"
+                      : "users-section__status users-section__status--inactive";
+
+                  return (
+                    <tr key={String(userId)}>
+                      <td>
+                        <div className="users-section__user-cell">
+                          <div className="users-section__avatar">{getInitials(name)}</div>
+                          <div className="users-section__user-details">
+                            <strong>{name}</strong>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{email}</td>
+                      <td>{jobType}</td>
+                      <td>{team}</td>
+                      <td>
+                        <span className={statusClass}>{status}</span>
+                      </td>
+                      <td>
+                        <div className="users-section__actions">
+                          <button type="button" className="users-section__action-btn" title="View">
+                            <FiEye />
+                          </button>
+                          <button type="button" className="users-section__action-btn" title="Edit">
+                            <FiEdit2 />
+                          </button>
+                          <button
+                            type="button"
+                            className="users-section__action-btn users-section__action-btn--danger"
+                            title="Delete"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="users-section__pagination">
+            <div className="users-section__pagination-info">
+              {totalUsers === 0
+                ? "0 users"
+                : `${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(currentPage * PAGE_SIZE, totalUsers)} of ${totalUsers} users`}
             </div>
 
-            <div className="users-section__toolbar">
-                <div className="users-section__search">
-                    <FiSearch />
-                    <input
-                        type="text"
-                        placeholder="Search employees..."
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                    />
+            <div className="users-section__pagination-controls">
+              <button
+                type="button"
+                className="users-section__page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              >
+                <FiChevronLeft />
+                <span>Previous</span>
+              </button>
+
+              {pageNumbers.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`users-section__page-btn users-section__page-btn--number ${
+                    currentPage === pageNumber ? "users-section__page-btn--active" : ""
+                  }`}
+                  onClick={() => setCurrentPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="users-section__page-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                <span>Next</span>
+                <FiChevronRight />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCreateModalOpen && (
+        <div className="users-section__modal-overlay" onClick={closeCreateModal}>
+          <div className="users-section__modal" onClick={(event) => event.stopPropagation()}>
+            <div className="users-section__modal-header users-section__modal-header--lined">
+              <div>
+                <h3>Create User</h3>
+                <p>Add a new user and set their access details.</p>
+              </div>
+
+              <button
+                type="button"
+                className="users-section__modal-close"
+                onClick={closeCreateModal}
+                aria-label="Close form"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            {createError && (
+              <div className="users-section__feedback users-section__feedback--error">
+                {createError}
+              </div>
+            )}
+
+            <form className="users-section__form" onSubmit={handleCreateUser}>
+              <div className="users-section__form-group">
+                <label>
+                  Full Name <span className="users-section__required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.fullName}
+                  onChange={(event) => handleCreateFormChange("fullName", event.target.value)}
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              <div className="users-section__form-group">
+                <label>
+                  Job Type <span className="users-section__required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.jobType}
+                  onChange={(event) => handleCreateFormChange("jobType", event.target.value)}
+                  placeholder="Enter job type"
+                />
+              </div>
+
+              <div className="users-section__form-group">
+                <label>
+                  Role <span className="users-section__required">*</span>
+                </label>
+                <div className="users-section__select-wrapper">
+                  <select
+                    value={createForm.role}
+                    onChange={(event) => handleCreateFormChange("role", event.target.value)}
+                  >
+                    <option value="">Select role</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Team Leader">Team Leader</option>
+                  </select>
+                  <FiChevronDown />
                 </div>
+              </div>
+
+              <div className="users-section__form-group">
+                <label>
+                  Email <span className="users-section__required">*</span>
+                </label>
+                <div className="users-section__input-wrap">
+                  <input
+                    type="email"
+                    className={emailTouched ? (emailIsValid ? "input-success" : "input-error") : ""}
+                    value={createForm.email}
+                    onChange={(event) => handleCreateFormChange("email", event.target.value)}
+                    placeholder="Enter email address"
+                  />
+                  {emailTouched && (
+                    <span
+                      className={`users-section__input-badge ${
+                        emailIsValid
+                          ? "users-section__input-badge--success"
+                          : "users-section__input-badge--error"
+                      }`}
+                    >
+                      {emailIsValid ? "Valid" : "Invalid"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="users-section__form-group">
+                <label>
+                  Password <span className="users-section__required">*</span>
+                </label>
+                <div className="users-section__password-field">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className={
+                      passwordTouched ? (passwordIsStrong ? "input-success" : "input-error") : ""
+                    }
+                    value={createForm.password}
+                    onChange={(event) => handleCreateFormChange("password", event.target.value)}
+                    placeholder="Enter password"
+                  />
+                  {passwordTouched && (
+                    <span
+                      className={`users-section__input-badge users-section__input-badge--password ${
+                        passwordIsStrong
+                          ? "users-section__input-badge--success"
+                          : "users-section__input-badge--error"
+                      }`}
+                    >
+                      {passwordIsStrong ? "Strong" : "Weak"}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="users-section__password-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <FiEye /> : <FiEyeOff />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="users-section__checkbox-row">
+                <input
+                  id="sendInvitation"
+                  type="checkbox"
+                  checked={createForm.sendInvitation}
+                  onChange={(event) => handleCreateFormChange("sendInvitation", event.target.checked)}
+                />
+                <span>Send user an email invitation with login instructions</span>
+              </div>
+
+              <div className="users-section__status-row">
+                <label>Status</label>
+                <button
+                  type="button"
+                  className={`users-section__switch ${
+                    createForm.isActive ? "users-section__switch--active" : ""
+                  }`}
+                  onClick={() => handleCreateFormChange("isActive", !createForm.isActive)}
+                  aria-label="Toggle status"
+                >
+                  <span className="users-section__switch-thumb" />
+                </button>
+                <span className="users-section__status-text">
+                  {createForm.isActive ? "Active" : "Inactive"}
+                </span>
+              </div>
+
+              <div className="users-section__form-actions">
+                <button
+                  type="button"
+                  className="users-section__secondary-btn"
+                  onClick={closeCreateModal}
+                  disabled={isSubmittingCreate}
+                >
+                  Cancel
+                </button>
 
                 <button
-                    type="button"
-                    className="users-section__create-btn"
-                    onClick={openCreateModal}
+                  type="submit"
+                  className="users-section__submit-btn"
+                  disabled={!isCreateFormValid || isSubmittingCreate}
                 >
-                    <FiPlus />
-                    <span>Create User</span>
+                  {isSubmittingCreate ? "Creating..." : "Create"}
                 </button>
-            </div>
-
-            {createSuccess && (
-                <div className="users-section__feedback users-section__feedback--success">
-                    {createSuccess}
-                </div>
-            )}
-
-            {isLoading && (
-                <div className="users-section__state-card">
-                    <div className="users-section__state-icon">
-                        <FiUsers />
-                    </div>
-                    <h3>Loading users</h3>
-                    <p>Please wait while the employee list is being loaded.</p>
-                </div>
-            )}
-
-            {!isLoading && errorMessage && (
-                <div className="users-section__state-card users-section__state-card--error">
-                    <div className="users-section__state-icon">
-                        <FiUsers />
-                    </div>
-                    <h3>Unable to load users</h3>
-                    <p>{errorMessage}</p>
-                </div>
-            )}
-
-            {!isLoading && !errorMessage && filteredUsers.length === 0 && (
-                <div className="users-section__state-card">
-                    <div className="users-section__state-icon">
-                        <FiUsers />
-                    </div>
-                    <h3>No users found</h3>
-                    <p>There are no employees to display yet. Once users are added, they will appear here.</p>
-                </div>
-            )}
-
-            {!isLoading && !errorMessage && filteredUsers.length > 0 && (
-                <div className="users-section__table-card">
-                    <div className="users-section__table-wrap">
-                        <table className="users-section__table">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Team</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUsers.map((user, index) => {
-                                    const userId =
-                                        user?.userId ||
-                                        user?.id ||
-                                        user?._id ||
-                                        user?.email ||
-                                        `user-row-${index}`;
-
-                                    const name = getUserName(user);
-                                    const email = user?.email || "No email";
-                                    const phone = getUserPhone(user);
-                                    const team = getUserTeam(user);
-                                    const status = getUserStatus(user);
-                                    const statusClass =
-                                        String(status).toLowerCase() === "active"
-                                            ? "users-section__status users-section__status--active"
-                                            : "users-section__status users-section__status--inactive";
-
-                                    return (
-                                        <tr key={String(userId)}>
-                                            <td>
-                                                <div className="users-section__user-cell">
-                                                    <div className="users-section__avatar">
-                                                        {name.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div className="users-section__user-details">
-                                                        <strong>{name}</strong>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>{email}</td>
-                                            <td>{phone}</td>
-                                            <td>{team}</td>
-                                            <td>
-                                                <span className={statusClass}>{status}</span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {isCreateModalOpen && (
-                <div className="users-section__modal-overlay" onClick={closeCreateModal}>
-                    <div
-                        className="users-section__modal"
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <div className="users-section__modal-header users-section__modal-header--lined">
-                            <div>
-                                <h3>Create User</h3>
-                                <p>Add a new user and set their access details.</p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="users-section__modal-close"
-                                onClick={closeCreateModal}
-                                aria-label="Close form"
-                            >
-                                <FiX />
-                            </button>
-                        </div>
-
-                        {createError && (
-                            <div className="users-section__feedback users-section__feedback--error">
-                                {createError}
-                            </div>
-                        )}
-
-                        <form className="users-section__form" onSubmit={handleCreateUser}>
-                            <div className="users-section__form-group">
-                                <label>
-                                    Full Name <span className="users-section__required">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={createForm.fullName}
-                                    onChange={(event) =>
-                                        handleCreateFormChange("fullName", event.target.value)
-                                    }
-                                    placeholder="Enter full name"
-                                />
-                            </div>
-
-                            <div className="users-section__form-group">
-                                <label>
-                                    Job Type <span className="users-section__required">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={createForm.jobType}
-                                    onChange={(event) =>
-                                        handleCreateFormChange("jobType", event.target.value)
-                                    }
-                                    placeholder="Enter job type"
-                                />
-                            </div>
-
-                            <div className="users-section__form-group">
-                                <label>
-                                    Role <span className="users-section__required">*</span>
-                                </label>
-                                <div className="users-section__select-wrapper">
-                                    <select
-                                        value={createForm.role}
-                                        onChange={(event) =>
-                                            handleCreateFormChange("role", event.target.value)
-                                        }
-                                    >
-                                        <option value="">Select role</option>
-                                        <option value="Employee">Employee</option>
-                                        <option value="Team Leader">Team Leader</option>
-                                    </select>
-                                    <FiChevronDown />
-                                </div>
-                            </div>
-
-                            <div className="users-section__form-group">
-                                <label>
-                                    Email <span className="users-section__required">*</span>
-                                </label>
-                                <div className="users-section__input-wrap">
-                                    <input
-                                        type="email"
-                                        className={
-                                            emailTouched
-                                                ? emailIsValid
-                                                    ? "input-success"
-                                                    : "input-error"
-                                                : ""
-                                        }
-                                        value={createForm.email}
-                                        onChange={(event) =>
-                                            handleCreateFormChange("email", event.target.value)
-                                        }
-                                        placeholder="Enter email address"
-                                    />
-                                    {emailTouched && (
-                                        <span
-                                            className={`users-section__input-badge ${emailIsValid
-                                                    ? "users-section__input-badge--success"
-                                                    : "users-section__input-badge--error"
-                                                }`}
-                                        >
-                                            {emailIsValid ? "Valid" : "Invalid"}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="users-section__form-group">
-                                <label>
-                                    Password <span className="users-section__required">*</span>
-                                </label>
-                                <div className="users-section__password-field">
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        className={
-                                            passwordTouched
-                                                ? passwordIsStrong
-                                                    ? "input-success"
-                                                    : "input-error"
-                                                : ""
-                                        }
-                                        value={createForm.password}
-                                        onChange={(event) =>
-                                            handleCreateFormChange("password", event.target.value)
-                                        }
-                                        placeholder="Enter password"
-                                    />
-                                    {passwordTouched && (
-                                        <span
-                                            className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong
-                                                    ? "users-section__input-badge--success"
-                                                    : "users-section__input-badge--error"
-                                                }`}
-                                        >
-                                            {passwordIsStrong ? "Strong" : "Weak"}
-                                        </span>
-                                    )}
-                                    <button
-                                        type="button"
-                                        className="users-section__password-toggle"
-                                        onClick={() => setShowPassword((prev) => !prev)}
-                                        aria-label={showPassword ? "Hide password" : "Show password"}
-                                    >
-                                        {showPassword ? <FiEye /> : <FiEyeOff />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="users-section__checkbox-row">
-                                <input
-                                    id="sendInvitation"
-                                    type="checkbox"
-                                    checked={createForm.sendInvitation}
-                                    onChange={(event) =>
-                                        handleCreateFormChange("sendInvitation", event.target.checked)
-                                    }
-                                />
-                                <span>Send user an email invitation with login instructions</span>
-                            </div>
-
-                            <div className="users-section__status-row">
-                                <label>Status</label>
-                                <button
-                                    type="button"
-                                    className={`users-section__switch ${createForm.isActive ? "users-section__switch--active" : ""
-                                        }`}
-                                    onClick={() =>
-                                        handleCreateFormChange("isActive", !createForm.isActive)
-                                    }
-                                    aria-label="Toggle status"
-                                >
-                                    <span className="users-section__switch-thumb" />
-                                </button>
-                                <span className="users-section__status-text">
-                                    {createForm.isActive ? "Active" : "Inactive"}
-                                </span>
-                            </div>
-
-                            <div className="users-section__form-actions">
-                                <button
-                                    type="button"
-                                    className="users-section__secondary-btn"
-                                    onClick={closeCreateModal}
-                                    disabled={isSubmittingCreate}
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="submit"
-                                    className="users-section__submit-btn"
-                                    disabled={!isCreateFormValid || isSubmittingCreate}
-                                >
-                                    {isSubmittingCreate ? "Creating..." : "Create"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </section>
-    );
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }

@@ -169,27 +169,62 @@ namespace BackEnd.Controllers
             });
         }
 
-[HttpGet("company-users/{companyId}")]
-public async Task<IActionResult> GetUsersByCompany(int companyId)
-{
-    var users = await _context.Users
-        .Where(u => u.CompanyId == companyId)
-        .Select(u => new
+        [HttpGet("company-users/{companyId}")]
+        public async Task<IActionResult> GetUsersByCompany(
+            int companyId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 6,
+            [FromQuery] string? search = null)
         {
-            userId = u.UserId,
-            fullName = u.FullName,
-            email = u.Email,
-            jobTitle = u.JobTitle,
-            isActive = true
-        })
-        .ToListAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 6;
 
-    return Ok(new
-    {
-        success = true,
-        users
-    });
-}
+            var query = _context.Users
+                .Where(u => u.CompanyId == companyId);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var normalizedSearch = search.Trim().ToLower();
+
+                query = query.Where(u =>
+                    (u.FullName != null && u.FullName.ToLower().Contains(normalizedSearch)) ||
+                    (u.Email != null && u.Email.ToLower().Contains(normalizedSearch)) ||
+                    (u.JobTitle != null && u.JobTitle.ToLower().Contains(normalizedSearch))
+                );
+            }
+
+            var totalUsers = await query.CountAsync();
+
+            var users = await query
+                .OrderBy(u => u.FullName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new
+                {
+                    userId = u.UserId,
+                    fullName = u.FullName,
+                    email = u.Email,
+                    jobType = u.JobTitle,
+                    team = "Unassigned",
+                    isActive = true
+                })
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(totalUsers / (double)pageSize);
+
+            return Ok(new
+            {
+                success = true,
+                users,
+                pagination = new
+                {
+                    page,
+                    pageSize,
+                    totalUsers,
+                    totalPages
+                }
+            });
+        }
 
         [HttpPost("register-company")]
         public async Task<IActionResult> RegisterCompany([FromBody] RegisterCompanyRequest request)
