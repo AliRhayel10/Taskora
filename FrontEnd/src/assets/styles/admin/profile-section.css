@@ -194,6 +194,12 @@
   margin: 18px 0 24px;
 }
 
+.profile-info-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .profile-info-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -464,4 +470,12 @@
   .simple-cancel-btn {
     width: 100%;
   }
+  .profile-info-card__actions {
+  width: 100%;
+  flex-direction: column;
+}
+
+.profile-info-card__actions .profile-edit-btn {
+  width: 100%;
+}
 }

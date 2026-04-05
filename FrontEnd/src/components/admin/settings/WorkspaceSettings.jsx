@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiBriefcase,
   FiGlobe,
@@ -7,10 +7,13 @@ import {
   FiArrowLeft,
   FiEdit2,
   FiCheck,
+  FiX,
 } from "react-icons/fi";
 import "./../../../assets/styles/admin/settings/workspace-settings.css";
 
 export default function WorkspaceSettings({ onBack }) {
+  const workspaceCardRef = useRef(null);
+
   const storedUser = useMemo(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
@@ -40,48 +43,48 @@ export default function WorkspaceSettings({ onBack }) {
       return;
     }
 
-const fetchWorkspace = async () => {
-  try {
-    const userId = storedUser?.userId;
+    const fetchWorkspace = async () => {
+      try {
+        const userId = storedUser?.userId;
 
-    if (!userId) {
-      throw new Error("Missing userId.");
-    }
+        if (!userId) {
+          throw new Error("Missing userId.");
+        }
 
-    const url = `http://localhost:5000/api/auth/workspace/${userId}`;
-    console.log("Fetching workspace from:", url);
+        const url = `http://localhost:5000/api/auth/workspace/${userId}`;
+        console.log("Fetching workspace from:", url);
 
-    const response = await fetch(url);
+        const response = await fetch(url);
 
-    const rawText = await response.text();
-    let data = {};
+        const rawText = await response.text();
+        let data = {};
 
-    try {
-      data = rawText ? JSON.parse(rawText) : {};
-    } catch {
-      throw new Error(rawText || "Server did not return valid JSON.");
-    }
+        try {
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          throw new Error(rawText || "Server did not return valid JSON.");
+        }
 
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "Failed to fetch workspace.");
-    }
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Failed to fetch workspace.");
+        }
 
-    const nextData = {
-      companyName: data.companyName || "",
-      companyDomain: data.emailDomain || "",
-      companyPhone: data.companyPhone || "",
-      address: data.address || "",
+        const nextData = {
+          companyName: data.companyName || "",
+          companyDomain: data.emailDomain || "",
+          companyPhone: data.companyPhone || "",
+          address: data.address || "",
+        };
+
+        setWorkspaceData(nextData);
+        setDraftData(nextData);
+      } catch (error) {
+        console.error("Failed to fetch workspace:", error);
+        alert(error.message || "Failed to load workspace information.");
+      } finally {
+        setIsLoading(false);
+      }
     };
-
-    setWorkspaceData(nextData);
-    setDraftData(nextData);
-  } catch (error) {
-    console.error("Failed to fetch workspace:", error);
-    alert(error.message || "Failed to load workspace information.");
-  } finally {
-    setIsLoading(false);
-  }
-};
 
     fetchWorkspace();
   }, [storedUser]);
@@ -90,6 +93,34 @@ const fetchWorkspace = async () => {
     setDraftData(workspaceData);
     setIsEditing(true);
   };
+
+  const handleCancelEditing = useCallback(() => {
+    setDraftData(workspaceData);
+    setIsEditing(false);
+  }, [workspaceData]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      return;
+    }
+
+    const handlePointerDownOutside = (event) => {
+      if (
+        workspaceCardRef.current &&
+        !workspaceCardRef.current.contains(event.target)
+      ) {
+        handleCancelEditing();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDownOutside);
+    document.addEventListener("touchstart", handlePointerDownOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDownOutside);
+      document.removeEventListener("touchstart", handlePointerDownOutside);
+    };
+  }, [isEditing, handleCancelEditing]);
 
   const handleInputChange = (field, value) => {
     setDraftData((prev) => ({
@@ -230,23 +261,37 @@ const fetchWorkspace = async () => {
         <div className="workspace-settings-page__title-line"></div>
       </div>
 
-      <div className="workspace-settings-card">
+      <div className="workspace-settings-card" ref={workspaceCardRef}>
         <div className="workspace-settings-card__header">
           <div>
             <h3>Workspace Information</h3>
           </div>
 
-          <button
-            type="button"
-            className={`workspace-settings-edit-btn ${
-              isEditing ? "workspace-settings-edit-btn--primary" : ""
-            }`}
-            onClick={isEditing ? handleSave : handleStartEditing}
-            disabled={isSaving}
-          >
-            {isEditing ? <FiCheck /> : <FiEdit2 />}
-            {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
-          </button>
+          <div className="workspace-settings-card__actions">
+            {isEditing && (
+              <button
+                type="button"
+                className="workspace-settings-edit-btn"
+                onClick={handleCancelEditing}
+                disabled={isSaving}
+              >
+                <FiX />
+                Cancel
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={`workspace-settings-edit-btn ${
+                isEditing ? "workspace-settings-edit-btn--primary" : ""
+              }`}
+              onClick={isEditing ? handleSave : handleStartEditing}
+              disabled={isSaving}
+            >
+              {isEditing ? <FiCheck /> : <FiEdit2 />}
+              {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Edit"}
+            </button>
+          </div>
         </div>
 
         <div className="workspace-settings-card__divider"></div>

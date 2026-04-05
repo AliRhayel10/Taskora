@@ -122,57 +122,63 @@ namespace BackEnd.Controllers
             });
         }
 
-        [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
+[HttpPut("update-profile")]
+public async Task<IActionResult> UpdateProfile([FromBody] AdminUpdateProfileRequest request)
+{
+    var firstName = request.FirstName?.Trim() ?? "";
+    var lastName = request.LastName?.Trim() ?? "";
+
+    if (
+        string.IsNullOrWhiteSpace(firstName) ||
+        string.IsNullOrWhiteSpace(lastName) ||
+        string.IsNullOrWhiteSpace(request.JobTitle) ||
+        string.IsNullOrWhiteSpace(request.CompanyName)
+    )
+    {
+        return BadRequest(new
         {
-            if (request == null || request.UserId <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Invalid request."
-                });
-            }
+            success = false,
+            message = "First name, last name, job title, and company name are required."
+        });
+    }
 
-            var firstName = request.FirstName?.Trim() ?? "";
-            var lastName = request.LastName?.Trim() ?? "";
+    var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-            if (
-                string.IsNullOrWhiteSpace(firstName) ||
-                string.IsNullOrWhiteSpace(lastName) ||
-                string.IsNullOrWhiteSpace(request.JobTitle)
-            )
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "First name, last name, and job title are required."
-                });
-            }
+    if (user == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "User not found."
+        });
+    }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+    var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == user.CompanyId);
 
-            if (user == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "User not found."
-                });
-            }
+    if (company == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "Company not found."
+        });
+    }
 
-            user.FullName = $"{firstName} {lastName}".Trim();
-            user.JobTitle = request.JobTitle.Trim();
-            await _context.SaveChangesAsync();
+    user.FullName = $"{firstName} {lastName}".Trim();
+    user.JobTitle = request.JobTitle.Trim();
+    company.CompanyName = request.CompanyName.Trim();
 
-            return Ok(new
-            {
-                success = true,
-                message = "Profile updated successfully.",
-                fullName = user.FullName,
-                jobTitle = user.JobTitle
-            });
-        }
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        success = true,
+        message = "Profile updated successfully.",
+        fullName = user.FullName,
+        jobTitle = user.JobTitle,
+        companyName = company.CompanyName
+    });
+}
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)

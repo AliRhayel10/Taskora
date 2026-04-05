@@ -64,6 +64,7 @@ async function getCroppedImage(src, cropPixels) {
 
 export default function ProfileSection({ user }) {
   const fileInputRef = useRef(null);
+  const profileInfoCardRef = useRef(null);
 
   const derivedFullName = useMemo(() => user?.fullName || "Not available", [user]);
 
@@ -77,37 +78,73 @@ export default function ProfileSection({ user }) {
       ? derivedNameParts.slice(1).join(" ")
       : "Not available";
 
-  const [profileName, setProfileName] = useState({
+  const derivedJobTitle = useMemo(() => user?.jobTitle || "", [user]);
+  const derivedCompanyName = useMemo(() => user?.companyName || "", [user]);
+
+  const [profileData, setProfileData] = useState({
     firstName: derivedFirstName === "Not available" ? "" : derivedFirstName,
     lastName: derivedLastName === "Not available" ? "" : derivedLastName,
+    jobTitle: derivedJobTitle,
+    companyName: derivedCompanyName,
   });
-  const [draftName, setDraftName] = useState(profileName);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [isSavingName, setIsSavingName] = useState(false);
+
+  const [draftData, setDraftData] = useState(profileData);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
-    const nextName = {
+    const nextData = {
       firstName: derivedFirstName === "Not available" ? "" : derivedFirstName,
       lastName: derivedLastName === "Not available" ? "" : derivedLastName,
+      jobTitle: derivedJobTitle,
+      companyName: derivedCompanyName,
     };
 
-    setProfileName(nextName);
-    setDraftName(nextName);
-  }, [derivedFirstName, derivedLastName]);
+    setProfileData(nextData);
+    setDraftData(nextData);
+  }, [derivedFirstName, derivedLastName, derivedJobTitle, derivedCompanyName]);
+
+  const cancelEditingProfile = useCallback(() => {
+    setDraftData(profileData);
+    setIsEditingProfile(false);
+  }, [profileData]);
+
+  useEffect(() => {
+    if (!isEditingProfile) {
+      return;
+    }
+
+    const handlePointerDownOutside = (event) => {
+      if (
+        profileInfoCardRef.current &&
+        !profileInfoCardRef.current.contains(event.target)
+      ) {
+        cancelEditingProfile();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDownOutside);
+    document.addEventListener("touchstart", handlePointerDownOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDownOutside);
+      document.removeEventListener("touchstart", handlePointerDownOutside);
+    };
+  }, [isEditingProfile, cancelEditingProfile]);
 
   const fullName =
-    [profileName.firstName, profileName.lastName].filter(Boolean).join(" ").trim() ||
+    [profileData.firstName, profileData.lastName].filter(Boolean).join(" ").trim() ||
     "Not available";
 
   const initials =
     fullName !== "Not available"
       ? fullName
-        .split(" ")
-        .filter(Boolean)
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+          .split(" ")
+          .filter(Boolean)
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
       : "AU";
 
   const [imagePreview, setImagePreview] = useState(() => {
@@ -188,38 +225,45 @@ export default function ProfileSection({ user }) {
     setCroppedAreaPixels(null);
   };
 
-  const handleStartEditingName = () => {
-    setDraftName(profileName);
-    setIsEditingName(true);
+  const handleStartEditingProfile = () => {
+    setDraftData(profileData);
+    setIsEditingProfile(true);
   };
 
-  const handleNameInputChange = (field, value) => {
-    setDraftName((prev) => ({
+  const handleInputChange = (field, value) => {
+    setDraftData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleSaveName = async () => {
-    if (!user?.userId || isSavingName) return;
+  const handleSaveProfile = async () => {
+    if (!user?.userId || isSavingProfile) return;
 
-    const cleanedName = {
-      firstName: draftName.firstName.trim(),
-      lastName: draftName.lastName.trim(),
+    const cleanedData = {
+      firstName: draftData.firstName.trim(),
+      lastName: draftData.lastName.trim(),
+      jobTitle: draftData.jobTitle.trim(),
+      companyName: draftData.companyName.trim(),
     };
 
-    if (!cleanedName.firstName || !cleanedName.lastName) {
-      alert("Please enter both first and last name.");
+    if (
+      !cleanedData.firstName ||
+      !cleanedData.lastName ||
+      !cleanedData.jobTitle ||
+      !cleanedData.companyName
+    ) {
+      alert("Please enter first name, last name, job title, and company name.");
       return;
     }
 
-    const nextFullName = [cleanedName.firstName, cleanedName.lastName]
+    const nextFullName = [cleanedData.firstName, cleanedData.lastName]
       .filter(Boolean)
       .join(" ")
       .trim();
 
     try {
-      setIsSavingName(true);
+      setIsSavingProfile(true);
 
       const response = await fetch("http://localhost:5000/api/auth/update-profile", {
         method: "PUT",
@@ -228,9 +272,11 @@ export default function ProfileSection({ user }) {
         },
         body: JSON.stringify({
           userId: user.userId,
-          firstName: cleanedName.firstName,
-          lastName: cleanedName.lastName,
+          firstName: cleanedData.firstName,
+          lastName: cleanedData.lastName,
           fullName: nextFullName,
+          jobTitle: cleanedData.jobTitle,
+          companyName: cleanedData.companyName,
         }),
       });
 
@@ -247,14 +293,14 @@ export default function ProfileSection({ user }) {
         throw new Error(data.message || "Failed to update profile.");
       }
 
-      setProfileName(cleanedName);
-      setDraftName(cleanedName);
-      setIsEditingName(false);
+      setProfileData(cleanedData);
+      setDraftData(cleanedData);
+      setIsEditingProfile(false);
     } catch (error) {
-      console.error("Error saving profile name:", error);
-      alert(error.message || "Saving name failed. Check backend and try again.");
+      console.error("Error saving profile:", error);
+      alert(error.message || "Saving profile failed. Check backend and try again.");
     } finally {
-      setIsSavingName(false);
+      setIsSavingProfile(false);
     }
   };
 
@@ -313,17 +359,17 @@ export default function ProfileSection({ user }) {
       key: "firstName",
       label: "First Name",
       icon: <FiUser />,
-      value: isEditingName ? (
+      value: isEditingProfile ? (
         <input
           type="text"
           className="profile-info-input"
-          value={draftName.firstName}
-          onChange={(e) => handleNameInputChange("firstName", e.target.value)}
+          value={draftData.firstName}
+          onChange={(e) => handleInputChange("firstName", e.target.value)}
           placeholder="Enter first name"
         />
       ) : (
         <strong className="profile-info-item__value">
-          {profileName.firstName || "Not available"}
+          {profileData.firstName || "Not available"}
         </strong>
       ),
     },
@@ -331,17 +377,35 @@ export default function ProfileSection({ user }) {
       key: "lastName",
       label: "Last Name",
       icon: <FiUser />,
-      value: isEditingName ? (
+      value: isEditingProfile ? (
         <input
           type="text"
           className="profile-info-input"
-          value={draftName.lastName}
-          onChange={(e) => handleNameInputChange("lastName", e.target.value)}
+          value={draftData.lastName}
+          onChange={(e) => handleInputChange("lastName", e.target.value)}
           placeholder="Enter last name"
         />
       ) : (
         <strong className="profile-info-item__value">
-          {profileName.lastName || "Not available"}
+          {profileData.lastName || "Not available"}
+        </strong>
+      ),
+    },
+    {
+      key: "jobTitle",
+      label: "Job Title",
+      icon: <FiBriefcase />,
+      value: isEditingProfile ? (
+        <input
+          type="text"
+          className="profile-info-input"
+          value={draftData.jobTitle}
+          onChange={(e) => handleInputChange("jobTitle", e.target.value)}
+          placeholder="Enter job title"
+        />
+      ) : (
+        <strong className="profile-info-item__value">
+          {profileData.jobTitle || "Not available"}
         </strong>
       ),
     },
@@ -369,9 +433,17 @@ export default function ProfileSection({ user }) {
       key: "companyName",
       label: "Company Name",
       icon: <FiBriefcase />,
-      value: (
+      value: isEditingProfile ? (
+        <input
+          type="text"
+          className="profile-info-input"
+          value={draftData.companyName}
+          onChange={(e) => handleInputChange("companyName", e.target.value)}
+          placeholder="Enter company name"
+        />
+      ) : (
         <strong className="profile-info-item__value">
-          {user?.companyName || "Not available"}
+          {profileData.companyName || "Not available"}
         </strong>
       ),
     },
@@ -423,24 +495,38 @@ export default function ProfileSection({ user }) {
 
         <div className="profile-hero-card__content">
           <h3>{fullName}</h3>
-          <p>{user?.role || "Not available"}</p>
+          <p>{profileData.jobTitle || user?.role || "Not available"}</p>
           <span>{user?.email || "Not available"}</span>
         </div>
       </div>
 
-      <div className="profile-info-card">
+      <div className="profile-info-card" ref={profileInfoCardRef}>
         <div className="profile-info-card__header">
           <h3>Personal Information</h3>
 
-          <button
-            type="button"
-            className={`profile-edit-btn ${isEditingName ? "profile-edit-btn--primary" : ""}`.trim()}
-            onClick={isEditingName ? handleSaveName : handleStartEditingName}
-            disabled={isSavingName}
-          >
-            {isEditingName ? <FiCheck /> : <FiEdit2 />}
-            {isSavingName ? "Saving..." : isEditingName ? "Save" : "Edit"}
-          </button>
+          <div className="profile-info-card__actions">
+            {isEditingProfile && (
+              <button
+                type="button"
+                className="profile-edit-btn"
+                onClick={cancelEditingProfile}
+                disabled={isSavingProfile}
+              >
+                <FiX />
+                Cancel
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={`profile-edit-btn ${isEditingProfile ? "profile-edit-btn--primary" : ""}`.trim()}
+              onClick={isEditingProfile ? handleSaveProfile : handleStartEditingProfile}
+              disabled={isSavingProfile}
+            >
+              {isEditingProfile ? <FiCheck /> : <FiEdit2 />}
+              {isSavingProfile ? "Saving..." : isEditingProfile ? "Save Changes" : "Edit"}
+            </button>
+          </div>
         </div>
 
         <div className="profile-info-card__divider"></div>
