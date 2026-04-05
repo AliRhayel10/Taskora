@@ -443,6 +443,15 @@
     justify-content: center;
   }
 
+  .profile-info-card__actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .profile-info-card__actions .profile-edit-btn {
+    width: 100%;
+  }
+
   .profile-info-grid {
     grid-template-columns: 1fr;
     gap: 22px;
@@ -470,12 +479,4 @@
   .simple-cancel-btn {
     width: 100%;
   }
-  .profile-info-card__actions {
-  width: 100%;
-  flex-direction: column;
-}
-
-.profile-info-card__actions .profile-edit-btn {
-  width: 100%;
-}
 }

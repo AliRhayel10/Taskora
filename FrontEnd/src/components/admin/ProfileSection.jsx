@@ -8,6 +8,7 @@ import {
   FiShield,
   FiUser,
   FiX,
+  FiLock,
 } from "react-icons/fi";
 import Cropper from "react-easy-crop";
 import "./../../assets/styles/admin/profile-section.css";
@@ -80,15 +81,18 @@ export default function ProfileSection({ user }) {
 
   const derivedJobTitle = useMemo(() => user?.jobTitle || "", [user]);
   const derivedCompanyName = useMemo(() => user?.companyName || "", [user]);
+  const derivedEmail = useMemo(() => user?.email || "", [user]);
 
   const [profileData, setProfileData] = useState({
     firstName: derivedFirstName === "Not available" ? "" : derivedFirstName,
     lastName: derivedLastName === "Not available" ? "" : derivedLastName,
     jobTitle: derivedJobTitle,
     companyName: derivedCompanyName,
+    email: derivedEmail,
   });
 
   const [draftData, setDraftData] = useState(profileData);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
@@ -98,14 +102,23 @@ export default function ProfileSection({ user }) {
       lastName: derivedLastName === "Not available" ? "" : derivedLastName,
       jobTitle: derivedJobTitle,
       companyName: derivedCompanyName,
+      email: derivedEmail,
     };
 
     setProfileData(nextData);
     setDraftData(nextData);
-  }, [derivedFirstName, derivedLastName, derivedJobTitle, derivedCompanyName]);
+    setCurrentPassword("");
+  }, [
+    derivedFirstName,
+    derivedLastName,
+    derivedJobTitle,
+    derivedCompanyName,
+    derivedEmail,
+  ]);
 
   const cancelEditingProfile = useCallback(() => {
     setDraftData(profileData);
+    setCurrentPassword("");
     setIsEditingProfile(false);
   }, [profileData]);
 
@@ -146,6 +159,9 @@ export default function ProfileSection({ user }) {
           .slice(0, 2)
           .toUpperCase()
       : "AU";
+
+  const emailChanged =
+    draftData.email.trim().toLowerCase() !== profileData.email.trim().toLowerCase();
 
   const [imagePreview, setImagePreview] = useState(() => {
     if (!user?.profileImageUrl || user.profileImageUrl.trim() === "") {
@@ -227,6 +243,7 @@ export default function ProfileSection({ user }) {
 
   const handleStartEditingProfile = () => {
     setDraftData(profileData);
+    setCurrentPassword("");
     setIsEditingProfile(true);
   };
 
@@ -245,15 +262,22 @@ export default function ProfileSection({ user }) {
       lastName: draftData.lastName.trim(),
       jobTitle: draftData.jobTitle.trim(),
       companyName: draftData.companyName.trim(),
+      email: draftData.email.trim(),
     };
 
     if (
       !cleanedData.firstName ||
       !cleanedData.lastName ||
       !cleanedData.jobTitle ||
-      !cleanedData.companyName
+      !cleanedData.companyName ||
+      !cleanedData.email
     ) {
-      alert("Please enter first name, last name, job title, and company name.");
+      alert("Please enter first name, last name, job title, company name, and email.");
+      return;
+    }
+
+    if (emailChanged && !currentPassword.trim()) {
+      alert("Please enter your current password to change email.");
       return;
     }
 
@@ -277,6 +301,8 @@ export default function ProfileSection({ user }) {
           fullName: nextFullName,
           jobTitle: cleanedData.jobTitle,
           companyName: cleanedData.companyName,
+          email: cleanedData.email,
+          currentPassword: emailChanged ? currentPassword.trim() : "",
         }),
       });
 
@@ -293,8 +319,13 @@ export default function ProfileSection({ user }) {
         throw new Error(data.message || "Failed to update profile.");
       }
 
-      setProfileData(cleanedData);
-      setDraftData(cleanedData);
+      const nextProfileData = {
+        ...cleanedData,
+      };
+
+      setProfileData(nextProfileData);
+      setDraftData(nextProfileData);
+      setCurrentPassword("");
       setIsEditingProfile(false);
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -423,9 +454,17 @@ export default function ProfileSection({ user }) {
       key: "email",
       label: "Email Address",
       icon: <FiMail />,
-      value: (
+      value: isEditingProfile ? (
+        <input
+          type="email"
+          className="profile-info-input"
+          value={draftData.email}
+          onChange={(e) => handleInputChange("email", e.target.value)}
+          placeholder="Enter email address"
+        />
+      ) : (
         <strong className="profile-info-item__value">
-          {user?.email || "Not available"}
+          {profileData.email || "Not available"}
         </strong>
       ),
     },
@@ -447,6 +486,24 @@ export default function ProfileSection({ user }) {
         </strong>
       ),
     },
+    ...(isEditingProfile && emailChanged
+      ? [
+          {
+            key: "currentPassword",
+            label: "Current Password",
+            icon: <FiLock />,
+            value: (
+              <input
+                type="password"
+                className="profile-info-input"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+              />
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -496,7 +553,7 @@ export default function ProfileSection({ user }) {
         <div className="profile-hero-card__content">
           <h3>{fullName}</h3>
           <p>{profileData.jobTitle || user?.role || "Not available"}</p>
-          <span>{user?.email || "Not available"}</span>
+          <span>{profileData.email || "Not available"}</span>
         </div>
       </div>
 
