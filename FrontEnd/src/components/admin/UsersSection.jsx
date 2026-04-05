@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiPlus, FiSearch, FiUsers, FiX } from "react-icons/fi";
+import { FiChevronDown, FiPlus, FiSearch, FiUsers, FiX } from "react-icons/fi";
 import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
+
+const initialCreateForm = {
+  fullName: "",
+  role: "",
+  jobType: "",
+  email: "",
+  password: "",
+  sendInvitation: true,
+  isActive: true,
+};
 
 function getStoredUser() {
   try {
@@ -76,14 +86,44 @@ function normalizeUsersResponse(data) {
   return [];
 }
 
-const initialCreateForm = {
-  fullName: "",
-  jobType: "",
-  email: "",
-  password: "",
-  sendInvitation: true,
-  isActive: true,
-};
+function buildCreatePayload(createForm, companyId) {
+  const trimmedFullName = createForm.fullName.trim();
+  const nameParts = trimmedFullName.split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || trimmedFullName;
+  const lastName = nameParts.slice(1).join(" ");
+  const normalizedRole =
+    createForm.role === "Team Leader" ? "team leader" : "employee";
+
+  return {
+    companyId,
+    fullName: trimmedFullName,
+    name: trimmedFullName,
+    firstName,
+    lastName,
+    role: normalizedRole,
+    displayRole: createForm.role,
+    jobType: createForm.jobType.trim(),
+    email: createForm.email.trim(),
+    password: createForm.password,
+    sendInvitation: createForm.sendInvitation,
+    isActive: createForm.isActive,
+    active: createForm.isActive,
+    status: createForm.isActive ? "Active" : "Inactive",
+  };
+}
+
+async function tryJsonRequest(url, options) {
+  const response = await fetch(url, options);
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  return { response, data };
+}
 
 export default function UsersSection() {
   const [users, setUsers] = useState([]);
@@ -132,17 +172,10 @@ export default function UsersSection() {
 
       for (const url of candidateUrls) {
         try {
-          const response = await fetch(url, {
+          const { response, data } = await tryJsonRequest(url, {
             method: "GET",
             signal: abortSignal,
           });
-
-          let data = null;
-          try {
-            data = await response.json();
-          } catch {
-            data = null;
-          }
 
           if (!response.ok) {
             lastErrorMessage =
@@ -151,7 +184,6 @@ export default function UsersSection() {
           }
 
           const normalized = normalizeUsersResponse(data);
-
           if (Array.isArray(normalized)) {
             resolvedUsers = normalized;
             break;
@@ -206,6 +238,8 @@ export default function UsersSection() {
         getUserPhone(user),
         getUserTeam(user),
         getUserStatus(user),
+        user?.role || "",
+        user?.jobType || "",
       ].some((field) => String(field).toLowerCase().includes(value));
     });
   }, [searchTerm, users]);
@@ -224,7 +258,6 @@ export default function UsersSection() {
 
     setIsCreateModalOpen(false);
     setCreateError("");
-    setCreateSuccess("");
     setCreateForm(initialCreateForm);
   };
 
@@ -238,8 +271,71 @@ export default function UsersSection() {
   const isCreateFormValid =
     createForm.fullName.trim() &&
     createForm.jobType.trim() &&
+    createForm.role.trim() &&
     createForm.email.trim() &&
     createForm.password.trim();
+
+  const sendInvitationEmail = async (payload, createdUser) => {
+    if (!payload.sendInvitation) {
+      return;
+    }
+
+    const invitePayload = {
+      companyId: payload.companyId,
+      userId:
+        createdUser?.userId ||
+        createdUser?.id ||
+        createdUser?._id ||
+        createdUser?.data?.userId ||
+        createdUser?.data?.id,
+      fullName: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      role: payload.role,
+      jobType: payload.jobType,
+      loginUrl: `${window.location.origin}/login`,
+    };
+
+    const invitationEndpoints = [
+      `${API_BASE_URL}/api/users/send-invitation`,
+      `${API_BASE_URL}/api/users/invite`,
+      `${API_BASE_URL}/api/user/send-invitation`,
+      `${API_BASE_URL}/api/invitations/user`,
+    ];
+
+    let inviteSucceeded = false;
+    let inviteMessage =
+      "User was created, but the invitation email could not be sent.";
+
+    for (const url of invitationEndpoints) {
+      try {
+        const { response, data } = await tryJsonRequest(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(invitePayload),
+        });
+
+        if (!response.ok) {
+          inviteMessage =
+            data?.message ||
+            data?.error ||
+            "User was created, but the invitation email could not be sent.";
+          continue;
+        }
+
+        inviteSucceeded = true;
+        break;
+      } catch (error) {
+        console.error(`Invitation request failed for ${url}:`, error);
+      }
+    }
+
+    if (!inviteSucceeded) {
+      throw new Error(inviteMessage);
+    }
+  };
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
@@ -253,42 +349,43 @@ export default function UsersSection() {
       setCreateError("");
       setCreateSuccess("");
 
-      const payload = {
-        companyId,
-        fullName: createForm.fullName.trim(),
-        jobType: createForm.jobType.trim(),
-        email: createForm.email.trim(),
-        password: createForm.password,
-        sendInvitation: createForm.sendInvitation,
-        isActive: createForm.isActive,
-      };
+      const payload = buildCreatePayload(createForm, companyId);
 
-      const candidateUrls = [
-        `${API_BASE_URL}/api/users`,
-        `${API_BASE_URL}/api/users/create`,
-        `${API_BASE_URL}/api/user/create`,
-        `${API_BASE_URL}/api/employees`,
+      const candidateRequests = [
+        {
+          url: `${API_BASE_URL}/api/users`,
+          body: payload,
+        },
+        {
+          url: `${API_BASE_URL}/api/users/create`,
+          body: payload,
+        },
+        {
+          url: `${API_BASE_URL}/api/user/create`,
+          body: payload,
+        },
+        {
+          url: `${API_BASE_URL}/api/employees`,
+          body: {
+            ...payload,
+            employeeName: payload.fullName,
+          },
+        },
       ];
 
-      let success = false;
+      let createSucceeded = false;
+      let createdUser = null;
       let lastMessage = "Failed to create user.";
 
-      for (const url of candidateUrls) {
+      for (const request of candidateRequests) {
         try {
-          const response = await fetch(url, {
+          const { response, data } = await tryJsonRequest(request.url, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(request.body),
           });
-
-          let data = null;
-          try {
-            data = await response.json();
-          } catch {
-            data = null;
-          }
 
           if (!response.ok) {
             lastMessage =
@@ -296,21 +393,27 @@ export default function UsersSection() {
             continue;
           }
 
-          success = true;
+          createSucceeded = true;
+          createdUser = data;
           break;
         } catch (error) {
-          console.error(`Create user failed for ${url}:`, error);
+          console.error(`Create user failed for ${request.url}:`, error);
         }
       }
 
-      if (!success) {
+      if (!createSucceeded) {
         throw new Error(lastMessage);
       }
 
-      setCreateSuccess("User created successfully.");
+      await sendInvitationEmail(payload, createdUser);
+
+      setCreateSuccess(
+        payload.sendInvitation
+          ? "User created and invitation email sent successfully."
+          : "User created successfully."
+      );
       setIsCreateModalOpen(false);
       setCreateForm(initialCreateForm);
-
       await fetchUsers();
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -491,6 +594,25 @@ export default function UsersSection() {
 
               <div className="users-section__form-group">
                 <label>
+                  Role <span className="users-section__required">*</span>
+                </label>
+                <div className="users-section__select-wrapper">
+                  <select
+                    value={createForm.role}
+                    onChange={(event) =>
+                      handleCreateFormChange("role", event.target.value)
+                    }
+                  >
+                    <option value="">Select role</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Team Leader">Team Leader</option>
+                  </select>
+                  <FiChevronDown />
+                </div>
+              </div>
+
+              <div className="users-section__form-group">
+                <label>
                   Job Type <span className="users-section__required">*</span>
                 </label>
                 <input
@@ -531,8 +653,9 @@ export default function UsersSection() {
                 />
               </div>
 
-              <label className="users-section__checkbox-row">
+              <div className="users-section__checkbox-row">
                 <input
+                  id="sendInvitation"
                   type="checkbox"
                   checked={createForm.sendInvitation}
                   onChange={(event) =>
@@ -540,7 +663,7 @@ export default function UsersSection() {
                   }
                 />
                 <span>Send user an email invitation with login instructions</span>
-              </label>
+              </div>
 
               <div className="users-section__status-row">
                 <label>Status</label>
@@ -566,7 +689,7 @@ export default function UsersSection() {
               <div className="users-section__form-actions">
                 <button
                   type="button"
-                  className="users-section__secondary-btn users-section__secondary-btn--neutral"
+                  className="users-section__secondary-btn"
                   onClick={closeCreateModal}
                   disabled={isSubmittingCreate}
                 >
