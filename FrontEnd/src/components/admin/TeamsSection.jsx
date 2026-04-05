@@ -6,6 +6,7 @@ import {
     FiEdit2,
     FiTrash2,
     FiBriefcase,
+    FiX,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 
@@ -26,41 +27,48 @@ export default function TeamsSection() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [teamForm, setTeamForm] = useState({
+        teamName: "",
+        description: "",
+    });
 
     const currentUser = useMemo(() => getStoredUser(), []);
     const companyId = currentUser?.companyId || 0;
 
+    const fetchTeams = async () => {
+        if (!companyId) {
+            setErrorMessage("Company not found. Please sign in again.");
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setErrorMessage("");
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/teams/company/${companyId}`
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to load teams.");
+            }
+
+            setTeams(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to fetch teams:", error);
+            setErrorMessage(error.message || "Failed to load teams.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchTeams = async () => {
-            if (!companyId) {
-                setErrorMessage("Company not found. Please sign in again.");
-                setIsLoading(false);
-                return;
-            }
-
-            try {
-                setIsLoading(true);
-                setErrorMessage("");
-
-                const response = await fetch(
-                    `${API_BASE_URL}/api/teams/company/${companyId}`
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || "Failed to load teams.");
-                }
-
-                setTeams(Array.isArray(data) ? data : []);
-            } catch (error) {
-                console.error("Failed to fetch teams:", error);
-                setErrorMessage(error.message || "Failed to load teams.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchTeams();
     }, [companyId]);
 
@@ -80,6 +88,85 @@ export default function TeamsSection() {
         });
     }, [searchTerm, teams]);
 
+    const openCreateModal = () => {
+        setSuccessMessage("");
+        setErrorMessage("");
+        setTeamForm({
+            teamName: "",
+            description: "",
+        });
+        setIsCreateModalOpen(true);
+    };
+
+    const closeCreateModal = () => {
+        if (isSubmitting) return;
+        setIsCreateModalOpen(false);
+    };
+
+    const handleFormChange = (field, value) => {
+        setTeamForm((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const handleCreateTeam = async (event) => {
+        event.preventDefault();
+
+        const cleanedForm = {
+            teamName: teamForm.teamName.trim(),
+            description: teamForm.description.trim(),
+        };
+
+        if (!cleanedForm.teamName) {
+            setErrorMessage("Team name is required.");
+            return;
+        }
+
+        if (!companyId) {
+            setErrorMessage("Company not found. Please sign in again.");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            setErrorMessage("");
+            setSuccessMessage("");
+
+            const response = await fetch(`${API_BASE_URL}/api/teams`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    teamName: cleanedForm.teamName,
+                    description: cleanedForm.description,
+                    companyId,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to create team.");
+            }
+
+            setSuccessMessage("Team created successfully.");
+            setIsCreateModalOpen(false);
+            setTeamForm({
+                teamName: "",
+                description: "",
+            });
+
+            await fetchTeams();
+        } catch (error) {
+            console.error("Failed to create team:", error);
+            setErrorMessage(error.message || "Failed to create team.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <section className="teams-section">
             <div className="teams-section__title-row">
@@ -98,11 +185,21 @@ export default function TeamsSection() {
                     />
                 </div>
 
-                <button type="button" className="teams-section__create-btn">
+                <button
+                    type="button"
+                    className="teams-section__create-btn"
+                    onClick={openCreateModal}
+                >
                     <FiPlus />
                     <span>Create Team</span>
                 </button>
             </div>
+
+            {successMessage && (
+                <div className="teams-section__feedback teams-section__feedback--success">
+                    {successMessage}
+                </div>
+            )}
 
             {isLoading && (
                 <div className="teams-section__state-card">
@@ -110,7 +207,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {!isLoading && errorMessage && (
+            {!isLoading && errorMessage && !isCreateModalOpen && (
                 <div className="teams-section__state-card teams-section__state-card--error">
                     <p>{errorMessage}</p>
                 </div>
@@ -174,6 +271,86 @@ export default function TeamsSection() {
                             </div>
                         </article>
                     ))}
+                </div>
+            )}
+
+            {isCreateModalOpen && (
+                <div className="teams-section__modal-overlay" onClick={closeCreateModal}>
+                    <div
+                        className="teams-section__modal"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="teams-section__modal-header">
+                            <div>
+                                <h3>Create Team</h3>
+                                <p>Add a team name and short description.</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="teams-section__modal-close"
+                                onClick={closeCreateModal}
+                                aria-label="Close create team form"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        {errorMessage && (
+                            <div className="teams-section__feedback teams-section__feedback--error">
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <form className="teams-section__form" onSubmit={handleCreateTeam}>
+                            <div className="teams-section__form-group">
+                                <label htmlFor="teamName">Team Name</label>
+                                <input
+                                    id="teamName"
+                                    type="text"
+                                    value={teamForm.teamName}
+                                    onChange={(event) =>
+                                        handleFormChange("teamName", event.target.value)
+                                    }
+                                    placeholder="Enter team name"
+                                    maxLength={100}
+                                />
+                            </div>
+
+                            <div className="teams-section__form-group">
+                                <label htmlFor="teamDescription">Team Description</label>
+                                <textarea
+                                    id="teamDescription"
+                                    value={teamForm.description}
+                                    onChange={(event) =>
+                                        handleFormChange("description", event.target.value)
+                                    }
+                                    placeholder="Enter team description"
+                                    rows={4}
+                                    maxLength={500}
+                                />
+                            </div>
+
+                            <div className="teams-section__form-actions">
+                                <button
+                                    type="button"
+                                    className="teams-section__secondary-btn"
+                                    onClick={closeCreateModal}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    className="teams-section__submit-btn"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? "Creating..." : "Create Team"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </section>
