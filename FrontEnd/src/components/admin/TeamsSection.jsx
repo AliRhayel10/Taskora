@@ -480,7 +480,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {selectedTeam && (
+            {selectedTeam && !isDeleteModalOpen && (
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
                     <div
                         className="teams-section__modal teams-section__modal--large"
