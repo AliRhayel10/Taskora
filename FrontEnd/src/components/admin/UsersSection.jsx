@@ -15,29 +15,61 @@ function getStoredUser() {
 }
 
 function getUserName(user) {
-  return (
-    user.fullName ||
-    user.name ||
-    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-    user.email ||
-    "Unnamed user"
-  );
+  const fullName =
+    user?.fullName ||
+    user?.name ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ");
+
+  return fullName?.trim() || user?.email || "Unnamed user";
 }
 
 function getUserTeam(user) {
-  return user.teamName || user.team?.teamName || user.team || "No team assigned";
+  if (typeof user?.team === "string" && user.team.trim()) {
+    return user.team;
+  }
+
+  return (
+    user?.teamName ||
+    user?.team?.teamName ||
+    user?.team?.name ||
+    "No team assigned"
+  );
 }
 
 function getUserStatus(user) {
-  if (typeof user.isActive === "boolean") {
+  if (typeof user?.isActive === "boolean") {
     return user.isActive ? "Active" : "Inactive";
   }
 
-  if (typeof user.active === "boolean") {
+  if (typeof user?.active === "boolean") {
     return user.active ? "Active" : "Inactive";
   }
 
-  return user.status || "Active";
+  if (typeof user?.status === "string" && user.status.trim()) {
+    return user.status;
+  }
+
+  return "Active";
+}
+
+function getUserPhone(user) {
+  return user?.phoneNumber || user?.phone || "-";
+}
+
+function normalizeUsersResponse(data) {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data?.users)) {
+    return data.users;
+  }
+
+  if (Array.isArray(data?.data)) {
+    return data.data;
+  }
+
+  return [];
 }
 
 export default function UsersSection({ onCreateUser }) {
@@ -47,9 +79,14 @@ export default function UsersSection({ onCreateUser }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   const currentUser = useMemo(() => getStoredUser(), []);
-  const companyId = currentUser?.companyId || 0;
+  const companyId = useMemo(() => {
+    const rawCompanyId = currentUser?.companyId ?? currentUser?.company?.companyId;
+    return rawCompanyId == null ? "" : String(rawCompanyId).trim();
+  }, [currentUser]);
 
   useEffect(() => {
+    const abortController = new AbortController();
+
     const fetchUsers = async () => {
       if (!companyId) {
         setErrorMessage("Company not found. Please sign in again.");
@@ -61,22 +98,39 @@ export default function UsersSection({ onCreateUser }) {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(`${API_BASE_URL}/api/users/company/${companyId}`);
-        const data = await response.json();
+        const response = await fetch(
+          `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}`,
+          {
+            method: "GET",
+            signal: abortController.signal,
+          }
+        );
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load users.");
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
         }
 
-        const normalizedUsers = Array.isArray(data)
-          ? data.filter((user) => {
-              const role = String(user.role || "").toLowerCase();
-              return role !== "company admin" && role !== "admin";
-            })
-          : [];
+        if (!response.ok) {
+          throw new Error(
+            data?.message || data?.error || "Failed to load users."
+          );
+        }
+
+        const normalizedUsers = normalizeUsersResponse(data).filter((user) => {
+          const role = String(user?.role || "").toLowerCase().trim();
+          return role !== "company admin" && role !== "admin";
+        });
 
         setUsers(normalizedUsers);
       } catch (error) {
+        if (error.name === "AbortError") {
+          return;
+        }
+
         console.error("Failed to fetch users:", error);
         setErrorMessage(error.message || "Failed to load users.");
       } finally {
@@ -85,6 +139,8 @@ export default function UsersSection({ onCreateUser }) {
     };
 
     fetchUsers();
+
+    return () => abortController.abort();
   }, [companyId]);
 
   const filteredUsers = useMemo(() => {
@@ -97,8 +153,8 @@ export default function UsersSection({ onCreateUser }) {
     return users.filter((user) => {
       return [
         getUserName(user),
-        user.email || "",
-        user.phoneNumber || user.phone || "",
+        user?.email || "",
+        getUserPhone(user),
         getUserTeam(user),
         getUserStatus(user),
       ].some((field) => String(field).toLowerCase().includes(value));
@@ -115,7 +171,7 @@ export default function UsersSection({ onCreateUser }) {
     <section className="users-section">
       <div className="users-section__title-row">
         <h2>Users</h2>
-        <div className="users-section__title-line"></div>
+        <div className="users-section__title-line" />
       </div>
 
       <div className="users-section__toolbar">
@@ -175,19 +231,26 @@ export default function UsersSection({ onCreateUser }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => {
-                  const userId = user.userId || user.id || user.email;
+                {filteredUsers.map((user, index) => {
+                  const userId =
+                    user?.userId ||
+                    user?.id ||
+                    user?._id ||
+                    user?.email ||
+                    `user-row-${index}`;
+
                   const name = getUserName(user);
-                  const email = user.email || "No email";
-                  const phone = user.phoneNumber || user.phone || "-";
+                  const email = user?.email || "No email";
+                  const phone = getUserPhone(user);
                   const team = getUserTeam(user);
                   const status = getUserStatus(user);
-                  const statusClass = String(status).toLowerCase() === "active"
-                    ? "users-section__status users-section__status--active"
-                    : "users-section__status users-section__status--inactive";
+                  const statusClass =
+                    String(status).toLowerCase() === "active"
+                      ? "users-section__status users-section__status--active"
+                      : "users-section__status users-section__status--inactive";
 
                   return (
-                    <tr key={userId}>
+                    <tr key={String(userId)}>
                       <td>
                         <div className="users-section__user-cell">
                           <div className="users-section__avatar">
