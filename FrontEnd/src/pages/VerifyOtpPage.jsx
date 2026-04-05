@@ -3,10 +3,15 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FiArrowRight } from "react-icons/fi";
 import "./../assets/styles/verify-otp.css";
 
+const API_BASE_URL = "http://localhost:5000";
+
 export default function VerifyOtpPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
   const email = useMemo(() => searchParams.get("email") || "", [searchParams]);
+  const purpose = useMemo(() => searchParams.get("purpose") || "reset-password", [searchParams]);
+  const userId = useMemo(() => searchParams.get("userId") || "", [searchParams]);
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -19,7 +24,11 @@ export default function VerifyOtpPage() {
   }, []);
 
   const otpValue = otp.join("");
-  const isFormValid = otpValue.length === 6 && email.trim() !== "";
+  const isEmailChangeFlow = purpose === "email-change";
+
+  const isFormValid = otpValue.length === 6 && (
+    isEmailChangeFlow ? userId.trim() !== "" : email.trim() !== ""
+  );
 
   const handleChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
@@ -66,21 +75,41 @@ export default function VerifyOtpPage() {
     try {
       setLoading(true);
 
-      const response = await fetch("http://localhost:5000/api/auth/verify-reset-otp", {
+      const endpoint = isEmailChangeFlow
+        ? `${API_BASE_URL}/api/auth/verify-email-change-otp`
+        : `${API_BASE_URL}/api/auth/verify-reset-otp`;
+
+      const payload = isEmailChangeFlow
+        ? {
+            userId: Number(userId),
+            otp: otpValue,
+          }
+        : {
+            email,
+            otp: otpValue,
+          };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          otp: otpValue,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
         setErrorMessage(data.message || "Invalid or expired code.");
+        return;
+      }
+
+      if (isEmailChangeFlow) {
+        localStorage.removeItem("user");
+        navigate("/login", {
+          state: { message: "Email updated successfully. Please sign in again." },
+          replace: true,
+        });
         return;
       }
 
@@ -98,13 +127,25 @@ export default function VerifyOtpPage() {
       <div className="login-card">
         <div className="login-card__header">
           <h1>Enter Verification Code</h1>
-          <p>We sent a 6-digit code to your email.</p>
+          <p>
+            {isEmailChangeFlow
+              ? "We sent a 6-digit code to your new email."
+              : "We sent a 6-digit code to your email."}
+          </p>
         </div>
 
-        {!email && (
-          <p className="login-error">
-            Missing email address. Please go back and request a new code.
-          </p>
+        {isEmailChangeFlow ? (
+          !userId && (
+            <p className="login-error">
+              Missing user information. Please go back and try again.
+            </p>
+          )
+        ) : (
+          !email && (
+            <p className="login-error">
+              Missing email address. Please go back and request a new code.
+            </p>
+          )
         )}
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -137,8 +178,10 @@ export default function VerifyOtpPage() {
         </form>
 
         <div className="forgot-back">
-          <span>Entered the wrong email?</span>
-          <Link to="/forgot-password">Go back</Link>
+          <span>
+            {isEmailChangeFlow ? "Want to edit the email again?" : "Entered the wrong email?"}
+          </span>
+          <Link to={isEmailChangeFlow ? "/profile" : "/forgot-password"}>Go back</Link>
         </div>
       </div>
     </main>

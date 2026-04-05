@@ -14,15 +14,18 @@ namespace BackEnd.Controllers
         private readonly ICompanyRegistrationService _companyRegistrationService;
         private readonly ILoginService _loginService;
         private readonly AppDbContext _context;
+        private readonly EmailService _emailService;
 
         public AuthController(
             ICompanyRegistrationService companyRegistrationService,
             ILoginService loginService,
-            AppDbContext context)
+            AppDbContext context,
+            EmailService emailService)
         {
             _companyRegistrationService = companyRegistrationService;
             _loginService = loginService;
             _context = context;
+            _emailService = emailService;
         }
 
         [HttpGet("test")]
@@ -180,6 +183,10 @@ namespace BackEnd.Controllers
 
             var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
 
+            user.FullName = $"{firstName} {lastName}".Trim();
+            user.JobTitle = jobTitle;
+            company.CompanyName = companyName;
+
             if (emailChanged)
             {
                 if (string.IsNullOrWhiteSpace(currentPassword))
@@ -187,7 +194,7 @@ namespace BackEnd.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Current password is required to change email."
+                        message = "Invalid email or password."
                     });
                 }
 
@@ -198,7 +205,7 @@ namespace BackEnd.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Current password is incorrect."
+                        message = "Invalid email or password."
                     });
                 }
 
@@ -212,16 +219,26 @@ namespace BackEnd.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Email is already in use."
+                        message = "Invalid email or password."
                     });
                 }
 
-                user.Email = email;
-            }
+                var otp = Random.Shared.Next(100000, 999999).ToString();
 
-            user.FullName = $"{firstName} {lastName}".Trim();
-            user.JobTitle = jobTitle;
-            company.CompanyName = companyName;
+                user.PendingEmail = email;
+                user.EmailChangeOtp = otp;
+                user.EmailChangeOtpExpiresAt = DateTime.UtcNow.AddMinutes(10);
+
+                await _context.SaveChangesAsync();
+                await _emailService.SendEmailChangeOtpAsync(email, otp);
+
+                return Ok(new
+                {
+                    success = true,
+                    requiresOtp = true,
+                    message = "OTP sent to your new email."
+                });
+            }
 
             await _context.SaveChangesAsync();
 
@@ -233,6 +250,72 @@ namespace BackEnd.Controllers
                 email = user.Email,
                 jobTitle = user.JobTitle,
                 companyName = company.CompanyName
+            });
+        }
+
+        [HttpPost("verify-email-change-otp")]
+        public async Task<IActionResult> VerifyEmailChangeOtp([FromBody] VerifyEmailChangeOtpRequest request)
+        {
+            if (request == null || request.UserId <= 0 || string.IsNullOrWhiteSpace(request.Otp))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired code."
+                });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            if (
+                string.IsNullOrWhiteSpace(user.PendingEmail) ||
+                string.IsNullOrWhiteSpace(user.EmailChangeOtp) ||
+                user.EmailChangeOtpExpiresAt == null ||
+                user.EmailChangeOtpExpiresAt <= DateTime.UtcNow ||
+                user.EmailChangeOtp != request.Otp.Trim()
+            )
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired code."
+                });
+            }
+
+            var existingUserWithSameEmail = await _context.Users
+                .FirstOrDefaultAsync(u =>
+                    u.UserId != user.UserId &&
+                    u.Email.ToLower() == user.PendingEmail.ToLower());
+
+            if (existingUserWithSameEmail != null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired code."
+                });
+            }
+
+            user.Email = user.PendingEmail;
+            user.PendingEmail = null;
+            user.EmailChangeOtp = null;
+            user.EmailChangeOtpExpiresAt = null;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Email updated successfully."
             });
         }
 

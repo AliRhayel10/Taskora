@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiBriefcase,
   FiCamera,
@@ -70,6 +71,7 @@ function validateEmail(value) {
 }
 
 export default function ProfileSection({ user }) {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
 
@@ -93,8 +95,6 @@ export default function ProfileSection({ user }) {
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
-  const [emailErrorMessage, setEmailErrorMessage] = useState("");
-  const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [formMessage, setFormMessage] = useState({ type: "", text: "" });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -198,8 +198,6 @@ export default function ProfileSection({ user }) {
       email: profileData.email,
     });
     setCurrentPassword("");
-    setEmailErrorMessage("");
-    setPasswordErrorMessage("");
     setFormMessage({ type: "", text: "" });
     setIsEditingProfile(false);
   }, [profileData]);
@@ -326,8 +324,6 @@ export default function ProfileSection({ user }) {
       email: profileData.email,
     });
     setCurrentPassword("");
-    setEmailErrorMessage("");
-    setPasswordErrorMessage("");
     setFormMessage({ type: "", text: "" });
     setIsEditingProfile(true);
   };
@@ -339,8 +335,6 @@ export default function ProfileSection({ user }) {
     }));
 
     if (field === "email") {
-      setEmailErrorMessage("");
-      setPasswordErrorMessage("");
       setFormMessage({ type: "", text: "" });
 
       if (value.trim().toLowerCase() === profileData.email.trim().toLowerCase()) {
@@ -351,7 +345,6 @@ export default function ProfileSection({ user }) {
 
   const handlePasswordChange = (value) => {
     setCurrentPassword(value);
-    setPasswordErrorMessage("");
     setFormMessage({ type: "", text: "" });
   };
 
@@ -366,8 +359,6 @@ export default function ProfileSection({ user }) {
       email: draftData.email.trim(),
     };
 
-    setEmailErrorMessage("");
-    setPasswordErrorMessage("");
     setFormMessage({ type: "", text: "" });
 
     if (
@@ -382,13 +373,11 @@ export default function ProfileSection({ user }) {
     }
 
     if (!validateEmail(cleanedData.email)) {
-      setEmailErrorMessage("Invalid email or password.");
       setFormMessage({ type: "error", text: "Invalid email or password." });
       return;
     }
 
     if (emailChanged && !currentPassword.trim()) {
-      setPasswordErrorMessage("Invalid email or password.");
       setFormMessage({ type: "error", text: "Invalid email or password." });
       return;
     }
@@ -428,22 +417,23 @@ export default function ProfileSection({ user }) {
       }
 
       if (!response.ok || data.success === false) {
-        setEmailErrorMessage("Invalid email or password.");
-        setPasswordErrorMessage("Invalid email or password.");
         setFormMessage({ type: "error", text: "Invalid email or password." });
+        return;
+      }
+
+      if (data.requiresOtp) {
+        navigate(
+          `/verify-otp?purpose=email-change&userId=${encodeURIComponent(
+            userId
+          )}&email=${encodeURIComponent(cleanedData.email)}`
+        );
         return;
       }
 
       await fetchProfileFromBackend();
 
       setCurrentPassword("");
-      setEmailErrorMessage("");
-      setPasswordErrorMessage("");
-      setFormMessage(
-        emailChanged
-          ? { type: "success", text: "Email updated successfully." }
-          : { type: "success", text: "Profile updated successfully." }
-      );
+      setFormMessage({ type: "success", text: "Profile updated successfully." });
       setIsEditingProfile(false);
     } catch (error) {
       console.error("Error saving profile:", error);
