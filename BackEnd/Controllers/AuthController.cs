@@ -169,6 +169,28 @@ namespace BackEnd.Controllers
             });
         }
 
+[HttpGet("company-users/{companyId}")]
+public async Task<IActionResult> GetUsersByCompany(int companyId)
+{
+    var users = await _context.Users
+        .Where(u => u.CompanyId == companyId)
+        .Select(u => new
+        {
+            userId = u.UserId,
+            fullName = u.FullName,
+            email = u.Email,
+            jobTitle = u.JobTitle,
+            isActive = true
+        })
+        .ToListAsync();
+
+    return Ok(new
+    {
+        success = true,
+        users
+    });
+}
+
         [HttpPost("register-company")]
         public async Task<IActionResult> RegisterCompany([FromBody] RegisterCompanyRequest request)
         {
