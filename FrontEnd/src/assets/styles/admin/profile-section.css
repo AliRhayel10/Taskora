@@ -268,51 +268,6 @@
   background: rgba(255, 255, 255, 0.96);
 }
 
-.profile-input-wrap,
-.profile-password-field {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.profile-input-wrap .profile-info-input,
-.profile-password-field .profile-info-input {
-  padding-right: 88px;
-}
-
-.input-success {
-  border-color: #16a34a !important;
-}
-
-.input-error {
-  border-color: #dc2626 !important;
-}
-
-.input-badge {
-  position: absolute;
-  right: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.input-badge--password {
-  right: 12px;
-}
-
-.input-badge--success {
-  color: #16a34a;
-}
-
-.input-badge--error {
-  color: #dc2626;
-}
-
 .profile-field-error {
   margin: 6px 0 0 26px;
   color: #dc2626;
@@ -554,14 +509,5 @@
   .simple-save-btn,
   .simple-cancel-btn {
     width: 100%;
-  }
-
-  .profile-input-wrap .profile-info-input,
-  .profile-password-field .profile-info-input {
-    padding-right: 82px;
-  }
-
-  .input-badge {
-    font-size: 0.7rem;
   }
 }

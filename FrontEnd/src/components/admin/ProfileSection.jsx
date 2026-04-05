@@ -3,14 +3,12 @@ import {
   FiBriefcase,
   FiCamera,
   FiCheck,
-  FiCheckCircle,
   FiEdit2,
   FiLock,
   FiMail,
   FiShield,
   FiUser,
   FiX,
-  FiXCircle,
 } from "react-icons/fi";
 import Cropper from "react-easy-crop";
 import "./../../assets/styles/admin/profile-section.css";
@@ -69,53 +67,6 @@ function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-function getEmailFieldState(value, touched, backendError) {
-  const trimmedValue = value.trim();
-
-  if (backendError) {
-    return "error";
-  }
-
-  if (!touched && trimmedValue === "") {
-    return "";
-  }
-
-  return validateEmail(trimmedValue) ? "success" : "error";
-}
-
-function getPasswordFieldState(value, touched, backendError) {
-  const trimmedValue = value.trim();
-
-  if (backendError) {
-    return "error";
-  }
-
-  if (!touched && trimmedValue === "") {
-    return "";
-  }
-
-  return trimmedValue.length > 0 ? "success" : "error";
-}
-
-function ValidationBadge({ state, isPassword = false }) {
-  if (!state) {
-    return null;
-  }
-
-  const isSuccess = state === "success";
-
-  return (
-    <span
-      className={`input-badge ${isPassword ? "input-badge--password" : ""} ${
-        isSuccess ? "input-badge--success" : "input-badge--error"
-      }`.trim()}
-    >
-      {isSuccess ? <FiCheckCircle /> : <FiXCircle />}
-      <span>{isSuccess ? "Valid" : "Invalid"}</span>
-    </span>
-  );
-}
-
 export default function ProfileSection({ user }) {
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
@@ -146,8 +97,6 @@ export default function ProfileSection({ user }) {
 
   const [draftData, setDraftData] = useState(profileData);
   const [currentPassword, setCurrentPassword] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [passwordTouched, setPasswordTouched] = useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -165,8 +114,6 @@ export default function ProfileSection({ user }) {
     setProfileData(nextData);
     setDraftData(nextData);
     setCurrentPassword("");
-    setEmailTouched(false);
-    setPasswordTouched(false);
     setEmailErrorMessage("");
     setPasswordErrorMessage("");
   }, [
@@ -180,8 +127,6 @@ export default function ProfileSection({ user }) {
   const cancelEditingProfile = useCallback(() => {
     setDraftData(profileData);
     setCurrentPassword("");
-    setEmailTouched(false);
-    setPasswordTouched(false);
     setEmailErrorMessage("");
     setPasswordErrorMessage("");
     setIsEditingProfile(false);
@@ -227,17 +172,6 @@ export default function ProfileSection({ user }) {
 
   const emailChanged =
     draftData.email.trim().toLowerCase() !== profileData.email.trim().toLowerCase();
-
-  const emailFieldState = getEmailFieldState(
-    draftData.email,
-    emailTouched,
-    emailErrorMessage
-  );
-  const passwordFieldState = getPasswordFieldState(
-    currentPassword,
-    passwordTouched,
-    passwordErrorMessage
-  );
 
   const [imagePreview, setImagePreview] = useState(() => {
     if (!user?.profileImageUrl || user.profileImageUrl.trim() === "") {
@@ -320,8 +254,6 @@ export default function ProfileSection({ user }) {
   const handleStartEditingProfile = () => {
     setDraftData(profileData);
     setCurrentPassword("");
-    setEmailTouched(false);
-    setPasswordTouched(false);
     setEmailErrorMessage("");
     setPasswordErrorMessage("");
     setIsEditingProfile(true);
@@ -334,20 +266,17 @@ export default function ProfileSection({ user }) {
     }));
 
     if (field === "email") {
-      setEmailTouched(true);
       setEmailErrorMessage("");
       setPasswordErrorMessage("");
 
       if (value.trim().toLowerCase() === profileData.email.trim().toLowerCase()) {
         setCurrentPassword("");
-        setPasswordTouched(false);
       }
     }
   };
 
   const handlePasswordChange = (value) => {
     setCurrentPassword(value);
-    setPasswordTouched(true);
     setPasswordErrorMessage("");
   };
 
@@ -377,13 +306,11 @@ export default function ProfileSection({ user }) {
     }
 
     if (!validateEmail(cleanedData.email)) {
-      setEmailTouched(true);
       setEmailErrorMessage("Please enter a valid email address.");
       return;
     }
 
     if (emailChanged && !currentPassword.trim()) {
-      setPasswordTouched(true);
       setPasswordErrorMessage("Please enter your current password.");
       return;
     }
@@ -426,13 +353,11 @@ export default function ProfileSection({ user }) {
         const backendMessage = data.message || "Failed to update profile.";
 
         if (backendMessage.toLowerCase().includes("password")) {
-          setPasswordTouched(true);
           setPasswordErrorMessage(backendMessage);
           return;
         }
 
         if (backendMessage.toLowerCase().includes("email")) {
-          setEmailTouched(true);
           setEmailErrorMessage(backendMessage);
           return;
         }
@@ -447,8 +372,6 @@ export default function ProfileSection({ user }) {
       setProfileData(nextProfileData);
       setDraftData(nextProfileData);
       setCurrentPassword("");
-      setEmailTouched(false);
-      setPasswordTouched(false);
       setEmailErrorMessage("");
       setPasswordErrorMessage("");
       setIsEditingProfile(false);
@@ -581,22 +504,13 @@ export default function ProfileSection({ user }) {
       icon: <FiMail />,
       value: isEditingProfile ? (
         <>
-          <div className="profile-input-wrap">
-            <input
-              type="email"
-              className={`profile-info-input ${
-                emailFieldState === "success"
-                  ? "input-success"
-                  : emailFieldState === "error"
-                  ? "input-error"
-                  : ""
-              }`.trim()}
-              value={draftData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              placeholder="Enter email address"
-            />
-            <ValidationBadge state={emailFieldState} />
-          </div>
+          <input
+            type="email"
+            className="profile-info-input"
+            value={draftData.email}
+            onChange={(e) => handleInputChange("email", e.target.value)}
+            placeholder="Enter email address"
+          />
           {emailErrorMessage ? (
             <p className="profile-field-error">{emailErrorMessage}</p>
           ) : null}
@@ -633,22 +547,13 @@ export default function ProfileSection({ user }) {
             icon: <FiLock />,
             value: (
               <>
-                <div className="profile-password-field">
-                  <input
-                    type="password"
-                    className={`profile-info-input ${
-                      passwordFieldState === "success"
-                        ? "input-success"
-                        : passwordFieldState === "error"
-                        ? "input-error"
-                        : ""
-                    }`.trim()}
-                    value={currentPassword}
-                    onChange={(e) => handlePasswordChange(e.target.value)}
-                    placeholder="Enter current password"
-                  />
-                  <ValidationBadge state={passwordFieldState} isPassword />
-                </div>
+                <input
+                  type="password"
+                  className="profile-info-input"
+                  value={currentPassword}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
+                  placeholder="Enter current password"
+                />
                 {passwordErrorMessage ? (
                   <p className="profile-field-error">{passwordErrorMessage}</p>
                 ) : null}
@@ -729,9 +634,7 @@ export default function ProfileSection({ user }) {
 
             <button
               type="button"
-              className={`profile-edit-btn ${
-                isEditingProfile ? "profile-edit-btn--primary" : ""
-              }`.trim()}
+              className={`profile-edit-btn ${isEditingProfile ? "profile-edit-btn--primary" : ""}`.trim()}
               onClick={isEditingProfile ? handleSaveProfile : handleStartEditingProfile}
               disabled={isSavingProfile}
             >
