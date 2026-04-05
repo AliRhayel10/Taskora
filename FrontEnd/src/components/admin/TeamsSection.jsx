@@ -81,10 +81,7 @@ export default function TeamsSection() {
             setIsLoading(true);
             setErrorMessage("");
 
-            const response = await fetch(
-                `${API_BASE_URL}/api/teams/company/${companyId}`
-            );
-
+            const response = await fetch(`${API_BASE_URL}/api/teams/company/${companyId}`);
             const data = await response.json();
 
             if (!response.ok) {
@@ -104,10 +101,7 @@ export default function TeamsSection() {
         if (!companyId) return;
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/users/company/${companyId}`
-            );
-
+            const response = await fetch(`${API_BASE_URL}/api/users/company/${companyId}`);
             const data = await response.json();
 
             if (!response.ok) {
@@ -178,13 +172,15 @@ export default function TeamsSection() {
         });
     }, [availableEmployees, memberSearchTerm]);
 
+    const isEditFormValid =
+        editForm.teamName.trim() &&
+        editForm.description.trim() &&
+        String(editForm.teamLeaderId || "").trim();
+
     const openCreateModal = () => {
         setSuccessMessage("");
         setErrorMessage("");
-        setTeamForm({
-            teamName: "",
-            description: "",
-        });
+        setTeamForm({ teamName: "", description: "" });
         setIsCreateModalOpen(true);
     };
 
@@ -201,13 +197,13 @@ export default function TeamsSection() {
         setMemberSearchTerm("");
 
         const currentMemberIds = Array.isArray(team.memberIds)
-            ? team.memberIds.map((id) => Number(id))
+            ? team.memberIds.map((id) => String(id))
             : [];
 
         const currentLeaderId = team.teamLeaderId ? String(team.teamLeaderId) : "";
 
         const mergedMemberIds = currentLeaderId
-            ? Array.from(new Set([...currentMemberIds, Number(currentLeaderId)]))
+            ? Array.from(new Set([...currentMemberIds, currentLeaderId]))
             : currentMemberIds;
 
         setEditForm({
@@ -269,12 +265,12 @@ export default function TeamsSection() {
     };
 
     const handleToggleMember = (memberId) => {
-        const numericMemberId = Number(memberId);
+        const normalizedMemberId = String(memberId);
 
         setEditForm((prev) => {
-            const memberIds = prev.memberIds.includes(numericMemberId)
-                ? prev.memberIds.filter((id) => id !== numericMemberId)
-                : [...prev.memberIds, numericMemberId];
+            const memberIds = prev.memberIds.includes(normalizedMemberId)
+                ? prev.memberIds.filter((id) => id !== normalizedMemberId)
+                : [...prev.memberIds, normalizedMemberId];
 
             return {
                 ...prev,
@@ -284,16 +280,16 @@ export default function TeamsSection() {
     };
 
     const handleLeaderChange = (leaderId) => {
-        const numericLeaderId = leaderId ? Number(leaderId) : null;
+        const normalizedLeaderId = leaderId ? String(leaderId) : "";
 
         setEditForm((prev) => {
-            const nextMemberIds = numericLeaderId
-                ? Array.from(new Set([...prev.memberIds, numericLeaderId]))
+            const nextMemberIds = normalizedLeaderId
+                ? Array.from(new Set([...prev.memberIds, normalizedLeaderId]))
                 : prev.memberIds;
 
             return {
                 ...prev,
-                teamLeaderId: leaderId,
+                teamLeaderId: normalizedLeaderId,
                 memberIds: nextMemberIds,
             };
         });
@@ -342,11 +338,7 @@ export default function TeamsSection() {
 
             setSuccessMessage("Team created successfully.");
             setIsCreateModalOpen(false);
-            setTeamForm({
-                teamName: "",
-                description: "",
-            });
-
+            setTeamForm({ teamName: "", description: "" });
             await fetchTeams();
         } catch (error) {
             console.error("Failed to create team:", error);
@@ -367,12 +359,12 @@ export default function TeamsSection() {
         const cleanedForm = {
             teamName: editForm.teamName.trim(),
             description: editForm.description.trim(),
-            teamLeaderId: editForm.teamLeaderId ? Number(editForm.teamLeaderId) : null,
-            memberIds: editForm.memberIds.map((id) => Number(id)),
+            teamLeaderId: String(editForm.teamLeaderId || "").trim(),
+            memberIds: editForm.memberIds.map((id) => String(id)),
         };
 
-        if (!cleanedForm.teamName) {
-            setErrorMessage("Team name is required.");
+        if (!cleanedForm.teamName || !cleanedForm.description || !cleanedForm.teamLeaderId) {
+            setErrorMessage("Team name, description, and team leader are required.");
             return;
         }
 
@@ -391,22 +383,19 @@ export default function TeamsSection() {
 
             if (typeof selectedTeam?.isActive === "boolean") {
                 payload.isActive = isStatusActive;
-            } else if (typeof selectedTeam?.status === "boolean") {
+            } else {
                 payload.status = isStatusActive;
             }
 
-            const response = await fetch(
-                `${API_BASE_URL}/api/teams/${selectedTeam.teamId}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                }
-            );
+            const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeam.teamId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to update team.");
@@ -435,12 +424,9 @@ export default function TeamsSection() {
             setErrorMessage("");
             setSuccessMessage("");
 
-            const response = await fetch(
-                `${API_BASE_URL}/api/teams/${selectedTeam.teamId}`,
-                {
-                    method: "DELETE",
-                }
-            );
+            const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeam.teamId}`, {
+                method: "DELETE",
+            });
 
             const data = await response.json().catch(() => ({}));
 
@@ -451,7 +437,6 @@ export default function TeamsSection() {
             setSuccessMessage("Team deleted successfully.");
             setIsDeleteModalOpen(false);
             setSelectedTeam(null);
-
             await fetchTeams();
         } catch (error) {
             console.error("Failed to delete team:", error);
@@ -460,8 +445,6 @@ export default function TeamsSection() {
             setIsSubmitting(false);
         }
     };
-
-    const leaderOptions = filteredEmployees.length > 0 ? filteredEmployees : availableEmployees;
 
     return (
         <section className="teams-section">
@@ -503,7 +486,7 @@ export default function TeamsSection() {
                         className="teams-section__modal teams-section__modal--large"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="teams-section__modal-header">
+                        <div className="teams-section__modal-header teams-section__modal-header--lined">
                             <div>
                                 <h3>Edit Team</h3>
                                 <p>Update team details and save them directly to the backend.</p>
@@ -534,22 +517,20 @@ export default function TeamsSection() {
                                     id="editTeamName"
                                     type="text"
                                     value={editForm.teamName}
-                                    onChange={(event) =>
-                                        handleEditChange("teamName", event.target.value)
-                                    }
+                                    onChange={(event) => handleEditChange("teamName", event.target.value)}
                                     placeholder="Team Name"
                                     maxLength={100}
                                 />
                             </div>
 
                             <div className="teams-section__form-group">
-                                <label htmlFor="editTeamDescription">Description</label>
+                                <label htmlFor="editTeamDescription">
+                                    Description <span className="teams-section__required">*</span>
+                                </label>
                                 <textarea
                                     id="editTeamDescription"
                                     value={editForm.description}
-                                    onChange={(event) =>
-                                        handleEditChange("description", event.target.value)
-                                    }
+                                    onChange={(event) => handleEditChange("description", event.target.value)}
                                     placeholder="Enter a description for this team..."
                                     rows={4}
                                     maxLength={500}
@@ -568,10 +549,7 @@ export default function TeamsSection() {
                                     >
                                         <option value="">Select team leader...</option>
                                         {availableEmployees.map((employee) => (
-                                            <option
-                                                key={employee.userId}
-                                                value={employee.userId}
-                                            >
+                                            <option key={employee.userId} value={String(employee.userId)}>
                                                 {employee.fullName || employee.email}
                                             </option>
                                         ))}
@@ -605,11 +583,9 @@ export default function TeamsSection() {
                                         )}
 
                                         {filteredEmployees.map((employee) => {
-                                            const isChecked = editForm.memberIds.includes(
-                                                Number(employee.userId)
-                                            );
-                                            const isLeader =
-                                                String(employee.userId) === editForm.teamLeaderId;
+                                            const employeeId = String(employee.userId);
+                                            const isChecked = editForm.memberIds.includes(employeeId);
+                                            const isLeader = employeeId === editForm.teamLeaderId;
 
                                             return (
                                                 <label
@@ -619,9 +595,7 @@ export default function TeamsSection() {
                                                     <input
                                                         type="checkbox"
                                                         checked={isChecked}
-                                                        onChange={() =>
-                                                            handleToggleMember(employee.userId)
-                                                        }
+                                                        onChange={() => handleToggleMember(employeeId)}
                                                     />
 
                                                     <span className="teams-section__member-avatar">
@@ -629,9 +603,7 @@ export default function TeamsSection() {
                                                     </span>
 
                                                     <span className="teams-section__member-copy">
-                                                        <strong>
-                                                            {employee.fullName || employee.email}
-                                                        </strong>
+                                                        <strong>{employee.fullName || employee.email}</strong>
                                                         <small>{employee.email}</small>
                                                     </span>
 
@@ -675,7 +647,7 @@ export default function TeamsSection() {
                                 <button
                                     type="submit"
                                     className="teams-section__submit-btn"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !isEditFormValid}
                                 >
                                     {isSubmitting ? "Saving..." : "Save Changes"}
                                 </button>
@@ -703,9 +675,7 @@ export default function TeamsSection() {
                         <FiBriefcase />
                     </div>
                     <h3>No teams yet</h3>
-                    <p>
-                        Created teams will appear here after they are saved in the backend.
-                    </p>
+                    <p>Created teams will appear here after they are saved in the backend.</p>
                 </div>
             )}
 
@@ -719,7 +689,10 @@ export default function TeamsSection() {
                                     <p>{team.description || "No description added yet."}</p>
                                 </div>
 
-                                <div className="teams-section__menu" ref={activeMenuTeamId === team.teamId ? menuRef : null}>
+                                <div
+                                    className="teams-section__menu"
+                                    ref={activeMenuTeamId === team.teamId ? menuRef : null}
+                                >
                                     <button
                                         type="button"
                                         className="teams-section__icon-btn"
@@ -762,9 +735,7 @@ export default function TeamsSection() {
                                     <span className="teams-section__badge">
                                         {team.teamLeaderName || "No team leader assigned"}
                                     </span>
-                                    <span className="teams-section__tasks">
-                                        {team.tasksCount || 0} Tasks
-                                    </span>
+                                    <span className="teams-section__tasks">{team.tasksCount || 0} Tasks</span>
                                 </div>
                             </div>
                         </article>
@@ -774,10 +745,7 @@ export default function TeamsSection() {
 
             {isCreateModalOpen && (
                 <div className="teams-section__modal-overlay" onClick={closeCreateModal}>
-                    <div
-                        className="teams-section__modal"
-                        onClick={(event) => event.stopPropagation()}
-                    >
+                    <div className="teams-section__modal" onClick={(event) => event.stopPropagation()}>
                         <div className="teams-section__modal-header">
                             <div>
                                 <h3>Create Team</h3>
@@ -807,9 +775,7 @@ export default function TeamsSection() {
                                     id="teamName"
                                     type="text"
                                     value={teamForm.teamName}
-                                    onChange={(event) =>
-                                        handleFormChange("teamName", event.target.value)
-                                    }
+                                    onChange={(event) => handleFormChange("teamName", event.target.value)}
                                     placeholder="Enter team name"
                                     maxLength={100}
                                 />
@@ -820,9 +786,7 @@ export default function TeamsSection() {
                                 <textarea
                                     id="teamDescription"
                                     value={teamForm.description}
-                                    onChange={(event) =>
-                                        handleFormChange("description", event.target.value)
-                                    }
+                                    onChange={(event) => handleFormChange("description", event.target.value)}
                                     placeholder="Enter team description"
                                     rows={4}
                                     maxLength={500}
@@ -862,8 +826,8 @@ export default function TeamsSection() {
                             <div>
                                 <h3>Delete Team</h3>
                                 <p>
-                                    This will delete <strong>{selectedTeam.teamName}</strong> from
-                                    the database without removing the team leader or employees.
+                                    This will delete <strong>{selectedTeam.teamName}</strong> from the
+                                    database without removing the team leader or employees.
                                 </p>
                             </div>
 
