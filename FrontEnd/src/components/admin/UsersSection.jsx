@@ -54,7 +54,12 @@ function getUserTeam(user) {
     return user.team;
   }
 
-  return user?.teamName || user?.team?.teamName || user?.team?.name || "No team assigned";
+  return (
+    user?.teamName ||
+    user?.team?.teamName ||
+    user?.team?.name ||
+    "No team assigned"
+  );
 }
 
 function getUserPhone(user) {
@@ -148,9 +153,14 @@ export default function UsersSection() {
 
       for (const url of candidateUrls) {
         try {
-          const response = await fetch(url, { method: "GET", signal: abortSignal });
+          const response = await fetch(url, {
+            method: "GET",
+            signal: abortSignal,
+          });
+
           const data = await readJsonSafe(response);
           if (!response.ok) continue;
+
           const normalized = normalizeUsersResponse(data);
           if (Array.isArray(normalized)) {
             resolvedUsers = normalized;
@@ -189,7 +199,7 @@ export default function UsersSection() {
         getUserPhone(user),
         getUserTeam(user),
         getUserStatus(user),
-        user?.jobType || "",
+        user?.jobTitle || "",
         user?.role || "",
       ].some((field) => String(field).toLowerCase().includes(value))
     );
@@ -215,44 +225,9 @@ export default function UsersSection() {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const sendInvitationEmail = async ({ fullName, email, password, role }) => {
-    const invitationPayload = {
-      fullName,
-      email,
-      password,
-      role,
-      companyId,
-      invitationType: "user-created",
-    };
-
-    const invitationUrls = [
-      `${API_BASE_URL}/api/auth/send-user-invitation`,
-      `${API_BASE_URL}/api/auth/send-invitation`,
-      `${API_BASE_URL}/api/users/send-invitation`,
-      `${API_BASE_URL}/api/users/invite`,
-    ];
-
-    for (const url of invitationUrls) {
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(invitationPayload),
-        });
-
-        if (response.ok) {
-          return true;
-        }
-      } catch (error) {
-        console.error(`Invitation request failed for ${url}:`, error);
-      }
-    }
-
-    return false;
-  };
-
   const handleCreateUser = async (event) => {
     event.preventDefault();
+
     if (!isCreateFormValid || !companyId) return;
 
     try {
@@ -260,79 +235,38 @@ export default function UsersSection() {
       setCreateError("");
       setCreateSuccess("");
 
-      const normalizedRole = createForm.role === "Team Leader" ? "team leader" : "employee";
-
-      const payload = {
-        companyId,
-        fullName: createForm.fullName.trim(),
-        name: createForm.fullName.trim(),
-        jobType: createForm.jobType.trim(),
-        role: normalizedRole,
-        email: createForm.email.trim(),
-        password: createForm.password,
-        sendInvitation: createForm.sendInvitation,
-        isActive: createForm.isActive,
-        active: createForm.isActive,
-        status: createForm.isActive ? "Active" : "Inactive",
-      };
-
-      const createRequests = [
-        { url: `${API_BASE_URL}/api/users`, body: payload },
-        { url: `${API_BASE_URL}/api/users/create`, body: payload },
-        { url: `${API_BASE_URL}/api/user/create`, body: payload },
-        { url: `${API_BASE_URL}/api/employees`, body: { ...payload, employeeName: payload.fullName } },
-      ];
-
-      let created = false;
-      let lastMessage = "Failed to create user.";
-
-      for (const request of createRequests) {
-        try {
-          const response = await fetch(request.url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(request.body),
-          });
-
-          const data = await readJsonSafe(response);
-
-          if (!response.ok) {
-            lastMessage = data?.message || data?.error || "Failed to create user.";
-            continue;
-          }
-
-          created = true;
-          break;
-        } catch (error) {
-          console.error(`Create user failed for ${request.url}:`, error);
-        }
-      }
-
-      if (!created) {
-        throw new Error(lastMessage);
-      }
-
-      let successMessage = "User created successfully.";
-
-      if (createForm.sendInvitation) {
-        const invitationSent = await sendInvitationEmail({
+      const response = await fetch(`${API_BASE_URL}/api/auth/create-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          companyId: Number(companyId),
           fullName: createForm.fullName.trim(),
+          jobTitle: createForm.jobType.trim(),
           email: createForm.email.trim(),
-          password: createForm.password,
-          role: normalizedRole,
-        });
+          password: createForm.password.trim(),
+          role: createForm.role.trim(),
+          sendInvitation: createForm.sendInvitation,
+        }),
+      });
 
-        if (invitationSent) {
-          successMessage = "User created and invitation email sent.";
-        } else {
-          successMessage = "User created, but no invitation endpoint responded.";
-        }
+      const data = await readJsonSafe(response);
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.message || data?.error || "Failed to create user.");
       }
 
-      setCreateSuccess(successMessage);
+      setCreateSuccess(
+        createForm.sendInvitation
+          ? "User created and invitation email sent."
+          : "User created successfully."
+      );
+
       setIsCreateModalOpen(false);
       setCreateForm(initialCreateForm);
       setShowPassword(false);
+
       await fetchUsers();
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -360,7 +294,11 @@ export default function UsersSection() {
           />
         </div>
 
-        <button type="button" className="users-section__create-btn" onClick={openCreateModal}>
+        <button
+          type="button"
+          className="users-section__create-btn"
+          onClick={openCreateModal}
+        >
           <FiPlus />
           <span>Create User</span>
         </button>
@@ -417,7 +355,13 @@ export default function UsersSection() {
               </thead>
               <tbody>
                 {filteredUsers.map((user, index) => {
-                  const userId = user?.userId || user?.id || user?._id || user?.email || `user-row-${index}`;
+                  const userId =
+                    user?.userId ||
+                    user?.id ||
+                    user?._id ||
+                    user?.email ||
+                    `user-row-${index}`;
+
                   const name = getUserName(user);
                   const email = user?.email || "No email";
                   const phone = getUserPhone(user);
@@ -432,7 +376,9 @@ export default function UsersSection() {
                     <tr key={String(userId)}>
                       <td>
                         <div className="users-section__user-cell">
-                          <div className="users-section__avatar">{name.charAt(0).toUpperCase()}</div>
+                          <div className="users-section__avatar">
+                            {name.charAt(0).toUpperCase()}
+                          </div>
                           <div className="users-section__user-details">
                             <strong>{name}</strong>
                           </div>
@@ -455,7 +401,10 @@ export default function UsersSection() {
 
       {isCreateModalOpen && (
         <div className="users-section__modal-overlay" onClick={closeCreateModal}>
-          <div className="users-section__modal" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="users-section__modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="users-section__modal-header users-section__modal-header--lined">
               <div>
                 <h3>Create User</h3>
@@ -486,7 +435,9 @@ export default function UsersSection() {
                 <input
                   type="text"
                   value={createForm.fullName}
-                  onChange={(event) => handleCreateFormChange("fullName", event.target.value)}
+                  onChange={(event) =>
+                    handleCreateFormChange("fullName", event.target.value)
+                  }
                   placeholder="Enter full name"
                 />
               </div>
@@ -498,7 +449,9 @@ export default function UsersSection() {
                 <input
                   type="text"
                   value={createForm.jobType}
-                  onChange={(event) => handleCreateFormChange("jobType", event.target.value)}
+                  onChange={(event) =>
+                    handleCreateFormChange("jobType", event.target.value)
+                  }
                   placeholder="Enter job type"
                 />
               </div>
@@ -510,7 +463,9 @@ export default function UsersSection() {
                 <div className="users-section__select-wrapper">
                   <select
                     value={createForm.role}
-                    onChange={(event) => handleCreateFormChange("role", event.target.value)}
+                    onChange={(event) =>
+                      handleCreateFormChange("role", event.target.value)
+                    }
                   >
                     <option value="">Select role</option>
                     <option value="Employee">Employee</option>
@@ -527,9 +482,17 @@ export default function UsersSection() {
                 <div className="users-section__input-wrap">
                   <input
                     type="email"
-                    className={emailTouched ? (emailIsValid ? "input-success" : "input-error") : ""}
+                    className={
+                      emailTouched
+                        ? emailIsValid
+                          ? "input-success"
+                          : "input-error"
+                        : ""
+                    }
                     value={createForm.email}
-                    onChange={(event) => handleCreateFormChange("email", event.target.value)}
+                    onChange={(event) =>
+                      handleCreateFormChange("email", event.target.value)
+                    }
                     placeholder="Enter email address"
                   />
                   {emailTouched && (
@@ -553,9 +516,17 @@ export default function UsersSection() {
                 <div className="users-section__password-field">
                   <input
                     type={showPassword ? "text" : "password"}
-                    className={passwordTouched ? (passwordIsStrong ? "input-success" : "input-error") : ""}
+                    className={
+                      passwordTouched
+                        ? passwordIsStrong
+                          ? "input-success"
+                          : "input-error"
+                        : ""
+                    }
                     value={createForm.password}
-                    onChange={(event) => handleCreateFormChange("password", event.target.value)}
+                    onChange={(event) =>
+                      handleCreateFormChange("password", event.target.value)
+                    }
                     placeholder="Enter password"
                   />
                   {passwordTouched && (
@@ -585,7 +556,9 @@ export default function UsersSection() {
                   id="sendInvitation"
                   type="checkbox"
                   checked={createForm.sendInvitation}
-                  onChange={(event) => handleCreateFormChange("sendInvitation", event.target.checked)}
+                  onChange={(event) =>
+                    handleCreateFormChange("sendInvitation", event.target.checked)
+                  }
                 />
                 <span>Send user an email invitation with login instructions</span>
               </div>
@@ -594,8 +567,12 @@ export default function UsersSection() {
                 <label>Status</label>
                 <button
                   type="button"
-                  className={`users-section__switch ${createForm.isActive ? "users-section__switch--active" : ""}`}
-                  onClick={() => handleCreateFormChange("isActive", !createForm.isActive)}
+                  className={`users-section__switch ${
+                    createForm.isActive ? "users-section__switch--active" : ""
+                  }`}
+                  onClick={() =>
+                    handleCreateFormChange("isActive", !createForm.isActive)
+                  }
                   aria-label="Toggle status"
                 >
                   <span className="users-section__switch-thumb" />

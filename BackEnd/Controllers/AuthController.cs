@@ -4,6 +4,7 @@ using BackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BackEnd.DTOs.Admin;
+using BackEnd.Models;
 
 namespace BackEnd.Controllers
 {
@@ -35,6 +36,136 @@ namespace BackEnd.Controllers
             {
                 success = true,
                 message = "API is working"
+            });
+        }
+
+        [HttpPost("create-user")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Request body is required."
+                });
+            }
+
+            var fullName = request.FullName?.Trim() ?? "";
+            var jobTitle = request.JobTitle?.Trim() ?? "";
+            var email = request.Email?.Trim().ToLower() ?? "";
+            var password = request.Password ?? "";
+            var roleName = request.Role?.Trim() ?? "";
+
+            if (
+                request.CompanyId <= 0 ||
+                string.IsNullOrWhiteSpace(fullName) ||
+                string.IsNullOrWhiteSpace(jobTitle) ||
+                string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(roleName)
+            )
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "CompanyId, full name, job title, email, password, and role are required."
+                });
+            }
+
+            var companyExists = await _context.Companies.AnyAsync(c => c.CompanyId == request.CompanyId);
+
+            if (!companyExists)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Company not found."
+                });
+            }
+
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+            if (existingUser != null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "A user with this email already exists."
+                });
+            }
+
+            var normalizedRole = roleName.ToLower() switch
+            {
+                "team leader" => "Team Leader",
+                "employee" => "Employee",
+                _ => ""
+            };
+
+            if (string.IsNullOrWhiteSpace(normalizedRole))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid role. Allowed values are Team Leader or Employee."
+                });
+            }
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == normalizedRole);
+
+            if (role == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"Role '{normalizedRole}' was not found in the database."
+                });
+            }
+
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
+
+            var user = new User
+            {
+                CompanyId = request.CompanyId,
+                FullName = fullName,
+                Email = email,
+                PasswordHash = hashedPassword,
+                JobTitle = jobTitle
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            var userRole = new UserRole
+            {
+                UserId = user.UserId,
+                RoleId = role.RoleId
+            };
+
+            _context.UserRoles.Add(userRole);
+            await _context.SaveChangesAsync();
+
+            if (request.SendInvitation)
+            {
+                try
+                {
+                    await _emailService.SendUserInvitationAsync(
+                        user.Email,
+                        fullName,
+                        password,
+                        normalizedRole
+                    );
+                }
+                catch
+                {
+                }
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "User created successfully.",
+                userId = user.UserId
             });
         }
 

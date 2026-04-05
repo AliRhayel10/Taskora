@@ -66,4 +66,39 @@ public class EmailService
         await smtp.SendAsync(email);
         await smtp.DisconnectAsync(true);
     }
+
+    public async Task SendUserInvitationAsync(string toEmail, string fullName, string password, string role)
+    {
+        var email = new MimeMessage();
+        email.From.Add(MailboxAddress.Parse(_config["EmailSettings:From"]));
+        email.To.Add(MailboxAddress.Parse(toEmail));
+        email.Subject = "Taskora Account Invitation";
+
+        email.Body = new TextPart("plain")
+        {
+            Text =
+                $"Hello {fullName},\n\n" +
+                $"An account has been created for you in Taskora.\n\n" +
+                $"Role: {role}\n" +
+                $"Email: {toEmail}\n" +
+                $"Password: {password}\n\n" +
+                $"You can now log in using these credentials.\n\n" +
+                $"Taskora Team"
+        };
+
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync(
+            _config["EmailSettings:Host"],
+            int.Parse(_config["EmailSettings:Port"]),
+            SecureSocketOptions.StartTls
+        );
+
+        await smtp.AuthenticateAsync(
+            _config["EmailSettings:Username"],
+            _config["EmailSettings:Password"]
+        );
+
+        await smtp.SendAsync(email);
+        await smtp.DisconnectAsync(true);
+    }
 }
