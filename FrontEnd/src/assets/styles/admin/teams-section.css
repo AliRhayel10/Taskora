@@ -209,6 +209,43 @@
   font-weight: 500;
 }
 
+.teams-section__status-badge {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.teams-section__status-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.teams-section__status-badge--active {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.teams-section__status-badge--active .teams-section__status-badge-dot {
+  background: #16a34a;
+}
+
+.teams-section__status-badge--inactive {
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.teams-section__status-badge--inactive .teams-section__status-badge-dot {
+  background: #dc2626;
+}
+
 .teams-section__menu {
   position: relative;
   flex-shrink: 0;

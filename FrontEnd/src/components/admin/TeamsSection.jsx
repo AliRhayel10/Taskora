@@ -360,9 +360,7 @@ export default function TeamsSection() {
     const closeDeleteModal = () => {
         if (isSubmitting) return;
         setIsDeleteModalOpen(false);
-        if (!selectedTeam || selectedTeam.teamId === null) {
-            setSelectedTeam(null);
-        }
+        setSelectedTeam(null);
     };
 
     const handleFormChange = (field, value) => {
@@ -563,8 +561,23 @@ export default function TeamsSection() {
             }
 
             setSuccessMessage("Team updated successfully.");
-            setIsDeleteModalOpen(false);
-            await fetchTeams();
+            const updatedTeam = data.team || data;
+
+            setTeams((prev) =>
+                prev.map((team) =>
+                    team.teamId === selectedTeam.teamId
+                        ? {
+                              ...team,
+                              ...updatedTeam,
+                              isActive:
+                                  typeof updatedTeam.isActive === "boolean"
+                                      ? updatedTeam.isActive
+                                      : isStatusActive,
+                          }
+                        : team
+                )
+            );
+
             closeEditPanel();
         } catch (error) {
             console.error("Failed to update team:", error);
@@ -641,7 +654,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {selectedTeam && !isDeleteModalOpen && (
+            {selectedTeam && !isDeleteModalOpen && !membersModalTeam && (
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
                     <div
                         className="teams-section__modal teams-section__modal--large"
@@ -787,6 +800,12 @@ export default function TeamsSection() {
                                 <div>
                                     <h3>{team.teamName}</h3>
                                     <p>{team.description || "No description added yet."}</p>
+                                    <span
+                                        className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
+                                    >
+                                        <span className="teams-section__status-badge-dot"></span>
+                                        {team.isActive ? "Active" : "Inactive"}
+                                    </span>
                                 </div>
 
                                 <div
@@ -1065,8 +1084,8 @@ export default function TeamsSection() {
                             <div>
                                 <h3>Delete Team</h3>
                                 <p>
-                                    This will delete <strong>{selectedTeam.teamName}</strong> from the
-                                    database without removing the team leader or employees.
+                                    This action will remove <strong>{selectedTeam.teamName}</strong> and
+                                    remove all members assigned to this team.
                                 </p>
                             </div>
 

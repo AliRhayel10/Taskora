@@ -17,49 +17,49 @@ namespace BackEnd.Controllers
             _context = context;
         }
 
-        [HttpGet("company/{companyId:int}")]
-        public async Task<IActionResult> GetTeamsByCompany(
-            int companyId,
-            [FromQuery] string? search = null)
+[HttpGet("company/{companyId:int}")]
+public async Task<IActionResult> GetTeamsByCompany(
+    int companyId,
+    [FromQuery] string? search = null)
+{
+    var normalizedSearch = search?.Trim().ToLower();
+
+    var teams = await (
+        from team in _context.Teams
+        join leader in _context.Users
+            on team.TeamLeaderUserId equals leader.UserId into leaderJoin
+        from leader in leaderJoin.DefaultIfEmpty()
+        where team.CompanyId == companyId
+        select new
         {
-            var normalizedSearch = search?.Trim().ToLower();
+            teamId = team.TeamId,
+            companyId = team.CompanyId,
+            teamName = team.TeamName,
+            description = team.Description,
+            teamLeaderUserId = team.TeamLeaderUserId,
+            teamLeaderId = team.TeamLeaderUserId,
+            teamLeaderName = leader != null ? leader.FullName : string.Empty,
+            tasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
+            isActive = team.IsActive,
+            memberIds = _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
+                .Select(teamMember => teamMember.UserId)
+                .ToList()
+        })
+        .OrderBy(team => team.teamName)
+        .ToListAsync();
 
-            var teams = await (
-                from team in _context.Teams
-                join leader in _context.Users
-                    on team.TeamLeaderUserId equals leader.UserId into leaderJoin
-                from leader in leaderJoin.DefaultIfEmpty()
-                where team.CompanyId == companyId && team.IsActive
-                select new
-                {
-                    teamId = team.TeamId,
-                    companyId = team.CompanyId,
-                    teamName = team.TeamName,
-                    description = team.Description,
-                    teamLeaderUserId = team.TeamLeaderUserId,
-                    teamLeaderId = team.TeamLeaderUserId,
-                    teamLeaderName = leader != null ? leader.FullName : string.Empty,
-                    tasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
-                    isActive = team.IsActive,
-                    memberIds = _context.TeamMembers
-                        .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
-                        .Select(teamMember => teamMember.UserId)
-                        .ToList()
-                })
-                .OrderBy(team => team.teamName)
-                .ToListAsync();
+    if (!string.IsNullOrWhiteSpace(normalizedSearch))
+    {
+        teams = teams.Where(team =>
+            (team.teamName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+            (team.description ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+            (team.teamLeaderName ?? string.Empty).ToLower().Contains(normalizedSearch))
+            .ToList();
+    }
 
-            if (!string.IsNullOrWhiteSpace(normalizedSearch))
-            {
-                teams = teams.Where(team =>
-                    (team.teamName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
-                    (team.description ?? string.Empty).ToLower().Contains(normalizedSearch) ||
-                    (team.teamLeaderName ?? string.Empty).ToLower().Contains(normalizedSearch))
-                    .ToList();
-            }
-
-            return Ok(teams);
-        }
+    return Ok(teams);
+}
 
         [HttpGet("company/{companyId:int}/members")]
         public async Task<IActionResult> GetCompanyMembers(
