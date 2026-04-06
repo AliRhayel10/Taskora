@@ -395,27 +395,38 @@ namespace BackEnd.Controllers
             }
 
             var existingMembers = await _context.TeamMembers
-                .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
+                .Where(teamMember => teamMember.TeamId == team.TeamId)
                 .ToListAsync();
 
-            foreach (var member in existingMembers)
+            var requestedMemberIdSet = requestedMemberIds.ToHashSet();
+
+            foreach (var member in existingMembers.Where(member => member.IsActive && !requestedMemberIdSet.Contains(member.UserId)))
             {
                 member.IsActive = false;
             }
 
-            if (requestedMemberIds.Count > 0)
+            foreach (var member in existingMembers.Where(member => !member.IsActive && requestedMemberIdSet.Contains(member.UserId)))
             {
-                var newMembers = requestedMemberIds
-                    .Distinct()
-                    .Select(memberId => new TeamMember
-                    {
-                        CompanyId = team.CompanyId,
-                        TeamId = team.TeamId,
-                        UserId = memberId,
-                        JoinedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
+                member.IsActive = true;
+                member.JoinedAt = DateTime.UtcNow;
+            }
 
+            var existingUserIds = existingMembers.Select(member => member.UserId).ToHashSet();
+
+            var newMembers = requestedMemberIds
+                .Where(memberId => !existingUserIds.Contains(memberId))
+                .Select(memberId => new TeamMember
+                {
+                    CompanyId = team.CompanyId,
+                    TeamId = team.TeamId,
+                    UserId = memberId,
+                    JoinedAt = DateTime.UtcNow,
+                    IsActive = true
+                })
+                .ToList();
+
+            if (newMembers.Count > 0)
+            {
                 await _context.TeamMembers.AddRangeAsync(newMembers);
             }
 
