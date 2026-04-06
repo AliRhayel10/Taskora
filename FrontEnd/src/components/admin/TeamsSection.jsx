@@ -248,6 +248,14 @@ export default function TeamsSection() {
         editForm.description.trim() &&
         String(editForm.teamLeaderId || "").trim();
 
+    const currentMembersModalLeaderId =
+        membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId
+            ? String(membersModalTeam.teamLeaderId || membersModalTeam.teamLeaderUserId)
+            : "";
+
+    const isLeaderStillSelected =
+        !currentMembersModalLeaderId || editForm.memberIds.includes(currentMembersModalLeaderId);
+
     const openCreateModal = () => {
         setSuccessMessage("");
         setErrorMessage("");
@@ -464,7 +472,6 @@ export default function TeamsSection() {
         try {
             setIsSubmitting(true);
             setErrorMessage("");
-            setSuccessMessage("");
 
             const payload = {
                 teamName: String(membersModalTeam.teamName || "").trim(),
@@ -492,7 +499,6 @@ export default function TeamsSection() {
                 throw new Error(data.message || "Failed to update team members.");
             }
 
-            setSuccessMessage("Members updated successfully.");
             await fetchTeams();
             closeMembersModal();
         } catch (error) {
@@ -888,7 +894,6 @@ export default function TeamsSection() {
 
                         <div className="teams-section__form">
                             <div className="teams-section__form-group">
-
                                 <div className="teams-section__member-picker">
                                     <div className="teams-section__member-search">
                                         <FiSearch />
@@ -945,6 +950,12 @@ export default function TeamsSection() {
                                         })}
                                     </div>
                                 </div>
+
+                                {!isLeaderStillSelected && (
+                                    <p className="teams-section__members-warning">
+                                        The team leader must stay selected in team members.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="teams-section__form-actions">
@@ -961,7 +972,7 @@ export default function TeamsSection() {
                                     type="button"
                                     className="teams-section__submit-btn"
                                     onClick={handleSaveMembers}
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !isLeaderStillSelected}
                                 >
                                     {isSubmitting ? "Saving..." : "Save Changes"}
                                 </button>

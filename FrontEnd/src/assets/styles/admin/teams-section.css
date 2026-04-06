@@ -344,8 +344,6 @@
   line-height: 1.2;
 }
 
-
-
 .teams-section__modal-overlay {
   position: fixed;
   inset: 0;
@@ -447,7 +445,6 @@
 .teams-section__required {
   color: #dc2626;
 }
-
 
 .teams-section__form-group input,
 .teams-section__form-group textarea,
@@ -608,6 +605,14 @@
   color: #2563eb;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.teams-section__members-warning {
+  margin: 10px 0 0;
+  color: #b42318;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .teams-section__status-row {
@@ -809,7 +814,6 @@
     flex-wrap: wrap;
   }
 }
-
 
 .teams-section__members-btn {
   margin-left: auto;
