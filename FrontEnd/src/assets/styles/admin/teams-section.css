@@ -233,6 +233,12 @@
   gap: 10px;
 }
 
+.teams-section__menu-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .teams-section__icon-btn {
   width: 34px;
   height: 34px;
@@ -383,19 +389,14 @@
 .teams-section__status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 12px;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  flex-shrink: 0;
-}
-
-.teams-section__status-badge-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
   flex-shrink: 0;
 }
 
@@ -404,38 +405,39 @@
   color: #166534;
 }
 
-.teams-section__status-badge--active .teams-section__status-badge-dot {
-  background: #16a34a;
-}
-
 .teams-section__status-badge--inactive {
   background: #fef2f2;
   color: #b42318;
 }
 
-.teams-section__status-badge--inactive .teams-section__status-badge-dot {
-  background: #dc2626;
+.teams-section__status-badge svg {
+  font-size: 0.95rem;
 }
 
 .teams-section__modal-overlay {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 1000;
+  z-index: 9999;
+  overflow-y: auto;
 }
 
 .teams-section__modal {
   width: 100%;
   max-width: 560px;
+  margin: auto;
   background: #ffffff;
   border: 1px solid #e6edf7;
   border-radius: 24px;
   padding: 24px;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+  position: relative;
 }
 
 .teams-section__modal--large {

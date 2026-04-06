@@ -746,11 +746,11 @@ export default function TeamsSection() {
                                         onChange={(event) => handleLeaderChange(event.target.value)}
                                     >
                                         <option value="">Select team leader...</option>
-                                        {teamLeaders.map((employee) => (
-                                            <option key={employee.userId} value={String(employee.userId)}>
-                                                {employee.fullName || employee.email}
-                                            </option>
-                                        ))}
+{teamLeaders.map((employee) => (
+    <option key={employee.userId} value={String(employee.userId)}>
+        {employee.fullName || employee.email}
+    </option>
+))}
                                     </select>
                                     <FiChevronDown />
                                 </div>
@@ -833,14 +833,6 @@ export default function TeamsSection() {
                                     ref={activeMenuTeamId === team.teamId ? menuRef : null}
                                 >
                                     <div className="teams-section__menu-top">
-                                        <span
-                                            className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
-                                            aria-label={team.isActive ? "Active" : "Inactive"}
-                                            title={team.isActive ? "Active" : "Inactive"}
-                                        >
-                                            {team.isActive ? <FiCheckCircle /> : <FiSlash />}
-                                        </span>
-
                                         <button
                                             type="button"
                                             className="teams-section__icon-btn"
@@ -854,6 +846,14 @@ export default function TeamsSection() {
                                             <FiMoreHorizontal />
                                         </button>
                                     </div>
+
+                                    <span
+                                        className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
+                                        aria-label={team.isActive ? "Active" : "Inactive"}
+                                        title={team.isActive ? "Active" : "Inactive"}
+                                    >
+                                        {team.isActive ? <FiCheckCircle /> : <FiSlash />}
+                                    </span>
 
                                     {activeMenuTeamId === team.teamId && (
                                         <div className="teams-section__menu-dropdown">
