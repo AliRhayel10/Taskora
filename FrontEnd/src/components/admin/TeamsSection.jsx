@@ -888,10 +888,6 @@ export default function TeamsSection() {
 
                         <div className="teams-section__form">
                             <div className="teams-section__form-group">
-                                <label>Edit Members</label>
-                                <p className="teams-section__field-help">
-                                    Search and select one or more members to add to this team.
-                                </p>
 
                                 <div className="teams-section__member-picker">
                                     <div className="teams-section__member-search">
