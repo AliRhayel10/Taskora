@@ -42,7 +42,7 @@ namespace BackEnd.Controllers
                     tasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
                     isActive = team.IsActive,
                     memberIds = _context.TeamMembers
-                        .Where(teamMember => teamMember.TeamId == team.TeamId)
+                        .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
                         .Select(teamMember => teamMember.UserId)
                         .ToList()
                 })
@@ -233,8 +233,11 @@ namespace BackEnd.Controllers
             {
                 var leaderMember = new TeamMember
                 {
+                    CompanyId = team.CompanyId,
                     TeamId = team.TeamId,
-                    UserId = team.TeamLeaderUserId.Value
+                    UserId = team.TeamLeaderUserId.Value,
+                    JoinedAt = DateTime.UtcNow,
+                    IsActive = true
                 };
 
                 _context.TeamMembers.Add(leaderMember);
@@ -392,10 +395,13 @@ namespace BackEnd.Controllers
             }
 
             var existingMembers = await _context.TeamMembers
-                .Where(teamMember => teamMember.TeamId == team.TeamId)
+                .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
                 .ToListAsync();
 
-            _context.TeamMembers.RemoveRange(existingMembers);
+            foreach (var member in existingMembers)
+            {
+                member.IsActive = false;
+            }
 
             if (requestedMemberIds.Count > 0)
             {
@@ -403,8 +409,11 @@ namespace BackEnd.Controllers
                     .Distinct()
                     .Select(memberId => new TeamMember
                     {
+                        CompanyId = team.CompanyId,
                         TeamId = team.TeamId,
-                        UserId = memberId
+                        UserId = memberId,
+                        JoinedAt = DateTime.UtcNow,
+                        IsActive = true
                     });
 
                 await _context.TeamMembers.AddRangeAsync(newMembers);
@@ -457,6 +466,16 @@ namespace BackEnd.Controllers
             }
 
             team.IsActive = false;
+
+            var existingMembers = await _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
+                .ToListAsync();
+
+            foreach (var member in existingMembers)
+            {
+                member.IsActive = false;
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new

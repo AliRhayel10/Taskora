@@ -9,8 +9,14 @@ namespace BackEnd.Models
         [Key]
         public int TeamMemberId { get; set; }
 
+        public int CompanyId { get; set; }
+
         public int TeamId { get; set; }
 
         public int UserId { get; set; }
+
+        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+
+        public bool IsActive { get; set; } = true;
     }
 }
