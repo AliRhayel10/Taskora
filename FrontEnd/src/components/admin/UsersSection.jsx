@@ -27,6 +27,15 @@ const initialCreateForm = {
   isActive: true,
 };
 
+function capitalizeWords(value) {
+  return value
+    .split(" ")
+    .map((word) =>
+      word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : ""
+    )
+    .join(" ");
+}
+
 function getStoredUser() {
   try {
     const rawUser = localStorage.getItem("user");
@@ -270,6 +279,10 @@ export default function UsersSection() {
   };
 
   const handleCreateFormChange = (field, value) => {
+    if (field === "fullName" || field === "jobType") {
+      value = capitalizeWords(value);
+    }
+
     setCreateForm((prev) => ({ ...prev, [field]: value }));
   };
 
