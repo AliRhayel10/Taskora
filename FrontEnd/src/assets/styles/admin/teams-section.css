@@ -227,6 +227,10 @@
 .teams-section__menu {
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 
 .teams-section__icon-btn {
@@ -309,8 +313,10 @@
 .teams-section__card-actions {
   display: flex;
   justify-content: flex-end;
-  width: 100%;
-  padding-top: 14px;
+  width: calc(100% + 40px);
+  margin-left: -20px;
+  margin-right: -20px;
+  padding: 14px 20px 0;
   border-top: 1px solid #e8eef5;
 }
 
@@ -896,6 +902,10 @@
 
   .teams-section__card-actions {
     justify-content: stretch;
+    width: calc(100% + 36px);
+    margin-left: -18px;
+    margin-right: -18px;
+    padding: 14px 18px 0;
   }
 
   .teams-section__members-btn {

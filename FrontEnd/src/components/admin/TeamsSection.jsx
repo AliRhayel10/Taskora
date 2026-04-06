@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
     FiSearch,
     FiPlus,
@@ -9,6 +10,8 @@ import {
     FiEdit2,
     FiChevronDown,
     FiUsers,
+    FiCheckCircle,
+    FiSlash,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 
@@ -633,6 +636,14 @@ export default function TeamsSection() {
         }
     };
 
+    const renderInPortal = (content) => {
+        if (typeof document === "undefined") {
+            return null;
+        }
+
+        return createPortal(content, document.body);
+    };
+
     return (
         <section className="teams-section">
             <div className="teams-section__title-row">
@@ -667,7 +678,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {selectedTeam && !isDeleteModalOpen && !membersModalTeam && (
+            {selectedTeam && !isDeleteModalOpen && !membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
                     <div
                         className="teams-section__modal teams-section__modal--large"
@@ -821,18 +832,28 @@ export default function TeamsSection() {
                                     className="teams-section__menu"
                                     ref={activeMenuTeamId === team.teamId ? menuRef : null}
                                 >
-                                    <button
-                                        type="button"
-                                        className="teams-section__icon-btn"
-                                        aria-label={`More actions for ${team.teamName}`}
-                                        onClick={() =>
-                                            setActiveMenuTeamId((prev) =>
-                                                prev === team.teamId ? null : team.teamId
-                                            )
-                                        }
-                                    >
-                                        <FiMoreHorizontal />
-                                    </button>
+                                    <div className="teams-section__menu-top">
+                                        <span
+                                            className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
+                                            aria-label={team.isActive ? "Active" : "Inactive"}
+                                            title={team.isActive ? "Active" : "Inactive"}
+                                        >
+                                            {team.isActive ? <FiCheckCircle /> : <FiSlash />}
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            className="teams-section__icon-btn"
+                                            aria-label={`More actions for ${team.teamName}`}
+                                            onClick={() =>
+                                                setActiveMenuTeamId((prev) =>
+                                                    prev === team.teamId ? null : team.teamId
+                                                )
+                                            }
+                                        >
+                                            <FiMoreHorizontal />
+                                        </button>
+                                    </div>
 
                                     {activeMenuTeamId === team.teamId && (
                                         <div className="teams-section__menu-dropdown">
@@ -878,13 +899,6 @@ export default function TeamsSection() {
                                             </span>
                                         )}
                                     </div>
-
-                                    <span
-                                        className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
-                                    >
-                                        <span className="teams-section__status-badge-dot"></span>
-                                        {team.isActive ? "Active" : "Inactive"}
-                                    </span>
                                 </div>
 
                                 <div className="teams-section__card-actions">
@@ -903,7 +917,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {membersModalTeam && (
+            {membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeMembersModal}>
                     <div
                         className="teams-section__modal teams-section__modal--large"
@@ -1021,7 +1035,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {isCreateModalOpen && (
+            {isCreateModalOpen && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeCreateModal}>
                     <div className="teams-section__modal" onClick={(event) => event.stopPropagation()}>
                         <div className="teams-section__modal-header">
@@ -1094,7 +1108,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {isDeleteModalOpen && selectedTeam && (
+            {isDeleteModalOpen && selectedTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
                     <div
                         className="teams-section__modal teams-section__modal--small"
