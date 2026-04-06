@@ -366,62 +366,89 @@ export default function UsersSection() {
         [currentPage, totalPages]
     );
 
+    const usersWithOriginalOrder = useMemo(
+        () => users.map((user, index) => ({ user, originalIndex: index })),
+        [users]
+    );
+
     const sortedUsers = useMemo(() => {
-        if (!sortConfig.key) return users;
+        if (!sortConfig.key) return usersWithOriginalOrder.map(({ user }) => user);
 
-        const sortableUsers = [...users];
+        const sortableUsers = [...usersWithOriginalOrder];
 
-        sortableUsers.sort((firstUser, secondUser) => {
+        sortableUsers.sort((firstEntry, secondEntry) => {
+            const firstUser = firstEntry.user;
+            const secondUser = secondEntry.user;
+            let result = 0;
+
             switch (sortConfig.key) {
                 case "name":
-                    return compareTextValues(
+                    result = compareTextValues(
                         getUserName(firstUser),
                         getUserName(secondUser),
                         sortConfig.direction
                     );
+                    break;
                 case "email":
-                    return compareTextValues(
+                    result = compareTextValues(
                         firstUser?.email || "",
                         secondUser?.email || "",
                         sortConfig.direction
                     );
+                    break;
                 case "role":
-                    return compareRoleValues(
+                    result = compareRoleValues(
                         getUserRole(firstUser),
                         getUserRole(secondUser),
                         sortConfig.direction
                     );
+                    break;
                 case "jobType":
-                    return compareTextValues(
+                    result = compareTextValues(
                         getUserJobType(firstUser),
                         getUserJobType(secondUser),
                         sortConfig.direction
                     );
+                    break;
                 case "team":
-                    return compareTextValues(
+                    result = compareTextValues(
                         getUserTeam(firstUser),
                         getUserTeam(secondUser),
                         sortConfig.direction
                     );
+                    break;
                 case "status":
-                    return compareStatusValues(
+                    result = compareStatusValues(
                         getUserStatus(firstUser),
                         getUserStatus(secondUser),
                         sortConfig.direction
                     );
+                    break;
                 default:
-                    return 0;
+                    result = 0;
             }
+
+            if (result !== 0) return result;
+            return firstEntry.originalIndex - secondEntry.originalIndex;
         });
 
-        return sortableUsers;
-    }, [users, sortConfig]);
+        return sortableUsers.map(({ user }) => user);
+    }, [usersWithOriginalOrder, sortConfig]);
 
     const toggleSort = (key) => {
-        setSortConfig((prev) => ({
-            key,
-            direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-        }));
+        setSortConfig((prev) => {
+            if (prev.key !== key) {
+                return {
+                    key,
+                    direction: "desc",
+                };
+            }
+
+            return {
+                key,
+                direction: prev.direction === "desc" ? "asc" : "desc",
+            };
+        });
     };
 
     const openCreateModal = () => {
