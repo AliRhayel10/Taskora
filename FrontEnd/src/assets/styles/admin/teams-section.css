@@ -35,7 +35,7 @@
 .teams-section__search {
   width: 100%;
   max-width: 420px;
-  height: 52px;
+  height: 42px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -82,6 +82,7 @@
   cursor: pointer;
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .teams-section__create-btn:hover {
@@ -655,9 +656,9 @@
 }
 
 .teams-section__secondary-btn {
-  border: 1px solid #f4d0d0;
-  background: #fff7f7;
-  color: #dc4c4c;
+  border: 1px solid #d7dde6;
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .teams-section__secondary-btn--neutral {
@@ -667,9 +668,9 @@
 }
 
 .teams-section__secondary-btn:hover {
-  background: #fff0f0;
-  border-color: #efb8b8;
-  color: #c83c3c;
+  background: #e5e7eb;
+  border-color: #cfd6df;
+  color: #374151;
   transform: translateY(-1px);
 }
 

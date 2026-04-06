@@ -41,7 +41,8 @@ function getInitials(value) {
 
 export default function TeamsSection() {
     const [teams, setTeams] = useState([]);
-    const [employees, setEmployees] = useState([]);
+    const [companyMembers, setCompanyMembers] = useState([]);
+    const [teamLeaders, setTeamLeaders] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [memberSearchTerm, setMemberSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
@@ -97,26 +98,56 @@ export default function TeamsSection() {
         }
     };
 
-    const fetchEmployees = async () => {
+    const fetchCompanyMembers = async (search = "") => {
         if (!companyId) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/users/company/${companyId}`);
+            const params = new URLSearchParams();
+
+            if (search.trim()) {
+                params.set("search", search.trim());
+            }
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/teams/company/${companyId}/members${params.toString() ? `?${params.toString()}` : ""}`
+            );
+
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || "Failed to load employees.");
+                throw new Error(data.message || "Failed to load company members.");
             }
 
-            setEmployees(Array.isArray(data) ? data : []);
+            setCompanyMembers(Array.isArray(data) ? data : []);
         } catch (error) {
-            console.error("Failed to fetch employees:", error);
+            console.error("Failed to fetch company members:", error);
+        }
+    };
+
+    const fetchTeamLeaders = async () => {
+        if (!companyId) return;
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/teams/company/${companyId}/members?teamLeadersOnly=true`
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to load team leaders.");
+            }
+
+            setTeamLeaders(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to fetch team leaders:", error);
         }
     };
 
     useEffect(() => {
         fetchTeams();
-        fetchEmployees();
+        fetchCompanyMembers();
+        fetchTeamLeaders();
     }, [companyId]);
 
     useEffect(() => {
@@ -152,11 +183,11 @@ export default function TeamsSection() {
     }, [searchTerm, teams]);
 
     const availableEmployees = useMemo(() => {
-        return employees.filter((employee) => {
+        return companyMembers.filter((employee) => {
             const role = (employee.role || "").toLowerCase();
-            return role !== "company admin" && role !== "admin";
+            return role === "employee" || role === "team leader";
         });
-    }, [employees]);
+    }, [companyMembers]);
 
     const filteredEmployees = useMemo(() => {
         const value = memberSearchTerm.trim().toLowerCase();
@@ -168,9 +199,27 @@ export default function TeamsSection() {
         return availableEmployees.filter((employee) => {
             const fullName = (employee.fullName || "").toLowerCase();
             const email = (employee.email || "").toLowerCase();
-            return fullName.includes(value) || email.includes(value);
+            const role = (employee.role || "").toLowerCase();
+            const jobTitle = (employee.jobTitle || "").toLowerCase();
+
+            return (
+                fullName.includes(value) ||
+                email.includes(value) ||
+                role.includes(value) ||
+                jobTitle.includes(value)
+            );
         });
     }, [availableEmployees, memberSearchTerm]);
+
+    useEffect(() => {
+        if (!selectedTeam) return;
+
+        const timeoutId = window.setTimeout(() => {
+            fetchCompanyMembers(memberSearchTerm);
+        }, 250);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [memberSearchTerm, selectedTeam, companyId]);
 
     const isEditFormValid =
         editForm.teamName.trim() &&
@@ -195,6 +244,8 @@ export default function TeamsSection() {
         setErrorMessage("");
         setActiveMenuTeamId(null);
         setMemberSearchTerm("");
+        fetchTeamLeaders();
+        fetchCompanyMembers();
 
         const currentMemberIds = Array.isArray(team.memberIds)
             ? team.memberIds.map((id) => String(id))
@@ -548,7 +599,7 @@ export default function TeamsSection() {
                                         onChange={(event) => handleLeaderChange(event.target.value)}
                                     >
                                         <option value="">Select team leader...</option>
-                                        {availableEmployees.map((employee) => (
+                                        {teamLeaders.map((employee) => (
                                             <option key={employee.userId} value={String(employee.userId)}>
                                                 {employee.fullName || employee.email}
                                             </option>
@@ -571,14 +622,14 @@ export default function TeamsSection() {
                                             type="text"
                                             value={memberSearchTerm}
                                             onChange={(event) => setMemberSearchTerm(event.target.value)}
-                                            placeholder="Search users..."
+                                            placeholder="Search any member in the company..."
                                         />
                                     </div>
 
                                     <div className="teams-section__member-table">
                                         {filteredEmployees.length === 0 && (
                                             <p className="teams-section__members-empty">
-                                                No matching employees found.
+                                                No matching members found.
                                             </p>
                                         )}
 
@@ -796,7 +847,7 @@ export default function TeamsSection() {
                             <div className="teams-section__form-actions">
                                 <button
                                     type="button"
-                                    className="teams-section__secondary-btn"
+                                    className="teams-section__secondary-btn teams-section__secondary-btn--neutral"
                                     onClick={closeCreateModal}
                                     disabled={isSubmitting}
                                 >
@@ -806,7 +857,7 @@ export default function TeamsSection() {
                                 <button
                                     type="submit"
                                     className="teams-section__submit-btn"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !teamForm.teamName.trim()}
                                 >
                                     {isSubmitting ? "Creating..." : "Create Team"}
                                 </button>

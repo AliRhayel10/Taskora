@@ -57,6 +57,57 @@ namespace BackEnd.Controllers
             return Ok(teams);
         }
 
+
+        [HttpGet("company/{companyId:int}/members")]
+        public async Task<IActionResult> GetCompanyMembers(
+            int companyId,
+            [FromQuery] string? search = null,
+            [FromQuery] bool teamLeadersOnly = false)
+        {
+            var normalizedSearch = search?.Trim().ToLower();
+
+            var membersQuery =
+                from user in _context.Users
+                join userRole in _context.UserRoles
+                    on user.UserId equals userRole.UserId into userRoleJoin
+                from userRole in userRoleJoin.DefaultIfEmpty()
+                join role in _context.Roles
+                    on userRole.RoleId equals role.RoleId into roleJoin
+                from role in roleJoin.DefaultIfEmpty()
+                where user.CompanyId == companyId
+                let roleName = role != null ? role.RoleName : "Employee"
+                where roleName == "Employee" || roleName == "Team Leader"
+                select new
+                {
+                    userId = user.UserId,
+                    fullName = user.FullName,
+                    email = user.Email,
+                    role = roleName,
+                    jobTitle = user.JobTitle
+                };
+
+            if (teamLeadersOnly)
+            {
+                membersQuery = membersQuery.Where(member => member.role == "Team Leader");
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedSearch))
+            {
+                membersQuery = membersQuery.Where(member =>
+                    (member.fullName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (member.email ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (member.role ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (member.jobTitle ?? string.Empty).ToLower().Contains(normalizedSearch));
+            }
+
+            var members = await membersQuery
+                .OrderBy(member => member.fullName)
+                .ThenBy(member => member.email)
+                .ToListAsync();
+
+            return Ok(members);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTeam([FromBody] CreateTeamRequest request)
         {
