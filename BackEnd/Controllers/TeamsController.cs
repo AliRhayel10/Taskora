@@ -18,7 +18,7 @@ namespace BackEnd.Controllers
         }
 
         [HttpGet("company/{companyId:int}")]
-        public async Task<ActionResult<IEnumerable<TeamResponse>>> GetTeamsByCompany(
+        public async Task<IActionResult> GetTeamsByCompany(
             int companyId,
             [FromQuery] string? search = null)
         {
@@ -30,33 +30,34 @@ namespace BackEnd.Controllers
                     on team.TeamLeaderUserId equals leader.UserId into leaderJoin
                 from leader in leaderJoin.DefaultIfEmpty()
                 where team.CompanyId == companyId && team.IsActive
-                select new TeamResponse
+                select new
                 {
-                    TeamId = team.TeamId,
-                    CompanyId = team.CompanyId,
-                    TeamName = team.TeamName,
-                    Description = team.Description,
-                    TeamLeaderUserId = team.TeamLeaderUserId,
-                    TeamLeaderName = leader != null ? leader.FullName : string.Empty,
-                    TasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
-                    IsActive = team.IsActive
+                    teamId = team.TeamId,
+                    companyId = team.CompanyId,
+                    teamName = team.TeamName,
+                    description = team.Description,
+                    teamLeaderUserId = team.TeamLeaderUserId,
+                    teamLeaderId = team.TeamLeaderUserId,
+                    teamLeaderName = leader != null ? leader.FullName : string.Empty,
+                    tasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
+                    isActive = team.IsActive,
+                    memberIds = new List<int>()
                 };
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
             {
                 teamsQuery = teamsQuery.Where(team =>
-                    team.TeamName.ToLower().Contains(normalizedSearch) ||
-                    (team.Description ?? string.Empty).ToLower().Contains(normalizedSearch) ||
-                    team.TeamLeaderName.ToLower().Contains(normalizedSearch));
+                    (team.teamName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (team.description ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (team.teamLeaderName ?? string.Empty).ToLower().Contains(normalizedSearch));
             }
 
             var teams = await teamsQuery
-                .OrderBy(team => team.TeamName)
+                .OrderBy(team => team.teamName)
                 .ToListAsync();
 
             return Ok(teams);
         }
-
 
         [HttpGet("company/{companyId:int}/members")]
         public async Task<IActionResult> GetCompanyMembers(
@@ -66,51 +67,70 @@ namespace BackEnd.Controllers
         {
             var normalizedSearch = search?.Trim().ToLower();
 
-            var membersQuery =
+            var members = await (
                 from user in _context.Users
+                where user.CompanyId == companyId
                 join userRole in _context.UserRoles
                     on user.UserId equals userRole.UserId into userRoleJoin
                 from userRole in userRoleJoin.DefaultIfEmpty()
                 join role in _context.Roles
                     on userRole.RoleId equals role.RoleId into roleJoin
                 from role in roleJoin.DefaultIfEmpty()
-                where user.CompanyId == companyId
-                let roleName = role != null ? role.RoleName : "Employee"
-                where roleName == "Employee" || roleName == "Team Leader"
                 select new
                 {
                     userId = user.UserId,
                     fullName = user.FullName,
                     email = user.Email,
-                    role = roleName,
+                    role = role != null ? role.RoleName : "Employee",
                     jobTitle = user.JobTitle
-                };
+                }
+            )
+            .ToListAsync();
+
+            var filteredMembers = members
+                .Where(member =>
+                {
+                    var normalizedRole = (member.role ?? string.Empty).Trim().ToLower();
+                    return normalizedRole == "employee" || normalizedRole == "team leader";
+                });
 
             if (teamLeadersOnly)
             {
-                membersQuery = membersQuery.Where(member => member.role == "Team Leader");
+                filteredMembers = filteredMembers.Where(member =>
+                    string.Equals(member.role, "Team Leader", StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
             {
-                membersQuery = membersQuery.Where(member =>
+                filteredMembers = filteredMembers.Where(member =>
                     (member.fullName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
                     (member.email ?? string.Empty).ToLower().Contains(normalizedSearch) ||
                     (member.role ?? string.Empty).ToLower().Contains(normalizedSearch) ||
                     (member.jobTitle ?? string.Empty).ToLower().Contains(normalizedSearch));
             }
 
-            var members = await membersQuery
+            var result = filteredMembers
+                .GroupBy(member => member.userId)
+                .Select(group => group.First())
                 .OrderBy(member => member.fullName)
                 .ThenBy(member => member.email)
-                .ToListAsync();
+                .ToList();
 
-            return Ok(members);
+            return Ok(result);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateTeam([FromBody] CreateTeamRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Request body is required."
+                });
+            }
+
             if (request.CompanyId <= 0)
             {
                 return BadRequest(new
@@ -120,7 +140,9 @@ namespace BackEnd.Controllers
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(request.TeamName))
+            var trimmedTeamName = request.TeamName?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(trimmedTeamName))
             {
                 return BadRequest(new
                 {
@@ -129,8 +151,7 @@ namespace BackEnd.Controllers
                 });
             }
 
-            var companyExists = await _context.Companies
-                .AnyAsync(company => company.CompanyId == request.CompanyId);
+            var companyExists = await _context.Companies.AnyAsync(company => company.CompanyId == request.CompanyId);
 
             if (!companyExists)
             {
@@ -141,11 +162,10 @@ namespace BackEnd.Controllers
                 });
             }
 
-            var trimmedTeamName = request.TeamName.Trim();
-
             var duplicateTeamExists = await _context.Teams.AnyAsync(team =>
                 team.CompanyId == request.CompanyId &&
-                team.TeamName == trimmedTeamName);
+                team.IsActive &&
+                team.TeamName.ToLower() == trimmedTeamName.ToLower());
 
             if (duplicateTeamExists)
             {
@@ -176,9 +196,7 @@ namespace BackEnd.Controllers
             {
                 CompanyId = request.CompanyId,
                 TeamName = trimmedTeamName,
-                Description = string.IsNullOrWhiteSpace(request.Description)
-                    ? null
-                    : request.Description.Trim(),
+                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
                 TeamLeaderUserId = request.TeamLeaderUserId,
                 IsActive = true
             };
@@ -200,17 +218,164 @@ namespace BackEnd.Controllers
             {
                 success = true,
                 message = "Team created successfully.",
-                team = new TeamResponse
+                team = new
                 {
-                    TeamId = team.TeamId,
-                    CompanyId = team.CompanyId,
-                    TeamName = team.TeamName,
-                    Description = team.Description,
-                    TeamLeaderUserId = team.TeamLeaderUserId,
-                    TeamLeaderName = leaderName,
-                    TasksCount = 0,
-                    IsActive = team.IsActive
+                    teamId = team.TeamId,
+                    companyId = team.CompanyId,
+                    teamName = team.TeamName,
+                    description = team.Description,
+                    teamLeaderUserId = team.TeamLeaderUserId,
+                    teamLeaderId = team.TeamLeaderUserId,
+                    teamLeaderName = leaderName,
+                    tasksCount = 0,
+                    isActive = team.IsActive,
+                    memberIds = new List<int>()
                 }
+            });
+        }
+
+        [HttpPut("{teamId:int}")]
+        public async Task<IActionResult> UpdateTeam(int teamId, [FromBody] UpdateTeamRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Request body is required."
+                });
+            }
+
+            var team = await _context.Teams.FirstOrDefaultAsync(t => t.TeamId == teamId);
+
+            if (team == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Team not found."
+                });
+            }
+
+            if (request.CompanyId > 0 && request.CompanyId != team.CompanyId)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "CompanyId does not match this team."
+                });
+            }
+
+            var trimmedTeamName = request.TeamName?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(trimmedTeamName))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Team name is required."
+                });
+            }
+
+            var duplicateTeamExists = await _context.Teams.AnyAsync(existingTeam =>
+                existingTeam.TeamId != teamId &&
+                existingTeam.CompanyId == team.CompanyId &&
+                existingTeam.IsActive &&
+                existingTeam.TeamName.ToLower() == trimmedTeamName.ToLower());
+
+            if (duplicateTeamExists)
+            {
+                return Conflict(new
+                {
+                    success = false,
+                    message = "A team with this name already exists."
+                });
+            }
+
+            var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
+
+            if (requestedLeaderId.HasValue)
+            {
+                var leaderExists = await _context.Users.AnyAsync(user =>
+                    user.UserId == requestedLeaderId.Value &&
+                    user.CompanyId == team.CompanyId);
+
+                if (!leaderExists)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Selected team leader does not belong to this company."
+                    });
+                }
+            }
+
+            team.TeamName = trimmedTeamName;
+            team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            team.TeamLeaderUserId = requestedLeaderId;
+
+            if (request.IsActive.HasValue)
+            {
+                team.IsActive = request.IsActive.Value;
+            }
+            else if (request.Status.HasValue)
+            {
+                team.IsActive = request.Status.Value;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var leaderName = string.Empty;
+
+            if (team.TeamLeaderUserId.HasValue)
+            {
+                leaderName = await _context.Users
+                    .Where(user => user.UserId == team.TeamLeaderUserId.Value)
+                    .Select(user => user.FullName)
+                    .FirstOrDefaultAsync() ?? string.Empty;
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "Team updated successfully.",
+                team = new
+                {
+                    teamId = team.TeamId,
+                    companyId = team.CompanyId,
+                    teamName = team.TeamName,
+                    description = team.Description,
+                    teamLeaderUserId = team.TeamLeaderUserId,
+                    teamLeaderId = team.TeamLeaderUserId,
+                    teamLeaderName = leaderName,
+                    tasksCount = await _context.Tasks.CountAsync(task => task.TeamId == team.TeamId),
+                    isActive = team.IsActive,
+                    memberIds = request.MemberIds ?? new List<int>()
+                }
+            });
+        }
+
+        [HttpDelete("{teamId:int}")]
+        public async Task<IActionResult> DeleteTeam(int teamId)
+        {
+            var team = await _context.Teams.FirstOrDefaultAsync(t => t.TeamId == teamId);
+
+            if (team == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Team not found."
+                });
+            }
+
+            team.IsActive = false;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Team deleted successfully."
             });
         }
     }

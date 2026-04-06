@@ -109,7 +109,7 @@ export default function TeamsSection() {
             }
 
             const response = await fetch(
-                `${API_BASE_URL}/api/teams/company/${companyId}/members${params.toString() ? `?${params.toString()}` : ""}`
+                `${API_BASE_URL}/api/auth/company-users/${companyId}${params.toString() ? `?${params.toString()}` : ""}`
             );
 
             const data = await response.json();
@@ -129,7 +129,7 @@ export default function TeamsSection() {
 
         try {
             const response = await fetch(
-                `${API_BASE_URL}/api/teams/company/${companyId}/members?teamLeadersOnly=true`
+                `${API_BASE_URL}/api/auth/company-users/${companyId}`
             );
 
             const data = await response.json();
@@ -138,7 +138,8 @@ export default function TeamsSection() {
                 throw new Error(data.message || "Failed to load team leaders.");
             }
 
-            setTeamLeaders(Array.isArray(data) ? data : []);
+            const all = Array.isArray(data) ? data : [];
+            setTeamLeaders(all.filter(u => (u.role || "").toLowerCase() === "team leader"));
         } catch (error) {
             console.error("Failed to fetch team leaders:", error);
         }
