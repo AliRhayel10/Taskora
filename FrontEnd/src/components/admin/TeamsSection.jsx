@@ -963,7 +963,7 @@ export default function TeamsSection() {
                                     onClick={handleSaveMembers}
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting ? "Saving..." : "Save Members"}
+                                    {isSubmitting ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
                         </div>
