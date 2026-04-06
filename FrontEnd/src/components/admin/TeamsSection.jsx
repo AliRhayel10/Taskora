@@ -680,7 +680,7 @@ export default function TeamsSection() {
 
                                                     {isLeader && (
                                                         <span className="teams-section__member-tag">
-                                                            Leader
+                                                            Team Leader
                                                         </span>
                                                     )}
                                                 </label>
@@ -803,9 +803,23 @@ export default function TeamsSection() {
 
                             <div className="teams-section__card-bottom">
                                 <div className="teams-section__meta">
-                                    <span className="teams-section__badge">
-                                        {team.teamLeaderName || "No team leader assigned"}
-                                    </span>
+                                    {team.teamLeaderName ? (
+                                        <div className="teams-section__leader-summary">
+                                            <span className="teams-section__leader-avatar">
+                                                {getInitials(team.teamLeaderName)}
+                                            </span>
+
+                                            <span className="teams-section__leader-copy">
+                                                <strong>{team.teamLeaderName}</strong>
+                                                <small>Team Leader</small>
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="teams-section__badge">
+                                            No team leader assigned
+                                        </span>
+                                    )}
+
                                     <span className="teams-section__tasks">{team.tasksCount || 0} Tasks</span>
                                 </div>
                             </div>
