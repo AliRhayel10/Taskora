@@ -3,7 +3,6 @@ import {
     FiChevronLeft,
     FiChevronRight,
     FiEdit2,
-    FiEye,
     FiPlus,
     FiSearch,
     FiTrash2,
@@ -11,6 +10,7 @@ import {
     FiX,
     FiChevronDown,
     FiEyeOff,
+    FiEye,
 } from "react-icons/fi";
 import "../../assets/styles/admin/users-section.css";
 
@@ -462,8 +462,8 @@ export default function UsersSection() {
                                     <th>Role</th>
                                     <th>Job Type</th>
                                     <th>Team</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th className="users-section__col-status">Status</th>
+                                    <th className="users-section__col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -496,15 +496,16 @@ export default function UsersSection() {
                                             <td>{role}</td>
                                             <td>{jobType}</td>
                                             <td>{team}</td>
-                                            <td>
+                                            <td className="users-section__cell-status">
                                                 <span className={statusClass}>{status}</span>
                                             </td>
-                                            <td>
+                                            <td className="users-section__cell-actions">
                                                 <div className="users-section__actions">
-                                                    <button type="button" className="users-section__action-btn" title="View">
-                                                        <FiEye />
-                                                    </button>
-                                                    <button type="button" className="users-section__action-btn" title="Edit">
+                                                    <button
+                                                        type="button"
+                                                        className="users-section__action-btn users-section__action-btn--edit"
+                                                        title="Edit"
+                                                    >
                                                         <FiEdit2 />
                                                     </button>
                                                     <button
@@ -652,8 +653,8 @@ export default function UsersSection() {
                                     {emailTouched && (
                                         <span
                                             className={`users-section__input-badge ${emailIsValid
-                                                    ? "users-section__input-badge--success"
-                                                    : "users-section__input-badge--error"
+                                                ? "users-section__input-badge--success"
+                                                : "users-section__input-badge--error"
                                                 }`}
                                         >
                                             {emailIsValid ? "Valid" : "Invalid"}
@@ -679,8 +680,8 @@ export default function UsersSection() {
                                     {passwordTouched && (
                                         <span
                                             className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong
-                                                    ? "users-section__input-badge--success"
-                                                    : "users-section__input-badge--error"
+                                                ? "users-section__input-badge--success"
+                                                : "users-section__input-badge--error"
                                                 }`}
                                         >
                                             {passwordIsStrong ? "Strong" : "Weak"}
