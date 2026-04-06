@@ -81,9 +81,14 @@ function getUserTeam(user) {
 }
 
 function getUserStatus(user) {
-    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
-    if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
-    if (typeof user?.status === "string" && user.status.trim()) return user.status;
+    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Unactive";
+    if (typeof user?.active === "boolean") return user.active ? "Active" : "Unactive";
+
+    if (typeof user?.status === "string" && user.status.trim()) {
+        const normalizedStatus = user.status.trim().toLowerCase();
+        return normalizedStatus === "active" ? "Active" : "Unactive";
+    }
+
     return "Active";
 }
 
@@ -133,6 +138,52 @@ function matchesNameSearch(user, search) {
     return getUserName(user).toLowerCase().includes(term);
 }
 
+function compareTextValues(firstValue, secondValue, direction = "asc") {
+    const normalizedFirst = String(firstValue || "").toLowerCase();
+    const normalizedSecond = String(secondValue || "").toLowerCase();
+    const result = normalizedFirst.localeCompare(normalizedSecond);
+    return direction === "asc" ? result : -result;
+}
+
+function compareRoleValues(firstRole, secondRole, direction = "asc") {
+    const rolePriority = {
+        employee: 1,
+        "team leader": 2,
+    };
+
+    const normalizedFirst = String(firstRole || "").trim().toLowerCase();
+    const normalizedSecond = String(secondRole || "").trim().toLowerCase();
+
+    const firstPriority = rolePriority[normalizedFirst] ?? 99;
+    const secondPriority = rolePriority[normalizedSecond] ?? 99;
+
+    if (firstPriority !== secondPriority) {
+        return direction === "asc" ? firstPriority - secondPriority : secondPriority - firstPriority;
+    }
+
+    return compareTextValues(normalizedFirst, normalizedSecond, direction);
+}
+
+function compareStatusValues(firstStatus, secondStatus, direction = "asc") {
+    const statusPriority = {
+        active: 1,
+        unactive: 2,
+        inactive: 2,
+    };
+
+    const normalizedFirst = String(firstStatus || "").trim().toLowerCase();
+    const normalizedSecond = String(secondStatus || "").trim().toLowerCase();
+
+    const firstPriority = statusPriority[normalizedFirst] ?? 99;
+    const secondPriority = statusPriority[normalizedSecond] ?? 99;
+
+    if (firstPriority !== secondPriority) {
+        return direction === "asc" ? firstPriority - secondPriority : secondPriority - firstPriority;
+    }
+
+    return compareTextValues(normalizedFirst, normalizedSecond, direction);
+}
+
 export default function UsersSection() {
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -142,6 +193,10 @@ export default function UsersSection() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
+    const [sortConfig, setSortConfig] = useState({
+        key: "",
+        direction: "asc",
+    });
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
@@ -311,6 +366,64 @@ export default function UsersSection() {
         [currentPage, totalPages]
     );
 
+    const sortedUsers = useMemo(() => {
+        if (!sortConfig.key) return users;
+
+        const sortableUsers = [...users];
+
+        sortableUsers.sort((firstUser, secondUser) => {
+            switch (sortConfig.key) {
+                case "name":
+                    return compareTextValues(
+                        getUserName(firstUser),
+                        getUserName(secondUser),
+                        sortConfig.direction
+                    );
+                case "email":
+                    return compareTextValues(
+                        firstUser?.email || "",
+                        secondUser?.email || "",
+                        sortConfig.direction
+                    );
+                case "role":
+                    return compareRoleValues(
+                        getUserRole(firstUser),
+                        getUserRole(secondUser),
+                        sortConfig.direction
+                    );
+                case "jobType":
+                    return compareTextValues(
+                        getUserJobType(firstUser),
+                        getUserJobType(secondUser),
+                        sortConfig.direction
+                    );
+                case "team":
+                    return compareTextValues(
+                        getUserTeam(firstUser),
+                        getUserTeam(secondUser),
+                        sortConfig.direction
+                    );
+                case "status":
+                    return compareStatusValues(
+                        getUserStatus(firstUser),
+                        getUserStatus(secondUser),
+                        sortConfig.direction
+                    );
+                default:
+                    return 0;
+            }
+        });
+
+        return sortableUsers;
+    }, [users, sortConfig]);
+
+    const toggleSort = (key) => {
+        setSortConfig((prev) => ({
+            key,
+            direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+        }));
+    };
+
     const openCreateModal = () => {
         setCreateForm(initialCreateForm);
         setCreateError("");
@@ -457,17 +570,47 @@ export default function UsersSection() {
                         <table className="users-section__table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Job Type</th>
-                                    <th>Team</th>
-                                    <th className="users-section__col-status">Status</th>
+                                    <th>
+                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("name")}>
+                                            <span>Name</span>
+                                            <FiChevronDown className={sortConfig.key === "name" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("email")}>
+                                            <span>Email</span>
+                                            <FiChevronDown className={sortConfig.key === "email" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("role")}>
+                                            <span>Role</span>
+                                            <FiChevronDown className={sortConfig.key === "role" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("jobType")}>
+                                            <span>Job Type</span>
+                                            <FiChevronDown className={sortConfig.key === "jobType" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("team")}>
+                                            <span>Team</span>
+                                            <FiChevronDown className={sortConfig.key === "team" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
+                                        </button>
+                                    </th>
+                                    <th className="users-section__col-status">
+                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("status")}>
+                                            <span>Status</span>
+                                            <FiChevronDown className={sortConfig.key === "status" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
+                                        </button>
+                                    </th>
                                     <th className="users-section__col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {users.map((user, index) => {
+                                {sortedUsers.map((user, index) => {
                                     const userId =
                                         user?.userId || user?.id || user?._id || user?.email || `user-row-${index}`;
 
@@ -722,7 +865,7 @@ export default function UsersSection() {
                                     <span className="users-section__switch-thumb" />
                                 </button>
                                 <span className="users-section__status-text">
-                                    {createForm.isActive ? "Active" : "Inactive"}
+                                    {createForm.isActive ? "Active" : "Unactive"}
                                 </span>
                             </div>
 

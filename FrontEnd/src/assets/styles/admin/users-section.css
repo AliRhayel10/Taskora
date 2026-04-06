@@ -168,7 +168,7 @@
 .users-section__table-card {
     background: #ffffff;
     border: 1px solid #e6edf7;
-    border-radius: 24px;
+    border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
 }
@@ -195,6 +195,30 @@
     white-space: nowrap;
 }
 
+.users-section__sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #111827;
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.users-section__sort-icon {
+    font-size: 0.95rem;
+    color: #6b7280;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.users-section__sort-icon--active {
+    color: #111827;
+}
+
+
 .users-section__table tbody td {
     padding: 12px 16px;
     border-bottom: 1px solid #edf2f7;
@@ -210,6 +234,11 @@
 .users-section__cell-status {
     width: 140px;
     text-align: left;
+}
+
+.users-section__col-status .users-section__sort-btn {
+    justify-content: flex-start;
+    margin-left: 12px;
 }
 
 .users-section__col-actions,
