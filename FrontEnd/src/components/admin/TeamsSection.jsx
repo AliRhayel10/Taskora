@@ -75,6 +75,7 @@ export default function TeamsSection() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeMenuTeamId, setActiveMenuTeamId] = useState(null);
     const [selectedTeam, setSelectedTeam] = useState(null);
+    const [membersModalTeam, setMembersModalTeam] = useState(null);
     const [isStatusActive, setIsStatusActive] = useState(true);
 
     const [teamForm, setTeamForm] = useState({
@@ -232,14 +233,14 @@ export default function TeamsSection() {
     }, [availableEmployees, memberSearchTerm]);
 
     useEffect(() => {
-        if (!selectedTeam) return;
+        if (!membersModalTeam) return;
 
         const timeoutId = window.setTimeout(() => {
             fetchCompanyMembers(memberSearchTerm);
         }, 250);
 
         return () => window.clearTimeout(timeoutId);
-    }, [memberSearchTerm, selectedTeam, companyId]);
+    }, [memberSearchTerm, membersModalTeam, companyId]);
 
     const isEditFormValid =
         editForm.teamName.trim() &&
@@ -256,6 +257,41 @@ export default function TeamsSection() {
     const closeCreateModal = () => {
         if (isSubmitting) return;
         setIsCreateModalOpen(false);
+    };
+
+    const openMembersModal = (team) => {
+        setSuccessMessage("");
+        setErrorMessage("");
+        setActiveMenuTeamId(null);
+        setMembersModalTeam(team);
+        setMemberSearchTerm("");
+        fetchCompanyMembers();
+        fetchTeamLeaders();
+
+        const currentMemberIds = Array.isArray(team.memberIds)
+            ? team.memberIds.map((id) => String(id))
+            : [];
+
+        const currentLeaderId = team.teamLeaderId ? String(team.teamLeaderId) : "";
+
+        const mergedMemberIds = currentLeaderId
+            ? Array.from(new Set([...currentMemberIds, currentLeaderId]))
+            : currentMemberIds;
+
+        setEditForm((prev) => ({
+            ...prev,
+            memberIds: mergedMemberIds,
+        }));
+    };
+
+    const closeMembersModal = () => {
+        if (isSubmitting) return;
+        setMembersModalTeam(null);
+        setMemberSearchTerm("");
+        setEditForm((prev) => ({
+            ...prev,
+            memberIds: [],
+        }));
     };
 
     const openEditPanel = (team) => {
@@ -414,6 +450,55 @@ export default function TeamsSection() {
         } catch (error) {
             console.error("Failed to create team:", error);
             setErrorMessage(error.message || "Failed to create team.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSaveTeamMembers = async () => {
+        if (!membersModalTeam?.teamId) {
+            setErrorMessage("Team not found.");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            setErrorMessage("");
+            setSuccessMessage("");
+
+            const currentLeaderId =
+                membersModalTeam.teamLeaderId || membersModalTeam.teamLeaderUserId || null;
+
+            const response = await fetch(`${API_BASE_URL}/api/teams/${membersModalTeam.teamId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    companyId,
+                    teamName: membersModalTeam.teamName || "",
+                    description: membersModalTeam.description || "",
+                    teamLeaderId: currentLeaderId ? String(currentLeaderId) : null,
+                    memberIds: editForm.memberIds.map((id) => String(id)),
+                    isActive:
+                        typeof membersModalTeam.isActive === "boolean"
+                            ? membersModalTeam.isActive
+                            : true,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to update team members.");
+            }
+
+            setSuccessMessage("Team members updated successfully.");
+            await fetchTeams();
+            closeMembersModal();
+        } catch (error) {
+            console.error("Failed to update team members:", error);
+            setErrorMessage(error.message || "Failed to update team members.");
         } finally {
             setIsSubmitting(false);
         }
@@ -629,67 +714,6 @@ export default function TeamsSection() {
                                 </div>
                             </div>
 
-                            <div className="teams-section__form-group">
-                                <label>Add Members</label>
-                                <p className="teams-section__field-help">
-                                    Search and select one or more members to add to this team.
-                                </p>
-
-                                <div className="teams-section__member-picker">
-                                    <div className="teams-section__member-search">
-                                        <FiSearch />
-                                        <input
-                                            type="text"
-                                            value={memberSearchTerm}
-                                            onChange={(event) => setMemberSearchTerm(event.target.value)}
-                                            placeholder="Search any member in the company..."
-                                        />
-                                    </div>
-
-                                    <div className="teams-section__member-table">
-                                        {filteredEmployees.length === 0 && (
-                                            <p className="teams-section__members-empty">
-                                                No matching members found.
-                                            </p>
-                                        )}
-
-                                        {filteredEmployees.map((employee) => {
-                                            const employeeId = String(employee.userId);
-                                            const isChecked = editForm.memberIds.includes(employeeId);
-                                            const isLeader = employeeId === editForm.teamLeaderId;
-
-                                            return (
-                                                <label
-                                                    key={employee.userId}
-                                                    className="teams-section__member-row"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isChecked}
-                                                        onChange={() => handleToggleMember(employeeId)}
-                                                    />
-
-                                                    <span className="teams-section__member-avatar">
-                                                        {getInitials(employee.fullName || employee.email)}
-                                                    </span>
-
-                                                    <span className="teams-section__member-copy">
-                                                        <strong>{employee.fullName || employee.email}</strong>
-                                                        <small>{employee.email}</small>
-                                                    </span>
-
-                                                    {isLeader && (
-                                                        <span className="teams-section__member-tag">
-                                                            Team Leader
-                                                        </span>
-                                                    )}
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
                             <div className="teams-section__status-row">
                                 <label>Status</label>
                                 <button
@@ -820,11 +844,131 @@ export default function TeamsSection() {
                                         </span>
                                     )}
 
-                                    <span className="teams-section__tasks">{team.tasksCount || 0} Tasks</span>
+                                    <button
+                                        type="button"
+                                        className="teams-section__members-btn"
+                                        onClick={() => openMembersModal(team)}
+                                    >
+                                        Edit Team Members
+                                    </button>
                                 </div>
                             </div>
                         </article>
                     ))}
+                </div>
+            )}
+
+            {membersModalTeam && (
+                <div className="teams-section__modal-overlay" onClick={closeMembersModal}>
+                    <div
+                        className="teams-section__modal teams-section__modal--large"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="teams-section__modal-header teams-section__modal-header--lined">
+                            <div>
+                                <h3>Edit Team Members</h3>
+                                <p>Search and select one or more members for this team.</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="teams-section__modal-close"
+                                onClick={closeMembersModal}
+                                aria-label="Close team members form"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        {errorMessage && (
+                            <div className="teams-section__feedback teams-section__feedback--error">
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <div className="teams-section__form">
+                            <div className="teams-section__form-group">
+                                <label>Edit Team Members</label>
+                                <p className="teams-section__field-help">
+                                    Search and select one or more members to add to this team.
+                                </p>
+
+                                <div className="teams-section__member-picker">
+                                    <div className="teams-section__member-search">
+                                        <FiSearch />
+                                        <input
+                                            type="text"
+                                            value={memberSearchTerm}
+                                            onChange={(event) => setMemberSearchTerm(event.target.value)}
+                                            placeholder="Search any member in the company..."
+                                        />
+                                    </div>
+
+                                    <div className="teams-section__member-table">
+                                        {filteredEmployees.length === 0 && (
+                                            <p className="teams-section__members-empty">
+                                                No matching members found.
+                                            </p>
+                                        )}
+
+                                        {filteredEmployees.map((employee) => {
+                                            const employeeId = String(employee.userId);
+                                            const isChecked = editForm.memberIds.includes(employeeId);
+                                            const isLeader = employeeId === String(membersModalTeam.teamLeaderId || membersModalTeam.teamLeaderUserId || "");
+
+                                            return (
+                                                <label
+                                                    key={employee.userId}
+                                                    className="teams-section__member-row"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => handleToggleMember(employeeId)}
+                                                    />
+
+                                                    <span className="teams-section__member-avatar">
+                                                        {getInitials(employee.fullName || employee.email)}
+                                                    </span>
+
+                                                    <span className="teams-section__member-copy">
+                                                        <strong>{employee.fullName || employee.email}</strong>
+                                                        <small>{employee.email}</small>
+                                                    </span>
+
+                                                    {isLeader && (
+                                                        <span className="teams-section__member-tag">
+                                                            Team Leader
+                                                        </span>
+                                                    )}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="teams-section__form-actions">
+                                <button
+                                    type="button"
+                                    className="teams-section__secondary-btn teams-section__secondary-btn--neutral"
+                                    onClick={closeMembersModal}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="teams-section__submit-btn"
+                                    onClick={handleSaveTeamMembers}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? "Saving..." : "Save Members"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
