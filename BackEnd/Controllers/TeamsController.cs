@@ -67,7 +67,7 @@ namespace BackEnd.Controllers
         {
             var normalizedSearch = search?.Trim().ToLower();
 
-            var members = await (
+            var rawMembers = await (
                 from user in _context.Users
                 where user.CompanyId == companyId
                 join userRole in _context.UserRoles
@@ -84,20 +84,34 @@ namespace BackEnd.Controllers
                     role = role != null ? role.RoleName : "Employee",
                     jobTitle = user.JobTitle
                 }
-            )
-            .ToListAsync();
+            ).ToListAsync();
 
-            var filteredMembers = members
-                .Where(member =>
-                {
-                    var normalizedRole = (member.role ?? string.Empty).Trim().ToLower();
-                    return normalizedRole == "employee" || normalizedRole == "team leader";
-                });
+            static string NormalizeRole(string? value)
+            {
+                return (value ?? string.Empty)
+                    .Trim()
+                    .ToLower()
+                    .Replace("_", " ")
+                    .Replace("-", " ");
+            }
+
+            static bool IsTeamLeader(string? value)
+            {
+                var normalizedRole = NormalizeRole(value);
+                return normalizedRole == "team leader" || normalizedRole == "teamleader";
+            }
+
+            static bool IsEmployee(string? value)
+            {
+                return NormalizeRole(value) == "employee";
+            }
+
+            var filteredMembers = rawMembers
+                .Where(member => IsEmployee(member.role) || IsTeamLeader(member.role));
 
             if (teamLeadersOnly)
             {
-                filteredMembers = filteredMembers.Where(member =>
-                    string.Equals(member.role, "Team Leader", StringComparison.OrdinalIgnoreCase));
+                filteredMembers = filteredMembers.Where(member => IsTeamLeader(member.role));
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
@@ -112,6 +126,15 @@ namespace BackEnd.Controllers
             var result = filteredMembers
                 .GroupBy(member => member.userId)
                 .Select(group => group.First())
+                .Select(member => new
+                {
+                    userId = member.userId,
+                    fullName = member.fullName,
+                    email = member.email,
+                    role = IsTeamLeader(member.role) ? "Team Leader" : "Employee",
+                    jobTitle = member.jobTitle,
+                    jobType = member.jobTitle
+                })
                 .OrderBy(member => member.fullName)
                 .ThenBy(member => member.email)
                 .ToList();

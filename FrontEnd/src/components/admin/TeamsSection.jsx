@@ -39,6 +39,28 @@ function getInitials(value) {
     return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
 }
 
+function normalizeRole(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ");
+}
+
+function isTeamLeaderRole(value) {
+    const role = normalizeRole(value);
+    return role === "team leader" || role === "teamleader";
+}
+
+function isEmployeeRole(value) {
+    const role = normalizeRole(value);
+    return role === "employee";
+}
+
+function isSelectableMemberRole(value) {
+    return isEmployeeRole(value) || isTeamLeaderRole(value);
+}
+
 export default function TeamsSection() {
     const [teams, setTeams] = useState([]);
     const [companyMembers, setCompanyMembers] = useState([]);
@@ -109,7 +131,7 @@ export default function TeamsSection() {
             }
 
             const response = await fetch(
-                `${API_BASE_URL}/api/auth/company-users/${companyId}${params.toString() ? `?${params.toString()}` : ""}`
+                `${API_BASE_URL}/api/teams/company/${companyId}/members${params.toString() ? `?${params.toString()}` : ""}`
             );
 
             const data = await response.json();
@@ -129,7 +151,7 @@ export default function TeamsSection() {
 
         try {
             const response = await fetch(
-                `${API_BASE_URL}/api/auth/company-users/${companyId}`
+                `${API_BASE_URL}/api/teams/company/${companyId}/members?teamLeadersOnly=true`
             );
 
             const data = await response.json();
@@ -138,8 +160,8 @@ export default function TeamsSection() {
                 throw new Error(data.message || "Failed to load team leaders.");
             }
 
-            const all = Array.isArray(data) ? data : [];
-            setTeamLeaders(all.filter(u => (u.role || "").toLowerCase() === "team leader"));
+            const allMembers = Array.isArray(data) ? data : [];
+            setTeamLeaders(allMembers.filter((member) => isTeamLeaderRole(member.role)));
         } catch (error) {
             console.error("Failed to fetch team leaders:", error);
         }
@@ -184,10 +206,7 @@ export default function TeamsSection() {
     }, [searchTerm, teams]);
 
     const availableEmployees = useMemo(() => {
-        return companyMembers.filter((employee) => {
-            const role = (employee.role || "").toLowerCase();
-            return role === "employee" || role === "team leader";
-        });
+        return companyMembers.filter((employee) => isSelectableMemberRole(employee.role));
     }, [companyMembers]);
 
     const filteredEmployees = useMemo(() => {
@@ -201,7 +220,7 @@ export default function TeamsSection() {
             const fullName = (employee.fullName || "").toLowerCase();
             const email = (employee.email || "").toLowerCase();
             const role = (employee.role || "").toLowerCase();
-            const jobTitle = (employee.jobTitle || "").toLowerCase();
+            const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
 
             return (
                 fullName.includes(value) ||
