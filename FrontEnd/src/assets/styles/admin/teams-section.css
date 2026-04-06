@@ -168,7 +168,8 @@
 
 .teams-section__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 460px));
+  justify-content: start;
   gap: 18px;
 }
 
@@ -181,7 +182,8 @@
 }
 
 .teams-section__card--compact {
-  max-width: 520px;
+  width: 100%;
+  max-width: 460px;
 }
 
 .teams-section__card-top {
@@ -194,7 +196,7 @@
 }
 
 .teams-section__card-top h3 {
-  margin: 0 0 8px;
+  margin: 0;
   color: #1e293b;
   font-size: 1.08rem;
   line-height: 1.25;
@@ -209,8 +211,26 @@
   font-weight: 500;
 }
 
+.teams-section__card-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.teams-section__card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.teams-section__card-title-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
 .teams-section__status-badge {
-  margin-top: 12px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -219,6 +239,7 @@
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .teams-section__status-badge-dot {
@@ -791,7 +812,7 @@
 
 @media (max-width: 1180px) {
   .teams-section__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(1, minmax(0, 460px));
   }
 }
 
@@ -849,6 +870,14 @@
   .teams-section__status-row {
     align-items: center;
     flex-wrap: wrap;
+  }
+
+  .teams-section__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teams-section__card--compact {
+    max-width: none;
   }
 }
 

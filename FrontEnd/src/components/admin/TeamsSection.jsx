@@ -191,6 +191,17 @@ export default function TeamsSection() {
         };
     }, []);
 
+    useEffect(() => {
+        if (!successMessage && !errorMessage) return;
+
+        const timeoutId = window.setTimeout(() => {
+            setSuccessMessage("");
+            setErrorMessage("");
+        }, 3000);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [successMessage, errorMessage]);
+
     const filteredTeams = useMemo(() => {
         const value = searchTerm.trim().toLowerCase();
 
@@ -470,6 +481,7 @@ export default function TeamsSection() {
         try {
             setIsSubmitting(true);
             setErrorMessage("");
+            setSuccessMessage("");
 
             const payload = {
                 teamName: String(membersModalTeam.teamName || "").trim(),
@@ -497,6 +509,7 @@ export default function TeamsSection() {
                 throw new Error(data.message || "Failed to update team members.");
             }
 
+            setSuccessMessage("Members updated successfully.");
             await fetchTeams();
             closeMembersModal();
         } catch (error) {
@@ -797,15 +810,18 @@ export default function TeamsSection() {
                     {filteredTeams.map((team) => (
                         <article key={team.teamId} className="teams-section__card teams-section__card--compact">
                             <div className="teams-section__card-top">
-                                <div>
-                                    <h3>{team.teamName}</h3>
+                                <div className="teams-section__card-heading">
+                                    <div className="teams-section__card-title-row">
+                                        <h3>{team.teamName}</h3>
+                                        <span className="teams-section__card-title-spacer"></span>
+                                        <span
+                                            className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
+                                        >
+                                            <span className="teams-section__status-badge-dot"></span>
+                                            {team.isActive ? "Active" : "Inactive"}
+                                        </span>
+                                    </div>
                                     <p>{team.description || "No description added yet."}</p>
-                                    <span
-                                        className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
-                                    >
-                                        <span className="teams-section__status-badge-dot"></span>
-                                        {team.isActive ? "Active" : "Inactive"}
-                                    </span>
                                 </div>
 
                                 <div
