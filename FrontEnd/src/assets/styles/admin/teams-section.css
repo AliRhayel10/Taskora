@@ -222,49 +222,6 @@
   gap: 10px;
   margin-bottom: 8px;
   min-width: 0;
-  flex-wrap: nowrap;
-}
-
-.teams-section__card-title-spacer {
-  flex: 1;
-  min-width: 8px;
-}
-
-.teams-section__status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.teams-section__status-badge-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-
-.teams-section__status-badge--active {
-  background: #ecfdf3;
-  color: #166534;
-}
-
-.teams-section__status-badge--active .teams-section__status-badge-dot {
-  background: #16a34a;
-}
-
-.teams-section__status-badge--inactive {
-  background: #fef2f2;
-  color: #b42318;
-}
-
-.teams-section__status-badge--inactive .teams-section__status-badge-dot {
-  background: #dc2626;
 }
 
 .teams-section__menu {
@@ -336,10 +293,25 @@
 
 .teams-section__card-bottom {
   display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 14px 20px 18px;
+}
+
+.teams-section__card-middle {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 20px 18px;
+  padding: 0 0 14px;
+}
+
+.teams-section__card-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid #e8eef5;
 }
 
 .teams-section__meta {
@@ -400,6 +372,43 @@
   font-size: 0.82rem;
   font-weight: 500;
   line-height: 1.2;
+}
+
+.teams-section__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.teams-section__status-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.teams-section__status-badge--active {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.teams-section__status-badge--active .teams-section__status-badge-dot {
+  background: #16a34a;
+}
+
+.teams-section__status-badge--inactive {
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.teams-section__status-badge--inactive .teams-section__status-badge-dot {
+  background: #dc2626;
 }
 
 .teams-section__modal-overlay {
@@ -879,10 +888,23 @@
   .teams-section__card--compact {
     max-width: none;
   }
+
+  .teams-section__card-middle {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .teams-section__card-actions {
+    justify-content: stretch;
+  }
+
+  .teams-section__members-btn {
+    width: 100%;
+  }
 }
 
 .teams-section__members-btn {
-  margin-left: auto;
+  margin-left: 0;
   min-width: 148px;
   height: 38px;
   border: 1px solid #c7d7fe;

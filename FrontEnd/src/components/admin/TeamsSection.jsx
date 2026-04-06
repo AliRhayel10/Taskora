@@ -813,13 +813,6 @@ export default function TeamsSection() {
                                 <div className="teams-section__card-heading">
                                     <div className="teams-section__card-title-row">
                                         <h3>{team.teamName}</h3>
-                                        <span className="teams-section__card-title-spacer"></span>
-                                        <span
-                                            className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
-                                        >
-                                            <span className="teams-section__status-badge-dot"></span>
-                                            {team.isActive ? "Active" : "Inactive"}
-                                        </span>
                                     </div>
                                     <p>{team.description || "No description added yet."}</p>
                                 </div>
@@ -866,33 +859,44 @@ export default function TeamsSection() {
                             </div>
 
                             <div className="teams-section__card-bottom">
-                                <div className="teams-section__meta">
-                                    {team.teamLeaderName ? (
-                                        <div className="teams-section__leader-summary">
-                                            <span className="teams-section__leader-avatar">
-                                                {getInitials(team.teamLeaderName)}
-                                            </span>
+                                <div className="teams-section__card-middle">
+                                    <div className="teams-section__meta">
+                                        {team.teamLeaderName ? (
+                                            <div className="teams-section__leader-summary">
+                                                <span className="teams-section__leader-avatar">
+                                                    {getInitials(team.teamLeaderName)}
+                                                </span>
 
-                                            <span className="teams-section__leader-copy">
-                                                <strong>{team.teamLeaderName}</strong>
-                                                <small>Team Leader</small>
+                                                <span className="teams-section__leader-copy">
+                                                    <strong>{team.teamLeaderName}</strong>
+                                                    <small>Team Leader</small>
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="teams-section__badge">
+                                                No team leader assigned
                                             </span>
-                                        </div>
-                                    ) : (
-                                        <span className="teams-section__badge">
-                                            No team leader assigned
-                                        </span>
-                                    )}
+                                        )}
+                                    </div>
+
+                                    <span
+                                        className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
+                                    >
+                                        <span className="teams-section__status-badge-dot"></span>
+                                        {team.isActive ? "Active" : "Inactive"}
+                                    </span>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    className="teams-section__members-btn"
-                                    onClick={() => openMembersModal(team)}
-                                >
-                                    <FiUsers />
-                                    <span>Edit Members</span>
-                                </button>
+                                <div className="teams-section__card-actions">
+                                    <button
+                                        type="button"
+                                        className="teams-section__members-btn"
+                                        onClick={() => openMembersModal(team)}
+                                    >
+                                        <FiUsers />
+                                        <span>Edit Members</span>
+                                    </button>
+                                </div>
                             </div>
                         </article>
                     ))}
