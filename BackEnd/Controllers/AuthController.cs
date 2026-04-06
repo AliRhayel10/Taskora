@@ -187,10 +187,8 @@ namespace BackEnd.Controllers
                 var normalizedSearch = search.Trim().ToLower();
 
                 query = query.Where(u =>
-                    (u.FullName != null && u.FullName.ToLower().Contains(normalizedSearch)) ||
-                    (u.Email != null && u.Email.ToLower().Contains(normalizedSearch)) ||
-                    (u.JobTitle != null && u.JobTitle.ToLower().Contains(normalizedSearch))
-                );
+                    u.FullName != null &&
+                    u.FullName.ToLower().Contains(normalizedSearch));
             }
 
             var totalUsers = await query.CountAsync();
@@ -204,6 +202,15 @@ namespace BackEnd.Controllers
                     userId = u.UserId,
                     fullName = u.FullName,
                     email = u.Email,
+                    role = _context.UserRoles
+                        .Where(ur => ur.UserId == u.UserId)
+                        .Join(
+                            _context.Roles,
+                            ur => ur.RoleId,
+                            r => r.RoleId,
+                            (ur, r) => r.RoleName
+                        )
+                        .FirstOrDefault() ?? "Employee",
                     jobType = u.JobTitle,
                     team = "Unassigned",
                     isActive = true

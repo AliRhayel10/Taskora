@@ -16,6 +16,7 @@ import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
 const PAGE_SIZE = 6;
+const SEARCH_FETCH_SIZE = 1000;
 
 const initialCreateForm = {
   fullName: "",
@@ -61,6 +62,10 @@ function getUserName(user) {
     [user?.firstName, user?.lastName].filter(Boolean).join(" ");
 
   return fullName?.trim() || user?.email || "Unnamed user";
+}
+
+function getUserRole(user) {
+  return user?.role?.trim() || user?.roleName?.trim() || "Employee";
 }
 
 function getUserJobType(user) {
@@ -122,9 +127,16 @@ function buildPageNumbers(currentPage, totalPages) {
   return Array.from(pages).sort((a, b) => a - b);
 }
 
+function matchesNameSearch(user, search) {
+  const term = search.trim().toLowerCase();
+  if (!term) return true;
+  return getUserName(user).toLowerCase().includes(term);
+}
+
 export default function UsersSection() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -175,12 +187,14 @@ export default function UsersSection() {
       setIsLoading(true);
       setErrorMessage("");
 
+      const isSearching = search.trim().length > 0;
+
       const params = new URLSearchParams({
-        page: String(page),
-        pageSize: String(PAGE_SIZE),
+        page: String(isSearching ? 1 : page),
+        pageSize: String(isSearching ? SEARCH_FETCH_SIZE : PAGE_SIZE),
       });
 
-      if (search.trim()) {
+      if (isSearching) {
         params.set("search", search.trim());
       }
 
@@ -214,19 +228,51 @@ export default function UsersSection() {
         setUsers([]);
         setTotalUsers(0);
         setTotalPages(1);
+        setErrorMessage("Failed to load users.");
         return;
       }
 
       const normalizedUsers = normalizeUsersResponse(resolvedPayload);
-      const backendPage = Number(resolvedPayload?.page || page) || page;
-      const backendPageSize = Number(resolvedPayload?.pageSize || PAGE_SIZE) || PAGE_SIZE;
-      const backendTotal = Number(resolvedPayload?.totalCount ?? normalizedUsers.length) || 0;
+      const safeUsers = Array.isArray(normalizedUsers) ? normalizedUsers : [];
+
+      if (isSearching) {
+        const locallyFilteredUsers = safeUsers.filter((user) => matchesNameSearch(user, search));
+        const calculatedPages = Math.max(1, Math.ceil(locallyFilteredUsers.length / PAGE_SIZE));
+        const paginatedUsers = locallyFilteredUsers.slice(
+          (page - 1) * PAGE_SIZE,
+          page * PAGE_SIZE
+        );
+
+        setUsers(paginatedUsers);
+        setTotalUsers(locallyFilteredUsers.length);
+        setTotalPages(calculatedPages);
+        setCurrentPage(Math.min(page, calculatedPages));
+        return;
+      }
+
+      const pagination = resolvedPayload?.pagination || {};
+      const backendPage = Number(pagination?.page ?? resolvedPayload?.page ?? page) || page;
+      const backendPageSize =
+        Number(pagination?.pageSize ?? resolvedPayload?.pageSize ?? PAGE_SIZE) || PAGE_SIZE;
+      const backendTotal =
+        Number(
+          pagination?.totalUsers ??
+            pagination?.totalCount ??
+            resolvedPayload?.totalUsers ??
+            resolvedPayload?.totalCount ??
+            safeUsers.length
+        ) || 0;
       const calculatedTotalPages = Math.max(
         1,
-        Number(resolvedPayload?.totalPages || Math.ceil(backendTotal / backendPageSize) || 1)
+        Number(
+          pagination?.totalPages ??
+            resolvedPayload?.totalPages ??
+            Math.ceil(backendTotal / backendPageSize) ??
+            1
+        )
       );
 
-      setUsers(Array.isArray(normalizedUsers) ? normalizedUsers : []);
+      setUsers(safeUsers);
       setCurrentPage(Math.min(backendPage, calculatedTotalPages));
       setTotalUsers(backendTotal);
       setTotalPages(calculatedTotalPages);
@@ -243,19 +289,22 @@ export default function UsersSection() {
   };
 
   useEffect(() => {
-    const abortController = new AbortController();
-    fetchUsers(currentPage, searchTerm, abortController.signal);
-    return () => abortController.abort();
-  }, [companyId, currentPage]);
-
-  useEffect(() => {
     const delay = setTimeout(() => {
-      setCurrentPage(1);
-      fetchUsers(1, searchTerm);
+      setDebouncedSearchTerm(searchTerm.trim());
     }, 300);
 
     return () => clearTimeout(delay);
   }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    fetchUsers(currentPage, debouncedSearchTerm, abortController.signal);
+    return () => abortController.abort();
+  }, [companyId, currentPage, debouncedSearchTerm]);
 
   const pageNumbers = useMemo(
     () => buildPageNumbers(currentPage, totalPages),
@@ -329,7 +378,7 @@ export default function UsersSection() {
       setCreateForm(initialCreateForm);
       setShowPassword(false);
       setCurrentPage(1);
-      await fetchUsers(1, searchTerm);
+      await fetchUsers(1, debouncedSearchTerm);
     } catch (error) {
       console.error("Failed to create user:", error);
       setCreateError(error.message || "Failed to create user.");
@@ -350,7 +399,7 @@ export default function UsersSection() {
           <FiSearch />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search users by name..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -410,6 +459,7 @@ export default function UsersSection() {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
+                  <th>Role</th>
                   <th>Job Type</th>
                   <th>Team</th>
                   <th>Status</th>
@@ -423,6 +473,7 @@ export default function UsersSection() {
 
                   const name = getUserName(user);
                   const email = user?.email || "No email";
+                  const role = getUserRole(user);
                   const jobType = getUserJobType(user);
                   const team = getUserTeam(user);
                   const status = getUserStatus(user);
@@ -442,6 +493,7 @@ export default function UsersSection() {
                         </div>
                       </td>
                       <td>{email}</td>
+                      <td>{role}</td>
                       <td>{jobType}</td>
                       <td>{team}</td>
                       <td>
@@ -475,7 +527,10 @@ export default function UsersSection() {
             <div className="users-section__pagination-info">
               {totalUsers === 0
                 ? "0 users"
-                : `${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(currentPage * PAGE_SIZE, totalUsers)} of ${totalUsers} users`}
+                : `${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(
+                    currentPage * PAGE_SIZE,
+                    totalUsers
+                  )} of ${totalUsers} users`}
             </div>
 
             <div className="users-section__pagination-controls">
@@ -650,7 +705,9 @@ export default function UsersSection() {
                   id="sendInvitation"
                   type="checkbox"
                   checked={createForm.sendInvitation}
-                  onChange={(event) => handleCreateFormChange("sendInvitation", event.target.checked)}
+                  onChange={(event) =>
+                    handleCreateFormChange("sendInvitation", event.target.checked)
+                  }
                 />
                 <span>Send user an email invitation with login instructions</span>
               </div>
