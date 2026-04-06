@@ -24,7 +24,7 @@ namespace BackEnd.Controllers
         {
             var normalizedSearch = search?.Trim().ToLower();
 
-            var teamsQuery =
+            var teams = await (
                 from team in _context.Teams
                 join leader in _context.Users
                     on team.TeamLeaderUserId equals leader.UserId into leaderJoin
@@ -41,20 +41,22 @@ namespace BackEnd.Controllers
                     teamLeaderName = leader != null ? leader.FullName : string.Empty,
                     tasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
                     isActive = team.IsActive,
-                    memberIds = new List<int>()
-                };
+                    memberIds = _context.TeamMembers
+                        .Where(teamMember => teamMember.TeamId == team.TeamId)
+                        .Select(teamMember => teamMember.UserId)
+                        .ToList()
+                })
+                .OrderBy(team => team.teamName)
+                .ToListAsync();
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
             {
-                teamsQuery = teamsQuery.Where(team =>
+                teams = teams.Where(team =>
                     (team.teamName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
                     (team.description ?? string.Empty).ToLower().Contains(normalizedSearch) ||
-                    (team.teamLeaderName ?? string.Empty).ToLower().Contains(normalizedSearch));
+                    (team.teamLeaderName ?? string.Empty).ToLower().Contains(normalizedSearch))
+                    .ToList();
             }
-
-            var teams = await teamsQuery
-                .OrderBy(team => team.teamName)
-                .ToListAsync();
 
             return Ok(teams);
         }
@@ -227,6 +229,18 @@ namespace BackEnd.Controllers
             _context.Teams.Add(team);
             await _context.SaveChangesAsync();
 
+            if (team.TeamLeaderUserId.HasValue)
+            {
+                var leaderMember = new TeamMember
+                {
+                    TeamId = team.TeamId,
+                    UserId = team.TeamLeaderUserId.Value
+                };
+
+                _context.TeamMembers.Add(leaderMember);
+                await _context.SaveChangesAsync();
+            }
+
             var leaderName = string.Empty;
 
             if (team.TeamLeaderUserId.HasValue)
@@ -252,7 +266,9 @@ namespace BackEnd.Controllers
                     teamLeaderName = leaderName,
                     tasksCount = 0,
                     isActive = team.IsActive,
-                    memberIds = new List<int>()
+                    memberIds = team.TeamLeaderUserId.HasValue
+                        ? new List<int> { team.TeamLeaderUserId.Value }
+                        : new List<int>()
                 }
             });
         }
@@ -333,6 +349,35 @@ namespace BackEnd.Controllers
                 }
             }
 
+            var requestedMemberIds = (request.MemberIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (requestedLeaderId.HasValue && !requestedMemberIds.Contains(requestedLeaderId.Value))
+            {
+                requestedMemberIds.Add(requestedLeaderId.Value);
+            }
+
+            if (requestedMemberIds.Count > 0)
+            {
+                var validMemberIds = await _context.Users
+                    .Where(user => user.CompanyId == team.CompanyId && requestedMemberIds.Contains(user.UserId))
+                    .Select(user => user.UserId)
+                    .ToListAsync();
+
+                var invalidMemberIds = requestedMemberIds.Except(validMemberIds).ToList();
+
+                if (invalidMemberIds.Count > 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "One or more selected members do not belong to this company."
+                    });
+                }
+            }
+
             team.TeamName = trimmedTeamName;
             team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
             team.TeamLeaderUserId = requestedLeaderId;
@@ -344,6 +389,25 @@ namespace BackEnd.Controllers
             else if (request.Status.HasValue)
             {
                 team.IsActive = request.Status.Value;
+            }
+
+            var existingMembers = await _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == team.TeamId)
+                .ToListAsync();
+
+            _context.TeamMembers.RemoveRange(existingMembers);
+
+            if (requestedMemberIds.Count > 0)
+            {
+                var newMembers = requestedMemberIds
+                    .Distinct()
+                    .Select(memberId => new TeamMember
+                    {
+                        TeamId = team.TeamId,
+                        UserId = memberId
+                    });
+
+                await _context.TeamMembers.AddRangeAsync(newMembers);
             }
 
             await _context.SaveChangesAsync();
@@ -373,7 +437,7 @@ namespace BackEnd.Controllers
                     teamLeaderName = leaderName,
                     tasksCount = await _context.Tasks.CountAsync(task => task.TeamId == team.TeamId),
                     isActive = team.IsActive,
-                    memberIds = request.MemberIds ?? new List<int>()
+                    memberIds = requestedMemberIds
                 }
             });
         }

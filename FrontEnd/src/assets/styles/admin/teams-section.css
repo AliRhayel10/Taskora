@@ -279,7 +279,7 @@
 .teams-section__card-bottom {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 16px;
   padding: 14px 20px 18px;
 }
@@ -819,25 +819,27 @@
 
 
 .teams-section__members-btn {
-  min-width: 150px;
+  margin-left: auto;
+  min-width: 148px;
   height: 38px;
-  border: 1px solid #d7dde6;
+  border: 1px solid #c7d7fe;
   border-radius: 10px;
-  background: #f8fafc;
-  color: #344054;
+  background: #eef4ff;
+  color: #1d4ed8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 0 14px;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .teams-section__members-btn:hover {
-  background: #eef2f7;
-  border-color: #cbd5e1;
-  color: #1f2937;
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
   transform: translateY(-1px);
 }

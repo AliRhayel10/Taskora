@@ -10,5 +10,6 @@ namespace BackEnd.DTOs.Teams
         public string TeamLeaderName { get; set; } = string.Empty;
         public int TasksCount { get; set; }
         public bool IsActive { get; set; }
+        public List<int> MemberIds { get; set; } = new();
     }
 }

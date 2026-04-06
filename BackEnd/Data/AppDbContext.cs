@@ -17,6 +17,7 @@ namespace BackEnd.Data
             public DbSet<ComplexityMultiplier> ComplexityMultipliers { get; set; }
             public DbSet<TaskItem> Tasks { get; set; }
             public DbSet<Team> Teams { get; set; }
+            public DbSet<TeamMember> TeamMembers { get; set; }
             public DbSet<BackEnd.Models.TaskStatus> TaskStatuses { get; set; }
             public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
 
@@ -278,6 +279,26 @@ namespace BackEnd.Data
                         entity.HasOne<User>()
                         .WithMany()
                         .HasForeignKey(t => t.TeamLeaderUserId)
+                        .OnDelete(DeleteBehavior.Restrict);
+                  });
+
+                  modelBuilder.Entity<TeamMember>(entity =>
+                  {
+                        entity.ToTable("TeamMembers");
+
+                        entity.HasKey(tm => tm.TeamMemberId);
+
+                        entity.HasIndex(tm => new { tm.TeamId, tm.UserId })
+                        .IsUnique();
+
+                        entity.HasOne<Team>()
+                        .WithMany()
+                        .HasForeignKey(tm => tm.TeamId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne<User>()
+                        .WithMany()
+                        .HasForeignKey(tm => tm.UserId)
                         .OnDelete(DeleteBehavior.Restrict);
                   });
             }
