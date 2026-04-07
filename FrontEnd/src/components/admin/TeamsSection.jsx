@@ -278,11 +278,20 @@ export default function TeamsSection() {
 
     const filteredCreateTeamLeaders = useMemo(() => {
         const value = createLeaderSearchTerm.trim().toLowerCase();
+        const selectedCreateLeaderId = String(teamForm.teamLeaderId || "");
 
         const leaders = companyMembers.filter((employee) => {
             const employeeId = String(employee.userId || "");
+
+            if (!isTeamLeaderRole(employee.role)) {
+                return false;
+            }
+
+            if (employeeId === selectedCreateLeaderId) {
+                return true;
+            }
+
             return (
-                isTeamLeaderRole(employee.role) &&
                 !assignedActiveLeaderIds.has(employeeId) &&
                 !assignedActiveMemberIds.has(employeeId)
             );
@@ -305,7 +314,7 @@ export default function TeamsSection() {
                 jobTitle.includes(value)
             );
         });
-    }, [companyMembers, createLeaderSearchTerm, assignedActiveLeaderIds, assignedActiveMemberIds]);
+    }, [companyMembers, createLeaderSearchTerm, assignedActiveLeaderIds, assignedActiveMemberIds, teamForm.teamLeaderId]);
 
     const filteredTeamLeaders = useMemo(() => {
         const value = leaderSearchTerm.trim().toLowerCase();
@@ -640,6 +649,7 @@ export default function TeamsSection() {
 
             setSuccessMessage("Members updated successfully.");
             await fetchTeams();
+            await fetchCompanyMembers();
             closeMembersModal();
         } catch (error) {
             console.error("Failed to update team members:", error);
