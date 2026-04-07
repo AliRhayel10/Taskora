@@ -29,7 +29,7 @@ namespace BackEnd.Controllers
                 join leader in _context.Users
                     on team.TeamLeaderUserId equals leader.UserId into leaderJoin
                 from leader in leaderJoin.DefaultIfEmpty()
-                where team.CompanyId == companyId && team.IsActive
+                where team.CompanyId == companyId
                 select new
                 {
                     teamId = team.TeamId,

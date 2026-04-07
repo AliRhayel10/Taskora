@@ -88,6 +88,7 @@ export default function TeamsSection() {
     const [selectedTeam, setSelectedTeam] = useState(null);
     const [membersModalTeam, setMembersModalTeam] = useState(null);
     const [isStatusActive, setIsStatusActive] = useState(true);
+    const [reactivationNotice, setReactivationNotice] = useState("");
 
     const [teamForm, setTeamForm] = useState({
         teamName: "",
@@ -432,6 +433,7 @@ export default function TeamsSection() {
     const openMembersModal = (team) => {
         setSuccessMessage("");
         setErrorMessage("");
+        setReactivationNotice("");
         setActiveMenuTeamId(null);
         setMembersModalTeam(team);
         setMemberSearchTerm("");
@@ -507,6 +509,7 @@ export default function TeamsSection() {
         setMembersModalTeam(null);
         setMemberSearchTerm("");
         setLeaderSearchTerm("");
+        setReactivationNotice("");
         setEditForm({
             teamName: "",
             description: "",
@@ -734,6 +737,15 @@ export default function TeamsSection() {
             return;
         }
 
+        const wasInactive =
+            typeof selectedTeam?.isActive === "boolean"
+                ? !selectedTeam.isActive
+                : typeof selectedTeam?.status === "boolean"
+                  ? !selectedTeam.status
+                  : false;
+
+        const isReactivating = wasInactive && isStatusActive;
+
         try {
             setIsSubmitting(true);
             setErrorMessage("");
@@ -769,6 +781,40 @@ export default function TeamsSection() {
 
             setSuccessMessage("Team updated successfully.");
             const updatedTeam = data.team || data;
+
+            if (isReactivating) {
+                const previousMemberIds = Array.isArray(selectedTeam?.memberIds)
+                    ? selectedTeam.memberIds.map((id) => String(id))
+                    : [];
+
+                const nextMemberIds = Array.isArray(updatedTeam?.memberIds)
+                    ? updatedTeam.memberIds.map((id) => String(id))
+                    : [];
+
+                const previousLeaderId = String(
+                    selectedTeam?.teamLeaderId || selectedTeam?.teamLeaderUserId || ""
+                );
+
+                const nextLeaderId = String(
+                    updatedTeam?.teamLeaderId || updatedTeam?.teamLeaderUserId || ""
+                );
+
+                const lostMembersCount = previousMemberIds.filter(
+                    (id) => !nextMemberIds.includes(id)
+                ).length;
+
+                const leaderRemoved = previousLeaderId && previousLeaderId !== nextLeaderId;
+
+                if (lostMembersCount > 0 || leaderRemoved) {
+                    setReactivationNotice(
+                        "This team was reactivated, but users already assigned to other active teams stayed in their current teams."
+                    );
+                } else {
+                    setReactivationNotice("");
+                }
+            } else {
+                setReactivationNotice("");
+            }
 
             setTeams((prev) =>
                 prev.map((team) =>
@@ -895,6 +941,12 @@ export default function TeamsSection() {
                         {errorMessage && (
                             <div className="teams-section__feedback teams-section__feedback--error">
                                 {errorMessage}
+                            </div>
+                        )}
+
+                        {reactivationNotice && (
+                            <div className="teams-section__feedback teams-section__feedback--reactivation">
+                                {reactivationNotice}
                             </div>
                         )}
 
