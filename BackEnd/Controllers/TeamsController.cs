@@ -406,53 +406,48 @@ namespace BackEnd.Controllers
                 return NotFound(new { success = false, message = "Team not found." });
             }
 
-            // delete task histories first
             var taskIds = await _context.Tasks
-                .Where(t => t.TeamId == teamId)
-                .Select(t => t.TaskId)
+                .Where(task => task.TeamId == teamId)
+                .Select(task => task.TaskId)
                 .ToListAsync();
 
             if (taskIds.Count > 0)
             {
-                var histories = await _context.TaskStatusHistories
-                    .Where(h => taskIds.Contains(h.TaskId))
+                var taskHistories = await _context.TaskStatusHistories
+                    .Where(history => taskIds.Contains(history.TaskId))
                     .ToListAsync();
 
-                if (histories.Count > 0)
+                if (taskHistories.Count > 0)
                 {
-                    _context.TaskStatusHistories.RemoveRange(histories);
+                    _context.TaskStatusHistories.RemoveRange(taskHistories);
+                }
+
+                var tasks = await _context.Tasks
+                    .Where(task => task.TeamId == teamId)
+                    .ToListAsync();
+
+                if (tasks.Count > 0)
+                {
+                    _context.Tasks.RemoveRange(tasks);
                 }
             }
 
-            // delete tasks
-            var tasks = await _context.Tasks
-                .Where(t => t.TeamId == teamId)
+            var existingRows = await _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == teamId)
                 .ToListAsync();
 
-            if (tasks.Count > 0)
+            if (existingRows.Count > 0)
             {
-                _context.Tasks.RemoveRange(tasks);
+                _context.TeamMembers.RemoveRange(existingRows);
             }
 
-            // delete team members
-            var members = await _context.TeamMembers
-                .Where(m => m.TeamId == teamId)
-                .ToListAsync();
-
-            if (members.Count > 0)
-            {
-                _context.TeamMembers.RemoveRange(members);
-            }
-
-            // delete team itself
             _context.Teams.Remove(team);
-
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 success = true,
-                message = "Team and all related data deleted successfully."
+                message = "Team deleted successfully."
             });
         }
 
