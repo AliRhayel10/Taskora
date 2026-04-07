@@ -67,7 +67,7 @@ function isEmployeeRole(value) {
 }
 
 function isSelectableMemberRole(value) {
-    return isEmployeeRole(value) || isTeamLeaderRole(value);
+    return isEmployeeRole(value);
 }
 
 export default function TeamsSection() {
@@ -161,12 +161,18 @@ export default function TeamsSection() {
         }
     };
 
-    const fetchTeamLeaders = async () => {
+    const fetchTeamLeaders = async (search = "") => {
         if (!companyId) return;
 
         try {
+            const params = new URLSearchParams({ teamLeadersOnly: "true" });
+
+            if (search.trim()) {
+                params.set("search", search.trim());
+            }
+
             const response = await fetch(
-                `${API_BASE_URL}/api/teams/company/${companyId}/members?teamLeadersOnly=true`
+                `${API_BASE_URL}/api/teams/company/${companyId}/members?${params.toString()}`
             );
 
             const data = await response.json();
@@ -175,8 +181,7 @@ export default function TeamsSection() {
                 throw new Error(data.message || "Failed to load team leaders.");
             }
 
-            const allMembers = Array.isArray(data) ? data : [];
-            setTeamLeaders(allMembers.filter((member) => isTeamLeaderRole(member.role)));
+            setTeamLeaders(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to fetch team leaders:", error);
         }
@@ -185,6 +190,7 @@ export default function TeamsSection() {
     useEffect(() => {
         fetchTeams();
         fetchCompanyMembers();
+        fetchTeamLeaders();
     }, [companyId]);
 
     useEffect(() => {
@@ -311,7 +317,7 @@ export default function TeamsSection() {
         const value = createLeaderSearchTerm.trim().toLowerCase();
         const selectedCreateLeaderId = String(teamForm.teamLeaderId || "");
 
-        const leaders = companyMembers.filter((employee) => {
+        const leaders = teamLeaders.filter((employee) => {
             const employeeId = String(employee.userId || "");
 
             if (!isTeamLeaderRole(employee.role)) {
@@ -345,14 +351,14 @@ export default function TeamsSection() {
                 jobTitle.includes(value)
             );
         });
-    }, [companyMembers, createLeaderSearchTerm, assignedActiveLeaderIds, assignedActiveMemberIds, teamForm.teamLeaderId]);
+    }, [teamLeaders, createLeaderSearchTerm, assignedActiveLeaderIds, assignedActiveMemberIds, teamForm.teamLeaderId]);
 
     const filteredTeamLeaders = useMemo(() => {
         const value = leaderSearchTerm.trim().toLowerCase();
         const currentEditingTeamId = String(membersModalTeam?.teamId || selectedTeam?.teamId || "");
         const selectedEditLeaderId = String(editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || "");
 
-        const leaders = companyMembers.filter((employee) => {
+        const leaders = teamLeaders.filter((employee) => {
             const employeeId = String(employee.userId || "");
 
             if (!isTeamLeaderRole(employee.role)) {
@@ -394,7 +400,7 @@ export default function TeamsSection() {
                 jobTitle.includes(value)
             );
         });
-    }, [companyMembers, leaderSearchTerm, teams, membersModalTeam, selectedTeam, editForm.teamLeaderId]);
+    }, [teamLeaders, leaderSearchTerm, teams, membersModalTeam, selectedTeam, editForm.teamLeaderId]);
 
     useEffect(() => {
         if (!membersModalTeam) return;
@@ -406,20 +412,30 @@ export default function TeamsSection() {
         return () => window.clearTimeout(timeoutId);
     }, [memberSearchTerm, membersModalTeam, companyId]);
 
+    useEffect(() => {
+        if (!membersModalTeam) return;
+
+        const timeoutId = window.setTimeout(() => {
+            fetchTeamLeaders(leaderSearchTerm);
+        }, 250);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [leaderSearchTerm, membersModalTeam, companyId]);
+
     const isEditFormValid =
         editForm.teamName.trim() &&
         editForm.description.trim();
 
     const selectedLeaderId = String(editForm.teamLeaderId || "").trim();
 
-    const isLeaderStillSelected =
-        !membersModalTeam || (!!selectedLeaderId && editForm.memberIds.includes(selectedLeaderId));
+    const isLeaderStillSelected = !membersModalTeam || !!selectedLeaderId;
 
     const openCreateModal = () => {
         setSuccessMessage("");
         setErrorMessage("");
         setTeamForm({ teamName: "", description: "", teamLeaderId: "", isActive: true });
         setCreateLeaderSearchTerm("");
+        fetchTeamLeaders();
         setIsCreateModalOpen(true);
     };
 
@@ -446,17 +462,14 @@ export default function TeamsSection() {
             ? String(team.teamLeaderId || team.teamLeaderUserId)
             : "";
 
-        const mergedMemberIds = currentLeaderId
-            ? Array.from(new Set([...currentMemberIds, currentLeaderId]))
-            : currentMemberIds;
-
         setEditForm((prev) => ({
             ...prev,
             teamLeaderId: currentLeaderId,
-            memberIds: mergedMemberIds,
+            memberIds: currentMemberIds,
         }));
 
         fetchCompanyMembers();
+        fetchTeamLeaders();
     };
 
     const closeMembersModal = () => {
@@ -473,8 +486,8 @@ export default function TeamsSection() {
         setActiveMenuTeamId(null);
         setMemberSearchTerm("");
         setLeaderSearchTerm("");
-        fetchTeamLeaders();
         fetchCompanyMembers();
+        fetchTeamLeaders();
 
         const currentMemberIds = Array.isArray(team.memberIds)
             ? team.memberIds.map((id) => String(id))
@@ -482,15 +495,11 @@ export default function TeamsSection() {
 
         const currentLeaderId = team.teamLeaderId ? String(team.teamLeaderId) : "";
 
-        const mergedMemberIds = currentLeaderId
-            ? Array.from(new Set([...currentMemberIds, currentLeaderId]))
-            : currentMemberIds;
-
         setEditForm({
             teamName: team.teamName || "",
             description: team.description || "",
             teamLeaderId: currentLeaderId,
-            memberIds: mergedMemberIds,
+            memberIds: currentMemberIds,
         });
 
         setIsStatusActive(
@@ -563,17 +572,10 @@ export default function TeamsSection() {
     const handleLeaderChange = (leaderId) => {
         const normalizedLeaderId = leaderId ? String(leaderId) : "";
 
-        setEditForm((prev) => {
-            const nextMemberIds = normalizedLeaderId
-                ? Array.from(new Set([...prev.memberIds, normalizedLeaderId]))
-                : prev.memberIds;
-
-            return {
-                ...prev,
-                teamLeaderId: normalizedLeaderId,
-                memberIds: nextMemberIds,
-            };
-        });
+        setEditForm((prev) => ({
+            ...prev,
+            teamLeaderId: normalizedLeaderId,
+        }));
     };
 
     const handleToggleCreateLeader = (leaderId) => {
@@ -592,20 +594,9 @@ export default function TeamsSection() {
             const currentLeaderId = String(prev.teamLeaderId || "");
             const nextLeaderId = currentLeaderId === normalizedLeaderId ? "" : normalizedLeaderId;
 
-            const leaderIds = new Set(
-                filteredTeamLeaders.map((leader) => String(leader.userId))
-            );
-
-            const memberIdsWithoutLeaderRows = prev.memberIds.filter(
-                (id) => !leaderIds.has(String(id))
-            );
-
             return {
                 ...prev,
                 teamLeaderId: nextLeaderId,
-                memberIds: nextLeaderId
-                    ? Array.from(new Set([...memberIdsWithoutLeaderRows, nextLeaderId]))
-                    : memberIdsWithoutLeaderRows,
             };
         });
     };
@@ -915,6 +906,13 @@ export default function TeamsSection() {
                 </div>
             )}
 
+            {errorMessage && !isLoading && (
+                <div className="teams-section__feedback teams-section__feedback--error teams-section__feedback--floating teams-section__feedback--floating-error">
+                    <FiSlash />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
+
             {selectedTeam && !isDeleteModalOpen && !membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
                     <div
@@ -936,12 +934,6 @@ export default function TeamsSection() {
                                 <FiX />
                             </button>
                         </div>
-
-                        {errorMessage && (
-                            <div className="teams-section__feedback teams-section__feedback--error">
-                                {errorMessage}
-                            </div>
-                        )}
 
                         {reactivationNotice && (
                             <div className="teams-section__feedback teams-section__feedback--reactivation">
@@ -1022,12 +1014,6 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {!isLoading && errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && (
-                <div className="teams-section__state-card teams-section__state-card--error">
-                    <p>{errorMessage}</p>
-                </div>
-            )}
-
             {!isLoading && !errorMessage && filteredTeams.length === 0 && (
                 <div className="teams-section__state-card">
                     <div className="teams-section__state-icon">
@@ -1104,7 +1090,7 @@ export default function TeamsSection() {
                             <div className="teams-section__card-bottom">
                                 <div className="teams-section__card-middle">
                                     <div className="teams-section__meta">
-                                        {team.teamLeaderName ? (
+                                        {team.isActive && team.teamLeaderName ? (
                                             <div className="teams-section__leader-summary">
                                                 <span className="teams-section__leader-avatar">
                                                     {getInitials(team.teamLeaderName)}
@@ -1113,6 +1099,17 @@ export default function TeamsSection() {
                                                 <span className="teams-section__leader-copy">
                                                     <strong>{team.teamLeaderName}</strong>
                                                     <small>Team Leader</small>
+                                                </span>
+                                            </div>
+                                        ) : !team.isActive ? (
+                                            <div className="teams-section__leader-unavailable">
+                                                <span className="teams-section__leader-unavailable-icon">
+                                                    <FiSlash />
+                                                </span>
+
+                                                <span className="teams-section__leader-unavailable-copy">
+                                                    <strong>Unavailable</strong>
+                                                    <small>Due to inactivity</small>
                                                 </span>
                                             </div>
                                         ) : (
@@ -1268,14 +1265,6 @@ export default function TeamsSection() {
                                         {filteredEmployees.map((employee) => {
                                             const employeeId = String(employee.userId);
                                             const isChecked = editForm.memberIds.includes(employeeId);
-                                            const modalLeaderId = String(
-                                                editForm.teamLeaderId ||
-                                                membersModalTeam?.teamLeaderId ||
-                                                membersModalTeam?.teamLeaderUserId ||
-                                                ""
-                                            );
-                                            const isLeader = employeeId === modalLeaderId;
-
                                             return (
                                                 <label
                                                     key={employee.userId}
@@ -1284,12 +1273,7 @@ export default function TeamsSection() {
                                                     <input
                                                         type="checkbox"
                                                         checked={isChecked}
-                                                        onChange={() => {
-                                                            handleToggleMember(employeeId);
-                                                            if (String(editForm.teamLeaderId || "") === employeeId) {
-                                                                handleLeaderChange("");
-                                                            }
-                                                        }}
+                                                        onChange={() => handleToggleMember(employeeId)}
                                                     />
 
                                                     <span className="teams-section__member-avatar">
@@ -1300,12 +1284,6 @@ export default function TeamsSection() {
                                                         <strong>{employee.fullName || employee.email}</strong>
                                                         <small>{employee.email}</small>
                                                     </span>
-
-                                                    {isLeader && (
-                                                        <span className="teams-section__member-tag">
-                                                            Team Leader
-                                                        </span>
-                                                    )}
                                                 </label>
                                             );
                                         })}
@@ -1314,7 +1292,7 @@ export default function TeamsSection() {
 
                                 {!isLeaderStillSelected && (
                                     <p className="teams-section__members-warning">
-                                        The team leader must stay selected in team members.
+                                        Please select a team leader before saving.
                                     </p>
                                 )}
                             </div>
