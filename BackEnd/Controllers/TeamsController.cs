@@ -363,7 +363,7 @@ namespace BackEnd.Controllers
             }
 
             var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
-            var nextIsActive = request.IsActive ?? request.Status ?? team.IsActive;
+            var nextIsActive = request.IsActive ?? team.IsActive;
             var isReactivating = !team.IsActive && nextIsActive;
 
             if (requestedLeaderId.HasValue)
