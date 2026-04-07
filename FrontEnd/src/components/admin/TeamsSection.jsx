@@ -235,12 +235,35 @@ export default function TeamsSection() {
 
     const filteredEmployees = useMemo(() => {
         const value = memberSearchTerm.trim().toLowerCase();
+        const currentEditingTeamId = String(membersModalTeam?.teamId || "");
+        const selectedLeaderId = String(editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || "");
+
+        const employees = availableEmployees.filter((employee) => {
+            const employeeId = String(employee.userId || "");
+
+            if (employeeId === selectedLeaderId) {
+                return false;
+            }
+
+            const isLeaderOfAnotherActiveTeam = teams.some((team) => {
+                if (!team || team.isActive === false) {
+                    return false;
+                }
+
+                const teamId = String(team.teamId || "");
+                const teamLeaderId = String(team.teamLeaderId || team.teamLeaderUserId || "");
+
+                return teamId !== currentEditingTeamId && teamLeaderId === employeeId;
+            });
+
+            return !isLeaderOfAnotherActiveTeam;
+        });
 
         if (!value) {
-            return availableEmployees;
+            return employees;
         }
 
-        return availableEmployees.filter((employee) => {
+        return employees.filter((employee) => {
             const fullName = (employee.fullName || "").toLowerCase();
             const email = (employee.email || "").toLowerCase();
             const role = (employee.role || "").toLowerCase();
@@ -253,7 +276,7 @@ export default function TeamsSection() {
                 jobTitle.includes(value)
             );
         });
-    }, [availableEmployees, memberSearchTerm]);
+    }, [availableEmployees, memberSearchTerm, teams, membersModalTeam, editForm.teamLeaderId]);
 
     const assignedActiveLeaderIds = useMemo(() => {
         return new Set(
