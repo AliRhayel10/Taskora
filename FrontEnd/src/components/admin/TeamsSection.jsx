@@ -319,7 +319,33 @@ export default function TeamsSection() {
 
     const filteredTeamLeaders = useMemo(() => {
         const value = leaderSearchTerm.trim().toLowerCase();
-        const leaders = companyMembers.filter((employee) => isTeamLeaderRole(employee.role));
+        const currentEditingTeamId = String(membersModalTeam?.teamId || selectedTeam?.teamId || "");
+        const selectedEditLeaderId = String(editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || "");
+
+        const leaders = companyMembers.filter((employee) => {
+            const employeeId = String(employee.userId || "");
+
+            if (!isTeamLeaderRole(employee.role)) {
+                return false;
+            }
+
+            if (employeeId === selectedEditLeaderId) {
+                return true;
+            }
+
+            const isAssignedToAnotherActiveTeam = teams.some((team) => {
+                if (!team || team.isActive === false) {
+                    return false;
+                }
+
+                const teamId = String(team.teamId || "");
+                const teamLeaderId = String(team.teamLeaderId || team.teamLeaderUserId || "");
+
+                return teamId !== currentEditingTeamId && teamLeaderId === employeeId;
+            });
+
+            return !isAssignedToAnotherActiveTeam;
+        });
 
         if (!value) {
             return leaders;
@@ -338,7 +364,7 @@ export default function TeamsSection() {
                 jobTitle.includes(value)
             );
         });
-    }, [companyMembers, leaderSearchTerm]);
+    }, [companyMembers, leaderSearchTerm, teams, membersModalTeam, selectedTeam, editForm.teamLeaderId]);
 
     useEffect(() => {
         if (!membersModalTeam) return;
