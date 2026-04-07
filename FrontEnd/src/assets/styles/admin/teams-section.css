@@ -182,7 +182,6 @@
   font-weight: 500;
 }
 
-
 .teams-section__state-card--error {
   border-color: #f0caca;
   background: #fff9f9;
@@ -209,7 +208,6 @@
   justify-content: start;
   gap: 18px;
 }
-
 
 .teams-section__card {
   background: #ffffff;

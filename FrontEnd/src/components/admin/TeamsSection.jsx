@@ -8,7 +8,6 @@ import {
     FiBriefcase,
     FiX,
     FiEdit2,
-    FiChevronDown,
     FiUsers,
     FiUser,
     FiCheckCircle,
@@ -931,7 +930,6 @@ export default function TeamsSection() {
                 </div>
             )}
 
-
             {selectedTeam && !isDeleteModalOpen && !membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
                     <div
@@ -1039,12 +1037,6 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {!isLoading && errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && (
-                <div className="teams-section__state-card teams-section__state-card--error">
-                    <p>{errorMessage}</p>
-                </div>
-            )}
-
             {!isLoading && !errorMessage && filteredTeams.length === 0 && (
                 <div className="teams-section__state-card">
                     <div className="teams-section__state-icon">
@@ -1055,7 +1047,7 @@ export default function TeamsSection() {
                 </div>
             )}
 
-            {!isLoading && !errorMessage && filteredTeams.length > 0 && (
+            {!isLoading && filteredTeams.length > 0 && (
                 <div className="teams-section__grid">
                     {filteredTeams.map((team) => (
                         <article key={team.teamId} className="teams-section__card teams-section__card--compact">
@@ -1161,16 +1153,16 @@ export default function TeamsSection() {
                                             </span>
                                         </div>
 
-                                                                            <button
-                                        type="button"
-                                        className="teams-section__members-btn"
-                                        onClick={() => openMembersModal(team)}
-                                        disabled={!team.isActive}
-                                        title={!team.isActive ? "Edit Members is unavailable for inactive teams." : "Edit Members"}
-                                    >
-                                        <FiUsers />
-                                        <span>{team.isActive ? "Edit Members" : "Inactive Team"}</span>
-                                    </button>
+                                        <button
+                                            type="button"
+                                            className="teams-section__members-btn"
+                                            onClick={() => openMembersModal(team)}
+                                            disabled={!team.isActive}
+                                            title={!team.isActive ? "Edit Members is unavailable for inactive teams." : "Edit Members"}
+                                        >
+                                            <FiUsers />
+                                            <span>{team.isActive ? "Edit Members" : "Inactive Team"}</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
