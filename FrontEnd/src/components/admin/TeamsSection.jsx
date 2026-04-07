@@ -13,7 +13,6 @@ import {
     FiUser,
     FiCheckCircle,
     FiSlash,
-    FiAlertTriangle,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 
@@ -68,12 +67,13 @@ function isEmployeeRole(value) {
 }
 
 function isSelectableMemberRole(value) {
-    return isEmployeeRole(value);
+    return isEmployeeRole(value) || isTeamLeaderRole(value);
 }
 
 export default function TeamsSection() {
     const [teams, setTeams] = useState([]);
     const [companyMembers, setCompanyMembers] = useState([]);
+    const [teamLeaders, setTeamLeaders] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [memberSearchTerm, setMemberSearchTerm] = useState("");
     const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
@@ -175,6 +175,8 @@ export default function TeamsSection() {
                 throw new Error(data.message || "Failed to load team leaders.");
             }
 
+            const allMembers = Array.isArray(data) ? data : [];
+            setTeamLeaders(allMembers.filter((member) => isTeamLeaderRole(member.role)));
         } catch (error) {
             console.error("Failed to fetch team leaders:", error);
         }
@@ -183,7 +185,6 @@ export default function TeamsSection() {
     useEffect(() => {
         fetchTeams();
         fetchCompanyMembers();
-        fetchTeamLeaders();
     }, [companyId]);
 
     useEffect(() => {
@@ -395,6 +396,15 @@ export default function TeamsSection() {
         });
     }, [companyMembers, leaderSearchTerm, teams, membersModalTeam, selectedTeam, editForm.teamLeaderId]);
 
+    useEffect(() => {
+        if (!membersModalTeam) return;
+
+        const timeoutId = window.setTimeout(() => {
+            fetchCompanyMembers(memberSearchTerm);
+        }, 250);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [memberSearchTerm, membersModalTeam, companyId]);
 
     const isEditFormValid =
         editForm.teamName.trim() &&
@@ -713,6 +723,7 @@ export default function TeamsSection() {
             teamName: editForm.teamName.trim(),
             description: editForm.description.trim(),
             teamLeaderId: String(editForm.teamLeaderId || "").trim(),
+            memberIds: editForm.memberIds.map((id) => String(id)),
         };
 
         if (!selectedTeam?.teamId) {
@@ -743,7 +754,8 @@ export default function TeamsSection() {
                 teamName: cleanedForm.teamName,
                 description: cleanedForm.description,
                 companyId,
-                teamLeaderId: cleanedForm.teamLeaderId ? Number(cleanedForm.teamLeaderId) : null,
+                teamLeaderId: cleanedForm.teamLeaderId,
+                memberIds: cleanedForm.memberIds,
             };
 
             if (typeof selectedTeam?.isActive === "boolean") {
@@ -981,13 +993,6 @@ export default function TeamsSection() {
                                 </span>
                             </div>
 
-                            {!isStatusActive && (
-                                <div className="teams-section__status-warning">
-                                    <FiAlertTriangle />
-                                    <span>Unavailable due to Inactivity. Team leader and members will be marked inactive until this team is reactivated.</span>
-                                </div>
-                            )}
-
                             <div className="teams-section__form-actions">
                                 <button
                                     type="button"
@@ -1043,13 +1048,6 @@ export default function TeamsSection() {
                                         <h3>{team.teamName}</h3>
                                     </div>
                                     <p>{team.description || "No description added yet."}</p>
-
-                                    {!team.isActive && (
-                                        <div className="teams-section__inactive-warning" title="Unavailable due to inactivity">
-                                            <FiAlertTriangle />
-                                            <span>Unavailable due to Inactivity</span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div
@@ -1143,7 +1141,7 @@ export default function TeamsSection() {
                                         title={!team.isActive ? "Edit Members is unavailable for inactive teams." : "Edit Members"}
                                     >
                                         <FiUsers />
-                                        <span>Edit Members</span>
+                                        <span>{team.isActive ? "Edit Members" : "Inactive Team"}</span>
                                     </button>
                                     </div>
                                 </div>
