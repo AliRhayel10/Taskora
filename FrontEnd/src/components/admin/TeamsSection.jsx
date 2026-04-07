@@ -1134,7 +1134,12 @@ export default function TeamsSection() {
                                         {filteredEmployees.map((employee) => {
                                             const employeeId = String(employee.userId);
                                             const isChecked = editForm.memberIds.includes(employeeId);
-                                            const modalLeaderId = String(editForm.teamLeaderId || "");
+                                            const modalLeaderId = String(
+                                                editForm.teamLeaderId ||
+                                                membersModalTeam?.teamLeaderId ||
+                                                membersModalTeam?.teamLeaderUserId ||
+                                                ""
+                                            );
                                             const isLeader = employeeId === modalLeaderId;
 
                                             return (
