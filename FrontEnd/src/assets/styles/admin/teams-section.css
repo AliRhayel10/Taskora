@@ -169,12 +169,13 @@
 
 .teams-section__state-card p {
   margin: 0;
-  max-width: 350px;
+  max-width: 330px;
   color: #667085;
   font-size: 1rem;
   line-height: 1.6;
   font-weight: 500;
 }
+
 
 .teams-section__state-card--error {
   border-color: #f0caca;
@@ -198,10 +199,11 @@
 
 .teams-section__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 350px));
+  grid-template-columns: repeat(3, minmax(0, 330px));
   justify-content: start;
   gap: 18px;
 }
+
 
 .teams-section__card {
   background: #ffffff;
@@ -213,7 +215,7 @@
 
 .teams-section__card--compact {
   width: 100%;
-  max-width: 350px;
+  max-width: 330px;
 }
 
 .teams-section__card-top {
@@ -891,7 +893,7 @@
 
 @media (max-width: 1180px) {
   .teams-section__grid {
-    grid-template-columns: repeat(1, minmax(0, 350px));
+    grid-template-columns: repeat(2, minmax(0, 330px));
   }
 }
 
