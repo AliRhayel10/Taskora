@@ -1134,14 +1134,16 @@ export default function TeamsSection() {
                                             </span>
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            className="teams-section__members-btn"
-                                            onClick={() => openMembersModal(team)}
-                                        >
-                                            <FiUsers />
-                                            <span>Edit Members</span>
-                                        </button>
+                                                                            <button
+                                        type="button"
+                                        className="teams-section__members-btn"
+                                        onClick={() => openMembersModal(team)}
+                                        disabled={!team.isActive}
+                                        title={!team.isActive ? "Edit Members is unavailable for inactive teams." : "Edit Members"}
+                                    >
+                                        <FiUsers />
+                                        <span>{team.isActive ? "Edit Members" : "Inactive Team"}</span>
+                                    </button>
                                     </div>
                                 </div>
                             </div>
