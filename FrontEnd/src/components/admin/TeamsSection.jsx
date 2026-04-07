@@ -333,20 +333,21 @@ export default function TeamsSection() {
     useEffect(() => {
         if (!membersModalTeam) return;
 
-        fetchCompanyMembers();
-    }, [membersModalTeam, companyId]);
+        const timeoutId = window.setTimeout(() => {
+            fetchCompanyMembers(memberSearchTerm);
+        }, 250);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [memberSearchTerm, membersModalTeam, companyId]);
 
     const isEditFormValid =
         editForm.teamName.trim() &&
         editForm.description.trim();
 
-    const currentMembersModalLeaderId =
-        membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId
-            ? String(membersModalTeam.teamLeaderId || membersModalTeam.teamLeaderUserId)
-            : "";
+    const selectedLeaderId = String(editForm.teamLeaderId || "").trim();
 
     const isLeaderStillSelected =
-        !currentMembersModalLeaderId || editForm.memberIds.includes(currentMembersModalLeaderId);
+        !membersModalTeam || (!!selectedLeaderId && editForm.memberIds.includes(selectedLeaderId));
 
     const openCreateModal = () => {
         setSuccessMessage("");
@@ -384,6 +385,7 @@ export default function TeamsSection() {
 
         setEditForm((prev) => ({
             ...prev,
+            teamLeaderId: currentLeaderId,
             memberIds: mergedMemberIds,
         }));
 
@@ -521,23 +523,23 @@ export default function TeamsSection() {
         const normalizedLeaderId = String(leaderId);
 
         setEditForm((prev) => {
-            const isSelected = prev.memberIds.includes(normalizedLeaderId);
+            const currentLeaderId = String(prev.teamLeaderId || "");
+            const nextLeaderId = currentLeaderId === normalizedLeaderId ? "" : normalizedLeaderId;
 
-            if (isSelected) {
-                return {
-                    ...prev,
-                    teamLeaderId:
-                        String(prev.teamLeaderId || "") === normalizedLeaderId ? "" : prev.teamLeaderId,
-                    memberIds: prev.memberIds.filter((id) => id !== normalizedLeaderId),
-                };
-            }
+            const leaderIds = new Set(
+                filteredTeamLeaders.map((leader) => String(leader.userId))
+            );
+
+            const memberIdsWithoutLeaderRows = prev.memberIds.filter(
+                (id) => !leaderIds.has(String(id))
+            );
 
             return {
                 ...prev,
-                teamLeaderId: normalizedLeaderId,
-                memberIds: prev.memberIds.includes(normalizedLeaderId)
-                    ? prev.memberIds
-                    : [...prev.memberIds, normalizedLeaderId],
+                teamLeaderId: nextLeaderId,
+                memberIds: nextLeaderId
+                    ? Array.from(new Set([...memberIdsWithoutLeaderRows, nextLeaderId]))
+                    : memberIdsWithoutLeaderRows,
             };
         });
     };
@@ -1075,7 +1077,7 @@ export default function TeamsSection() {
 
                                         {filteredTeamLeaders.map((employee) => {
                                             const employeeId = String(employee.userId);
-                                            const isChecked = editForm.memberIds.includes(employeeId);
+                                            const isChecked = String(editForm.teamLeaderId || "") === employeeId;
 
                                             return (
                                                 <label
