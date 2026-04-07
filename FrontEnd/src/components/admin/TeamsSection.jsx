@@ -86,6 +86,8 @@ export default function TeamsSection() {
     const [teamForm, setTeamForm] = useState({
         teamName: "",
         description: "",
+        teamLeaderId: "",
+        isActive: true,
     });
 
     const [editForm, setEditForm] = useState({
@@ -249,6 +251,13 @@ export default function TeamsSection() {
     }, [availableEmployees, memberSearchTerm]);
 
 
+
+    const filteredCreateTeamLeaders = useMemo(() => {
+        const leaders = companyMembers.filter((employee) => isTeamLeaderRole(employee.role));
+
+        return leaders;
+    }, [companyMembers]);
+
     const filteredTeamLeaders = useMemo(() => {
         const value = leaderSearchTerm.trim().toLowerCase();
         const leaders = companyMembers.filter((employee) => isTeamLeaderRole(employee.role));
@@ -297,7 +306,7 @@ export default function TeamsSection() {
     const openCreateModal = () => {
         setSuccessMessage("");
         setErrorMessage("");
-        setTeamForm({ teamName: "", description: "" });
+        setTeamForm({ teamName: "", description: "", teamLeaderId: "", isActive: true });
         setIsCreateModalOpen(true);
     };
 
@@ -383,7 +392,6 @@ export default function TeamsSection() {
         setMembersModalTeam(null);
         setMemberSearchTerm("");
         setLeaderSearchTerm("");
-        setLeaderSearchTerm("");
         setEditForm({
             teamName: "",
             description: "",
@@ -452,6 +460,16 @@ export default function TeamsSection() {
     };
 
 
+
+    const handleToggleCreateLeader = (leaderId) => {
+        const normalizedLeaderId = String(leaderId);
+
+        setTeamForm((prev) => ({
+            ...prev,
+            teamLeaderId: String(prev.teamLeaderId || "") === normalizedLeaderId ? "" : normalizedLeaderId,
+        }));
+    };
+
     const handleToggleLeaderInsideMembers = (leaderId) => {
         const normalizedLeaderId = String(leaderId);
 
@@ -483,10 +501,12 @@ export default function TeamsSection() {
         const cleanedForm = {
             teamName: teamForm.teamName.trim(),
             description: teamForm.description.trim(),
+            teamLeaderId: String(teamForm.teamLeaderId || "").trim(),
+            isActive: typeof teamForm.isActive === "boolean" ? teamForm.isActive : true,
         };
 
-        if (!cleanedForm.teamName) {
-            setErrorMessage("Team name is required.");
+        if (!cleanedForm.teamName || !cleanedForm.description || !cleanedForm.teamLeaderId) {
+            setErrorMessage("Team name, team description, and team leader are required.");
             return;
         }
 
@@ -509,6 +529,8 @@ export default function TeamsSection() {
                     teamName: cleanedForm.teamName,
                     description: cleanedForm.description,
                     companyId,
+                    teamLeaderUserId: Number(cleanedForm.teamLeaderId),
+                    isActive: cleanedForm.isActive,
                 }),
             });
 
@@ -520,7 +542,7 @@ export default function TeamsSection() {
 
             setSuccessMessage("Team created successfully.");
             setIsCreateModalOpen(false);
-            setTeamForm({ teamName: "", description: "" });
+            setTeamForm({ teamName: "", description: "", teamLeaderId: "", isActive: true });
             await fetchTeams();
         } catch (error) {
             console.error("Failed to create team:", error);
@@ -545,7 +567,7 @@ export default function TeamsSection() {
                 teamName: String(membersModalTeam.teamName || "").trim(),
                 description: String(membersModalTeam.description || "").trim(),
                 companyId,
-                teamLeaderId: membersModalTeam.teamLeaderId || membersModalTeam.teamLeaderUserId || null,
+                teamLeaderId: editForm.teamLeaderId || null,
                 memberIds: editForm.memberIds.map((id) => Number(id)),
                 isActive:
                     typeof membersModalTeam.isActive === "boolean"
@@ -727,12 +749,12 @@ export default function TeamsSection() {
                 </button>
             </div>
 
-            {successMessage && (
-                <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
-                    <FiCheckCircle />
-                    <span>{successMessage}</span>
-                </div>
-            )}
+{successMessage && (
+    <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
+        <FiCheckCircle />
+        <span>{successMessage}</span>
+    </div>
+)}
 
             {selectedTeam && !isDeleteModalOpen && !membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
@@ -789,27 +811,6 @@ export default function TeamsSection() {
                                     rows={4}
                                     maxLength={500}
                                 />
-                            </div>
-
-                            <div className="teams-section__form-group teams-section__select-group">
-                                <label htmlFor="teamLeaderSelect">
-                                    Team Leader <span className="teams-section__required">*</span>
-                                </label>
-                                <div className="teams-section__select-wrapper">
-                                    <select
-                                        id="teamLeaderSelect"
-                                        value={editForm.teamLeaderId}
-                                        onChange={(event) => handleLeaderChange(event.target.value)}
-                                    >
-                                        <option value="">Select team leader...</option>
-{teamLeaders.map((employee) => (
-    <option key={employee.userId} value={String(employee.userId)}>
-        {employee.fullName || employee.email}
-    </option>
-))}
-                                    </select>
-                                    <FiChevronDown />
-                                </div>
                             </div>
 
                             <div className="teams-section__status-row">
@@ -1206,6 +1207,83 @@ export default function TeamsSection() {
                                 />
                             </div>
 
+                            <div className="teams-section__form-group">
+                                <label>
+                                    Team Leader <span className="teams-section__required">*</span>
+                                </label>
+
+                                <div className="teams-section__member-picker">
+                                    <div className="teams-section__member-search">
+                                        <FiSearch />
+                                        <input
+                                            type="text"
+                                            value=""
+                                            readOnly
+                                            placeholder="Select a team leader..."
+                                        />
+                                    </div>
+
+                                    <div className="teams-section__member-table">
+                                        {filteredCreateTeamLeaders.length === 0 && (
+                                            <p className="teams-section__members-empty">
+                                                No team leaders found.
+                                            </p>
+                                        )}
+
+                                        {filteredCreateTeamLeaders.map((employee) => {
+                                            const employeeId = String(employee.userId);
+                                            const isChecked = String(teamForm.teamLeaderId || "") === employeeId;
+
+                                            return (
+                                                <label
+                                                    key={`create-leader-${employee.userId}`}
+                                                    className="teams-section__member-row"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => handleToggleCreateLeader(employeeId)}
+                                                    />
+
+                                                    <span className="teams-section__member-avatar">
+                                                        {getInitials(employee.fullName || employee.email)}
+                                                    </span>
+
+                                                    <span className="teams-section__member-copy">
+                                                        <strong>{employee.fullName || employee.email}</strong>
+                                                        <small>{employee.email}</small>
+                                                    </span>
+
+                                                    <span className="teams-section__member-tag">
+                                                        Team Leader
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="teams-section__status-row">
+                                <label>Status</label>
+                                <button
+                                    type="button"
+                                    className={`teams-section__switch ${teamForm.isActive ? "teams-section__switch--active" : ""}`}
+                                    onClick={() =>
+                                        setTeamForm((prev) => ({
+                                            ...prev,
+                                            isActive: !prev.isActive,
+                                        }))
+                                    }
+                                    aria-pressed={teamForm.isActive}
+                                >
+                                    <span className="teams-section__switch-thumb"></span>
+                                </button>
+                                <span className="teams-section__status-text">
+                                    {teamForm.isActive ? "Active" : "Inactive"}
+                                </span>
+                            </div>
+
                             <div className="teams-section__form-actions">
                                 <button
                                     type="button"
@@ -1219,7 +1297,7 @@ export default function TeamsSection() {
                                 <button
                                     type="submit"
                                     className="teams-section__submit-btn"
-                                    disabled={isSubmitting || !teamForm.teamName.trim()}
+                                    disabled={isSubmitting || !teamForm.teamName.trim() || !teamForm.description.trim() || !String(teamForm.teamLeaderId || "").trim()}
                                 >
                                     {isSubmitting ? "Creating..." : "Create Team"}
                                 </button>
