@@ -462,38 +462,39 @@ public async Task<IActionResult> GetTeamsByCompany(
             });
         }
 
-        [HttpDelete("{teamId:int}")]
-        public async Task<IActionResult> DeleteTeam(int teamId)
+[HttpDelete("{teamId:int}")]
+public async Task<IActionResult> DeleteTeam(int teamId)
+{
+    var team = await _context.Teams
+        .FirstOrDefaultAsync(t => t.TeamId == teamId);
+
+    if (team == null)
+    {
+        return NotFound(new
         {
-            var team = await _context.Teams.FirstOrDefaultAsync(t => t.TeamId == teamId);
+            success = false,
+            message = "Team not found."
+        });
+    }
 
-            if (team == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "Team not found."
-                });
-            }
+    var teamMembers = await _context.TeamMembers
+        .Where(teamMember => teamMember.TeamId == teamId)
+        .ToListAsync();
 
-            team.IsActive = false;
+    if (teamMembers.Count > 0)
+    {
+        _context.TeamMembers.RemoveRange(teamMembers);
+    }
 
-            var existingMembers = await _context.TeamMembers
-                .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
-                .ToListAsync();
+    _context.Teams.Remove(team);
 
-            foreach (var member in existingMembers)
-            {
-                member.IsActive = false;
-            }
+    await _context.SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                success = true,
-                message = "Team deleted successfully."
-            });
-        }
+    return Ok(new
+    {
+        success = true,
+        message = "Team deleted successfully."
+    });
+}
     }
 }
