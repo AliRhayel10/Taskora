@@ -1054,8 +1054,11 @@ export default function TeamsSection() {
                         <div className="teams-section__form">
                             <div className="teams-section__form-group">
                                 <label>
-                                    Team Leader <span className="teams-section__required">*</span>
+                                    Add Team Leader <span className="teams-section__required">*</span>
                                 </label>
+                                <p className="teams-section__field-description">
+                                    Select one leader to manage this team.
+                                </p>
 
                                 <div className="teams-section__member-picker">
                                     <div className="teams-section__member-search">
@@ -1110,7 +1113,12 @@ export default function TeamsSection() {
                             </div>
 
                             <div className="teams-section__form-group">
-                                <label>Add Members</label>
+                                <label>
+                                    Add Members <span className="teams-section__required">*</span>
+                                </label>
+                                <p className="teams-section__field-description">
+                                    Select one or more members to add to this team.
+                                </p>
                                 <div className="teams-section__member-picker">
                                     <div className="teams-section__member-search">
                                         <FiSearch />
