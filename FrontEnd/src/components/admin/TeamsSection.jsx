@@ -673,8 +673,9 @@ export default function TeamsSection() {
             </div>
 
             {successMessage && (
-                <div className="teams-section__feedback teams-section__feedback--success">
-                    {successMessage}
+                <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
+                    <FiCheckCircle />
+                    <span>{successMessage}</span>
                 </div>
             )}
 
