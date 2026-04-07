@@ -245,18 +245,24 @@ export default function TeamsSection() {
                 return false;
             }
 
-            const isLeaderOfAnotherActiveTeam = teams.some((team) => {
+            const isAssignedToAnotherActiveTeam = teams.some((team) => {
                 if (!team || team.isActive === false) {
                     return false;
                 }
 
                 const teamId = String(team.teamId || "");
                 const teamLeaderId = String(team.teamLeaderId || team.teamLeaderUserId || "");
+                const memberIds = Array.isArray(team.memberIds)
+                    ? team.memberIds.map((id) => String(id))
+                    : [];
 
-                return teamId !== currentEditingTeamId && teamLeaderId === employeeId;
+                return (
+                    teamId !== currentEditingTeamId &&
+                    (teamLeaderId === employeeId || memberIds.includes(employeeId))
+                );
             });
 
-            return !isLeaderOfAnotherActiveTeam;
+            return !isAssignedToAnotherActiveTeam;
         });
 
         if (!value) {
