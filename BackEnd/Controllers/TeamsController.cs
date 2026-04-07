@@ -182,10 +182,14 @@ namespace BackEnd.Controllers
                 return Conflict(new { success = false, message = "A team with this name already exists." });
             }
 
-            if (request.TeamLeaderUserId.HasValue)
+            int? requestedCreateLeaderId = request.TeamLeaderUserId > 0
+                ? request.TeamLeaderUserId
+                : null;
+
+            if (requestedCreateLeaderId.HasValue)
             {
                 var leaderExists = await _context.Users.AnyAsync(user =>
-                    user.UserId == request.TeamLeaderUserId.Value &&
+                    user.UserId == requestedCreateLeaderId.Value &&
                     user.CompanyId == request.CompanyId);
 
                 if (!leaderExists)
@@ -200,7 +204,7 @@ namespace BackEnd.Controllers
                 var leaderAlreadyAssigned = await _context.Teams.AnyAsync(team =>
                     team.CompanyId == request.CompanyId &&
                     team.IsActive &&
-                    team.TeamLeaderUserId == request.TeamLeaderUserId.Value);
+                    team.TeamLeaderUserId == requestedCreateLeaderId.Value);
 
                 if (leaderAlreadyAssigned)
                 {
@@ -217,7 +221,7 @@ namespace BackEnd.Controllers
                 CompanyId = request.CompanyId,
                 TeamName = trimmedTeamName,
                 Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-                TeamLeaderUserId = request.TeamLeaderUserId,
+                TeamLeaderUserId = requestedCreateLeaderId,
                 IsActive = true
             };
 
@@ -309,7 +313,7 @@ namespace BackEnd.Controllers
             }
 
             var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
-            var nextIsActive = request.IsActive ?? request.Status ?? team.IsActive;
+            var nextIsActive = request.IsActive ?? team.IsActive;
             var isReactivating = !team.IsActive && nextIsActive;
 
             if (requestedLeaderId.HasValue)

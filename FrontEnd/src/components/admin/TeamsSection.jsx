@@ -134,7 +134,7 @@ export default function TeamsSection() {
                           memberCount:
                               typeof team.memberCount === "number"
                                   ? team.memberCount
-                                  : ((Array.isArray(team.memberIds) ? team.memberIds.length : 0) + (team.teamLeaderName ? 1 : 0)),
+                                  : (Array.isArray(team.memberIds) ? team.memberIds.length : 0),
                       }))
                     : []
             );
@@ -827,24 +827,21 @@ export default function TeamsSection() {
                 setReactivationNotice("");
             }
 
-            setTeams((prev) =>
-                prev.map((team) =>
-                    team.teamId === selectedTeam.teamId
-                        ? {
-                              ...team,
-                              ...updatedTeam,
-                              isActive:
-                                  typeof updatedTeam.isActive === "boolean"
-                                      ? updatedTeam.isActive
-                                      : isStatusActive,
-                          }
-                        : team
-                )
-            );
-
+            await fetchTeams();
             closeEditPanel();
         } catch (error) {
             console.error("Failed to update team:", error);
+            setSelectedTeam(null);
+            setMembersModalTeam(null);
+            setMemberSearchTerm("");
+            setLeaderSearchTerm("");
+            setReactivationNotice("");
+            setEditForm({
+                teamName: "",
+                description: "",
+                teamLeaderId: "",
+                memberIds: [],
+            });
             setErrorMessage(error.message || "Failed to update team.");
         } finally {
             setIsSubmitting(false);
@@ -926,6 +923,14 @@ export default function TeamsSection() {
                     <span>{successMessage}</span>
                 </div>
             )}
+
+            {errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && !membersModalTeam && (
+                <div className="teams-section__feedback teams-section__feedback--floating teams-section__feedback--floating-error">
+                    <FiSlash />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
+
 
             {selectedTeam && !isDeleteModalOpen && !membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
@@ -1151,8 +1156,8 @@ export default function TeamsSection() {
                                         <div className="teams-section__members-count">
                                             <FiUser />
                                             <span>
-                                                {typeof team.memberCount === "number" ? team.memberCount : ((Array.isArray(team.memberIds) ? team.memberIds.length : 0) + (team.teamLeaderName ? 1 : 0))}{" "}
-                                                {(typeof team.memberCount === "number" ? team.memberCount : ((Array.isArray(team.memberIds) ? team.memberIds.length : 0) + (team.teamLeaderName ? 1 : 0))) === 1 ? "member" : "members"}
+                                                {typeof team.memberCount === "number" ? team.memberCount : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)}{" "}
+                                                {(typeof team.memberCount === "number" ? team.memberCount : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)) === 1 ? "member" : "members"}
                                             </span>
                                         </div>
 
