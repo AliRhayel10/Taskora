@@ -406,22 +406,53 @@ namespace BackEnd.Controllers
                 return NotFound(new { success = false, message = "Team not found." });
             }
 
-            var existingRows = await _context.TeamMembers
-                .Where(teamMember => teamMember.TeamId == teamId)
+            // delete task histories first
+            var taskIds = await _context.Tasks
+                .Where(t => t.TeamId == teamId)
+                .Select(t => t.TaskId)
                 .ToListAsync();
 
-            if (existingRows.Count > 0)
+            if (taskIds.Count > 0)
             {
-                _context.TeamMembers.RemoveRange(existingRows);
+                var histories = await _context.TaskStatusHistories
+                    .Where(h => taskIds.Contains(h.TaskId))
+                    .ToListAsync();
+
+                if (histories.Count > 0)
+                {
+                    _context.TaskStatusHistories.RemoveRange(histories);
+                }
             }
 
-            team.IsActive = false;
+            // delete tasks
+            var tasks = await _context.Tasks
+                .Where(t => t.TeamId == teamId)
+                .ToListAsync();
+
+            if (tasks.Count > 0)
+            {
+                _context.Tasks.RemoveRange(tasks);
+            }
+
+            // delete team members
+            var members = await _context.TeamMembers
+                .Where(m => m.TeamId == teamId)
+                .ToListAsync();
+
+            if (members.Count > 0)
+            {
+                _context.TeamMembers.RemoveRange(members);
+            }
+
+            // delete team itself
+            _context.Teams.Remove(team);
+
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 success = true,
-                message = "Team deleted successfully."
+                message = "Team and all related data deleted successfully."
             });
         }
 
