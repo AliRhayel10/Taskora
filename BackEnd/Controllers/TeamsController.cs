@@ -42,7 +42,9 @@ namespace BackEnd.Controllers
                     tasksCount = _context.Tasks.Count(task => task.TeamId == team.TeamId),
                     isActive = team.IsActive,
                     memberIds = _context.TeamMembers
-                        .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
+                        .Where(teamMember => teamMember.TeamId == team.TeamId &&
+                                             teamMember.IsActive &&
+                                             (!team.TeamLeaderUserId.HasValue || teamMember.UserId != team.TeamLeaderUserId.Value))
                         .Select(teamMember => teamMember.UserId)
                         .ToList()
                 };
@@ -89,32 +91,12 @@ namespace BackEnd.Controllers
                 }
             ).ToListAsync();
 
-            static string NormalizeRole(string? value)
-            {
-                return (value ?? string.Empty)
-                    .Trim()
-                    .ToLower()
-                    .Replace("_", " ")
-                    .Replace("-", " ");
-            }
-
-            static bool IsTeamLeader(string? value)
-            {
-                var normalizedRole = NormalizeRole(value);
-                return normalizedRole == "team leader" || normalizedRole == "teamleader";
-            }
-
-            static bool IsEmployee(string? value)
-            {
-                return NormalizeRole(value) == "employee";
-            }
-
             var filteredMembers = rawMembers
-                .Where(member => IsEmployee(member.role) || IsTeamLeader(member.role));
+                .Where(member => IsEmployeeRole(member.role) || IsTeamLeaderRole(member.role));
 
             if (teamLeadersOnly)
             {
-                filteredMembers = filteredMembers.Where(member => IsTeamLeader(member.role));
+                filteredMembers = filteredMembers.Where(member => IsTeamLeaderRole(member.role));
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
@@ -134,7 +116,7 @@ namespace BackEnd.Controllers
                     userId = member.userId,
                     fullName = member.fullName,
                     email = member.email,
-                    role = IsTeamLeader(member.role) ? "Team Leader" : "Employee",
+                    role = IsTeamLeaderRole(member.role) ? "Team Leader" : "Employee",
                     jobTitle = member.jobTitle,
                     jobType = member.jobTitle
                 })
@@ -143,6 +125,54 @@ namespace BackEnd.Controllers
                 .ToList();
 
             return Ok(result);
+        }
+
+        private static string NormalizeRole(string? value)
+        {
+            return (value ?? string.Empty)
+                .Trim()
+                .ToLower()
+                .Replace("_", " ")
+                .Replace("-", " ");
+        }
+
+        private static bool IsTeamLeaderRole(string? value)
+        {
+            var normalizedRole = NormalizeRole(value);
+            return normalizedRole == "team leader" || normalizedRole == "teamleader";
+        }
+
+        private static bool IsEmployeeRole(string? value)
+        {
+            return NormalizeRole(value) == "employee";
+        }
+
+        private async Task<List<int>> GetActiveAssignedUserIdsInOtherTeamsAsync(Team team)
+        {
+            return await (
+                from otherTeam in _context.Teams
+                join teamMember in _context.TeamMembers
+                    on otherTeam.TeamId equals teamMember.TeamId
+                where otherTeam.CompanyId == team.CompanyId &&
+                      otherTeam.TeamId != team.TeamId &&
+                      otherTeam.IsActive &&
+                      teamMember.IsActive
+                select teamMember.UserId
+            )
+            .Distinct()
+            .ToListAsync();
+        }
+
+        private async Task SetTeamMembersActiveStateAsync(int teamId, bool isActive)
+        {
+            var teamMembers = await _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == teamId)
+                .ToListAsync();
+
+            foreach (var teamMember in teamMembers)
+            {
+                teamMember.IsActive = isActive;
+            }
         }
 
         [HttpPost]
@@ -226,15 +256,7 @@ namespace BackEnd.Controllers
 
             if (team.TeamLeaderUserId.HasValue)
             {
-                _context.TeamMembers.Add(new TeamMember
-                {
-                    CompanyId = team.CompanyId,
-                    TeamId = team.TeamId,
-                    UserId = team.TeamLeaderUserId.Value,
-                    JoinedAt = DateTime.UtcNow,
-                    IsActive = true
-                });
-
+                await SyncTeamMembersAsync(team, Array.Empty<int>(), team.TeamLeaderUserId, true);
                 await _context.SaveChangesAsync();
             }
 
@@ -263,9 +285,7 @@ namespace BackEnd.Controllers
                     teamLeaderName = leaderName,
                     tasksCount = 0,
                     isActive = team.IsActive,
-                    memberIds = team.TeamLeaderUserId.HasValue
-                        ? new List<int> { team.TeamLeaderUserId.Value }
-                        : new List<int>()
+                    memberIds = new List<int>()
                 }
             });
         }
@@ -310,7 +330,17 @@ namespace BackEnd.Controllers
 
             var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
             var nextIsActive = request.IsActive ?? request.Status ?? team.IsActive;
-            var isReactivating = !team.IsActive && nextIsActive;
+            var wasActive = team.IsActive;
+            var isReactivating = !wasActive && nextIsActive;
+            var requestedMemberIds = request.MemberIds?.ToList();
+
+            if (requestedMemberIds == null)
+            {
+                requestedMemberIds = await _context.TeamMembers
+                    .Where(teamMember => teamMember.TeamId == team.TeamId)
+                    .Select(teamMember => teamMember.UserId)
+                    .ToListAsync();
+            }
 
             if (requestedLeaderId.HasValue)
             {
@@ -326,55 +356,24 @@ namespace BackEnd.Controllers
                         message = "Selected team leader does not belong to this company."
                     });
                 }
-
-                var leaderAlreadyAssigned = await _context.Teams.AnyAsync(existingTeam =>
-                    existingTeam.TeamId != teamId &&
-                    existingTeam.CompanyId == team.CompanyId &&
-                    existingTeam.IsActive &&
-                    existingTeam.TeamLeaderUserId == requestedLeaderId.Value);
-
-                if (leaderAlreadyAssigned && !isReactivating)
-                {
-                    return Conflict(new
-                    {
-                        success = false,
-                        message = "This team leader is already assigned to another active team."
-                    });
-                }
             }
 
-            team.TeamName = trimmedTeamName;
-            team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-            team.IsActive = nextIsActive;
+            var activeAssignmentsInOtherTeams = await GetActiveAssignedUserIdsInOtherTeamsAsync(team);
+            var busyUserIds = activeAssignmentsInOtherTeams.ToHashSet();
 
-            var requestedMemberIds = request.MemberIds?.ToList();
-
-            if (isReactivating)
+            if (nextIsActive)
             {
-                if (requestedMemberIds == null)
-                {
-                    requestedMemberIds = await _context.TeamMembers
-                        .Where(teamMember => teamMember.TeamId == team.TeamId)
-                        .Select(teamMember => teamMember.UserId)
-                        .ToListAsync();
-                }
-
-                var activeAssignmentsInOtherTeams = await (
-                    from otherTeam in _context.Teams
-                    join teamMember in _context.TeamMembers
-                        on otherTeam.TeamId equals teamMember.TeamId
-                    where otherTeam.CompanyId == team.CompanyId &&
-                          otherTeam.TeamId != team.TeamId &&
-                          otherTeam.IsActive
-                    select teamMember.UserId
-                )
-                .Distinct()
-                .ToListAsync();
-
-                var busyUserIds = activeAssignmentsInOtherTeams.ToHashSet();
-
                 if (requestedLeaderId.HasValue && busyUserIds.Contains(requestedLeaderId.Value))
                 {
+                    if (!isReactivating)
+                    {
+                        return Conflict(new
+                        {
+                            success = false,
+                            message = "This team leader is already assigned to another active team."
+                        });
+                    }
+
                     requestedLeaderId = null;
                 }
 
@@ -383,13 +382,21 @@ namespace BackEnd.Controllers
                     .Distinct()
                     .ToList();
             }
+            else
+            {
+                requestedMemberIds = requestedMemberIds
+                    .Where(userId => userId > 0)
+                    .Distinct()
+                    .ToList();
+            }
 
+            team.TeamName = trimmedTeamName;
+            team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            team.IsActive = nextIsActive;
             team.TeamLeaderUserId = requestedLeaderId;
 
-            if (requestedMemberIds != null)
-            {
-                await SyncTeamMembersAsync(team, requestedMemberIds, requestedLeaderId);
-            }
+            await SyncTeamMembersAsync(team, requestedMemberIds, requestedLeaderId, nextIsActive);
+            await SetTeamMembersActiveStateAsync(team.TeamId, nextIsActive);
 
             await _context.SaveChangesAsync();
 
@@ -404,9 +411,16 @@ namespace BackEnd.Controllers
             }
 
             var updatedMemberIds = await _context.TeamMembers
-                .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
+                .Where(teamMember => teamMember.TeamId == team.TeamId && (team.IsActive ? teamMember.IsActive : true))
                 .Select(teamMember => teamMember.UserId)
                 .ToListAsync();
+
+            if (team.TeamLeaderUserId.HasValue)
+            {
+                updatedMemberIds = updatedMemberIds
+                    .Where(userId => userId != team.TeamLeaderUserId.Value)
+                    .ToList();
+            }
 
             return Ok(new
             {
@@ -483,64 +497,103 @@ namespace BackEnd.Controllers
             });
         }
 
-        private async Task SyncTeamMembersAsync(Team team, IEnumerable<int> requestedMemberIds, int? requestedLeaderId)
+        private async Task SyncTeamMembersAsync(Team team, IEnumerable<int> requestedMemberIds, int? requestedLeaderId, bool shouldActivateMembers)
         {
             var nextMemberIds = requestedMemberIds
                 .Where(id => id > 0)
                 .Distinct()
                 .ToList();
 
-            if (requestedLeaderId.HasValue && !nextMemberIds.Contains(requestedLeaderId.Value))
+            if (requestedLeaderId.HasValue)
             {
-                nextMemberIds.Add(requestedLeaderId.Value);
+                nextMemberIds.Remove(requestedLeaderId.Value);
             }
 
-            if (nextMemberIds.Count > 0)
+            var validationUserIds = nextMemberIds.ToList();
+
+            if (requestedLeaderId.HasValue)
+            {
+                validationUserIds.Add(requestedLeaderId.Value);
+            }
+
+            validationUserIds = validationUserIds
+                .Where(userId => userId > 0)
+                .Distinct()
+                .ToList();
+
+            if (validationUserIds.Count > 0)
             {
                 var validUserIds = await _context.Users
-                    .Where(user => user.CompanyId == team.CompanyId && nextMemberIds.Contains(user.UserId))
+                    .Where(user => user.CompanyId == team.CompanyId && validationUserIds.Contains(user.UserId))
                     .Select(user => user.UserId)
                     .ToListAsync();
 
-                if (validUserIds.Count != nextMemberIds.Count)
+                if (validUserIds.Count != validationUserIds.Count)
                 {
                     throw new InvalidOperationException("One or more selected members do not belong to this company.");
                 }
             }
 
-            if (nextMemberIds.Count > 0)
+            if (shouldActivateMembers && validationUserIds.Count > 0)
             {
-                var rowsInOtherTeams = await _context.TeamMembers
-                    .Where(teamMember =>
-                        teamMember.CompanyId == team.CompanyId &&
-                        teamMember.TeamId != team.TeamId &&
-                        nextMemberIds.Contains(teamMember.UserId))
-                    .ToListAsync();
+                var activeRowsInOtherTeams = await (
+                    from otherTeam in _context.Teams
+                    join teamMember in _context.TeamMembers
+                        on otherTeam.TeamId equals teamMember.TeamId
+                    where teamMember.CompanyId == team.CompanyId &&
+                          teamMember.TeamId != team.TeamId &&
+                          validationUserIds.Contains(teamMember.UserId) &&
+                          otherTeam.IsActive &&
+                          teamMember.IsActive
+                    select teamMember
+                ).ToListAsync();
 
-                if (rowsInOtherTeams.Count > 0)
+                if (activeRowsInOtherTeams.Count > 0)
                 {
-                    _context.TeamMembers.RemoveRange(rowsInOtherTeams);
+                    throw new InvalidOperationException("One or more selected users are already assigned to another active team.");
                 }
+            }
+
+            var rowsInInactiveTeams = await (
+                from otherTeam in _context.Teams
+                join teamMember in _context.TeamMembers
+                    on otherTeam.TeamId equals teamMember.TeamId
+                where teamMember.CompanyId == team.CompanyId &&
+                      teamMember.TeamId != team.TeamId &&
+                      validationUserIds.Contains(teamMember.UserId) &&
+                      !otherTeam.IsActive &&
+                      teamMember.IsActive
+                select teamMember
+            ).ToListAsync();
+
+            foreach (var row in rowsInInactiveTeams)
+            {
+                row.IsActive = false;
             }
 
             var currentRows = await _context.TeamMembers
                 .Where(teamMember => teamMember.TeamId == team.TeamId)
                 .ToListAsync();
 
-            var rowsToDelete = currentRows
-                .Where(teamMember => !nextMemberIds.Contains(teamMember.UserId))
-                .ToList();
+            var targetUserIds = validationUserIds.ToHashSet();
 
-            if (rowsToDelete.Count > 0)
+            foreach (var currentRow in currentRows)
             {
-                _context.TeamMembers.RemoveRange(rowsToDelete);
+                if (targetUserIds.Contains(currentRow.UserId))
+                {
+                    currentRow.IsActive = shouldActivateMembers;
+                }
+                else
+                {
+                    currentRow.IsActive = false;
+                }
             }
 
             var currentUserIds = currentRows
                 .Select(teamMember => teamMember.UserId)
                 .ToHashSet();
 
-            var rowsToAdd = nextMemberIds
+            var rowsToAdd = targetUserIds
                 .Where(userId => !currentUserIds.Contains(userId))
                 .Select(userId => new TeamMember
                 {
@@ -548,7 +601,7 @@ namespace BackEnd.Controllers
                     TeamId = team.TeamId,
                     UserId = userId,
                     JoinedAt = DateTime.UtcNow,
-                    IsActive = true
+                    IsActive = shouldActivateMembers
                 })
                 .ToList();
 
