@@ -43,6 +43,10 @@ function getInitials(value) {
     return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
 }
 
+function capitalizeWords(value) {
+    return String(value || "").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function normalizeRole(value) {
     return String(value || "")
         .trim()
@@ -250,9 +254,6 @@ export default function TeamsSection() {
             );
         });
     }, [availableEmployees, memberSearchTerm]);
-
-
-
 
     const assignedActiveLeaderIds = useMemo(() => {
         return new Set(
@@ -517,8 +518,6 @@ export default function TeamsSection() {
         });
     };
 
-
-
     const handleToggleCreateLeader = (leaderId) => {
         const normalizedLeaderId = String(leaderId);
 
@@ -662,17 +661,17 @@ export default function TeamsSection() {
     const handleUpdateTeam = async (event) => {
         event.preventDefault();
 
-        if (!selectedTeam?.teamId) {
-            setErrorMessage("Team not found.");
-            return;
-        }
-
         const cleanedForm = {
             teamName: editForm.teamName.trim(),
             description: editForm.description.trim(),
             teamLeaderId: String(editForm.teamLeaderId || "").trim(),
             memberIds: editForm.memberIds.map((id) => String(id)),
         };
+
+        if (!selectedTeam?.teamId) {
+            setErrorMessage("Team not found.");
+            return;
+        }
 
         if (!cleanedForm.teamName || !cleanedForm.description) {
             setErrorMessage("Team name and description are required.");
@@ -808,12 +807,12 @@ export default function TeamsSection() {
                 </button>
             </div>
 
-{successMessage && (
-    <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
-        <FiCheckCircle />
-        <span>{successMessage}</span>
-    </div>
-)}
+            {successMessage && (
+                <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
+                    <FiCheckCircle />
+                    <span>{successMessage}</span>
+                </div>
+            )}
 
             {selectedTeam && !isDeleteModalOpen && !membersModalTeam && renderInPortal(
                 <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
@@ -852,7 +851,7 @@ export default function TeamsSection() {
                                     id="editTeamName"
                                     type="text"
                                     value={editForm.teamName}
-                                    onChange={(event) => handleEditChange("teamName", event.target.value)}
+                                    onChange={(event) => handleEditChange("teamName", capitalizeWords(event.target.value))}
                                     placeholder="Team Name"
                                     maxLength={100}
                                 />
@@ -865,7 +864,7 @@ export default function TeamsSection() {
                                 <textarea
                                     id="editTeamDescription"
                                     value={editForm.description}
-                                    onChange={(event) => handleEditChange("description", event.target.value)}
+                                    onChange={(event) => handleEditChange("description", capitalizeWords(event.target.value))}
                                     placeholder="Enter a description for this team..."
                                     rows={4}
                                     maxLength={500}
@@ -1259,7 +1258,7 @@ export default function TeamsSection() {
                                     id="teamName"
                                     type="text"
                                     value={teamForm.teamName}
-                                    onChange={(event) => handleFormChange("teamName", event.target.value)}
+                                    onChange={(event) => handleFormChange("teamName", capitalizeWords(event.target.value))}
                                     placeholder="Enter team name"
                                     maxLength={100}
                                 />
@@ -1272,7 +1271,7 @@ export default function TeamsSection() {
                                 <textarea
                                     id="teamDescription"
                                     value={teamForm.description}
-                                    onChange={(event) => handleFormChange("description", event.target.value)}
+                                    onChange={(event) => handleFormChange("description", capitalizeWords(event.target.value))}
                                     placeholder="Enter team description"
                                     rows={4}
                                     maxLength={500}
@@ -1289,9 +1288,9 @@ export default function TeamsSection() {
                                         <FiSearch />
                                         <input
                                             type="text"
-                                            value=""
-                                            readOnly
-                                            placeholder="Select a team leader..."
+                                            value={createLeaderSearchTerm}
+                                            onChange={(event) => setCreateLeaderSearchTerm(event.target.value)}
+                                            placeholder="Search for a team leader..."
                                         />
                                     </div>
 
