@@ -333,12 +333,8 @@ export default function TeamsSection() {
     useEffect(() => {
         if (!membersModalTeam) return;
 
-        const timeoutId = window.setTimeout(() => {
-            fetchCompanyMembers(memberSearchTerm);
-        }, 250);
-
-        return () => window.clearTimeout(timeoutId);
-    }, [memberSearchTerm, membersModalTeam, companyId]);
+        fetchCompanyMembers();
+    }, [membersModalTeam, companyId]);
 
     const isEditFormValid =
         editForm.teamName.trim() &&
