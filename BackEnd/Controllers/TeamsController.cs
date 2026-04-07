@@ -309,6 +309,8 @@ namespace BackEnd.Controllers
             }
 
             var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
+            var nextIsActive = request.IsActive ?? request.Status ?? team.IsActive;
+            var isReactivating = !team.IsActive && nextIsActive;
 
             if (requestedLeaderId.HasValue)
             {
@@ -331,7 +333,7 @@ namespace BackEnd.Controllers
                     existingTeam.IsActive &&
                     existingTeam.TeamLeaderUserId == requestedLeaderId.Value);
 
-                if (leaderAlreadyAssigned)
+                if (leaderAlreadyAssigned && !isReactivating)
                 {
                     return Conflict(new
                     {
@@ -343,20 +345,50 @@ namespace BackEnd.Controllers
 
             team.TeamName = trimmedTeamName;
             team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            team.IsActive = nextIsActive;
+
+            var requestedMemberIds = request.MemberIds?.ToList();
+
+            if (isReactivating)
+            {
+                if (requestedMemberIds == null)
+                {
+                    requestedMemberIds = await _context.TeamMembers
+                        .Where(teamMember => teamMember.TeamId == team.TeamId)
+                        .Select(teamMember => teamMember.UserId)
+                        .ToListAsync();
+                }
+
+                var activeAssignmentsInOtherTeams = await (
+                    from otherTeam in _context.Teams
+                    join teamMember in _context.TeamMembers
+                        on otherTeam.TeamId equals teamMember.TeamId
+                    where otherTeam.CompanyId == team.CompanyId &&
+                          otherTeam.TeamId != team.TeamId &&
+                          otherTeam.IsActive
+                    select teamMember.UserId
+                )
+                .Distinct()
+                .ToListAsync();
+
+                var busyUserIds = activeAssignmentsInOtherTeams.ToHashSet();
+
+                if (requestedLeaderId.HasValue && busyUserIds.Contains(requestedLeaderId.Value))
+                {
+                    requestedLeaderId = null;
+                }
+
+                requestedMemberIds = requestedMemberIds
+                    .Where(userId => userId > 0 && !busyUserIds.Contains(userId))
+                    .Distinct()
+                    .ToList();
+            }
+
             team.TeamLeaderUserId = requestedLeaderId;
 
-            if (request.IsActive.HasValue)
+            if (requestedMemberIds != null)
             {
-                team.IsActive = request.IsActive.Value;
-            }
-            else if (request.Status.HasValue)
-            {
-                team.IsActive = request.Status.Value;
-            }
-
-            if (request.MemberIds != null)
-            {
-                await SyncTeamMembersAsync(team, request.MemberIds, requestedLeaderId);
+                await SyncTeamMembersAsync(team, requestedMemberIds, requestedLeaderId);
             }
 
             await _context.SaveChangesAsync();
