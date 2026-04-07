@@ -1063,7 +1063,9 @@ export default function TeamsSection() {
 
                         <form className="teams-section__form" onSubmit={handleCreateTeam}>
                             <div className="teams-section__form-group">
-                                <label htmlFor="teamName">Team Name</label>
+                                <label htmlFor="teamName">
+                                    Team Name <span className="teams-section__required">*</span>
+                                </label>
                                 <input
                                     id="teamName"
                                     type="text"
@@ -1075,7 +1077,9 @@ export default function TeamsSection() {
                             </div>
 
                             <div className="teams-section__form-group">
-                                <label htmlFor="teamDescription">Team Description</label>
+                                <label htmlFor="teamDescription">
+                                    Team Description <span className="teams-section__required">*</span>
+                                </label>
                                 <textarea
                                     id="teamDescription"
                                     value={teamForm.description}
