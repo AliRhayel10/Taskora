@@ -72,6 +72,7 @@ export default function TeamsSection() {
     const [searchTerm, setSearchTerm] = useState("");
     const [memberSearchTerm, setMemberSearchTerm] = useState("");
     const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
+    const [createLeaderSearchTerm, setCreateLeaderSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -252,11 +253,59 @@ export default function TeamsSection() {
 
 
 
-    const filteredCreateTeamLeaders = useMemo(() => {
-        const leaders = companyMembers.filter((employee) => isTeamLeaderRole(employee.role));
 
-        return leaders;
-    }, [companyMembers]);
+    const assignedActiveLeaderIds = useMemo(() => {
+        return new Set(
+            teams
+                .filter((team) => team && team.isActive !== false)
+                .map((team) => String(team.teamLeaderId || team.teamLeaderUserId || ""))
+                .filter(Boolean)
+        );
+    }, [teams]);
+
+    const assignedActiveMemberIds = useMemo(() => {
+        return new Set(
+            teams
+                .filter((team) => team && team.isActive !== false)
+                .flatMap((team) =>
+                    Array.isArray(team.memberIds)
+                        ? team.memberIds.map((id) => String(id))
+                        : []
+                )
+                .filter(Boolean)
+        );
+    }, [teams]);
+
+    const filteredCreateTeamLeaders = useMemo(() => {
+        const value = createLeaderSearchTerm.trim().toLowerCase();
+
+        const leaders = companyMembers.filter((employee) => {
+            const employeeId = String(employee.userId || "");
+            return (
+                isTeamLeaderRole(employee.role) &&
+                !assignedActiveLeaderIds.has(employeeId) &&
+                !assignedActiveMemberIds.has(employeeId)
+            );
+        });
+
+        if (!value) {
+            return leaders;
+        }
+
+        return leaders.filter((employee) => {
+            const fullName = (employee.fullName || "").toLowerCase();
+            const email = (employee.email || "").toLowerCase();
+            const role = (employee.role || "").toLowerCase();
+            const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
+
+            return (
+                fullName.includes(value) ||
+                email.includes(value) ||
+                role.includes(value) ||
+                jobTitle.includes(value)
+            );
+        });
+    }, [companyMembers, createLeaderSearchTerm, assignedActiveLeaderIds, assignedActiveMemberIds]);
 
     const filteredTeamLeaders = useMemo(() => {
         const value = leaderSearchTerm.trim().toLowerCase();
@@ -307,12 +356,14 @@ export default function TeamsSection() {
         setSuccessMessage("");
         setErrorMessage("");
         setTeamForm({ teamName: "", description: "", teamLeaderId: "", isActive: true });
+        setCreateLeaderSearchTerm("");
         setIsCreateModalOpen(true);
     };
 
     const closeCreateModal = () => {
         if (isSubmitting) return;
         setIsCreateModalOpen(false);
+        setCreateLeaderSearchTerm("");
     };
 
     const openMembersModal = (team) => {
