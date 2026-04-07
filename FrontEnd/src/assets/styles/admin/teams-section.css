@@ -356,6 +356,30 @@
   border-top: 1px solid #e8eef5;
 }
 
+.teams-section__members-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.teams-section__members-count {
+  color: #475467;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.teams-section__members-count svg {
+  font-size: 1rem;
+  color: #667085;
+  flex-shrink: 0;
+}
+
 .teams-section__meta {
   display: flex;
   flex-wrap: wrap;
@@ -959,8 +983,17 @@
     padding: 14px 18px 0;
   }
 
-  .teams-section__members-btn {
+  .teams-section__members-actions {
     width: 100%;
+    justify-content: space-between;
+  }
+
+  .teams-section__members-count {
+    flex-shrink: 0;
+  }
+
+  .teams-section__members-btn {
+    width: auto;
   }
 }
 

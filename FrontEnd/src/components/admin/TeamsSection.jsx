@@ -10,6 +10,7 @@ import {
     FiEdit2,
     FiChevronDown,
     FiUsers,
+    FiUser,
     FiCheckCircle,
     FiSlash,
 } from "react-icons/fi";
@@ -1072,14 +1073,24 @@ export default function TeamsSection() {
                                 </div>
 
                                 <div className="teams-section__card-actions">
-                                    <button
-                                        type="button"
-                                        className="teams-section__members-btn"
-                                        onClick={() => openMembersModal(team)}
-                                    >
-                                        <FiUsers />
-                                        <span>Edit Members</span>
-                                    </button>
+                                    <div className="teams-section__members-actions">
+                                        <div className="teams-section__members-count">
+                                            <FiUser />
+                                            <span>
+                                                {Array.isArray(team.memberIds) ? team.memberIds.length : 0}{" "}
+                                                {(Array.isArray(team.memberIds) ? team.memberIds.length : 0) === 1 ? "member" : "members"}
+                                            </span>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="teams-section__members-btn"
+                                            onClick={() => openMembersModal(team)}
+                                        >
+                                            <FiUsers />
+                                            <span>Edit Members</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </article>
