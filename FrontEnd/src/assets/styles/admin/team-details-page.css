@@ -1,10 +1,13 @@
 .team-details-page {
   width: 100%;
+  height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 0;
   margin: 0;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .team-details-page__title-row {
@@ -12,6 +15,7 @@
   align-items: center;
   gap: 16px;
   margin: 0;
+  flex-shrink: 0;
 }
 
 .team-details-page__title-row h2 {
@@ -26,14 +30,6 @@
   flex: 1;
   height: 1px;
   background: #dbe3ee;
-}
-
-.team-details-page__description {
-  margin: 0;
-  color: #475467;
-  font-size: 1rem;
-  line-height: 1.75;
-  font-weight: 500;
 }
 
 .team-details-back-btn {
@@ -53,6 +49,7 @@
     border-color 0.2s ease,
     color 0.2s ease,
     transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .team-details-back-btn:hover {
@@ -62,8 +59,170 @@
   transform: translateY(-1px);
 }
 
+.team-details-page__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.team-details-page__meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.team-details-page__meta-chip svg {
+  flex-shrink: 0;
+}
+
+.team-details-page__table-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.team-details-page__members-title {
+  padding: 18px 20px 0;
+  flex-shrink: 0;
+}
+
+.team-details-page__members-title h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.team-details-page__table-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.team-details-page__table {
+  min-width: 760px;
+}
+
+.team-details-page__role-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.team-details-page__role-badge--leader {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.team-details-page__role-badge--member {
+  background: #f8fafc;
+  color: #475467;
+}
+
+.team-details-page__status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.team-details-page__status-pill--active {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.team-details-page__status-pill--inactive {
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.team-details-page__actions-col {
+  width: 140px;
+}
+
+.team-details-page__row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.team-details-page__delete-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #dc2626;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.team-details-page__delete-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.team-details-page__delete-btn svg {
+  font-size: 1rem;
+}
+
+.team-details-page__empty {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  color: #667085;
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+
+.team-details-page__empty svg {
+  font-size: 1.4rem;
+  color: #94a3b8;
+}
+
 @media (max-width: 700px) {
+  .team-details-page {
+    height: calc(100vh - 36px);
+    gap: 14px;
+  }
+
   .team-details-page__title-row h2 {
     font-size: 1.2rem;
+  }
+
+  .team-details-page__members-title {
+    padding: 16px 16px 0;
   }
 }
