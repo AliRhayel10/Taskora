@@ -230,12 +230,12 @@ export default function ProfileSection({ user }) {
   const initials =
     fullName !== "Not available"
       ? fullName
-          .split(" ")
-          .filter(Boolean)
-          .map((part) => part[0])
-          .join("")
-          .slice(0, 2)
-          .toUpperCase()
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
       : "AU";
 
   const emailChanged =
@@ -594,21 +594,21 @@ export default function ProfileSection({ user }) {
     },
     ...(isEditingProfile && emailChanged
       ? [
-          {
-            key: "currentPassword",
-            label: "Current Password",
-            icon: <FiLock />,
-            value: (
-              <input
-                type="password"
-                className="profile-info-input"
-                value={currentPassword}
-                onChange={(e) => handlePasswordChange(e.target.value)}
-                placeholder="Enter current password"
-              />
-            ),
-          },
-        ]
+        {
+          key: "currentPassword",
+          label: "Current Password",
+          icon: <FiLock />,
+          value: (
+            <input
+              type="password"
+              className="profile-info-input"
+              value={currentPassword}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              placeholder="Enter current password"
+            />
+          ),
+        },
+      ]
       : []),
   ];
 

@@ -121,16 +121,16 @@ export default function TeamsSection() {
             const response = await fetch(`${API_BASE_URL}/api/teams/company/${companyId}`);
             const rawText = await response.text();
 
-let data = {};
-try {
-    data = rawText ? JSON.parse(rawText) : {};
-} catch {
-    data = { message: rawText || "Server returned an invalid response." };
-}
+            let data = {};
+            try {
+                data = rawText ? JSON.parse(rawText) : {};
+            } catch {
+                data = { message: rawText || "Server returned an invalid response." };
+            }
 
-if (!response.ok) {
-    throw new Error(data.message || "Failed to create team.");
-}
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to create team.");
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to load teams.");
@@ -139,15 +139,15 @@ if (!response.ok) {
             setTeams(
                 Array.isArray(data)
                     ? data.map((team) => ({
-                          ...team,
-                          memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
-                          memberCount:
-                              team.isActive === false
-                                  ? 0
-                                  : typeof team.memberCount === "number"
+                        ...team,
+                        memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
+                        memberCount:
+                            team.isActive === false
+                                ? 0
+                                : typeof team.memberCount === "number"
                                     ? team.memberCount
                                     : (Array.isArray(team.memberIds) ? team.memberIds.length : 0),
-                      }))
+                    }))
                     : []
             );
         } catch (error) {
@@ -521,8 +521,8 @@ if (!response.ok) {
             typeof team.isActive === "boolean"
                 ? team.isActive
                 : typeof team.status === "boolean"
-                  ? team.status
-                  : true
+                    ? team.status
+                    : true
         );
     };
 
@@ -770,8 +770,8 @@ if (!response.ok) {
             typeof selectedTeam?.isActive === "boolean"
                 ? !selectedTeam.isActive
                 : typeof selectedTeam?.status === "boolean"
-                  ? !selectedTeam.status
-                  : false;
+                    ? !selectedTeam.status
+                    : false;
 
         const isReactivating = wasInactive && isStatusActive;
 
@@ -1165,13 +1165,13 @@ if (!response.ok) {
                                                 {team.isActive === false
                                                     ? 0
                                                     : typeof team.memberCount === "number"
-                                                      ? team.memberCount
-                                                      : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)}{" "}
+                                                        ? team.memberCount
+                                                        : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)}{" "}
                                                 {(team.isActive === false
                                                     ? 0
                                                     : typeof team.memberCount === "number"
-                                                      ? team.memberCount
-                                                      : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)) === 1
+                                                        ? team.memberCount
+                                                        : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)) === 1
                                                     ? "member"
                                                     : "members"}
                                             </span>

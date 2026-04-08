@@ -217,9 +217,9 @@ namespace BackEnd.Controllers
                 return NotFound(new { success = false, message = "Company not found." });
             }
 
-var duplicateTeamExists = await _context.Teams.AnyAsync(team =>
-    team.CompanyId == request.CompanyId &&
-    team.TeamName.ToLower() == trimmedTeamName.ToLower());
+            var duplicateTeamExists = await _context.Teams.AnyAsync(team =>
+                team.CompanyId == request.CompanyId &&
+                team.TeamName.ToLower() == trimmedTeamName.ToLower());
 
             if (duplicateTeamExists)
             {
@@ -321,173 +321,173 @@ var duplicateTeamExists = await _context.Teams.AnyAsync(team =>
             });
         }
 
-[HttpPut("{teamId:int}")]
-public async Task<IActionResult> UpdateTeam(int teamId, [FromBody] UpdateTeamRequest request)
-{
-    if (request == null)
-    {
-        return BadRequest(new { success = false, message = "Request body is required." });
-    }
-
-    var team = await _context.Teams.FirstOrDefaultAsync(t => t.TeamId == teamId);
-
-    if (team == null)
-    {
-        return NotFound(new { success = false, message = "Team not found." });
-    }
-
-    if (request.CompanyId > 0 && request.CompanyId != team.CompanyId)
-    {
-        return BadRequest(new { success = false, message = "CompanyId does not match this team." });
-    }
-
-    var trimmedTeamName = request.TeamName?.Trim() ?? string.Empty;
-
-    if (string.IsNullOrWhiteSpace(trimmedTeamName))
-    {
-        return BadRequest(new { success = false, message = "Team name is required." });
-    }
-
-var duplicateTeamExists = await _context.Teams.AnyAsync(existingTeam =>
-    existingTeam.TeamId != teamId &&
-    existingTeam.CompanyId == team.CompanyId &&
-    existingTeam.TeamName.ToLower() == trimmedTeamName.ToLower());
-
-    if (duplicateTeamExists)
-    {
-        return Conflict(new { success = false, message = "A team with this name already exists." });
-    }
-
-    var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
-    var nextIsActive = request.IsActive ?? team.IsActive;
-    var isReactivating = !team.IsActive && nextIsActive;
-
-    if (nextIsActive && !requestedLeaderId.HasValue)
-    {
-        return BadRequest(new
+        [HttpPut("{teamId:int}")]
+        public async Task<IActionResult> UpdateTeam(int teamId, [FromBody] UpdateTeamRequest request)
         {
-            success = false,
-            message = "No team leader available. Assign a team leader before activating this team."
-        });
-    }
-
-    if (requestedLeaderId.HasValue)
-    {
-        var leaderExists = await _context.Users.AnyAsync(user =>
-            user.UserId == requestedLeaderId.Value &&
-            user.CompanyId == team.CompanyId);
-
-        if (!leaderExists)
-        {
-            return BadRequest(new
+            if (request == null)
             {
-                success = false,
-                message = "Selected team leader does not belong to this company."
+                return BadRequest(new { success = false, message = "Request body is required." });
+            }
+
+            var team = await _context.Teams.FirstOrDefaultAsync(t => t.TeamId == teamId);
+
+            if (team == null)
+            {
+                return NotFound(new { success = false, message = "Team not found." });
+            }
+
+            if (request.CompanyId > 0 && request.CompanyId != team.CompanyId)
+            {
+                return BadRequest(new { success = false, message = "CompanyId does not match this team." });
+            }
+
+            var trimmedTeamName = request.TeamName?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(trimmedTeamName))
+            {
+                return BadRequest(new { success = false, message = "Team name is required." });
+            }
+
+            var duplicateTeamExists = await _context.Teams.AnyAsync(existingTeam =>
+                existingTeam.TeamId != teamId &&
+                existingTeam.CompanyId == team.CompanyId &&
+                existingTeam.TeamName.ToLower() == trimmedTeamName.ToLower());
+
+            if (duplicateTeamExists)
+            {
+                return Conflict(new { success = false, message = "A team with this name already exists." });
+            }
+
+            var requestedLeaderId = request.TeamLeaderId ?? request.TeamLeaderUserId;
+            var nextIsActive = request.IsActive ?? team.IsActive;
+            var isReactivating = !team.IsActive && nextIsActive;
+
+            if (nextIsActive && !requestedLeaderId.HasValue)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "No team leader available. Assign a team leader before activating this team."
+                });
+            }
+
+            if (requestedLeaderId.HasValue)
+            {
+                var leaderExists = await _context.Users.AnyAsync(user =>
+                    user.UserId == requestedLeaderId.Value &&
+                    user.CompanyId == team.CompanyId);
+
+                if (!leaderExists)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Selected team leader does not belong to this company."
+                    });
+                }
+
+                var leaderAlreadyAssigned = await _context.Teams.AnyAsync(existingTeam =>
+                    existingTeam.TeamId != teamId &&
+                    existingTeam.CompanyId == team.CompanyId &&
+                    existingTeam.IsActive &&
+                    existingTeam.TeamLeaderUserId == requestedLeaderId.Value);
+
+                if (leaderAlreadyAssigned)
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "This team leader is already assigned to another active team."
+                    });
+                }
+            }
+
+            team.TeamName = trimmedTeamName;
+            team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            team.IsActive = nextIsActive;
+
+            var requestedMemberIds = request.MemberIds?.ToList() ?? new List<int>();
+
+            if (isReactivating)
+            {
+                var activeAssignmentsInOtherTeams = await (
+                    from otherTeam in _context.Teams
+                    join teamMember in _context.TeamMembers
+                        on otherTeam.TeamId equals teamMember.TeamId
+                    where otherTeam.CompanyId == team.CompanyId &&
+                          otherTeam.TeamId != team.TeamId &&
+                          otherTeam.IsActive &&
+                          teamMember.IsActive
+                    select teamMember.UserId
+                )
+                .Distinct()
+                .ToListAsync();
+
+                var busyUserIds = activeAssignmentsInOtherTeams.ToHashSet();
+
+                requestedMemberIds = requestedMemberIds
+                    .Where(userId => userId > 0 && !busyUserIds.Contains(userId))
+                    .Distinct()
+                    .ToList();
+
+                if (requestedLeaderId.HasValue && busyUserIds.Contains(requestedLeaderId.Value))
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "This team leader is already assigned to another active team."
+                    });
+                }
+            }
+
+            team.TeamLeaderUserId = requestedLeaderId;
+
+            await SyncTeamMembersAsync(team, requestedMemberIds, requestedLeaderId);
+            await _context.SaveChangesAsync();
+
+            var leaderName = string.Empty;
+
+            if (team.TeamLeaderUserId.HasValue)
+            {
+                leaderName = await _context.Users
+                    .Where(user => user.UserId == team.TeamLeaderUserId.Value)
+                    .Select(user => user.FullName)
+                    .FirstOrDefaultAsync() ?? string.Empty;
+            }
+
+            var updatedMemberIds = team.IsActive
+                ? await _context.TeamMembers
+                    .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
+                    .Select(teamMember => teamMember.UserId)
+                    .ToListAsync()
+                : new List<int>();
+
+            var updatedTasksCount = await _context.Tasks
+                .AsNoTracking()
+                .Where(task => task.TeamId == team.TeamId)
+                .Select(task => task.TaskId)
+                .CountAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Team updated successfully.",
+                team = new
+                {
+                    teamId = team.TeamId,
+                    companyId = team.CompanyId,
+                    teamName = team.TeamName,
+                    description = team.Description,
+                    teamLeaderUserId = team.TeamLeaderUserId,
+                    teamLeaderId = team.TeamLeaderUserId,
+                    teamLeaderName = leaderName,
+                    tasksCount = updatedTasksCount,
+                    isActive = team.IsActive,
+                    memberIds = updatedMemberIds,
+                    memberCount = team.IsActive ? updatedMemberIds.Count : 0
+                }
             });
         }
-
-        var leaderAlreadyAssigned = await _context.Teams.AnyAsync(existingTeam =>
-            existingTeam.TeamId != teamId &&
-            existingTeam.CompanyId == team.CompanyId &&
-            existingTeam.IsActive &&
-            existingTeam.TeamLeaderUserId == requestedLeaderId.Value);
-
-        if (leaderAlreadyAssigned)
-        {
-            return Conflict(new
-            {
-                success = false,
-                message = "This team leader is already assigned to another active team."
-            });
-        }
-    }
-
-    team.TeamName = trimmedTeamName;
-    team.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-    team.IsActive = nextIsActive;
-
-    var requestedMemberIds = request.MemberIds?.ToList() ?? new List<int>();
-
-    if (isReactivating)
-    {
-        var activeAssignmentsInOtherTeams = await (
-            from otherTeam in _context.Teams
-            join teamMember in _context.TeamMembers
-                on otherTeam.TeamId equals teamMember.TeamId
-            where otherTeam.CompanyId == team.CompanyId &&
-                  otherTeam.TeamId != team.TeamId &&
-                  otherTeam.IsActive &&
-                  teamMember.IsActive
-            select teamMember.UserId
-        )
-        .Distinct()
-        .ToListAsync();
-
-        var busyUserIds = activeAssignmentsInOtherTeams.ToHashSet();
-
-        requestedMemberIds = requestedMemberIds
-            .Where(userId => userId > 0 && !busyUserIds.Contains(userId))
-            .Distinct()
-            .ToList();
-
-        if (requestedLeaderId.HasValue && busyUserIds.Contains(requestedLeaderId.Value))
-        {
-            return Conflict(new
-            {
-                success = false,
-                message = "This team leader is already assigned to another active team."
-            });
-        }
-    }
-
-    team.TeamLeaderUserId = requestedLeaderId;
-
-    await SyncTeamMembersAsync(team, requestedMemberIds, requestedLeaderId);
-    await _context.SaveChangesAsync();
-
-    var leaderName = string.Empty;
-
-    if (team.TeamLeaderUserId.HasValue)
-    {
-        leaderName = await _context.Users
-            .Where(user => user.UserId == team.TeamLeaderUserId.Value)
-            .Select(user => user.FullName)
-            .FirstOrDefaultAsync() ?? string.Empty;
-    }
-
-    var updatedMemberIds = team.IsActive
-        ? await _context.TeamMembers
-            .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
-            .Select(teamMember => teamMember.UserId)
-            .ToListAsync()
-        : new List<int>();
-
-    var updatedTasksCount = await _context.Tasks
-        .AsNoTracking()
-        .Where(task => task.TeamId == team.TeamId)
-        .Select(task => task.TaskId)
-        .CountAsync();
-
-    return Ok(new
-    {
-        success = true,
-        message = "Team updated successfully.",
-        team = new
-        {
-            teamId = team.TeamId,
-            companyId = team.CompanyId,
-            teamName = team.TeamName,
-            description = team.Description,
-            teamLeaderUserId = team.TeamLeaderUserId,
-            teamLeaderId = team.TeamLeaderUserId,
-            teamLeaderName = leaderName,
-            tasksCount = updatedTasksCount,
-            isActive = team.IsActive,
-            memberIds = updatedMemberIds,
-            memberCount = team.IsActive ? updatedMemberIds.Count : 0
-        }
-    });
-}
 
         [HttpDelete("{teamId:int}")]
         public async Task<IActionResult> DeleteTeam(int teamId)
