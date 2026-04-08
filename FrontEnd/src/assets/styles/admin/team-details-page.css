@@ -4,9 +4,10 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 0;
+  padding: 1px 0 0; /* small top buffer for hover */
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   min-height: 0;
 }
 
@@ -14,8 +15,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 0;
   flex-shrink: 0;
+  overflow: visible; /* prevent clipping */
 }
 
 .team-details-page__title-row h2 {
@@ -93,17 +94,6 @@
   overflow: hidden;
 }
 
-.team-details-page__members-title {
-  padding: 18px 20px 0;
-  flex-shrink: 0;
-}
-
-.team-details-page__members-title h3 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 1.08rem;
-  font-weight: 800;
-}
 
 .team-details-page__table-wrap {
   flex: 1;
