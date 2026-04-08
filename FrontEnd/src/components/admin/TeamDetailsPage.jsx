@@ -249,29 +249,35 @@ export default function TeamDetailsPage({ team, onBack }) {
     }
   };
 
-  const handleToggleMemberStatus = async (memberId) => {
-    try {
-      setIsSaving(true);
-      setFeedbackMessage("");
-      setFeedbackType("");
+const handleToggleMemberStatus = async (memberId) => {
+  try {
+    setIsSaving(true);
+    setFeedbackMessage("");
+    setFeedbackType("");
 
-      const nextMembers = members.map((member) =>
-        String(member.userId) === String(memberId)
-          ? { ...member, isActive: !member.isActive }
-          : member
-      );
+    const nextMembers = members.map((member) =>
+      String(member.userId) === String(memberId)
+        ? { ...member, isActive: !member.isActive }
+        : member
+    );
 
-      setMembers(nextMembers);
-      setFeedbackType("success");
-      setFeedbackMessage("Member status updated.");
-    } catch (error) {
-      console.error("Failed to update member status:", error);
-      setFeedbackType("error");
-      setFeedbackMessage(error.message || "Failed to update member status.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    // 🔥 IMPORTANT: filter ONLY ACTIVE members for backend
+    const activeMembers = nextMembers.filter((m) => m.isActive);
+
+    await saveTeamMembersToBackend(activeMembers);
+
+    setMembers(nextMembers);
+
+    setFeedbackType("success");
+    setFeedbackMessage("Member status updated.");
+  } catch (error) {
+    console.error("Failed to update member status:", error);
+    setFeedbackType("error");
+    setFeedbackMessage(error.message || "Failed to update member status.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   const totalMembers = members.length;
   const totalPages = Math.max(1, Math.ceil(totalMembers / MEMBERS_PER_PAGE));
@@ -302,17 +308,17 @@ export default function TeamDetailsPage({ team, onBack }) {
         <div className="team-details-page__title-line"></div>
       </div>
 
-      {feedbackMessage && (
-        <div
-          className={
-            feedbackType === "error"
-              ? "teams-section__feedback teams-section__feedback--error"
-              : "teams-section__feedback teams-section__feedback--success"
-          }
-        >
-          {feedbackMessage}
-        </div>
-      )}
+{feedbackMessage && (
+  <div
+    className={
+      feedbackType === "error"
+        ? "teams-section__feedback teams-section__feedback--floating teams-section__feedback--floating-error"
+        : "teams-section__feedback teams-section__feedback--success teams-section__feedback--floating"
+    }
+  >
+    <span>{feedbackMessage}</span>
+  </div>
+)}
 
       <div className="users-section__table-card team-details-page__table-card">
 
