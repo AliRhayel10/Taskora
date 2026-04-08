@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
-  FiCheckCircle,
-  FiSlash,
+  FiChevronLeft,
+  FiChevronRight,
   FiTrash2,
   FiUser,
   FiX,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 import "../../assets/styles/admin/team-details-page.css";
+import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
+const MEMBERS_PER_PAGE = 5;
 
 function getStoredUser() {
   try {
@@ -64,6 +66,7 @@ export default function TeamDetailsPage({ team, onBack }) {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackType, setFeedbackType] = useState("");
   const [memberToDelete, setMemberToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setTeamState(team || null);
@@ -115,6 +118,10 @@ export default function TeamDetailsPage({ team, onBack }) {
         userId: memberId,
         fullName: foundMember?.fullName || "Unknown Member",
         email: foundMember?.email || "No email available",
+        jobType:
+          foundMember?.jobType ||
+          foundMember?.jobTitle ||
+          "No job type available",
         role: String(memberId) === leaderId ? "Team Leader" : "Member",
         isActive: true,
       };
@@ -134,26 +141,14 @@ export default function TeamDetailsPage({ team, onBack }) {
     return () => window.clearTimeout(timeoutId);
   }, [feedbackMessage]);
 
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(members.length / MEMBERS_PER_PAGE));
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [members.length, currentPage]);
+
   const title = teamState?.teamName || "Team";
-  const teamStatus =
-    typeof teamState?.isActive === "boolean" ? teamState.isActive : true;
-
-  const teamLeaderName = useMemo(() => {
-    const leaderId = String(
-      teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
-    );
-    const foundLeader = companyMembers.find(
-      (member) => String(member.userId) === leaderId
-    );
-
-    return (
-      foundLeader?.fullName ||
-      teamState?.teamLeaderName ||
-      "No team leader assigned"
-    );
-  }, [companyMembers, teamState]);
-
-  const membersCount = members.length;
 
   const closeDeleteModal = () => {
     if (isSaving) return;
@@ -185,7 +180,8 @@ export default function TeamDetailsPage({ team, onBack }) {
       teamLeaderId:
         nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null,
       memberIds,
-      isActive: teamStatus,
+      isActive:
+        typeof teamState?.isActive === "boolean" ? teamState.isActive : true,
     };
 
     const response = await fetch(`${API_BASE_URL}/api/teams/${teamState.teamId}`, {
@@ -277,6 +273,17 @@ export default function TeamDetailsPage({ team, onBack }) {
     }
   };
 
+  const totalMembers = members.length;
+  const totalPages = Math.max(1, Math.ceil(totalMembers / MEMBERS_PER_PAGE));
+  const startIndex = totalMembers === 0 ? 0 : (currentPage - 1) * MEMBERS_PER_PAGE;
+  const endIndex = Math.min(startIndex + MEMBERS_PER_PAGE, totalMembers);
+  const paginatedMembers = members.slice(startIndex, endIndex);
+
+  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
+    Math.max(0, currentPage - 2),
+    Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
+  );
+
   return (
     <section className="team-details-page">
       <div className="team-details-page__title-row">
@@ -307,35 +314,6 @@ export default function TeamDetailsPage({ team, onBack }) {
         </div>
       )}
 
-      <div className="team-details-page__meta-row">
-        <div className="team-details-page__meta-chip">
-          {teamStatus ? (
-            <span className="teams-section__status-badge teams-section__status-badge--active">
-              <FiCheckCircle />
-            </span>
-          ) : (
-            <span className="teams-section__status-badge teams-section__status-badge--inactive">
-              <FiSlash />
-            </span>
-          )}
-          <span>{teamStatus ? "Active" : "Inactive"}</span>
-        </div>
-
-        <div className="team-details-page__meta-chip">
-          <span className="teams-section__leader-avatar">
-            {getInitials(teamLeaderName)}
-          </span>
-          <span>{teamLeaderName}</span>
-        </div>
-
-        <div className="team-details-page__meta-chip">
-          <FiUser />
-          <span>
-            {membersCount} {membersCount === 1 ? "member" : "members"}
-          </span>
-        </div>
-      </div>
-
       <div className="users-section__table-card team-details-page__table-card">
 
         <div className="users-section__table-wrap team-details-page__table-wrap">
@@ -343,6 +321,7 @@ export default function TeamDetailsPage({ team, onBack }) {
             <thead>
               <tr>
                 <th>Member</th>
+                <th>Job Type</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th className="team-details-page__actions-col">Actions</th>
@@ -352,15 +331,15 @@ export default function TeamDetailsPage({ team, onBack }) {
             <tbody>
               {isLoadingMembers ? (
                 <tr>
-                  <td colSpan="4">
+                  <td colSpan="5">
                     <div className="team-details-page__empty">
                       <span>Loading members...</span>
                     </div>
                   </td>
                 </tr>
-              ) : members.length === 0 ? (
+              ) : paginatedMembers.length === 0 ? (
                 <tr>
-                  <td colSpan="4">
+                  <td colSpan="5">
                     <div className="team-details-page__empty">
                       <FiUser />
                       <span>No members found for this team.</span>
@@ -368,7 +347,7 @@ export default function TeamDetailsPage({ team, onBack }) {
                   </td>
                 </tr>
               ) : (
-                members.map((member) => (
+                paginatedMembers.map((member) => (
                   <tr key={member.userId}>
                     <td>
                       <div className="users-section__user-cell">
@@ -382,6 +361,8 @@ export default function TeamDetailsPage({ team, onBack }) {
                         </span>
                       </div>
                     </td>
+
+                    <td>{member.jobType}</td>
 
                     <td>
                       <span
@@ -439,6 +420,47 @@ export default function TeamDetailsPage({ team, onBack }) {
             </tbody>
           </table>
         </div>
+
+        {!isLoadingMembers && totalMembers > 0 && (
+          <div className="users-section__pagination">
+            <div className="users-section__pagination-info">
+              Showing {startIndex + 1} to {endIndex} of {totalMembers} members
+            </div>
+
+            <div className="users-section__pagination-controls">
+              <button
+                type="button"
+                className="users-section__page-btn"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <FiChevronLeft />
+              </button>
+
+              {visiblePages.map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={`users-section__page-btn users-section__page-btn--number ${
+                    currentPage === page ? "users-section__page-btn--active" : ""
+                  }`}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="users-section__page-btn"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                <FiChevronRight />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {memberToDelete && (
