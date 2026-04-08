@@ -6,6 +6,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import TeamDetailsPage from "./components/admin/TeamDetailsPage";
 import "./assets/styles/global.css";
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
       <Route path="/teamleader" element={<div>Team Leader Page</div>} />
       <Route path="/employee" element={<div>Employee Page</div>} />
 

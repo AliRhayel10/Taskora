@@ -3,6 +3,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import ProfileSection from "../components/admin/ProfileSection";
 import SettingsSection from "../components/admin/SettingsSection";
 import TeamsSection from "../components/admin/TeamsSection";
+import TeamDetailsPage from "../components/admin/TeamDetailsPage";
 import UsersSection from "../components/admin/UsersSection";
 import "./../assets/styles/admin/admin-dashboard.css";
 
@@ -11,6 +12,7 @@ export default function AdminDashboard() {
   const [settingsResetSignal, setSettingsResetSignal] = useState(0);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedTeam, setSelectedTeam] = useState(null);
 
   const storedUser = useMemo(() => {
     const savedUser = localStorage.getItem("user");
@@ -76,19 +78,45 @@ export default function AdminDashboard() {
       setSettingsResetSignal((prev) => prev + 1);
     }
 
+    if (section !== "TeamDetails") {
+      setSelectedTeam(null);
+    }
+
     setActiveSection(section);
+  };
+
+  const handleOpenTeamDetails = (team) => {
+    setSelectedTeam(team);
+    setActiveSection("TeamDetails");
+  };
+
+  const handleBackToTeams = () => {
+    setSelectedTeam(null);
+    setActiveSection("Teams");
   };
 
   const renderSectionContent = () => {
     switch (activeSection) {
       case "Users":
         return <UsersSection />;
+
       case "Profile":
         return <ProfileSection user={user} />;
+
       case "Settings":
         return <SettingsSection resetSignal={settingsResetSignal} />;
+
       case "Teams":
-        return <TeamsSection />;
+        return <TeamsSection onOpenTeam={handleOpenTeamDetails} />;
+
+      case "TeamDetails":
+        return (
+          <TeamDetailsPage
+            team={selectedTeam}
+            onBack={handleBackToTeams}
+          />
+        );
+
       case "Dashboard":
       default:
         return null;
@@ -107,7 +135,7 @@ export default function AdminDashboard() {
     <div className="admin-layout">
       <AdminSidebar
         user={user}
-        activeItem={activeSection}
+        activeItem={activeSection === "TeamDetails" ? "Teams" : activeSection}
         onSelect={handleSectionSelect}
         onLogout={handleLogout}
       />

@@ -27,6 +27,20 @@ function getStoredUser() {
     }
 }
 
+async function parseJsonResponse(response) {
+    const rawText = await response.text();
+
+    if (!rawText) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(rawText);
+    } catch {
+        return { message: rawText || "Server returned an invalid response." };
+    }
+}
+
 function getInitials(value) {
     const source = (value || "").trim();
 
@@ -69,7 +83,7 @@ function isSelectableMemberRole(value) {
     return isEmployeeRole(value) || isTeamLeaderRole(value);
 }
 
-export default function TeamsSection() {
+export default function TeamsSection({ onOpenTeam }) {
     const [teams, setTeams] = useState([]);
     const [companyMembers, setCompanyMembers] = useState([]);
     const [teamLeaders, setTeamLeaders] = useState([]);
@@ -107,6 +121,14 @@ export default function TeamsSection() {
     const companyId = currentUser?.companyId || 0;
     const menuRef = useRef(null);
 
+    const openTeamDetailsPage = (team) => {
+        if (!team?.teamId || typeof onOpenTeam !== "function") {
+            return;
+        }
+
+        onOpenTeam(team);
+    };
+
     const fetchTeams = async () => {
         if (!companyId) {
             setErrorMessage("Company not found. Please sign in again.");
@@ -119,18 +141,7 @@ export default function TeamsSection() {
             setErrorMessage("");
 
             const response = await fetch(`${API_BASE_URL}/api/teams/company/${companyId}`);
-            const rawText = await response.text();
-
-            let data = {};
-            try {
-                data = rawText ? JSON.parse(rawText) : {};
-            } catch {
-                data = { message: rawText || "Server returned an invalid response." };
-            }
-
-            if (!response.ok) {
-                throw new Error(data.message || "Failed to create team.");
-            }
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to load teams.");
@@ -139,15 +150,17 @@ export default function TeamsSection() {
             setTeams(
                 Array.isArray(data)
                     ? data.map((team) => ({
-                        ...team,
-                        memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
-                        memberCount:
-                            team.isActive === false
-                                ? 0
-                                : typeof team.memberCount === "number"
+                          ...team,
+                          memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
+                          memberCount:
+                              team.isActive === false
+                                  ? 0
+                                  : typeof team.memberCount === "number"
                                     ? team.memberCount
-                                    : (Array.isArray(team.memberIds) ? team.memberIds.length : 0),
-                    }))
+                                    : Array.isArray(team.memberIds)
+                                      ? team.memberIds.length
+                                      : 0,
+                      }))
                     : []
             );
         } catch (error) {
@@ -172,7 +185,7 @@ export default function TeamsSection() {
                 `${API_BASE_URL}/api/teams/company/${companyId}/members${params.toString() ? `?${params.toString()}` : ""}`
             );
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to load company members.");
@@ -192,7 +205,7 @@ export default function TeamsSection() {
                 `${API_BASE_URL}/api/teams/company/${companyId}/members?teamLeadersOnly=true`
             );
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to load team leaders.");
@@ -261,7 +274,9 @@ export default function TeamsSection() {
     const filteredEmployees = useMemo(() => {
         const value = memberSearchTerm.trim().toLowerCase();
         const currentEditingTeamId = String(membersModalTeam?.teamId || "");
-        const selectedLeaderId = String(editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || "");
+        const selectedLeaderId = String(
+            editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || ""
+        );
 
         const employees = availableEmployees.filter((employee) => {
             const employeeId = String(employee.userId || "");
@@ -374,7 +389,9 @@ export default function TeamsSection() {
     const filteredTeamLeaders = useMemo(() => {
         const value = leaderSearchTerm.trim().toLowerCase();
         const currentEditingTeamId = String(membersModalTeam?.teamId || selectedTeam?.teamId || "");
-        const selectedEditLeaderId = String(editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || "");
+        const selectedEditLeaderId = String(
+            editForm.teamLeaderId || membersModalTeam?.teamLeaderId || membersModalTeam?.teamLeaderUserId || ""
+        );
 
         const leaders = companyMembers.filter((employee) => {
             const employeeId = String(employee.userId || "");
@@ -673,7 +690,7 @@ export default function TeamsSection() {
                 }),
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to create team.");
@@ -722,7 +739,7 @@ export default function TeamsSection() {
                 body: JSON.stringify(payload),
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to update team members.");
@@ -797,14 +814,14 @@ export default function TeamsSection() {
                 body: JSON.stringify(payload),
             });
 
-            const data = await response.json().catch(() => ({}));
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to update team.");
             }
 
-            setSuccessMessage("Team updated successfully.");
             const updatedTeam = data.team || data;
+            setSuccessMessage("Team updated successfully.");
 
             if (isReactivating) {
                 const previousMemberIds = Array.isArray(selectedTeam?.memberIds)
@@ -876,7 +893,7 @@ export default function TeamsSection() {
                 method: "DELETE",
             });
 
-            const data = await response.json().catch(() => ({}));
+            const data = await parseJsonResponse(response);
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to delete team.");
@@ -1068,7 +1085,13 @@ export default function TeamsSection() {
                             <div className="teams-section__card-top">
                                 <div className="teams-section__card-heading">
                                     <div className="teams-section__card-title-row">
-                                        <h3>{team.teamName}</h3>
+                                        <button
+                                            type="button"
+                                            className="teams-section__title-link"
+                                            onClick={() => openTeamDetailsPage(team)}
+                                        >
+                                            {team.teamName}
+                                        </button>
                                     </div>
                                     <p>{team.description || "No description added yet."}</p>
                                 </div>
