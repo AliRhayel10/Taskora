@@ -131,9 +131,11 @@ export default function TeamsSection() {
                           ...team,
                           memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
                           memberCount:
-                              typeof team.memberCount === "number"
-                                  ? team.memberCount
-                                  : (Array.isArray(team.memberIds) ? team.memberIds.length : 0),
+                              team.isActive === false
+                                  ? 0
+                                  : typeof team.memberCount === "number"
+                                    ? team.memberCount
+                                    : (Array.isArray(team.memberIds) ? team.memberIds.length : 0),
                       }))
                     : []
             );
@@ -747,6 +749,12 @@ export default function TeamsSection() {
             return;
         }
 
+        if (isStatusActive && !cleanedForm.teamLeaderId) {
+            closeEditPanel();
+            setErrorMessage("No team leader available. Assign a team leader before activating this team.");
+            return;
+        }
+
         const wasInactive =
             typeof selectedTeam?.isActive === "boolean"
                 ? !selectedTeam.isActive
@@ -765,15 +773,10 @@ export default function TeamsSection() {
                 teamName: cleanedForm.teamName,
                 description: cleanedForm.description,
                 companyId,
-                teamLeaderId: cleanedForm.teamLeaderId,
-                memberIds: cleanedForm.memberIds,
+                teamLeaderId: cleanedForm.teamLeaderId ? Number(cleanedForm.teamLeaderId) : null,
+                memberIds: cleanedForm.memberIds.map((id) => Number(id)),
+                isActive: isStatusActive,
             };
-
-            if (typeof selectedTeam?.isActive === "boolean") {
-                payload.isActive = isStatusActive;
-            } else {
-                payload.status = isStatusActive;
-            }
 
             const response = await fetch(`${API_BASE_URL}/api/teams/${selectedTeam.teamId}`, {
                 method: "PUT",
@@ -1148,8 +1151,18 @@ export default function TeamsSection() {
                                         <div className="teams-section__members-count">
                                             <FiUser />
                                             <span>
-                                                {typeof team.memberCount === "number" ? team.memberCount : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)}{" "}
-                                                {(typeof team.memberCount === "number" ? team.memberCount : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)) === 1 ? "member" : "members"}
+                                                {team.isActive === false
+                                                    ? 0
+                                                    : typeof team.memberCount === "number"
+                                                      ? team.memberCount
+                                                      : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)}{" "}
+                                                {(team.isActive === false
+                                                    ? 0
+                                                    : typeof team.memberCount === "number"
+                                                      ? team.memberCount
+                                                      : (Array.isArray(team.memberIds) ? team.memberIds.length : 0)) === 1
+                                                    ? "member"
+                                                    : "members"}
                                             </span>
                                         </div>
 
