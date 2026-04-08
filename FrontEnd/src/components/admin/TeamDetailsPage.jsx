@@ -5,6 +5,7 @@ import {
   FiSlash,
   FiTrash2,
   FiUser,
+  FiX,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 import "../../assets/styles/admin/team-details-page.css";
@@ -62,6 +63,7 @@ export default function TeamDetailsPage({ team, onBack }) {
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackType, setFeedbackType] = useState("");
+  const [memberToDelete, setMemberToDelete] = useState(null);
 
   useEffect(() => {
     setTeamState(team || null);
@@ -153,6 +155,15 @@ export default function TeamDetailsPage({ team, onBack }) {
 
   const membersCount = members.length;
 
+  const closeDeleteModal = () => {
+    if (isSaving) return;
+    setMemberToDelete(null);
+  };
+
+  const openDeleteModal = (member) => {
+    setMemberToDelete(member);
+  };
+
   const saveTeamMembersToBackend = async (nextMembers) => {
     if (!teamState?.teamId) {
       throw new Error("Team not found.");
@@ -171,7 +182,8 @@ export default function TeamDetailsPage({ team, onBack }) {
       teamName: teamState.teamName || "",
       description: teamState.description || "",
       companyId,
-      teamLeaderId: nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null,
+      teamLeaderId:
+        nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null,
       memberIds,
       isActive: teamStatus,
     };
@@ -213,20 +225,8 @@ export default function TeamDetailsPage({ team, onBack }) {
     }));
   };
 
-  const handleDeleteMember = async (memberId) => {
-    const memberToDelete = members.find(
-      (member) => String(member.userId) === String(memberId)
-    );
-
+  const handleConfirmDeleteMember = async () => {
     if (!memberToDelete) {
-      return;
-    }
-
-    const isConfirmed = window.confirm(
-      `Are you sure you want to remove ${memberToDelete.fullName} from this team?`
-    );
-
-    if (!isConfirmed) {
       return;
     }
 
@@ -236,11 +236,12 @@ export default function TeamDetailsPage({ team, onBack }) {
       setFeedbackType("");
 
       const nextMembers = members.filter(
-        (member) => String(member.userId) !== String(memberId)
+        (member) => String(member.userId) !== String(memberToDelete.userId)
       );
 
       await saveTeamMembersToBackend(nextMembers);
       setMembers(nextMembers);
+      setMemberToDelete(null);
       setFeedbackType("success");
       setFeedbackMessage("Member removed from team successfully.");
     } catch (error) {
@@ -424,7 +425,7 @@ export default function TeamDetailsPage({ team, onBack }) {
                         <button
                           type="button"
                           className="team-details-page__delete-btn"
-                          onClick={() => handleDeleteMember(member.userId)}
+                          onClick={() => openDeleteModal(member)}
                           title="Delete member"
                           disabled={isSaving}
                         >
@@ -439,6 +440,54 @@ export default function TeamDetailsPage({ team, onBack }) {
           </table>
         </div>
       </div>
+
+      {memberToDelete && (
+        <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
+          <div
+            className="teams-section__modal teams-section__modal--small"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="teams-section__modal-header">
+              <div>
+                <h3>Delete Member</h3>
+                <p>
+                  This action will remove <strong>{memberToDelete.fullName}</strong> from
+                  this team.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="teams-section__modal-close"
+                onClick={closeDeleteModal}
+                aria-label="Close delete member dialog"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="teams-section__form-actions">
+              <button
+                type="button"
+                className="teams-section__secondary-btn"
+                onClick={closeDeleteModal}
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="teams-section__delete-btn"
+                onClick={handleConfirmDeleteMember}
+                disabled={isSaving}
+              >
+                {isSaving ? "Deleting..." : "Delete Member"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
