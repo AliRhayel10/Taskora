@@ -43,7 +43,6 @@ namespace BackEnd.Models
 
         public int TaskStatusId { get; set; }
 
-        [ForeignKey(nameof(TaskStatusId))]
         public TaskStatus? TaskStatus { get; set; }
     }
 }

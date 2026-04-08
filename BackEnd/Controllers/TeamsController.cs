@@ -55,12 +55,19 @@ namespace BackEnd.Controllers
                 );
 
             var tasksCountByTeam = await _context.Tasks
+                .AsNoTracking()
                 .Where(task => teamIds.Contains(task.TeamId))
+                .Select(task => new
+                {
+                    task.TeamId
+                })
                 .GroupBy(task => task.TeamId)
-                .ToDictionaryAsync(
-                    group => group.Key,
-                    group => group.Count()
-                );
+                .Select(group => new
+                {
+                    TeamId = group.Key,
+                    Count = group.Count()
+                })
+                .ToDictionaryAsync(x => x.TeamId, x => x.Count);
 
             var result = teams
                 .Select(team =>
@@ -448,6 +455,12 @@ namespace BackEnd.Controllers
                     .ToListAsync()
                 : new List<int>();
 
+            var updatedTasksCount = await _context.Tasks
+                .AsNoTracking()
+                .Where(task => task.TeamId == team.TeamId)
+                .Select(task => task.TaskId)
+                .CountAsync();
+
             return Ok(new
             {
                 success = true,
@@ -461,7 +474,7 @@ namespace BackEnd.Controllers
                     teamLeaderUserId = team.TeamLeaderUserId,
                     teamLeaderId = team.TeamLeaderUserId,
                     teamLeaderName = leaderName,
-                    tasksCount = await _context.Tasks.CountAsync(task => task.TeamId == team.TeamId),
+                    tasksCount = updatedTasksCount,
                     isActive = team.IsActive,
                     memberIds = updatedMemberIds,
                     memberCount = team.IsActive ? updatedMemberIds.Count : 0
@@ -480,39 +493,25 @@ namespace BackEnd.Controllers
             }
 
             var taskIds = await _context.Tasks
+                .AsNoTracking()
                 .Where(task => task.TeamId == teamId)
                 .Select(task => task.TaskId)
                 .ToListAsync();
 
             if (taskIds.Count > 0)
             {
-                var taskHistories = await _context.TaskStatusHistories
+                await _context.TaskStatusHistories
                     .Where(history => taskIds.Contains(history.TaskId))
-                    .ToListAsync();
+                    .ExecuteDeleteAsync();
 
-                if (taskHistories.Count > 0)
-                {
-                    _context.TaskStatusHistories.RemoveRange(taskHistories);
-                }
-
-                var tasks = await _context.Tasks
+                await _context.Tasks
                     .Where(task => task.TeamId == teamId)
-                    .ToListAsync();
-
-                if (tasks.Count > 0)
-                {
-                    _context.Tasks.RemoveRange(tasks);
-                }
+                    .ExecuteDeleteAsync();
             }
 
-            var existingRows = await _context.TeamMembers
+            await _context.TeamMembers
                 .Where(teamMember => teamMember.TeamId == teamId)
-                .ToListAsync();
-
-            if (existingRows.Count > 0)
-            {
-                _context.TeamMembers.RemoveRange(existingRows);
-            }
+                .ExecuteDeleteAsync();
 
             _context.Teams.Remove(team);
             await _context.SaveChangesAsync();

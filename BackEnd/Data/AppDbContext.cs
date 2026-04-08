@@ -24,6 +24,11 @@ namespace BackEnd.Data
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                   base.OnModelCreating(modelBuilder);
+                  modelBuilder.Entity<TaskItem>()
+    .HasOne(t => t.TaskStatus)
+    .WithMany()
+    .HasForeignKey(t => t.TaskStatusId)
+    .OnDelete(DeleteBehavior.Restrict);
 
                   modelBuilder.Entity<Company>(entity =>
                   {
