@@ -36,6 +36,32 @@
   font-weight: 500;
 }
 
+.team-details-back-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #2563eb;
+  background: #ffffff;
+  color: #2563eb;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.team-details-back-btn:hover {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 700px) {
   .team-details-page__title-row h2 {
     font-size: 1.2rem;
