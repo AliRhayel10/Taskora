@@ -30,13 +30,14 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 app.UseDeveloperExceptionPage();
 
 app.UseRouting();
 
 app.UseCors("AllowReactApp");
 
-app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseAuthorization();
 
