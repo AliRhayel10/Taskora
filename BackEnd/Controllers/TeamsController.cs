@@ -217,10 +217,9 @@ namespace BackEnd.Controllers
                 return NotFound(new { success = false, message = "Company not found." });
             }
 
-            var duplicateTeamExists = await _context.Teams.AnyAsync(team =>
-                team.CompanyId == request.CompanyId &&
-                team.IsActive &&
-                team.TeamName.ToLower() == trimmedTeamName.ToLower());
+var duplicateTeamExists = await _context.Teams.AnyAsync(team =>
+    team.CompanyId == request.CompanyId &&
+    team.TeamName.ToLower() == trimmedTeamName.ToLower());
 
             if (duplicateTeamExists)
             {
@@ -349,11 +348,10 @@ public async Task<IActionResult> UpdateTeam(int teamId, [FromBody] UpdateTeamReq
         return BadRequest(new { success = false, message = "Team name is required." });
     }
 
-    var duplicateTeamExists = await _context.Teams.AnyAsync(existingTeam =>
-        existingTeam.TeamId != teamId &&
-        existingTeam.CompanyId == team.CompanyId &&
-        existingTeam.IsActive &&
-        existingTeam.TeamName.ToLower() == trimmedTeamName.ToLower());
+var duplicateTeamExists = await _context.Teams.AnyAsync(existingTeam =>
+    existingTeam.TeamId != teamId &&
+    existingTeam.CompanyId == team.CompanyId &&
+    existingTeam.TeamName.ToLower() == trimmedTeamName.ToLower());
 
     if (duplicateTeamExists)
     {

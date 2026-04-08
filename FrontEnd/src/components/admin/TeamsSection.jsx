@@ -119,7 +119,18 @@ export default function TeamsSection() {
             setErrorMessage("");
 
             const response = await fetch(`${API_BASE_URL}/api/teams/company/${companyId}`);
-            const data = await response.json();
+            const rawText = await response.text();
+
+let data = {};
+try {
+    data = rawText ? JSON.parse(rawText) : {};
+} catch {
+    data = { message: rawText || "Server returned an invalid response." };
+}
+
+if (!response.ok) {
+    throw new Error(data.message || "Failed to create team.");
+}
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to load teams.");
