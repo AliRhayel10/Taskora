@@ -105,46 +105,46 @@ export default function TeamDetailsPage({ team, onBack }) {
         fetchCompanyMembers();
     }, [companyId]);
 
-useEffect(() => {
-  const activeMemberIds = Array.isArray(teamState?.memberIds) ? teamState.memberIds : [];
-  const leaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
+    useEffect(() => {
+        const activeMemberIds = Array.isArray(teamState?.memberIds) ? teamState.memberIds : [];
+        const leaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
 
-  setMembers((previousMembers) => {
-    const previousMap = new Map(
-      previousMembers.map((member) => [String(member.userId), member])
-    );
+        setMembers((previousMembers) => {
+            const previousMap = new Map(
+                previousMembers.map((member) => [String(member.userId), member])
+            );
 
-    const activeIdSet = new Set(activeMemberIds.map((id) => String(id)));
+            const activeIdSet = new Set(activeMemberIds.map((id) => String(id)));
 
-    const idsToRender = new Set([
-      ...activeMemberIds.map((id) => String(id)),
-      ...previousMembers.map((member) => String(member.userId)),
-    ]);
+            const idsToRender = new Set([
+                ...previousMembers.map((member) => String(member.userId)),
+                ...activeMemberIds.map((id) => String(id)),
+            ]);
 
-    return Array.from(idsToRender).map((memberId) => {
-      const foundMember = companyMembers.find(
-        (member) => String(member.userId) === String(memberId)
-      );
+            return Array.from(idsToRender).map((memberId) => {
+                const foundMember = companyMembers.find(
+                    (member) => String(member.userId) === String(memberId)
+                );
 
-      const previousMember = previousMap.get(String(memberId));
+                const previousMember = previousMap.get(String(memberId));
 
-      return {
-        userId: Number(memberId),
-        fullName: foundMember?.fullName || previousMember?.fullName || "Unknown Member",
-        email: foundMember?.email || previousMember?.email || "No email available",
-        jobType:
-          foundMember?.jobType ||
-          foundMember?.jobTitle ||
-          previousMember?.jobType ||
-          "No job type available",
-        role: String(memberId) === leaderId ? "Team Leader" : "Member",
-        isActive: activeIdSet.has(String(memberId))
-          ? true
-          : previousMember?.isActive ?? false,
-      };
-    });
-  });
-}, [teamState, companyMembers]);
+                return {
+                    userId: Number(memberId),
+                    fullName: foundMember?.fullName || previousMember?.fullName || "Unknown Member",
+                    email: foundMember?.email || previousMember?.email || "No email available",
+                    jobType:
+                        foundMember?.jobType ||
+                        foundMember?.jobTitle ||
+                        previousMember?.jobType ||
+                        "No job type available",
+                    role: String(memberId) === leaderId ? "Team Leader" : "Member",
+                    isActive: activeIdSet.has(String(memberId))
+                        ? true
+                        : previousMember?.isActive ?? false,
+                };
+            });
+        });
+    }, [teamState, companyMembers]);
 
     useEffect(() => {
         if (!feedbackMessage) return;
@@ -388,8 +388,8 @@ useEffect(() => {
                                         <td>
                                             <span
                                                 className={`team-details-page__role-badge ${member.role === "Team Leader"
-                                                        ? "team-details-page__role-badge--leader"
-                                                        : "team-details-page__role-badge--member"
+                                                    ? "team-details-page__role-badge--leader"
+                                                    : "team-details-page__role-badge--member"
                                                     }`}
                                             >
                                                 {member.role}
@@ -399,8 +399,8 @@ useEffect(() => {
                                         <td>
                                             <span
                                                 className={`team-details-page__status-pill ${member.isActive
-                                                        ? "team-details-page__status-pill--active"
-                                                        : "team-details-page__status-pill--inactive"
+                                                    ? "team-details-page__status-pill--active"
+                                                    : "team-details-page__status-pill--inactive"
                                                     }`}
                                             >
                                                 {member.isActive ? "Active" : "Inactive"}
