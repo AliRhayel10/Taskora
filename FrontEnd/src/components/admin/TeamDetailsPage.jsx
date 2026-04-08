@@ -57,7 +57,15 @@ export default function TeamDetailsPage({ team, onBack }) {
 
   const [companyMembers, setCompanyMembers] = useState([]);
   const [members, setMembers] = useState([]);
+  const [teamState, setTeamState] = useState(team || null);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState("");
+
+  useEffect(() => {
+    setTeamState(team || null);
+  }, [team]);
 
   useEffect(() => {
     const fetchCompanyMembers = async () => {
@@ -93,8 +101,8 @@ export default function TeamDetailsPage({ team, onBack }) {
   }, [companyId]);
 
   useEffect(() => {
-    const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
-    const leaderId = String(team?.teamLeaderId || team?.teamLeaderUserId || "");
+    const memberIds = Array.isArray(teamState?.memberIds) ? teamState.memberIds : [];
+    const leaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
 
     const resolvedMembers = memberIds.map((memberId) => {
       const foundMember = companyMembers.find(
@@ -111,36 +119,161 @@ export default function TeamDetailsPage({ team, onBack }) {
     });
 
     setMembers(resolvedMembers);
-  }, [team, companyMembers]);
+  }, [teamState, companyMembers]);
 
-  const title = team?.teamName || "Team";
-  const teamStatus = typeof team?.isActive === "boolean" ? team.isActive : true;
+  useEffect(() => {
+    if (!feedbackMessage) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setFeedbackMessage("");
+      setFeedbackType("");
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [feedbackMessage]);
+
+  const title = teamState?.teamName || "Team";
+  const teamStatus =
+    typeof teamState?.isActive === "boolean" ? teamState.isActive : true;
 
   const teamLeaderName = useMemo(() => {
-    const leaderId = String(team?.teamLeaderId || team?.teamLeaderUserId || "");
+    const leaderId = String(
+      teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
+    );
     const foundLeader = companyMembers.find(
       (member) => String(member.userId) === leaderId
     );
 
-    return foundLeader?.fullName || team?.teamLeaderName || "No team leader assigned";
-  }, [companyMembers, team]);
+    return (
+      foundLeader?.fullName ||
+      teamState?.teamLeaderName ||
+      "No team leader assigned"
+    );
+  }, [companyMembers, teamState]);
 
   const membersCount = members.length;
 
-  const handleDeleteMember = (memberId) => {
-    setMembers((prev) =>
-      prev.filter((member) => String(member.userId) !== String(memberId))
+  const saveTeamMembersToBackend = async (nextMembers) => {
+    if (!teamState?.teamId) {
+      throw new Error("Team not found.");
+    }
+
+    const currentLeaderId = String(
+      teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
     );
+
+    const memberIds = nextMembers.map((member) => Number(member.userId));
+    const nextLeaderStillExists = nextMembers.some(
+      (member) => String(member.userId) === currentLeaderId
+    );
+
+    const payload = {
+      teamName: teamState.teamName || "",
+      description: teamState.description || "",
+      companyId,
+      teamLeaderId: nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null,
+      memberIds,
+      isActive: teamStatus,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/api/teams/${teamState.teamId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await parseJsonResponse(response);
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update team members.");
+    }
+
+    const updatedTeam = data.team || data;
+
+    setTeamState((prev) => ({
+      ...prev,
+      ...updatedTeam,
+      teamLeaderId:
+        updatedTeam.teamLeaderId ??
+        updatedTeam.teamLeaderUserId ??
+        (nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null),
+      teamLeaderUserId:
+        updatedTeam.teamLeaderUserId ??
+        updatedTeam.teamLeaderId ??
+        (nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null),
+      memberIds: Array.isArray(updatedTeam.memberIds)
+        ? updatedTeam.memberIds
+        : memberIds,
+      isActive:
+        typeof updatedTeam.isActive === "boolean"
+          ? updatedTeam.isActive
+          : prev?.isActive,
+    }));
   };
 
-  const handleToggleMemberStatus = (memberId) => {
-    setMembers((prev) =>
-      prev.map((member) =>
+  const handleDeleteMember = async (memberId) => {
+    const memberToDelete = members.find(
+      (member) => String(member.userId) === String(memberId)
+    );
+
+    if (!memberToDelete) {
+      return;
+    }
+
+    const isConfirmed = window.confirm(
+      `Are you sure you want to remove ${memberToDelete.fullName} from this team?`
+    );
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setFeedbackMessage("");
+      setFeedbackType("");
+
+      const nextMembers = members.filter(
+        (member) => String(member.userId) !== String(memberId)
+      );
+
+      await saveTeamMembersToBackend(nextMembers);
+      setMembers(nextMembers);
+      setFeedbackType("success");
+      setFeedbackMessage("Member removed from team successfully.");
+    } catch (error) {
+      console.error("Failed to delete member from team:", error);
+      setFeedbackType("error");
+      setFeedbackMessage(error.message || "Failed to remove member from team.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleMemberStatus = async (memberId) => {
+    try {
+      setIsSaving(true);
+      setFeedbackMessage("");
+      setFeedbackType("");
+
+      const nextMembers = members.map((member) =>
         String(member.userId) === String(memberId)
           ? { ...member, isActive: !member.isActive }
           : member
-      )
-    );
+      );
+
+      setMembers(nextMembers);
+      setFeedbackType("success");
+      setFeedbackMessage("Member status updated.");
+    } catch (error) {
+      console.error("Failed to update member status:", error);
+      setFeedbackType("error");
+      setFeedbackMessage(error.message || "Failed to update member status.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -160,6 +293,18 @@ export default function TeamDetailsPage({ team, onBack }) {
         <h2>{title}</h2>
         <div className="team-details-page__title-line"></div>
       </div>
+
+      {feedbackMessage && (
+        <div
+          className={
+            feedbackType === "error"
+              ? "teams-section__feedback teams-section__feedback--error"
+              : "teams-section__feedback teams-section__feedback--success"
+          }
+        >
+          {feedbackMessage}
+        </div>
+      )}
 
       <div className="team-details-page__meta-row">
         <div className="team-details-page__meta-chip">
@@ -184,7 +329,9 @@ export default function TeamDetailsPage({ team, onBack }) {
 
         <div className="team-details-page__meta-chip">
           <FiUser />
-          <span>{membersCount} {membersCount === 1 ? "member" : "members"}</span>
+          <span>
+            {membersCount} {membersCount === 1 ? "member" : "members"}
+          </span>
         </div>
       </div>
 
@@ -269,6 +416,7 @@ export default function TeamDetailsPage({ team, onBack }) {
                           onClick={() => handleToggleMemberStatus(member.userId)}
                           aria-pressed={member.isActive}
                           title={member.isActive ? "Set inactive" : "Set active"}
+                          disabled={isSaving}
                         >
                           <span className="teams-section__switch-thumb"></span>
                         </button>
@@ -278,6 +426,7 @@ export default function TeamDetailsPage({ team, onBack }) {
                           className="team-details-page__delete-btn"
                           onClick={() => handleDeleteMember(member.userId)}
                           title="Delete member"
+                          disabled={isSaving}
                         >
                           <FiTrash2 />
                         </button>
