@@ -7,7 +7,7 @@
   padding: 1px 0 0;
   margin: 0;
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
   min-height: 0;
 }
 
@@ -160,6 +160,13 @@
   max-width: 420px;
 }
 
+.team-details-page__toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .team-details-page__table-card {
   display: flex;
   flex-direction: column;
@@ -288,7 +295,11 @@
     max-width: none;
   }
 
-  .teams-section__members-btn {
+  .team-details-page__toolbar-actions {
+    width: 100%;
+  }
+
+  .team-details-page__toolbar-actions .teams-section__members-btn {
     width: 100%;
   }
 }

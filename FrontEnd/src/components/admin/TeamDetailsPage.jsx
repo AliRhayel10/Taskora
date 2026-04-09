@@ -3,6 +3,7 @@ import {
   FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
+  FiPlus,
   FiSearch,
   FiTrash2,
   FiUser,
@@ -128,6 +129,7 @@ export default function TeamDetailsPage({ team, onBack }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [memberManagementMode, setMemberManagementMode] = useState("all");
   const [memberSearchTerm, setMemberSearchTerm] = useState("");
   const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
   const [editForm, setEditForm] = useState({
@@ -307,7 +309,7 @@ export default function TeamDetailsPage({ team, onBack }) {
     setMemberToDelete(member);
   };
 
-  const openMembersModal = () => {
+  const openMembersModal = (mode = "all") => {
     const activeMemberIds = Array.isArray(teamState?.memberIds)
       ? teamState.memberIds.map((id) => String(id))
       : [];
@@ -322,6 +324,7 @@ export default function TeamDetailsPage({ team, onBack }) {
       teamLeaderId: currentLeaderId,
       memberIds: mergedMemberIds,
     });
+    setMemberManagementMode(mode);
     setMemberSearchTerm("");
     setLeaderSearchTerm("");
     setIsMembersModalOpen(true);
@@ -332,6 +335,7 @@ export default function TeamDetailsPage({ team, onBack }) {
       return;
     }
     setIsMembersModalOpen(false);
+    setMemberManagementMode("all");
     setMemberSearchTerm("");
     setLeaderSearchTerm("");
   };
@@ -632,6 +636,7 @@ export default function TeamDetailsPage({ team, onBack }) {
       const persistedMembers = await saveTeamMembersToBackend(nextMembers);
       setMembers(persistedMembers);
       setIsMembersModalOpen(false);
+      setMemberManagementMode("all");
 
       setFeedbackType("success");
       setFeedbackMessage("Members updated successfully.");
@@ -643,6 +648,20 @@ export default function TeamDetailsPage({ team, onBack }) {
       setIsSaving(false);
     }
   };
+
+  const membersModalTitle =
+    memberManagementMode === "members"
+      ? "Add Members"
+      : memberManagementMode === "leader"
+        ? "Manage Leader"
+        : "Edit Members";
+
+  const membersModalDescription =
+    memberManagementMode === "members"
+      ? "Search and add members to this team."
+      : memberManagementMode === "leader"
+        ? "Choose the team leader for this team."
+        : "Search and select one or more members for this team.";
 
   return (
     <section className="team-details-page">
@@ -699,7 +718,7 @@ export default function TeamDetailsPage({ team, onBack }) {
           </div>
         </div>
 
-        <div className="team-details-page__summary-card">
+        <div className="team-details-page__summary-card team-details-page__summary-card--leader">
           <span className="team-details-page__summary-label">Current Team Leader</span>
           <div className="team-details-page__leader-highlight">
             <span className="users-section__avatar">
@@ -728,14 +747,34 @@ export default function TeamDetailsPage({ team, onBack }) {
           />
         </div>
 
-        <button
-          type="button"
-          className="teams-section__members-btn"
-          onClick={openMembersModal}
-        >
-          <FiUsers />
-          <span>Edit Members</span>
-        </button>
+        <div className="team-details-page__toolbar-actions">
+          <button
+            type="button"
+            className="teams-section__members-btn"
+            onClick={() => openMembersModal("members")}
+          >
+            <FiPlus />
+            <span>Add Member</span>
+          </button>
+
+          <button
+            type="button"
+            className="teams-section__members-btn"
+            onClick={() => openMembersModal("leader")}
+          >
+            <FiUser />
+            <span>Manage Leader</span>
+          </button>
+
+          <button
+            type="button"
+            className="teams-section__members-btn"
+            onClick={() => openMembersModal("all")}
+          >
+            <FiUsers />
+            <span>Edit Members</span>
+          </button>
+        </div>
       </div>
 
       <div className="users-section__table-card team-details-page__table-card">
@@ -894,8 +933,8 @@ export default function TeamDetailsPage({ team, onBack }) {
           >
             <div className="teams-section__modal-header teams-section__modal-header--lined">
               <div>
-                <h3>Edit Members</h3>
-                <p>Search and select one or more members for this team.</p>
+                <h3>{membersModalTitle}</h3>
+                <p>{membersModalDescription}</p>
               </div>
 
               <button
@@ -909,137 +948,141 @@ export default function TeamDetailsPage({ team, onBack }) {
             </div>
 
             <div className="teams-section__form">
-              <div className="teams-section__form-group">
-                <label>
-                  Add Team Leader <span className="teams-section__required">*</span>
-                </label>
-                <p className="teams-section__field-description">
-                  Select one leader to manage this team.
-                </p>
+              {memberManagementMode !== "members" && (
+                <div className="teams-section__form-group">
+                  <label>
+                    Team Leader <span className="teams-section__required">*</span>
+                  </label>
+                  <p className="teams-section__field-description">
+                    Select one leader to manage this team.
+                  </p>
 
-                <div className="teams-section__member-picker">
-                  <div className="teams-section__member-search">
-                    <FiSearch />
-                    <input
-                      type="text"
-                      value={leaderSearchTerm}
-                      onChange={(event) => setLeaderSearchTerm(event.target.value)}
-                      placeholder="Search for a team leader..."
-                    />
-                  </div>
+                  <div className="teams-section__member-picker">
+                    <div className="teams-section__member-search">
+                      <FiSearch />
+                      <input
+                        type="text"
+                        value={leaderSearchTerm}
+                        onChange={(event) => setLeaderSearchTerm(event.target.value)}
+                        placeholder="Search for a team leader..."
+                      />
+                    </div>
 
-                  <div className="teams-section__member-table">
-                    {filteredTeamLeaders.length === 0 && (
-                      <p className="teams-section__members-empty">
-                        No matching team leaders found.
-                      </p>
-                    )}
+                    <div className="teams-section__member-table">
+                      {filteredTeamLeaders.length === 0 && (
+                        <p className="teams-section__members-empty">
+                          No matching team leaders found.
+                        </p>
+                      )}
 
-                    {filteredTeamLeaders.map((employee) => {
-                      const employeeId = String(employee.userId);
-                      const isChecked = String(editForm.teamLeaderId || "") === employeeId;
+                      {filteredTeamLeaders.map((employee) => {
+                        const employeeId = String(employee.userId);
+                        const isChecked = String(editForm.teamLeaderId || "") === employeeId;
 
-                      return (
-                        <label
-                          key={`leader-${employee.userId}`}
-                          className="teams-section__member-row"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleLeaderInsideMembers(employeeId)}
-                          />
+                        return (
+                          <label
+                            key={`leader-${employee.userId}`}
+                            className="teams-section__member-row"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleLeaderInsideMembers(employeeId)}
+                            />
 
-                          <span className="teams-section__member-avatar">
-                            {getInitials(employee.fullName || employee.email)}
-                          </span>
+                            <span className="teams-section__member-avatar">
+                              {getInitials(employee.fullName || employee.email)}
+                            </span>
 
-                          <span className="teams-section__member-copy">
-                            <strong>{employee.fullName || employee.email}</strong>
-                            <small>{employee.email}</small>
-                          </span>
+                            <span className="teams-section__member-copy">
+                              <strong>{employee.fullName || employee.email}</strong>
+                              <small>{employee.email}</small>
+                            </span>
 
-                          <span className="teams-section__member-tag">
-                            Team Leader
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className="teams-section__form-group">
-                <label>
-                  Add Members <span className="teams-section__required">*</span>
-                </label>
-                <p className="teams-section__field-description">
-                  Select one or more members to add to this team.
-                </p>
-
-                <div className="teams-section__member-picker">
-                  <div className="teams-section__member-search">
-                    <FiSearch />
-                    <input
-                      type="text"
-                      value={memberSearchTerm}
-                      onChange={(event) => setMemberSearchTerm(event.target.value)}
-                      placeholder="Search any member in the company..."
-                    />
-                  </div>
-
-                  <div className="teams-section__member-table">
-                    {filteredEmployees.length === 0 && (
-                      <p className="teams-section__members-empty">
-                        No matching members found.
-                      </p>
-                    )}
-
-                    {filteredEmployees.map((employee) => {
-                      const employeeId = String(employee.userId);
-                      const isChecked = editForm.memberIds.includes(employeeId);
-                      const modalLeaderId = String(editForm.teamLeaderId || "");
-                      const isLeader = employeeId === modalLeaderId;
-
-                      return (
-                        <label
-                          key={employee.userId}
-                          className="teams-section__member-row"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              handleToggleMember(employeeId);
-                              if (String(editForm.teamLeaderId || "") === employeeId) {
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  teamLeaderId: "",
-                                }));
-                              }
-                            }}
-                          />
-
-                          <span className="teams-section__member-avatar">
-                            {getInitials(employee.fullName || employee.email)}
-                          </span>
-
-                          <span className="teams-section__member-copy">
-                            <strong>{employee.fullName || employee.email}</strong>
-                            <small>{employee.email}</small>
-                          </span>
-
-                          {isLeader && (
                             <span className="teams-section__member-tag">
                               Team Leader
                             </span>
-                          )}
-                        </label>
-                      );
-                    })}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {memberManagementMode !== "leader" && (
+                <div className="teams-section__form-group">
+                  <label>
+                    Members <span className="teams-section__required">*</span>
+                  </label>
+                  <p className="teams-section__field-description">
+                    Select one or more members to add to this team.
+                  </p>
+
+                  <div className="teams-section__member-picker">
+                    <div className="teams-section__member-search">
+                      <FiSearch />
+                      <input
+                        type="text"
+                        value={memberSearchTerm}
+                        onChange={(event) => setMemberSearchTerm(event.target.value)}
+                        placeholder="Search any member in the company..."
+                      />
+                    </div>
+
+                    <div className="teams-section__member-table">
+                      {filteredEmployees.length === 0 && (
+                        <p className="teams-section__members-empty">
+                          No matching members found.
+                        </p>
+                      )}
+
+                      {filteredEmployees.map((employee) => {
+                        const employeeId = String(employee.userId);
+                        const isChecked = editForm.memberIds.includes(employeeId);
+                        const modalLeaderId = String(editForm.teamLeaderId || "");
+                        const isLeader = employeeId === modalLeaderId;
+
+                        return (
+                          <label
+                            key={employee.userId}
+                            className="teams-section__member-row"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                handleToggleMember(employeeId);
+                                if (String(editForm.teamLeaderId || "") === employeeId) {
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    teamLeaderId: "",
+                                  }));
+                                }
+                              }}
+                            />
+
+                            <span className="teams-section__member-avatar">
+                              {getInitials(employee.fullName || employee.email)}
+                            </span>
+
+                            <span className="teams-section__member-copy">
+                              <strong>{employee.fullName || employee.email}</strong>
+                              <small>{employee.email}</small>
+                            </span>
+
+                            {isLeader && (
+                              <span className="teams-section__member-tag">
+                                Team Leader
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="teams-section__form-actions">
                 <button
