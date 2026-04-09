@@ -919,19 +919,14 @@ export default function UsersSection({ onOpenUser }) {
             {userPendingDelete && (
                 <div className="users-section__modal-overlay" role="dialog" aria-modal="true">
                     <div className="users-section__modal users-section__modal--confirm">
-                        <div className="users-section__modal-header users-section__modal-header--lined">
-                            <div>
-                                <h3>Delete user</h3>
-                                <p>
-                                    Are you sure you want to delete{" "}
-                                    <strong>{getUserName(userPendingDelete)}</strong>?
-                                    This will remove the user from the backend and from any assigned team.
-                                </p>
+                        <div className="users-section__confirm-top">
+                            <div className="users-section__confirm-icon">
+                                <FiAlertTriangle />
                             </div>
 
                             <button
                                 type="button"
-                                className="users-section__modal-close"
+                                className="users-section__modal-close users-section__modal-close--confirm"
                                 onClick={closeDeleteModal}
                                 disabled={isDeletingUser}
                                 aria-label="Close delete confirmation"
@@ -940,14 +935,17 @@ export default function UsersSection({ onOpenUser }) {
                             </button>
                         </div>
 
-                        <div className="users-section__confirm-icon">
-                            <FiAlertTriangle />
+                        <div className="users-section__confirm-copy">
+                            <h3>Delete user</h3>
+                            <p>
+                                Delete <strong>{getUserName(userPendingDelete)}</strong>? This will permanently remove the user from the backend and from any assigned team.
+                            </p>
                         </div>
 
                         <div className="users-section__form-actions users-section__form-actions--confirm">
                             <button
                                 type="button"
-                                className="users-section__secondary-btn"
+                                className="users-section__secondary-btn users-section__secondary-btn--confirm"
                                 onClick={closeDeleteModal}
                                 disabled={isDeletingUser}
                             >
@@ -960,7 +958,7 @@ export default function UsersSection({ onOpenUser }) {
                                 onClick={handleDeleteUser}
                                 disabled={isDeletingUser}
                             >
-                                {isDeletingUser ? "Deleting..." : "Confirm"}
+                                {isDeletingUser ? "Deleting..." : "Delete"}
                             </button>
                         </div>
                     </div>

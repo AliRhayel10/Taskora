@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     FiArrowLeft,
+    FiAlertTriangle,
     FiBriefcase,
     FiCheck,
     FiCheckCircle,
@@ -205,6 +206,32 @@ function normalizeStatusToBoolean(status) {
     return normalized === "active";
 }
 
+function isTeamLeaderRole(role) {
+    const normalizedRole = String(role || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ");
+
+    return normalizedRole === "team leader" || normalizedRole === "teamleader";
+}
+
+function findAssignedTeamForUser(userValue, teams) {
+    const targetUserId = String(getUserId(userValue) || "");
+
+    if (!targetUserId || !Array.isArray(teams)) {
+        return null;
+    }
+
+    return (
+        teams.find((team) => {
+            const leaderId = getTeamLeaderId(team);
+            const memberIds = getTeamMemberIds(team);
+            return leaderId === targetUserId || memberIds.includes(targetUserId);
+        }) || null
+    );
+}
+
 export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const currentUser = useMemo(() => getStoredUser(), []);
     const companyId = currentUser?.companyId || currentUser?.CompanyId || 0;
@@ -222,11 +249,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const [isLoading, setIsLoading] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackType, setFeedbackType] = useState("");
+    const [isRoleChangeConfirmOpen, setIsRoleChangeConfirmOpen] = useState(false);
 
     const userId = getUserId(userState || user);
     const normalizedCurrentRole = getUserRole(userState);
     const normalizedCurrentJobType = getUserJobType(userState);
     const normalizedCurrentStatus = normalizeStatusToBoolean(getUserStatus(userState));
+    const assignedTeam = useMemo(() => findAssignedTeamForUser(userState || user, teams), [userState, user, teams]);
 
     useEffect(() => {
         setUserState(user || null);
@@ -236,6 +265,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             isActive: normalizeStatusToBoolean(getUserStatus(user)),
         });
         setIsEditing(false);
+        setIsRoleChangeConfirmOpen(false);
     }, [user]);
 
     useEffect(() => {
@@ -347,6 +377,46 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         draftData.jobType.trim() !== normalizedCurrentJobType.trim() ||
         draftData.isActive !== normalizedCurrentStatus;
 
+    const hasRoleChanged = normalizeRoleValue(draftData.role) !== normalizeRoleValue(normalizedCurrentRole);
+    const currentRoleIsLeader = isTeamLeaderRole(normalizedCurrentRole);
+    const nextRoleIsLeader = isTeamLeaderRole(draftData.role);
+
+    const getRoleChangeVerificationMessage = () => {
+        if (!hasRoleChanged) {
+            return "";
+        }
+
+        const teamDisplayName = assignedTeam ? getTeamNameValue(assignedTeam) : "this team";
+        const isAssignedLeader = assignedTeam && getTeamLeaderId(assignedTeam) === String(userId || "");
+
+        if (currentRoleIsLeader && !nextRoleIsLeader) {
+            if (isAssignedLeader) {
+                return `${name} is currently the leader of ${teamDisplayName}. After saving, this team will appear without a valid leader until another team leader is assigned.`;
+            }
+
+            if (assignedTeam) {
+                return `${name} is assigned to ${teamDisplayName}. After saving, this user will no longer be treated as a team leader in the teams pages.`;
+            }
+
+            return `${name} will no longer be treated as a team leader in the teams pages after saving.`;
+        }
+
+        if (!currentRoleIsLeader && nextRoleIsLeader) {
+            if (assignedTeam) {
+                return `${name} is assigned to ${teamDisplayName}. After saving, this user will become eligible to be selected as a team leader, but will not be assigned automatically.`;
+            }
+
+            return `${name} will become eligible to be selected as a team leader after saving.`;
+        }
+
+        return `You changed ${name}'s role. Please confirm that you want to apply this update.`;
+    };
+
+    const handleRoleChangeVerificationConfirm = async () => {
+        setIsRoleChangeConfirmOpen(false);
+        await performSave();
+    };
+
     const handleStartEdit = () => {
         if (!canEdit) {
             return;
@@ -360,6 +430,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         setIsEditing(true);
         setFeedbackMessage("");
         setFeedbackType("");
+        setIsRoleChangeConfirmOpen(false);
     };
 
     const handleCancelEdit = () => {
@@ -371,6 +442,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         setIsEditing(false);
         setFeedbackMessage("");
         setFeedbackType("");
+        setIsRoleChangeConfirmOpen(false);
     };
 
     const handleDraftChange = (field, value) => {
@@ -380,7 +452,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         }));
     };
 
-    const handleSave = async () => {
+    const performSave = async () => {
         if (!userId) {
             setFeedbackType("error");
             setFeedbackMessage("User not found.");
@@ -478,6 +550,21 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
             setFeedbackType("success");
             setFeedbackMessage("User information updated successfully.");
+
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                    new CustomEvent("taskora:user-updated", {
+                        detail: {
+                            userId: Number(userId),
+                            role: draftData.role,
+                            previousRole: normalizedCurrentRole,
+                            jobType: draftData.jobType.trim(),
+                            isActive: draftData.isActive,
+                            hasRoleChanged,
+                        },
+                    })
+                );
+            }
         } catch (error) {
             console.error("Failed to update user information:", error);
             setFeedbackType("error");
@@ -485,6 +572,15 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleSave = async () => {
+        if (hasRoleChanged) {
+            setIsRoleChangeConfirmOpen(true);
+            return;
+        }
+
+        await performSave();
     };
 
     const infoItems = [
@@ -660,6 +756,57 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     ))}
                 </div>
             </div>
+            {isRoleChangeConfirmOpen && (
+                <div className="users-section__modal-overlay" role="presentation">
+                    <div className="users-section__modal users-section__modal--role-confirm" role="dialog" aria-modal="true" aria-labelledby="role-change-confirm-title">
+                        <div className="users-section__modal-header users-section__modal-header--lined">
+                            <div>
+                                <h3 id="role-change-confirm-title">Confirm role change</h3>
+                                <p>{getRoleChangeVerificationMessage()}</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="users-section__modal-close"
+                                onClick={() => setIsRoleChangeConfirmOpen(false)}
+                                disabled={isSaving}
+                                aria-label="Close confirmation"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        <div className="users-section__role-confirm-body">
+                            <div className="users-section__role-confirm-icon">
+                                <FiAlertTriangle />
+                            </div>
+                            <div className="users-section__role-confirm-summary">
+                                <span className="users-section__role-confirm-pill">Current: {normalizedCurrentRole}</span>
+                                <span className="users-section__role-confirm-arrow">→</span>
+                                <span className="users-section__role-confirm-pill users-section__role-confirm-pill--next">New: {draftData.role}</span>
+                            </div>
+                        </div>
+
+                        <div className="users-section__form-actions users-section__form-actions--confirm">
+                            <button
+                                type="button"
+                                className="users-section__secondary-btn"
+                                onClick={() => setIsRoleChangeConfirmOpen(false)}
+                                disabled={isSaving}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="users-section__submit-btn"
+                                onClick={handleRoleChangeVerificationConfirm}
+                                disabled={isSaving}
+                            >
+                                Confirm change
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

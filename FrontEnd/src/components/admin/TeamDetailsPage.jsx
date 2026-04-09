@@ -112,6 +112,10 @@ function isSelectableMemberRole(value) {
   return isEmployeeRole(value) || isTeamLeaderRole(value);
 }
 
+function getCompanyMemberId(member) {
+  return String(member?.userId || member?.id || member?.UserId || "");
+}
+
 export default function TeamDetailsPage({ team, onBack }) {
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
@@ -141,6 +145,45 @@ export default function TeamDetailsPage({ team, onBack }) {
     setTeamState(team || null);
     setCurrentPage(1);
   }, [team]);
+
+  useEffect(() => {
+    const currentTeamId = String(teamState?.teamId || team?.teamId || "");
+
+    if (!currentTeamId || !Array.isArray(allTeams) || allTeams.length === 0) {
+      return;
+    }
+
+    const latestTeam = allTeams.find(
+      (item) => String(item?.teamId || item?.id || "") === currentTeamId
+    );
+
+    if (!latestTeam) {
+      return;
+    }
+
+    setTeamState((prev) => {
+      const nextMemberIds = Array.isArray(latestTeam.memberIds) ? latestTeam.memberIds : [];
+      const prevMemberIds = Array.isArray(prev?.memberIds) ? prev.memberIds : [];
+      const sameLeader =
+        String(prev?.teamLeaderId || prev?.teamLeaderUserId || "") ===
+        String(latestTeam.teamLeaderId || latestTeam.teamLeaderUserId || "");
+      const sameMembers =
+        JSON.stringify(prevMemberIds.map(String)) === JSON.stringify(nextMemberIds.map(String));
+      const sameName = (prev?.teamName || "") === (latestTeam.teamName || "");
+
+      if (sameLeader && sameMembers && sameName) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        ...latestTeam,
+        memberIds: nextMemberIds,
+        teamLeaderId: latestTeam.teamLeaderId ?? latestTeam.teamLeaderUserId ?? null,
+        teamLeaderUserId: latestTeam.teamLeaderUserId ?? latestTeam.teamLeaderId ?? null,
+      };
+    });
+  }, [allTeams, team, teamState?.teamId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -187,25 +230,77 @@ export default function TeamDetailsPage({ team, onBack }) {
   }, [companyId]);
 
   useEffect(() => {
+    const handleUserUpdated = async () => {
+      if (!companyId) {
+        return;
+      }
+
+      try {
+        const [membersResponse, teamsResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/teams/company/${companyId}/members`),
+          fetch(`${API_BASE_URL}/api/teams/company/${companyId}`),
+        ]);
+
+        const [membersData, teamsData] = await Promise.all([
+          parseJsonResponse(membersResponse),
+          parseJsonResponse(teamsResponse),
+        ]);
+
+        if (membersResponse.ok) {
+          setCompanyMembers(Array.isArray(membersData) ? membersData : []);
+        }
+
+        if (teamsResponse.ok) {
+          setAllTeams(Array.isArray(teamsData) ? teamsData : []);
+        }
+      } catch (error) {
+        console.error("Failed to refresh team details after user update:", error);
+      }
+    };
+
+    window.addEventListener("taskora:user-updated", handleUserUpdated);
+
+    return () => {
+      window.removeEventListener("taskora:user-updated", handleUserUpdated);
+    };
+  }, [companyId]);
+
+  useEffect(() => {
     const teamId = teamState?.teamId;
     const activeMemberIds = Array.isArray(teamState?.memberIds) ? teamState.memberIds : [];
-    const leaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
+    const assignedLeaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
     const cachedMembers = readCachedTeamMembers(teamId);
+    const availableMembers = Array.isArray(companyMembers)
+      ? companyMembers.filter((member) => member?.userId != null)
+      : [];
+
+    const availableMembersMap = new Map(
+      availableMembers.map((member) => [String(member.userId), member])
+    );
+    const assignedLeader = assignedLeaderId ? availableMembersMap.get(assignedLeaderId) : null;
+    const leaderId = assignedLeader && isTeamLeaderRole(assignedLeader.role) ? assignedLeaderId : "";
+    const availableMemberIds = new Set(Array.from(availableMembersMap.keys()));
 
     const cachedMembersMap = new Map(
-      cachedMembers.map((member) => [String(member.userId), member])
+      cachedMembers
+        .filter((member) => availableMemberIds.has(String(member?.userId)))
+        .map((member) => [String(member.userId), member])
     );
 
     const orderedIds = [
-      ...cachedMembers.map((member) => String(member.userId)),
+      ...cachedMembers
+        .filter((member) => availableMemberIds.has(String(member?.userId)))
+        .map((member) => String(member.userId)),
       ...activeMemberIds.map((id) => String(id)),
-    ].filter((value, index, array) => array.indexOf(value) === index);
+      leaderId,
+    ]
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index)
+      .filter((memberId) => availableMemberIds.has(String(memberId)));
 
     const resolvedMembers = orderedIds.map((memberId) => {
       const numericMemberId = Number(memberId);
-      const foundMember = companyMembers.find(
-        (member) => String(member.userId) === String(memberId)
-      );
+      const foundMember = availableMembersMap.get(String(memberId));
       const cachedMember = cachedMembersMap.get(String(memberId));
       const isActive = activeMemberIds.some((id) => String(id) === String(memberId))
         ? true
@@ -229,6 +324,7 @@ export default function TeamDetailsPage({ team, onBack }) {
           cachedMember?.jobType ||
           "No job type available",
         role: String(memberId) === leaderId ? "Team Leader" : "Member",
+        userRole: foundMember?.role || cachedMember?.userRole || "",
         isActive,
       };
     });
@@ -274,9 +370,15 @@ export default function TeamDetailsPage({ team, onBack }) {
 
   const title = teamState?.teamName || "Team";
 
-  const teamLeaderId = String(
+  const assignedTeamLeaderId = String(
     teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
   );
+  const assignedLeaderMember = companyMembers.find(
+    (member) => getCompanyMemberId(member) === assignedTeamLeaderId
+  );
+  const teamLeaderId = assignedLeaderMember && isTeamLeaderRole(assignedLeaderMember.role)
+    ? assignedTeamLeaderId
+    : "";
 
   const teamLeader = members.find(
     (member) => String(member.userId) === teamLeaderId

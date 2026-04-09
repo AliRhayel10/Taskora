@@ -244,3 +244,57 @@
     flex-wrap: wrap;
   }
 }
+
+.users-section__modal--role-confirm {
+  max-width: 480px;
+}
+
+.users-section__role-confirm-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.users-section__role-confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #ea580c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.users-section__role-confirm-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.users-section__role-confirm-pill {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.users-section__role-confirm-pill--next {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.users-section__role-confirm-arrow {
+  color: #94a3b8;
+  font-weight: 800;
+}
