@@ -250,10 +250,6 @@
     margin: 0 auto;
 }
 
-.users-section__table tbody tr {
-    transition: background 0.2s ease;
-}
-
 .users-section__table tbody tr.users-section__row--odd {
     background: #ffffff;
 }
@@ -262,8 +258,12 @@
     background: #f1f7ff;
 }
 
-.users-section__table tbody tr:hover {
-    background: inherit;
+.users-section__table tbody tr.users-section__row--odd:hover {
+    background: #ffffff;
+}
+
+.users-section__table tbody tr.users-section__row--even:hover {
+    background: #f1f7ff;
 }
 
 .users-section__table tbody tr:last-child td {
