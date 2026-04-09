@@ -449,92 +449,116 @@ namespace BackEnd.Controllers
         }
 
 
-        [HttpPut("update-user")]
-        public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request)
+[HttpPut("update-user")]
+public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request)
+{
+    if (request == null || request.UserId <= 0)
+    {
+        return BadRequest(new
         {
-            if (request == null || request.UserId <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Invalid request."
-                });
-            }
+            success = false,
+            message = "Invalid request."
+        });
+    }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+    var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-            if (user == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "User not found."
-                });
-            }
+    if (user == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "User not found."
+        });
+    }
 
-            var normalizedRole = request.Role?.Trim().ToLower() switch
-            {
-                "team leader" => "Team Leader",
-                "employee" => "Employee",
-                _ => ""
-            };
+    var normalizedRole = request.Role?.Trim().ToLower() switch
+    {
+        "team leader" => "Team Leader",
+        "employee" => "Employee",
+        _ => ""
+    };
 
-            if (string.IsNullOrWhiteSpace(normalizedRole))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Invalid role. Allowed values are Team Leader or Employee."
-                });
-            }
+    if (string.IsNullOrWhiteSpace(normalizedRole))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Invalid role. Allowed values are Team Leader or Employee."
+        });
+    }
 
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == normalizedRole);
+    var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == normalizedRole);
 
-            if (role == null)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Role not found."
-                });
-            }
+    if (role == null)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Role not found."
+        });
+    }
 
-            user.JobTitle = request.JobTitle?.Trim() ?? user.JobTitle;
+    user.JobTitle = request.JobTitle?.Trim() ?? user.JobTitle;
 
-            var existingUserRole = await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == user.UserId);
+    var existingUserRole = await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == user.UserId);
 
-            if (existingUserRole == null)
-            {
-                _context.UserRoles.Add(new UserRole
-                {
-                    UserId = user.UserId,
-                    RoleId = role.RoleId
-                });
-            }
-            else
-            {
-                existingUserRole.RoleId = role.RoleId;
-            }
+    if (existingUserRole == null)
+    {
+        _context.UserRoles.Add(new UserRole
+        {
+            UserId = user.UserId,
+            RoleId = role.RoleId
+        });
+    }
+    else
+    {
+        existingUserRole.RoleId = role.RoleId;
+    }
 
-            await _context.SaveChangesAsync();
+    if (normalizedRole != "Team Leader")
+    {
+        var teamsLedByUser = await _context.Set<Team>()
+            .Where(t => t.TeamLeaderUserId == user.UserId)
+            .ToListAsync();
 
-            return Ok(new
-            {
-                success = true,
-                message = "User information updated successfully.",
-                user = new
-                {
-                    userId = user.UserId,
-                    fullName = user.FullName,
-                    email = user.Email,
-                    role = normalizedRole,
-                    jobTitle = user.JobTitle,
-                    jobType = user.JobTitle,
-                    isActive = request.IsActive,
-                    status = request.IsActive ? "Active" : "Inactive"
-                }
-            });
+        foreach (var team in teamsLedByUser)
+        {
+            team.TeamLeaderUserId = null;
         }
+    }
+
+    if (!request.IsActive)
+    {
+        var memberships = await _context.Set<TeamMember>()
+            .Where(tm => tm.UserId == user.UserId)
+            .ToListAsync();
+
+        if (memberships.Count > 0)
+        {
+            _context.Set<TeamMember>().RemoveRange(memberships);
+        }
+    }
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        success = true,
+        message = "User information updated successfully.",
+        user = new
+        {
+            userId = user.UserId,
+            fullName = user.FullName,
+            email = user.Email,
+            role = normalizedRole,
+            jobTitle = user.JobTitle,
+            jobType = user.JobTitle,
+            isActive = request.IsActive,
+            status = request.IsActive ? "Active" : "Inactive"
+        }
+    });
+}
 
         [HttpDelete("delete-user/{userId:int}")]
         public async Task<IActionResult> DeleteUser(int userId)
@@ -897,4 +921,5 @@ namespace BackEnd.Controllers
                 address = company.Address
             });
         }
-    }}
+    }
+}
