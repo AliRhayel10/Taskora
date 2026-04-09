@@ -692,6 +692,48 @@ export default function UsersSection({ onOpenUser }) {
             setIsSubmittingCreate(false);
         }
     };
+    const handleUserUpdated = (updatedUser) => {
+    setUsers((prevUsers) =>
+        prevUsers.map((user) => {
+            const userId =
+                user.userId || user.UserId || user.id;
+
+            const updatedId =
+                updatedUser.userId || updatedUser.UserId || updatedUser.id;
+
+            if (String(userId) === String(updatedId)) {
+                return {
+                    ...user,
+                    ...updatedUser,
+                    role: updatedUser.role,
+                    jobType: updatedUser.jobTitle,
+                    isActive: updatedUser.isActive,
+                };
+            }
+
+            return user;
+        })
+    );
+
+    setSelectedUser((prev) => {
+        if (!prev) return prev;
+
+        const prevId =
+            prev.userId || prev.UserId || prev.id;
+
+        const updatedId =
+            updatedUser.userId || updatedUser.UserId || updatedUser.id;
+
+        if (String(prevId) === String(updatedId)) {
+            return {
+                ...prev,
+                ...updatedUser,
+            };
+        }
+
+        return prev;
+    });
+};
 
     return (
         <section className="users-section">
@@ -893,9 +935,8 @@ export default function UsersSection({ onOpenUser }) {
                                 <button
                                     key={pageNumber}
                                     type="button"
-                                    className={`users-section__page-btn users-section__page-btn--number ${
-                                        currentPage === pageNumber ? "users-section__page-btn--active" : ""
-                                    }`}
+                                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === pageNumber ? "users-section__page-btn--active" : ""
+                                        }`}
                                     onClick={() => setCurrentPage(pageNumber)}
                                 >
                                     {pageNumber}
@@ -1046,11 +1087,10 @@ export default function UsersSection({ onOpenUser }) {
                                     />
                                     {emailTouched && (
                                         <span
-                                            className={`users-section__input-badge ${
-                                                emailIsValid
+                                            className={`users-section__input-badge ${emailIsValid
                                                     ? "users-section__input-badge--success"
                                                     : "users-section__input-badge--error"
-                                            }`}
+                                                }`}
                                         >
                                             {emailIsValid ? "Valid" : "Invalid"}
                                         </span>
@@ -1074,11 +1114,10 @@ export default function UsersSection({ onOpenUser }) {
                                     />
                                     {passwordTouched && (
                                         <span
-                                            className={`users-section__input-badge users-section__input-badge--password ${
-                                                passwordIsStrong
+                                            className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong
                                                     ? "users-section__input-badge--success"
                                                     : "users-section__input-badge--error"
-                                            }`}
+                                                }`}
                                         >
                                             {passwordIsStrong ? "Strong" : "Weak"}
                                         </span>
