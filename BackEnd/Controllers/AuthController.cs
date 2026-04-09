@@ -448,6 +448,153 @@ namespace BackEnd.Controllers
             });
         }
 
+
+        [HttpPut("update-user")]
+        public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request)
+        {
+            if (request == null || request.UserId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var normalizedRole = request.Role?.Trim().ToLower() switch
+            {
+                "team leader" => "Team Leader",
+                "employee" => "Employee",
+                _ => ""
+            };
+
+            if (string.IsNullOrWhiteSpace(normalizedRole))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid role. Allowed values are Team Leader or Employee."
+                });
+            }
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == normalizedRole);
+
+            if (role == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Role not found."
+                });
+            }
+
+            user.JobTitle = request.JobTitle?.Trim() ?? user.JobTitle;
+
+            var existingUserRole = await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == user.UserId);
+
+            if (existingUserRole == null)
+            {
+                _context.UserRoles.Add(new UserRole
+                {
+                    UserId = user.UserId,
+                    RoleId = role.RoleId
+                });
+            }
+            else
+            {
+                existingUserRole.RoleId = role.RoleId;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "User information updated successfully.",
+                user = new
+                {
+                    userId = user.UserId,
+                    fullName = user.FullName,
+                    email = user.Email,
+                    role = normalizedRole,
+                    jobTitle = user.JobTitle,
+                    jobType = user.JobTitle,
+                    isActive = request.IsActive,
+                    status = request.IsActive ? "Active" : "Inactive"
+                }
+            });
+        }
+
+        [HttpDelete("delete-user/{userId:int}")]
+        public async Task<IActionResult> DeleteUser(int userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var userRoles = await _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .ToListAsync();
+
+            if (userRoles.Count > 0)
+            {
+                _context.UserRoles.RemoveRange(userRoles);
+            }
+
+            // Remove the user from teams before deleting the user itself.
+            // Adjust the two blocks below only if your team relation names differ.
+            if (_context.Model.FindEntityType(typeof(Team)) != null)
+            {
+                var teamsLedByUser = await _context.Set<Team>()
+                    .Where(t => t.TeamLeaderUserId == userId)
+                    .ToListAsync();
+
+                foreach (var team in teamsLedByUser)
+                {
+                    team.TeamLeaderUserId = null;
+                }
+            }
+
+            if (_context.Model.FindEntityType(typeof(TeamMember)) != null)
+            {
+                var teamMemberships = await _context.Set<TeamMember>()
+                    .Where(tm => tm.UserId == userId)
+                    .ToListAsync();
+
+                if (teamMemberships.Count > 0)
+                {
+                    _context.Set<TeamMember>().RemoveRange(teamMemberships);
+                }
+            }
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "User deleted successfully."
+            });
+        }
+
         [HttpPost("verify-email-change-otp")]
         public async Task<IActionResult> VerifyEmailChangeOtp([FromBody] VerifyEmailChangeOtpRequest request)
         {
@@ -750,5 +897,4 @@ namespace BackEnd.Controllers
                 address = company.Address
             });
         }
-    }
-}
+    }}

@@ -254,12 +254,12 @@
     transition: background 0.2s ease;
 }
 
-.users-section__table tbody tr.users-section__row--teamleader {
-    background: #f1f7ff;
+.users-section__table tbody tr.users-section__row--odd {
+    background: #ffffff;
 }
 
-.users-section__table tbody tr.users-section__row--employee {
-    background: #fcfcfd;
+.users-section__table tbody tr.users-section__row--even {
+    background: #f1f7ff;
 }
 
 .users-section__table tbody tr:hover {
@@ -822,4 +822,37 @@
     background: #2563eb;
     border-color: #2563eb;
     color: #ffffff;
+}
+
+
+.users-section__modal--confirm {
+    max-width: 500px;
+}
+
+.users-section__confirm-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 20px;
+    border-radius: 999px;
+    background: #fff1f2;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.users-section__form-actions--confirm {
+    margin-top: 0;
+}
+
+.users-section__submit-btn--danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    box-shadow: 0 10px 20px rgba(220, 38, 38, 0.18);
+}
+
+.users-section__submit-btn--danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
 }

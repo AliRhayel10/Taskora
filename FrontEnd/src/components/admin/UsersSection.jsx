@@ -6,6 +6,7 @@ import {
     FiSearch,
     FiTrash2,
     FiUsers,
+    FiAlertTriangle,
     FiX,
     FiChevronDown,
     FiEyeOff,
@@ -257,6 +258,8 @@ export default function UsersSection({ onOpenUser }) {
     const [createSuccess, setCreateSuccess] = useState("");
     const [createForm, setCreateForm] = useState(initialCreateForm);
     const [showPassword, setShowPassword] = useState(false);
+    const [userPendingDelete, setUserPendingDelete] = useState(null);
+    const [isDeletingUser, setIsDeletingUser] = useState(false);
 
     const currentUser = useMemo(() => getStoredUser(), []);
     const companyId = useMemo(() => {
@@ -551,6 +554,92 @@ export default function UsersSection({ onOpenUser }) {
         setCreateForm((prev) => ({ ...prev, [field]: value }));
     };
 
+
+    const openDeleteModal = (user) => {
+        setCreateError("");
+        setCreateSuccess("");
+        setUserPendingDelete(user);
+    };
+
+    const closeDeleteModal = () => {
+        if (isDeletingUser) return;
+        setUserPendingDelete(null);
+    };
+
+    const handleDeleteUser = async () => {
+        const targetUserId = getUserId(userPendingDelete);
+
+        if (!targetUserId) {
+            setCreateError("User id is missing.");
+            closeDeleteModal();
+            return;
+        }
+
+        try {
+            setIsDeletingUser(true);
+            setCreateError("");
+            setCreateSuccess("");
+
+            const candidateRequests = [
+                {
+                    url: `${API_BASE_URL}/api/auth/delete-user/${encodeURIComponent(targetUserId)}`,
+                    method: "DELETE",
+                },
+                {
+                    url: `${API_BASE_URL}/api/users/${encodeURIComponent(targetUserId)}`,
+                    method: "DELETE",
+                },
+                {
+                    url: `${API_BASE_URL}/api/user/${encodeURIComponent(targetUserId)}`,
+                    method: "DELETE",
+                },
+            ];
+
+            let deleted = false;
+            let resolvedData = null;
+
+            for (const requestConfig of candidateRequests) {
+                try {
+                    const response = await fetch(requestConfig.url, {
+                        method: requestConfig.method,
+                    });
+
+                    const data = await readJsonSafe(response);
+
+                    if (!response.ok) {
+                        continue;
+                    }
+
+                    resolvedData = data;
+                    deleted = true;
+                    break;
+                } catch (error) {
+                    console.error("Delete user request failed:", error);
+                }
+            }
+
+            if (!deleted) {
+                throw new Error("Failed to delete user.");
+            }
+
+            setUserPendingDelete(null);
+            setCreateSuccess(resolvedData?.message || "User deleted successfully.");
+
+            const remainingUsersOnPage = Math.max(0, users.length - 1);
+            const nextPage =
+                remainingUsersOnPage === 0 && currentPage > 1 ? currentPage - 1 : currentPage;
+
+            setCurrentPage(nextPage);
+            await fetchUsers(nextPage, debouncedSearchTerm);
+            await fetchTeams();
+        } catch (error) {
+            console.error("Failed to delete user:", error);
+            setCreateError(error.message || "Failed to delete user.");
+        } finally {
+            setIsDeletingUser(false);
+        }
+    };
+
     const handleCreateUser = async (event) => {
         event.preventDefault();
 
@@ -723,16 +812,16 @@ export default function UsersSection({ onOpenUser }) {
                                     const jobType = getUserJobType(user);
                                     const team = getResolvedUserTeam(user, teams);
                                     const status = getUserStatus(user);
-                                    const roleClass = normalizeRole(role) === "team leader"
-                                        ? "users-section__row--teamleader"
-                                        : "users-section__row--employee";
+                                    const rowClass = index % 2 === 0
+                                        ? "users-section__row--odd"
+                                        : "users-section__row--even";
                                     const statusClass =
                                         String(status).toLowerCase() === "active"
                                             ? "users-section__status users-section__status--active"
                                             : "users-section__status users-section__status--inactive";
 
                                     return (
-                                        <tr key={String(userId)} className={roleClass}>
+                                        <tr key={String(userId)} className={rowClass}>
                                             <td>
                                                 <div className="users-section__user-cell">
                                                     <div className="users-section__avatar">{getInitials(name)}</div>
@@ -766,6 +855,7 @@ export default function UsersSection({ onOpenUser }) {
                                                         type="button"
                                                         className="users-section__action-btn users-section__action-btn--danger"
                                                         title="Delete"
+                                                        onClick={() => openDeleteModal(user)}
                                                     >
                                                         <FiTrash2 />
                                                     </button>
@@ -820,6 +910,57 @@ export default function UsersSection({ onOpenUser }) {
                             >
                                 <span>Next</span>
                                 <FiChevronRight />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {userPendingDelete && (
+                <div className="users-section__modal-overlay" role="dialog" aria-modal="true">
+                    <div className="users-section__modal users-section__modal--confirm">
+                        <div className="users-section__modal-header users-section__modal-header--lined">
+                            <div>
+                                <h3>Delete user</h3>
+                                <p>
+                                    Are you sure you want to delete{" "}
+                                    <strong>{getUserName(userPendingDelete)}</strong>?
+                                    This will remove the user from the backend and from any assigned team.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="users-section__modal-close"
+                                onClick={closeDeleteModal}
+                                disabled={isDeletingUser}
+                                aria-label="Close delete confirmation"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        <div className="users-section__confirm-icon">
+                            <FiAlertTriangle />
+                        </div>
+
+                        <div className="users-section__form-actions users-section__form-actions--confirm">
+                            <button
+                                type="button"
+                                className="users-section__secondary-btn"
+                                onClick={closeDeleteModal}
+                                disabled={isDeletingUser}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                className="users-section__submit-btn users-section__submit-btn--danger"
+                                onClick={handleDeleteUser}
+                                disabled={isDeletingUser}
+                            >
+                                {isDeletingUser ? "Deleting..." : "Confirm"}
                             </button>
                         </div>
                     </div>

@@ -224,6 +224,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const [feedbackType, setFeedbackType] = useState("");
 
     const userId = getUserId(userState || user);
+    const normalizedCurrentRole = getUserRole(userState);
+    const normalizedCurrentJobType = getUserJobType(userState);
+    const normalizedCurrentStatus = normalizeStatusToBoolean(getUserStatus(userState));
 
     useEffect(() => {
         setUserState(user || null);
@@ -330,8 +333,8 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
     const name = getUserName(userState);
     const email = userState?.email || userState?.Email || "No email";
-    const role = getUserRole(userState);
-    const jobType = getUserJobType(userState);
+    const role = normalizedCurrentRole;
+    const jobType = normalizedCurrentJobType;
     const teamName = getResolvedUserTeam(userState, teams);
     const status = getUserStatus(userState);
     const initials = getInitials(name);
@@ -340,9 +343,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const canEdit = !isAdminUser;
 
     const hasChanges =
-        draftData.role !== role ||
-        draftData.jobType.trim() !== jobType.trim() ||
-        draftData.isActive !== normalizeStatusToBoolean(status);
+        draftData.role !== normalizedCurrentRole ||
+        draftData.jobType.trim() !== normalizedCurrentJobType.trim() ||
+        draftData.isActive !== normalizedCurrentStatus;
 
     const handleStartEdit = () => {
         if (!canEdit) {
@@ -411,11 +414,6 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     body: payload,
                 },
                 {
-                    url: `${API_BASE_URL}/api/auth/update-user-role`,
-                    method: "PUT",
-                    body: payload,
-                },
-                {
                     url: `${API_BASE_URL}/api/users/${userId}`,
                     method: "PUT",
                     body: payload,
@@ -460,7 +458,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
             const nextUser = {
                 ...userState,
-                ...(resolvedData?.user || {}),
+                ...(resolvedData?.user || resolvedData?.data || {}),
                 role: draftData.role,
                 roleName: draftData.role,
                 userRole: draftData.role,
