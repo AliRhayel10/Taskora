@@ -1008,7 +1008,7 @@ useEffect(() => {
                         <div className="users-section__confirm-copy">
                             <h3>Delete user</h3>
                             <p>
-                                Delete <strong>{getUserName(userPendingDelete)}</strong>? This will permanently remove the user from the backend and from any assigned team.
+                                Are you sure you want to delete <strong>{getUserName(userPendingDelete)}</strong>? This action cannot be undone and will permanently remove the user from the system, including any team memberships and related assignments.
                             </p>
                         </div>
 

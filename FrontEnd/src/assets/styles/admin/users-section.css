@@ -263,7 +263,7 @@
 }
 
 .users-section__table tbody tr:hover {
-    background: #eef5ff;
+    background: inherit;
 }
 
 .users-section__table tbody tr:last-child td {
@@ -824,26 +824,72 @@
     color: #ffffff;
 }
 
-
 .users-section__modal--confirm {
-    max-width: 500px;
+    position: relative;
+    max-width: 560px;
+    padding: 36px 30px 28px;
+}
+
+.users-section__modal--confirm .users-section__modal-header {
+    position: static;
+    display: block;
+    margin-bottom: 0;
+    padding-right: 56px;
+    border-bottom: none;
+}
+
+.users-section__modal--confirm .users-section__modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    left: auto;
+    margin: 0;
+    background: #f8fafc;
+    border-color: #dbe3ee;
+    z-index: 2;
 }
 
 .users-section__confirm-icon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 20px;
+    width: 64px;
+    height: 64px;
+    margin: 14px auto 24px;
     border-radius: 999px;
     background: #fff1f2;
     color: #dc2626;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.7rem;
+}
+
+.users-section__modal--confirm .users-section__modal-header h3 {
+    margin: 0 0 14px;
+    color: #0f172a;
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-align: left;
+}
+
+.users-section__modal--confirm .users-section__modal-header p {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1rem;
+    line-height: 1.45;
+    font-weight: 500;
+    text-align: left;
 }
 
 .users-section__form-actions--confirm {
-    margin-top: 0;
+    margin-top: 24px;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.users-section__form-actions--confirm .users-section__secondary-btn,
+.users-section__form-actions--confirm .users-section__submit-btn {
+    min-width: 126px;
+    height: 48px;
+    border-radius: 14px;
 }
 
 .users-section__submit-btn--danger {
