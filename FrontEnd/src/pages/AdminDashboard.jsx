@@ -4,6 +4,7 @@ import ProfileSection from "../components/admin/ProfileSection";
 import SettingsSection from "../components/admin/SettingsSection";
 import TeamsSection from "../components/admin/TeamsSection";
 import TeamDetailsPage from "../components/admin/TeamDetailsPage";
+import UserDetailsPage from "../components/admin/UserDetailsPage";
 import UsersSection from "../components/admin/UsersSection";
 import "./../assets/styles/admin/admin-dashboard.css";
 
@@ -13,6 +14,7 @@ export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const storedUser = useMemo(() => {
     const savedUser = localStorage.getItem("user");
@@ -82,10 +84,15 @@ export default function AdminDashboard() {
       setSelectedTeam(null);
     }
 
+    if (section !== "UserDetails") {
+      setSelectedUser(null);
+    }
+
     setActiveSection(section);
   };
 
   const handleOpenTeamDetails = (team) => {
+    setSelectedUser(null);
     setSelectedTeam(team);
     setActiveSection("TeamDetails");
   };
@@ -95,10 +102,38 @@ export default function AdminDashboard() {
     setActiveSection("Teams");
   };
 
+  const handleOpenUserDetails = (selectedUserData) => {
+    setSelectedTeam(null);
+    setSelectedUser(selectedUserData);
+    setActiveSection("UserDetails");
+  };
+
+  const handleBackToUsers = () => {
+    setSelectedUser(null);
+    setActiveSection("Users");
+  };
+
+  const handleUserUpdated = (updatedUser) => {
+    setSelectedUser(updatedUser);
+  };
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case "Users":
-        return <UsersSection />;
+        return <UsersSection onOpenUser={handleOpenUserDetails} />;
+
+      case "UserDetails":
+        if (!selectedUser) {
+          return <UsersSection onOpenUser={handleOpenUserDetails} />;
+        }
+
+        return (
+          <UserDetailsPage
+            user={selectedUser}
+            onBack={handleBackToUsers}
+            onUserUpdated={handleUserUpdated}
+          />
+        );
 
       case "Profile":
         return <ProfileSection user={user} />;
@@ -110,6 +145,10 @@ export default function AdminDashboard() {
         return <TeamsSection onOpenTeam={handleOpenTeamDetails} />;
 
       case "TeamDetails":
+        if (!selectedTeam) {
+          return <TeamsSection onOpenTeam={handleOpenTeamDetails} />;
+        }
+
         return (
           <TeamDetailsPage
             team={selectedTeam}
@@ -135,7 +174,13 @@ export default function AdminDashboard() {
     <div className="admin-layout">
       <AdminSidebar
         user={user}
-        activeItem={activeSection === "TeamDetails" ? "Teams" : activeSection}
+        activeItem={
+          activeSection === "TeamDetails"
+            ? "Teams"
+            : activeSection === "UserDetails"
+              ? "Users"
+              : activeSection
+        }
         onSelect={handleSectionSelect}
         onLogout={handleLogout}
       />

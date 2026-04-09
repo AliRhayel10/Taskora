@@ -129,7 +129,7 @@ export default function TeamDetailsPage({ team, onBack }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-  const [memberManagementMode, setMemberManagementMode] = useState("all");
+  const [memberManagementMode, setMemberManagementMode] = useState("members");
   const [memberSearchTerm, setMemberSearchTerm] = useState("");
   const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
   const [editForm, setEditForm] = useState({
@@ -309,7 +309,7 @@ export default function TeamDetailsPage({ team, onBack }) {
     setMemberToDelete(member);
   };
 
-  const openMembersModal = (mode = "all") => {
+  const openMembersModal = (mode = "members") => {
     const activeMemberIds = Array.isArray(teamState?.memberIds)
       ? teamState.memberIds.map((id) => String(id))
       : [];
@@ -335,7 +335,7 @@ export default function TeamDetailsPage({ team, onBack }) {
       return;
     }
     setIsMembersModalOpen(false);
-    setMemberManagementMode("all");
+    setMemberManagementMode("members");
     setMemberSearchTerm("");
     setLeaderSearchTerm("");
   };
@@ -636,7 +636,7 @@ export default function TeamDetailsPage({ team, onBack }) {
       const persistedMembers = await saveTeamMembersToBackend(nextMembers);
       setMembers(persistedMembers);
       setIsMembersModalOpen(false);
-      setMemberManagementMode("all");
+      setMemberManagementMode("members");
 
       setFeedbackType("success");
       setFeedbackMessage("Members updated successfully.");
@@ -652,16 +652,12 @@ export default function TeamDetailsPage({ team, onBack }) {
   const membersModalTitle =
     memberManagementMode === "members"
       ? "Add Members"
-      : memberManagementMode === "leader"
-        ? "Manage Leader"
-        : "Edit Members";
+      : "Manage Leader";
 
   const membersModalDescription =
     memberManagementMode === "members"
       ? "Search and add members to this team."
-      : memberManagementMode === "leader"
-        ? "Choose the team leader for this team."
-        : "Search and select one or more members for this team.";
+      : "Choose the team leader for this team.";
 
   return (
     <section className="team-details-page">
@@ -764,15 +760,6 @@ export default function TeamDetailsPage({ team, onBack }) {
           >
             <FiUser />
             <span>Manage Leader</span>
-          </button>
-
-          <button
-            type="button"
-            className="teams-section__members-btn"
-            onClick={() => openMembersModal("all")}
-          >
-            <FiUsers />
-            <span>Edit Members</span>
           </button>
         </div>
       </div>
@@ -948,7 +935,7 @@ export default function TeamDetailsPage({ team, onBack }) {
             </div>
 
             <div className="teams-section__form">
-              {memberManagementMode !== "members" && (
+              {memberManagementMode === "leader" && (
                 <div className="teams-section__form-group">
                   <label>
                     Team Leader <span className="teams-section__required">*</span>
@@ -1010,7 +997,7 @@ export default function TeamDetailsPage({ team, onBack }) {
                 </div>
               )}
 
-              {memberManagementMode !== "leader" && (
+              {memberManagementMode === "members" && (
                 <div className="teams-section__form-group">
                   <label>
                     Members <span className="teams-section__required">*</span>
