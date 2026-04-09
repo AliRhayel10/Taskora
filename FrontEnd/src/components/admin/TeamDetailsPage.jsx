@@ -354,6 +354,97 @@ export default function TeamDetailsPage({ team, onBack }) {
     writeCachedTeamMembers(teamId, resolvedMembers);
   }, [teamState, companyMembers]);
 
+
+  useEffect(() => {
+    const persistedLeaderId = String(
+      teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
+    );
+
+    const activeMemberIds = Array.isArray(teamState?.memberIds)
+      ? teamState.memberIds.map((id) => String(id))
+      : [];
+
+    if (!teamState?.teamId || !companyId || !activeMemberIds.length) {
+      return;
+    }
+
+    const assignedLeader = persistedLeaderId
+      ? companyMembers.find(
+          (member) =>
+            String(member.userId) === persistedLeaderId &&
+            isTeamLeaderRole(member.role)
+        )
+      : null;
+
+    if (assignedLeader) {
+      return;
+    }
+
+    const eligibleLeaders = companyMembers.filter(
+      (member) =>
+        activeMemberIds.includes(String(member.userId)) &&
+        isTeamLeaderRole(member.role)
+    );
+
+    if (eligibleLeaders.length !== 1) {
+      return;
+    }
+
+    const autoLeader = eligibleLeaders[0];
+    const autoLeaderId = Number(autoLeader.userId);
+
+    const persistAutoLeader = async () => {
+      try {
+        const payload = {
+          teamName: teamState.teamName || "",
+          description: teamState.description || "",
+          companyId,
+          teamLeaderUserId: autoLeaderId,
+          teamLeaderId: autoLeaderId,
+          memberIds: activeMemberIds.map((id) => Number(id)),
+          isActive:
+            typeof teamState?.isActive === "boolean" ? teamState.isActive : true,
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/teams/${teamState.teamId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await parseJsonResponse(response);
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to sync team leader.");
+        }
+
+        const updatedTeam = data.team || data;
+
+        setTeamState((prev) => ({
+          ...prev,
+          ...updatedTeam,
+          teamLeaderId:
+            updatedTeam?.teamLeaderId ??
+            updatedTeam?.teamLeaderUserId ??
+            autoLeaderId,
+          teamLeaderUserId:
+            updatedTeam?.teamLeaderUserId ??
+            updatedTeam?.teamLeaderId ??
+            autoLeaderId,
+          memberIds: Array.isArray(updatedTeam?.memberIds)
+            ? updatedTeam.memberIds
+            : activeMemberIds.map((id) => Number(id)),
+        }));
+      } catch (error) {
+        console.error("Failed to auto-sync team leader:", error);
+      }
+    };
+
+    persistAutoLeader();
+  }, [teamState, companyMembers, companyId]);
+
   useEffect(() => {
     if (!feedbackMessage) {
       return;
