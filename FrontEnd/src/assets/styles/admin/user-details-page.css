@@ -136,12 +136,37 @@
   margin: 18px 0 24px;
 }
 
-.user-details-page__role-select {
-  appearance: none;
+.user-details-page__select-wrap {
+  position: relative;
+  width: 100%;
 }
 
-.user-details-page__actions {
-  margin-top: 14px;
+.user-details-page__role-select {
+  appearance: none;
+  padding-right: 42px;
+}
+
+.user-details-page__select-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #667085;
+  pointer-events: none;
+  font-size: 1rem;
+}
+
+.user-details-page__status-edit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+}
+
+.user-details-page__status-edit-text {
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 @media (max-width: 700px) {
@@ -177,15 +202,17 @@
     font-size: 1.2rem;
   }
 
-  .profile-info-card__actions,
-  .user-details-page__actions {
+  .profile-info-card__actions {
     width: 100%;
     flex-direction: column;
   }
 
-  .profile-info-card__actions .profile-edit-btn,
-  .user-details-page__actions .profile-edit-btn {
+  .profile-info-card__actions .profile-edit-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .user-details-page__status-edit {
+    flex-wrap: wrap;
   }
 }
