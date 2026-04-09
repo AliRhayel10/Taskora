@@ -2,7 +2,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
   min-height: 0;
 }
 
@@ -53,110 +53,139 @@
   transform: translateY(-1px);
 }
 
-.user-details-page__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 18px;
-}
-
-.user-details-page__card {
+.user-hero-card,
+.user-info-card {
   background: #ffffff;
   border: 1px solid #e6edf7;
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 24px;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
 }
 
-.user-details-page__profile {
+.user-hero-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 22px;
+  padding: 24px 28px;
 }
 
-.user-details-page__avatar {
-  width: 58px;
-  height: 58px;
-  border-radius: 999px;
-  background: #dbeafe;
-  color: #2563eb;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
+.user-hero-card__avatar-wrapper {
+  position: relative;
+  width: 110px;
+  height: 110px;
   flex-shrink: 0;
 }
 
-.user-details-page__profile-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.user-details-page__profile-copy strong {
-  color: #111827;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.user-details-page__profile-copy span {
-  color: #667085;
-  font-size: 0.92rem;
-  word-break: break-word;
-}
-
-.user-details-page__info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.user-details-page__info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #edf2f7;
-}
-
-.user-details-page__info-item label {
-  color: #667085;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.user-details-page__info-item span {
-  color: #111827;
-  font-size: 0.95rem;
-  font-weight: 600;
-  word-break: break-word;
-}
-
-.user-details-page__section-header h3 {
-  margin: 0 0 6px;
+.user-hero-card__avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
   color: #0f172a;
-  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+}
+
+.user-hero-card__content h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.user-hero-card__content p {
+  margin: 0 0 8px;
+  color: #334155;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.user-hero-card__content span {
+  color: #64748b;
+  font-size: 1rem;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.user-info-card {
+  padding: 28px 32px;
+}
+
+.user-info-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.user-info-card__header h3 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.2rem;
   font-weight: 800;
 }
 
-.user-details-page__section-header p {
-  margin: 0;
-  color: #667085;
-  font-size: 0.94rem;
-  line-height: 1.6;
+.user-info-card__divider {
+  height: 1px;
+  background: #e8eef5;
+  margin: 18px 0 24px;
+}
+
+.user-details-page__role-select {
+  appearance: none;
 }
 
 .user-details-page__actions {
-  justify-content: flex-start;
+  margin-top: 14px;
 }
 
-@media (max-width: 900px) {
-  .user-details-page__grid {
-    grid-template-columns: 1fr;
+@media (max-width: 700px) {
+  .user-hero-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 22px 20px;
+  }
+
+  .user-hero-card__avatar-wrapper {
+    width: 92px;
+    height: 92px;
+  }
+
+  .user-hero-card__avatar-fallback {
+    font-size: 1.6rem;
+  }
+
+  .user-hero-card__content h3 {
+    font-size: 1.3rem;
+  }
+
+  .user-info-card {
+    padding: 22px 20px;
+  }
+
+  .user-info-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .user-details-page__title-row h2 {
+    font-size: 1.2rem;
+  }
+
+  .profile-info-card__actions,
+  .user-details-page__actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .profile-info-card__actions .profile-edit-btn,
+  .user-details-page__actions .profile-edit-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
