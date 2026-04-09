@@ -278,7 +278,21 @@ export default function TeamDetailsPage({ team, onBack }) {
       availableMembers.map((member) => [String(member.userId), member])
     );
     const assignedLeader = assignedLeaderId ? availableMembersMap.get(assignedLeaderId) : null;
-    const leaderId = assignedLeader && isTeamLeaderRole(assignedLeader.role) ? assignedLeaderId : "";
+
+    let leaderId = assignedLeader && isTeamLeaderRole(assignedLeader.role) ? assignedLeaderId : "";
+
+    if (!leaderId) {
+      const eligibleLeaderIds = activeMemberIds
+        .map((id) => String(id))
+        .filter((id) => {
+          const member = availableMembersMap.get(id);
+          return member && isTeamLeaderRole(member.role);
+        });
+
+      if (eligibleLeaderIds.length === 1) {
+        leaderId = eligibleLeaderIds[0];
+      }
+    }
     const availableMemberIds = new Set(Array.from(availableMembersMap.keys()));
 
     const cachedMembersMap = new Map(
@@ -308,6 +322,12 @@ export default function TeamDetailsPage({ team, onBack }) {
           ? cachedMember.isActive
           : false;
 
+      const resolvedUserRole =
+        foundMember?.role ||
+        cachedMember?.userRole ||
+        cachedMember?.role ||
+        "Employee";
+
       return {
         userId: numericMemberId,
         fullName:
@@ -323,8 +343,9 @@ export default function TeamDetailsPage({ team, onBack }) {
           foundMember?.jobTitle ||
           cachedMember?.jobType ||
           "No job type available",
-        role: String(memberId) === leaderId ? "Team Leader" : "Member",
-        userRole: foundMember?.role || cachedMember?.userRole || "",
+        role: resolvedUserRole,
+        teamPosition: String(memberId) === leaderId ? "Team Leader" : "Member",
+        userRole: resolvedUserRole,
         isActive,
       };
     });
@@ -376,9 +397,21 @@ export default function TeamDetailsPage({ team, onBack }) {
   const assignedLeaderMember = companyMembers.find(
     (member) => getCompanyMemberId(member) === assignedTeamLeaderId
   );
-  const teamLeaderId = assignedLeaderMember && isTeamLeaderRole(assignedLeaderMember.role)
-    ? assignedTeamLeaderId
-    : "";
+
+  let teamLeaderId =
+    assignedLeaderMember && isTeamLeaderRole(assignedLeaderMember.role)
+      ? assignedTeamLeaderId
+      : "";
+
+  if (!teamLeaderId) {
+    const eligibleLeaderIds = members
+      .filter((member) => member.isActive && isTeamLeaderRole(member.role))
+      .map((member) => String(member.userId));
+
+    if (eligibleLeaderIds.length === 1) {
+      teamLeaderId = eligibleLeaderIds[0];
+    }
+  }
 
   const teamLeader = members.find(
     (member) => String(member.userId) === teamLeaderId
@@ -448,7 +481,11 @@ export default function TeamDetailsPage({ team, onBack }) {
     }
 
     const activeMembers = nextMembers.filter((member) => member.isActive);
-    const activeLeader = activeMembers.find((member) => member.role === "Team Leader");
+    const activeLeader = activeMembers.find(
+      (member) =>
+        member.teamPosition === "Team Leader" ||
+        (member.role === "Team Leader" && isTeamLeaderRole(member.userRole || member.role))
+    );
 
     if (teamState?.isActive !== false && !activeLeader) {
       throw new Error(
@@ -490,13 +527,27 @@ export default function TeamDetailsPage({ team, onBack }) {
       memberIds: activeMembers.map((member) => Number(member.userId)),
     }));
 
-    const persistedMembers = nextMembers.map((member) => ({
-      ...member,
-      role:
-        activeLeader && String(member.userId) === String(activeLeader.userId)
-          ? "Team Leader"
-          : "Member",
-    }));
+    const persistedMembers = nextMembers.map((member) => {
+      const companyMember = companyMembers.find(
+        (item) => String(item.userId) === String(member.userId)
+      );
+
+      const resolvedUserRole =
+        companyMember?.role ||
+        member.userRole ||
+        member.role ||
+        "Employee";
+
+      return {
+        ...member,
+        role: resolvedUserRole,
+        userRole: resolvedUserRole,
+        teamPosition:
+          activeLeader && String(member.userId) === String(activeLeader.userId)
+            ? "Team Leader"
+            : "Member",
+      };
+    });
 
     writeCachedTeamMembers(teamState?.teamId, persistedMembers);
 
@@ -721,6 +772,11 @@ export default function TeamDetailsPage({ team, onBack }) {
           members.find((member) => String(member.userId) === String(id)) ||
           companyMembers.find((member) => String(member.userId) === String(id));
 
+        const resolvedUserRole =
+          existingMember?.role ||
+          existingMember?.userRole ||
+          "Employee";
+
         return {
           userId: Number(id),
           fullName: existingMember?.fullName || "Unknown Member",
@@ -729,7 +785,9 @@ export default function TeamDetailsPage({ team, onBack }) {
             existingMember?.jobType ||
             existingMember?.jobTitle ||
             "No job type available",
-          role: String(id) === selectedLeaderId ? "Team Leader" : "Member",
+          role: resolvedUserRole,
+          teamPosition: String(id) === selectedLeaderId ? "Team Leader" : "Member",
+          userRole: resolvedUserRole,
           isActive: true,
         };
       });
@@ -918,7 +976,7 @@ export default function TeamDetailsPage({ team, onBack }) {
                     <td>
                       <span
                         className={`team-details-page__role-badge ${
-                          member.role === "Team Leader"
+                          isTeamLeaderRole(member.role)
                             ? "team-details-page__role-badge--leader"
                             : "team-details-page__role-badge--member"
                         }`}

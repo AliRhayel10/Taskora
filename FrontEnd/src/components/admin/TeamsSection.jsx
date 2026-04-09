@@ -64,6 +64,54 @@ function isEmployeeRole(value) {
   return role === "employee";
 }
 
+function getResolvedTeamLeader(team, companyMembers) {
+  if (!team || !Array.isArray(companyMembers) || companyMembers.length === 0) {
+    if (team?.teamLeaderName) {
+      return {
+        userId: team.teamLeaderId || team.teamLeaderUserId || null,
+        fullName: team.teamLeaderName,
+        role: "Team Leader",
+      };
+    }
+
+    return null;
+  }
+
+  const leaderId = String(team.teamLeaderId || team.teamLeaderUserId || "").trim();
+  const memberIds = Array.isArray(team.memberIds)
+    ? team.memberIds.map((id) => String(id))
+    : [];
+
+  if (leaderId) {
+    const assignedLeader = companyMembers.find(
+      (member) => String(member.userId || "") === leaderId
+    );
+
+    if (assignedLeader) {
+      return assignedLeader;
+    }
+  }
+
+  const eligibleLeaders = companyMembers.filter((member) => {
+    const memberId = String(member.userId || "");
+    return memberIds.includes(memberId) && isTeamLeaderRole(member.role);
+  });
+
+  if (eligibleLeaders.length === 1) {
+    return eligibleLeaders[0];
+  }
+
+  if (team?.teamLeaderName) {
+    return {
+      userId: team.teamLeaderId || team.teamLeaderUserId || null,
+      fullName: team.teamLeaderName,
+      role: "Team Leader",
+    };
+  }
+
+  return null;
+}
+
 export default function TeamsSection({ onOpenTeam }) {
   const [teams, setTeams] = useState([]);
   const [companyMembers, setCompanyMembers] = useState([]);
@@ -236,6 +284,19 @@ export default function TeamsSection({ onOpenTeam }) {
       );
     });
   }, [searchTerm, teams]);
+
+  const resolvedTeams = useMemo(() => {
+    return filteredTeams.map((team) => {
+      const resolvedLeader = getResolvedTeamLeader(team, companyMembers);
+
+      return {
+        ...team,
+        resolvedTeamLeader: resolvedLeader,
+        resolvedTeamLeaderName:
+          resolvedLeader?.fullName || team.teamLeaderName || "",
+      };
+    });
+  }, [filteredTeams, companyMembers]);
 
   const assignedActiveLeaderIds = useMemo(() => {
     return new Set(
@@ -713,9 +774,9 @@ export default function TeamsSection({ onOpenTeam }) {
         </div>
       )}
 
-      {!isLoading && filteredTeams.length > 0 && (
+      {!isLoading && resolvedTeams.length > 0 && (
         <div className="teams-section__grid">
-          {filteredTeams.map((team) => (
+          {resolvedTeams.map((team) => (
             <article key={team.teamId} className="teams-section__card teams-section__card--compact">
               <div className="teams-section__card-top">
                 <div className="teams-section__card-heading">
@@ -800,14 +861,14 @@ export default function TeamsSection({ onOpenTeam }) {
                           <small>Due to inactivity</small>
                         </span>
                       </div>
-                    ) : team.teamLeaderName ? (
+                    ) : team.resolvedTeamLeaderName ? (
                       <div className="teams-section__leader-summary">
                         <span className="teams-section__leader-avatar">
-                          {getInitials(team.teamLeaderName)}
+                          {getInitials(team.resolvedTeamLeaderName)}
                         </span>
 
                         <span className="teams-section__leader-copy">
-                          <strong>{team.teamLeaderName}</strong>
+                          <strong>{team.resolvedTeamLeaderName}</strong>
                           <small>Team Leader</small>
                         </span>
                       </div>
