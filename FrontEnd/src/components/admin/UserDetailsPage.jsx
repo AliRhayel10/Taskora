@@ -605,7 +605,6 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
                 <div className="user-hero-card__content">
                     <h3>{name}</h3>
-                    <p>{jobType || role}</p>
                     <span>{email}</span>
                 </div>
             </div>

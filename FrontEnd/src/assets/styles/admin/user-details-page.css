@@ -98,13 +98,6 @@
   line-height: 1.2;
 }
 
-.user-hero-card__content p {
-  margin: 0 0 8px;
-  color: #334155;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
 .user-hero-card__content span {
   color: #64748b;
   font-size: 1rem;
@@ -161,6 +154,26 @@
   align-items: center;
   gap: 12px;
   min-height: 42px;
+}
+
+.profile-info-item:has(.user-details-page__status-badge),
+.profile-info-item:has(.user-details-page__status-edit) {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-info-item:has(.user-details-page__status-badge) .profile-info-item__value,
+.profile-info-item:has(.user-details-page__status-edit) .profile-info-item__value {
+  display: flex;
+  justify-content: center;
+}
+
+.profile-info-item:has(.user-details-page__status-badge) .user-details-page__status-badge {
+  margin-left: 18px;
+}
+
+.profile-info-item:has(.user-details-page__status-edit) .user-details-page__status-edit {
+  margin-left: 18px;
 }
 
 .user-details-page__status-badge {
