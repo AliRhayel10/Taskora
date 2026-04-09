@@ -104,10 +104,7 @@ function getTeamLeaderId(team) {
 }
 
 function getTeamMemberIds(team) {
-    const ids =
-        team?.memberIds ??
-        team?.MemberIds ??
-        [];
+    const ids = team?.memberIds ?? team?.MemberIds ?? [];
 
     if (!Array.isArray(ids)) {
         return [];
@@ -127,64 +124,63 @@ function getTeamNameValue(team) {
 }
 
 function getResolvedUserTeam(user, teams) {
-  const userIdRaw =
-    user?.userId ||
-    user?.UserId ||
-    user?.id ||
-    user?._id;
+    const userIdRaw =
+        user?.userId ||
+        user?.UserId ||
+        user?.id ||
+        user?._id;
 
-  if (!userIdRaw) return "Unassigned";
-
-  const userId = String(userIdRaw);
-
-  if (!Array.isArray(teams) || teams.length === 0) {
-    return "Unassigned";
-  }
-
-  for (const team of teams) {
-    const leaderIdRaw =
-      team?.teamLeaderUserId ??
-      team?.TeamLeaderUserId ??
-      team?.teamLeaderId ??
-      team?.TeamLeaderId;
-
-    const leaderId = leaderIdRaw ? String(leaderIdRaw) : null;
-
-    const memberIdsRaw =
-      team?.memberIds ??
-      team?.MemberIds ??
-      [];
-
-    const memberIds = Array.isArray(memberIdsRaw)
-      ? memberIdsRaw.map((id) => String(id))
-      : [];
-
-    if (leaderId === userId || memberIds.includes(userId)) {
-      return (
-        team?.teamName ||
-        team?.TeamName ||
-        team?.name ||
-        "Unassigned"
-      );
+    if (!userIdRaw) {
+        return "Unassigned";
     }
-  }
 
-  return "Unassigned";
+    const userId = String(userIdRaw);
+
+    if (!Array.isArray(teams) || teams.length === 0) {
+        return "Unassigned";
+    }
+
+    for (const team of teams) {
+        const leaderIdRaw =
+            team?.teamLeaderUserId ??
+            team?.TeamLeaderUserId ??
+            team?.teamLeaderId ??
+            team?.TeamLeaderId;
+
+        const leaderId = leaderIdRaw ? String(leaderIdRaw) : null;
+
+        const memberIdsRaw = team?.memberIds ?? team?.MemberIds ?? [];
+
+        const memberIds = Array.isArray(memberIdsRaw)
+            ? memberIdsRaw.map((id) => String(id))
+            : [];
+
+        if (leaderId === userId || memberIds.includes(userId)) {
+            return (
+                team?.teamName ||
+                team?.TeamName ||
+                team?.name ||
+                "Unassigned"
+            );
+        }
+    }
+
+    return "Unassigned";
 }
 
 function getUserStatus(user) {
-    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Unactive";
-    if (typeof user?.IsActive === "boolean") return user.IsActive ? "Active" : "Unactive";
-    if (typeof user?.active === "boolean") return user.active ? "Active" : "Unactive";
+    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
+    if (typeof user?.IsActive === "boolean") return user.IsActive ? "Active" : "Inactive";
+    if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
 
     if (typeof user?.status === "string" && user.status.trim()) {
         const normalizedStatus = user.status.trim().toLowerCase();
-        return normalizedStatus === "active" ? "Active" : "Unactive";
+        return normalizedStatus === "active" ? "Active" : "Inactive";
     }
 
     if (typeof user?.Status === "string" && user.Status.trim()) {
         const normalizedStatus = user.Status.trim().toLowerCase();
-        return normalizedStatus === "active" ? "Active" : "Unactive";
+        return normalizedStatus === "active" ? "Active" : "Inactive";
     }
 
     return "Active";
@@ -255,17 +251,42 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const normalizedCurrentRole = getUserRole(userState);
     const normalizedCurrentJobType = getUserJobType(userState);
     const normalizedCurrentStatus = normalizeStatusToBoolean(getUserStatus(userState));
-    const assignedTeam = useMemo(() => findAssignedTeamForUser(userState || user, teams), [userState, user, teams]);
+    const assignedTeam = useMemo(() => {
+        return findAssignedTeamForUser(userState || user, teams);
+    }, [userState, user, teams]);
 
     useEffect(() => {
-        setUserState(user || null);
-        setDraftData({
-            role: getUserRole(user),
-            jobType: getUserJobType(user),
-            isActive: normalizeStatusToBoolean(getUserStatus(user)),
-        });
-        setIsEditing(false);
-        setIsRoleChangeConfirmOpen(false);
+        const incomingUserId = getUserId(user);
+        const currentUserId = getUserId(userState);
+
+        if (!incomingUserId) {
+            setUserState(user || null);
+
+            const nextDraft = {
+                role: getUserRole(user),
+                jobType: getUserJobType(user),
+                isActive: normalizeStatusToBoolean(getUserStatus(user)),
+            };
+
+            setDraftData(nextDraft);
+            setIsEditing(false);
+            setIsRoleChangeConfirmOpen(false);
+            return;
+        }
+
+        if (String(incomingUserId) !== String(currentUserId)) {
+            setUserState(user || null);
+
+            const nextDraft = {
+                role: getUserRole(user),
+                jobType: getUserJobType(user),
+                isActive: normalizeStatusToBoolean(getUserStatus(user)),
+            };
+
+            setDraftData(nextDraft);
+            setIsEditing(false);
+            setIsRoleChangeConfirmOpen(false);
+        }
     }, [user]);
 
     useEffect(() => {
@@ -279,12 +300,15 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             try {
                 setIsLoading(true);
 
+                const profileUrl = `${API_BASE_URL}/api/auth/profile/${userId}`;
+                const teamsUrl = `${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}`;
+
                 const [profileResponse, teamsResponse] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/auth/profile/${userId}`, {
+                    fetch(profileUrl, {
                         method: "GET",
                         signal: abortController.signal,
                     }),
-                    fetch(`${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}`, {
+                    fetch(teamsUrl, {
                         method: "GET",
                         signal: abortController.signal,
                     }),
@@ -309,7 +333,8 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                 }
 
                 if (teamsResponse.ok) {
-                    setTeams(normalizeTeamsResponse(teamsData));
+                    const normalizedTeams = normalizeTeamsResponse(teamsData);
+                    setTeams(normalizedTeams);
                 } else {
                     setTeams([]);
                 }
@@ -325,7 +350,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
         fetchLatestData();
 
-        return () => abortController.abort();
+        return () => {
+            abortController.abort();
+        };
     }, [userId, companyId]);
 
     useEffect(() => {
@@ -338,8 +365,10 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             setFeedbackType("");
         }, 3000);
 
-        return () => window.clearTimeout(timeoutId);
-    }, [feedbackMessage]);
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [feedbackMessage, feedbackType]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -347,9 +376,20 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         }
 
         const handlePointerDownOutside = (event) => {
-            if (infoCardRef.current && !infoCardRef.current.contains(event.target)) {
-                handleCancelEdit();
+            const target = event.target;
+
+            const clickedInsideInfoCard =
+                infoCardRef.current && infoCardRef.current.contains(target);
+
+            const clickedInsideRoleConfirmModal =
+                target instanceof Element &&
+                target.closest(".users-section__modal--role-confirm");
+
+            if (clickedInsideInfoCard || clickedInsideRoleConfirmModal) {
+                return;
             }
+
+            handleCancelEdit();
         };
 
         document.addEventListener("mousedown", handlePointerDownOutside);
@@ -359,12 +399,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             document.removeEventListener("mousedown", handlePointerDownOutside);
             document.removeEventListener("touchstart", handlePointerDownOutside);
         };
-    }, [isEditing, draftData, userState]);
+    }, [isEditing]);
 
     const name = getUserName(userState);
     const email = userState?.email || userState?.Email || "No email";
     const role = normalizedCurrentRole;
     const jobType = normalizedCurrentJobType;
+    const directTeamName = getDirectUserTeam(userState);
     const teamName = getResolvedUserTeam(userState, teams);
     const status = getUserStatus(userState);
     const initials = getInitials(name);
@@ -373,11 +414,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const canEdit = !isAdminUser;
 
     const hasChanges =
-        draftData.role !== normalizedCurrentRole ||
+        normalizeRoleValue(draftData.role) !== normalizeRoleValue(normalizedCurrentRole) ||
         draftData.jobType.trim() !== normalizedCurrentJobType.trim() ||
         draftData.isActive !== normalizedCurrentStatus;
 
-    const hasRoleChanged = normalizeRoleValue(draftData.role) !== normalizeRoleValue(normalizedCurrentRole);
+    const hasRoleChanged =
+        normalizeRoleValue(draftData.role) !== normalizeRoleValue(normalizedCurrentRole);
+
     const currentRoleIsLeader = isTeamLeaderRole(normalizedCurrentRole);
     const nextRoleIsLeader = isTeamLeaderRole(draftData.role);
 
@@ -422,11 +465,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             return;
         }
 
-        setDraftData({
+        const nextDraft = {
             role,
             jobType,
             isActive: normalizeStatusToBoolean(status),
-        });
+        };
+
+        setDraftData(nextDraft);
         setIsEditing(true);
         setFeedbackMessage("");
         setFeedbackType("");
@@ -434,11 +479,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     };
 
     const handleCancelEdit = () => {
-        setDraftData({
+        const nextDraft = {
             role,
             jobType,
             isActive: normalizeStatusToBoolean(status),
-        });
+        };
+
+        setDraftData(nextDraft);
         setIsEditing(false);
         setFeedbackMessage("");
         setFeedbackType("");
@@ -470,101 +517,105 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
             const payload = {
                 userId: Number(userId),
-                companyId: Number(companyId),
                 role: draftData.role,
                 jobTitle: draftData.jobType.trim(),
-                jobType: draftData.jobType.trim(),
                 isActive: draftData.isActive,
-                active: draftData.isActive,
-                status: draftData.isActive ? "Active" : "Unactive",
             };
 
-            const candidateRequests = [
-                {
-                    url: `${API_BASE_URL}/api/auth/update-user`,
-                    method: "PUT",
-                    body: payload,
+            const updateUrl = `${API_BASE_URL}/api/auth/update-user`;
+
+            const response = await fetch(updateUrl, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
                 },
-                {
-                    url: `${API_BASE_URL}/api/users/${userId}`,
-                    method: "PUT",
-                    body: payload,
-                },
-                {
-                    url: `${API_BASE_URL}/api/user/${userId}`,
-                    method: "PUT",
-                    body: payload,
-                },
-            ];
+                body: JSON.stringify(payload),
+            });
 
-            let resolvedData = null;
-            let updated = false;
+            const resolvedData = await readJsonSafe(response);
 
-            for (const requestConfig of candidateRequests) {
-                try {
-                    const response = await fetch(requestConfig.url, {
-                        method: requestConfig.method,
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(requestConfig.body),
-                    });
-
-                    const data = await readJsonSafe(response);
-
-                    if (!response.ok) {
-                        continue;
-                    }
-
-                    resolvedData = data;
-                    updated = true;
-                    break;
-                } catch (error) {
-                    console.error("User update request failed:", error);
-                }
+            if (!response.ok || resolvedData?.success === false) {
+                throw new Error(
+                    resolvedData?.message || "Failed to update user information."
+                );
             }
 
-            if (!updated) {
-                throw new Error("Failed to update user information.");
-            }
+            const profileUrl = `${API_BASE_URL}/api/auth/profile/${userId}`;
+
+            const profileResponse = await fetch(profileUrl, {
+                method: "GET",
+            });
+
+            const profileData = await readJsonSafe(profileResponse);
+
+            const latestProfile =
+                profileResponse.ok
+                    ? profileData?.user || profileData?.data || profileData || {}
+                    : {};
+
+            const returnedUser = resolvedData?.user || resolvedData?.data || {};
+            const mergedUser = {
+                ...userState,
+                ...latestProfile,
+                ...returnedUser,
+            };
+
+            const resolvedRole =
+                mergedUser?.role ||
+                mergedUser?.roleName ||
+                mergedUser?.userRole ||
+                draftData.role;
+
+            const resolvedJobTitle =
+                mergedUser?.jobTitle ||
+                mergedUser?.jobType ||
+                draftData.jobType.trim();
+
+            const resolvedIsActive =
+                typeof mergedUser?.isActive === "boolean"
+                    ? mergedUser.isActive
+                    : typeof mergedUser?.active === "boolean"
+                        ? mergedUser.active
+                        : draftData.isActive;
 
             const nextUser = {
-                ...userState,
-                ...(resolvedData?.user || resolvedData?.data || {}),
-                role: draftData.role,
-                roleName: draftData.role,
-                userRole: draftData.role,
-                jobType: draftData.jobType.trim(),
-                jobTitle: draftData.jobType.trim(),
-                isActive: draftData.isActive,
-                active: draftData.isActive,
-                status: draftData.isActive ? "Active" : "Unactive",
+                ...mergedUser,
+                role: resolvedRole,
+                roleName: resolvedRole,
+                userRole: resolvedRole,
+                jobType: resolvedJobTitle,
+                jobTitle: resolvedJobTitle,
+                isActive: resolvedIsActive,
+                active: resolvedIsActive,
+                status: resolvedIsActive ? "Active" : "Inactive",
             };
 
             setUserState(nextUser);
+
+            setDraftData({
+                role: resolvedRole,
+                jobType: resolvedJobTitle,
+                isActive: resolvedIsActive,
+            });
+
             setIsEditing(false);
 
             if (typeof onUserUpdated === "function") {
                 onUserUpdated(nextUser);
             }
 
-            setFeedbackType("success");
-            setFeedbackMessage("User information updated successfully.");
-
             if (typeof window !== "undefined") {
                 window.dispatchEvent(
                     new CustomEvent("taskora:user-updated", {
-                        detail: {
-                            userId: Number(userId),
-                            role: draftData.role,
-                            previousRole: normalizedCurrentRole,
-                            jobType: draftData.jobType.trim(),
-                            isActive: draftData.isActive,
-                            hasRoleChanged,
-                        },
+                        detail: nextUser,
                     })
                 );
             }
+
+            setFeedbackType("success");
+            setFeedbackMessage(
+                resolvedData?.message || "User information updated successfully."
+            );
         } catch (error) {
             console.error("Failed to update user information:", error);
             setFeedbackType("error");
@@ -599,7 +650,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     type="text"
                     className="profile-info-input"
                     value={draftData.jobType}
-                    onChange={(event) => handleDraftChange("jobType", event.target.value)}
+                    onChange={(event) => {
+                        handleDraftChange("jobType", event.target.value);
+                    }}
                     placeholder="Enter job title"
                 />
             ) : (
@@ -625,27 +678,31 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     <button
                         type="button"
                         className={`users-section__switch ${draftData.isActive ? "users-section__switch--active" : ""}`}
-                        onClick={() => handleDraftChange("isActive", !draftData.isActive)}
+                        onClick={() => {
+                            handleDraftChange("isActive", !draftData.isActive);
+                        }}
                         aria-pressed={draftData.isActive}
                         disabled={isSaving}
                     >
                         <span className="users-section__switch-thumb"></span>
                     </button>
                     <span
-                        className={`user-details-page__status-badge ${draftData.isActive
+                        className={`user-details-page__status-badge ${
+                            draftData.isActive
                                 ? "user-details-page__status-badge--active"
                                 : "user-details-page__status-badge--inactive"
-                            }`}
+                        }`}
                     >
                         {draftData.isActive ? "Active" : "Inactive"}
                     </span>
                 </div>
             ) : (
                 <span
-                    className={`user-details-page__status-badge ${normalizeStatusToBoolean(status)
+                    className={`user-details-page__status-badge ${
+                        normalizeStatusToBoolean(status)
                             ? "user-details-page__status-badge--active"
                             : "user-details-page__status-badge--inactive"
-                        }`}
+                    }`}
                 >
                     {normalizeStatusToBoolean(status) ? "Active" : "Inactive"}
                 </span>
@@ -660,7 +717,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     <select
                         className="profile-info-input user-details-page__role-select"
                         value={draftData.role}
-                        onChange={(event) => handleDraftChange("role", event.target.value)}
+                        onChange={(event) => {
+                            handleDraftChange("role", event.target.value);
+                        }}
                         disabled={isSaving}
                     >
                         <option value="Employee">Employee</option>
@@ -681,7 +740,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     <button
                         type="button"
                         className="user-details-back-btn"
-                        onClick={onBack}
+                        onClick={() => {
+                            onBack();
+                        }}
                         aria-label="Go back"
                     >
                         <FiArrowLeft />
@@ -713,7 +774,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                                 <button
                                     type="button"
                                     className="profile-edit-btn"
-                                    onClick={handleCancelEdit}
+                                    onClick={() => {
+                                        handleCancelEdit();
+                                    }}
                                     disabled={isSaving}
                                 >
                                     <FiX />
@@ -724,7 +787,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                             <button
                                 type="button"
                                 className={`profile-edit-btn ${isEditing ? "profile-edit-btn--primary" : ""}`.trim()}
-                                onClick={isEditing ? handleSave : handleStartEdit}
+                                onClick={() => {
+                                    if (isEditing) {
+                                        handleSave();
+                                    } else {
+                                        handleStartEdit();
+                                    }
+                                }}
                                 disabled={isSaving || (isEditing && !hasChanges)}
                             >
                                 {isEditing ? <FiCheck /> : <FiEdit2 />}
@@ -756,9 +825,21 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                     ))}
                 </div>
             </div>
+
             {isRoleChangeConfirmOpen && (
-                <div className="users-section__modal-overlay" role="presentation">
-                    <div className="users-section__modal users-section__modal--role-confirm" role="dialog" aria-modal="true" aria-labelledby="role-change-confirm-title">
+                <div
+                    className="users-section__modal-overlay"
+                    role="presentation"
+                >
+                    <div
+                        className="users-section__modal users-section__modal--role-confirm"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="role-change-confirm-title"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                        }}
+                    >
                         <div className="users-section__modal-header users-section__modal-header--lined">
                             <div>
                                 <h3 id="role-change-confirm-title">Confirm role change</h3>
@@ -767,7 +848,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                             <button
                                 type="button"
                                 className="users-section__modal-close"
-                                onClick={() => setIsRoleChangeConfirmOpen(false)}
+                                onClick={() => {
+                                    setIsRoleChangeConfirmOpen(false);
+                                }}
                                 disabled={isSaving}
                                 aria-label="Close confirmation"
                             >
@@ -780,9 +863,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                                 <FiAlertTriangle />
                             </div>
                             <div className="users-section__role-confirm-summary">
-                                <span className="users-section__role-confirm-pill">Current: {normalizedCurrentRole}</span>
+                                <span className="users-section__role-confirm-pill">
+                                    Current: {normalizedCurrentRole}
+                                </span>
                                 <span className="users-section__role-confirm-arrow">→</span>
-                                <span className="users-section__role-confirm-pill users-section__role-confirm-pill--next">New: {draftData.role}</span>
+                                <span className="users-section__role-confirm-pill users-section__role-confirm-pill--next">
+                                    New: {draftData.role}
+                                </span>
                             </div>
                         </div>
 
@@ -790,7 +877,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                             <button
                                 type="button"
                                 className="users-section__secondary-btn"
-                                onClick={() => setIsRoleChangeConfirmOpen(false)}
+                                onClick={() => {
+                                    setIsRoleChangeConfirmOpen(false);
+                                }}
                                 disabled={isSaving}
                             >
                                 Cancel
@@ -798,7 +887,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                             <button
                                 type="button"
                                 className="users-section__submit-btn"
-                                onClick={handleRoleChangeVerificationConfirm}
+                                onClick={() => {
+                                    handleRoleChangeVerificationConfirm();
+                                }}
                                 disabled={isSaving}
                             >
                                 Confirm change

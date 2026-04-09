@@ -134,12 +134,12 @@ function getResolvedUserTeam(user, teams) {
 }
 
 function getUserStatus(user) {
-    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Unactive";
-    if (typeof user?.active === "boolean") return user.active ? "Active" : "Unactive";
+    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
+    if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
 
     if (typeof user?.status === "string" && user.status.trim()) {
         const normalizedStatus = user.status.trim().toLowerCase();
-        return normalizedStatus === "active" ? "Active" : "Unactive";
+        return normalizedStatus === "active" ? "Active" : "Inactive";
     }
 
     return "Active";
@@ -692,48 +692,76 @@ export default function UsersSection({ onOpenUser }) {
             setIsSubmittingCreate(false);
         }
     };
-    const handleUserUpdated = (updatedUser) => {
+
+const handleUserUpdated = (updatedUser) => {
+    if (!updatedUser) {
+        return;
+    }
+
     setUsers((prevUsers) =>
         prevUsers.map((user) => {
-            const userId =
-                user.userId || user.UserId || user.id;
+            const existingUserId = getUserId(user);
+            const updatedUserId = getUserId(updatedUser);
 
-            const updatedId =
-                updatedUser.userId || updatedUser.UserId || updatedUser.id;
-
-            if (String(userId) === String(updatedId)) {
-                return {
-                    ...user,
-                    ...updatedUser,
-                    role: updatedUser.role,
-                    jobType: updatedUser.jobTitle,
-                    isActive: updatedUser.isActive,
-                };
+            if (String(existingUserId) !== String(updatedUserId)) {
+                return user;
             }
 
-            return user;
+            const resolvedRole =
+                updatedUser.role ||
+                updatedUser.roleName ||
+                updatedUser.userRole ||
+                getUserRole(user);
+
+            const resolvedJobType =
+                updatedUser.jobType ||
+                updatedUser.jobTitle ||
+                getUserJobType(user);
+
+            const resolvedIsActive =
+                typeof updatedUser.isActive === "boolean"
+                    ? updatedUser.isActive
+                    : typeof updatedUser.active === "boolean"
+                        ? updatedUser.active
+                        : String(updatedUser.status || "").trim().toLowerCase() === "active";
+
+            return {
+                ...user,
+                ...updatedUser,
+                role: resolvedRole,
+                roleName: resolvedRole,
+                userRole: resolvedRole,
+                jobType: resolvedJobType,
+                jobTitle: resolvedJobType,
+                isActive: resolvedIsActive,
+                active: resolvedIsActive,
+                status: resolvedIsActive ? "Active" : "Inactive",
+            };
         })
     );
+};
 
-    setSelectedUser((prev) => {
-        if (!prev) return prev;
+useEffect(() => {
+    const handleExternalUserUpdate = (event) => {
+        const updatedUser = event?.detail;
 
-        const prevId =
-            prev.userId || prev.UserId || prev.id;
-
-        const updatedId =
-            updatedUser.userId || updatedUser.UserId || updatedUser.id;
-
-        if (String(prevId) === String(updatedId)) {
-            return {
-                ...prev,
-                ...updatedUser,
-            };
+        if (!updatedUser || !getUserId(updatedUser)) {
+            return;
         }
 
-        return prev;
-    });
-};
+        handleUserUpdated(updatedUser);
+
+        const abortController = new AbortController();
+        fetchUsers(currentPage, debouncedSearchTerm, abortController.signal);
+        fetchTeams(abortController.signal);
+    };
+
+    window.addEventListener("taskora:user-updated", handleExternalUserUpdate);
+
+    return () => {
+        window.removeEventListener("taskora:user-updated", handleExternalUserUpdate);
+    };
+}, [currentPage, debouncedSearchTerm, companyId]);
 
     return (
         <section className="users-section">
@@ -935,8 +963,9 @@ export default function UsersSection({ onOpenUser }) {
                                 <button
                                     key={pageNumber}
                                     type="button"
-                                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === pageNumber ? "users-section__page-btn--active" : ""
-                                        }`}
+                                    className={`users-section__page-btn users-section__page-btn--number ${
+                                        currentPage === pageNumber ? "users-section__page-btn--active" : ""
+                                    }`}
                                     onClick={() => setCurrentPage(pageNumber)}
                                 >
                                     {pageNumber}
@@ -1087,10 +1116,11 @@ export default function UsersSection({ onOpenUser }) {
                                     />
                                     {emailTouched && (
                                         <span
-                                            className={`users-section__input-badge ${emailIsValid
+                                            className={`users-section__input-badge ${
+                                                emailIsValid
                                                     ? "users-section__input-badge--success"
                                                     : "users-section__input-badge--error"
-                                                }`}
+                                            }`}
                                         >
                                             {emailIsValid ? "Valid" : "Invalid"}
                                         </span>
@@ -1114,10 +1144,11 @@ export default function UsersSection({ onOpenUser }) {
                                     />
                                     {passwordTouched && (
                                         <span
-                                            className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong
+                                            className={`users-section__input-badge users-section__input-badge--password ${
+                                                passwordIsStrong
                                                     ? "users-section__input-badge--success"
                                                     : "users-section__input-badge--error"
-                                                }`}
+                                            }`}
                                         >
                                             {passwordIsStrong ? "Strong" : "Weak"}
                                         </span>
@@ -1156,7 +1187,7 @@ export default function UsersSection({ onOpenUser }) {
                                     <span className="users-section__switch-thumb" />
                                 </button>
                                 <span className="users-section__status-text">
-                                    {createForm.isActive ? "Active" : "Unactive"}
+                                    {createForm.isActive ? "Active" : "Inactive"}
                                 </span>
                             </div>
 
