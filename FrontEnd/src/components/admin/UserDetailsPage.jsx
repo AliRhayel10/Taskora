@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  FiArrowLeft,
-  FiBriefcase,
-  FiCheck,
-  FiCheckCircle,
-  FiChevronDown,
-  FiEdit2,
-  FiMail,
-  FiShield,
-  FiUser,
-  FiUsers,
-  FiX,
+    FiArrowLeft,
+    FiBriefcase,
+    FiCheck,
+    FiCheckCircle,
+    FiChevronDown,
+    FiEdit2,
+    FiMail,
+    FiShield,
+    FiUsers,
+    FiX,
 } from "react-icons/fi";
 import "../../assets/styles/admin/users-section.css";
 import "../../assets/styles/admin/profile-section.css";
@@ -19,471 +18,651 @@ import "../../assets/styles/admin/user-details-page.css";
 const API_BASE_URL = "http://localhost:5000";
 
 function getStoredUser() {
-  try {
-    const rawUser = localStorage.getItem("user");
-    return rawUser ? JSON.parse(rawUser) : null;
-  } catch (error) {
-    console.error("Failed to read user from localStorage.", error);
-    return null;
-  }
+    try {
+        const rawUser = localStorage.getItem("user");
+        return rawUser ? JSON.parse(rawUser) : null;
+    } catch (error) {
+        console.error("Failed to read user from localStorage.", error);
+        return null;
+    }
+}
+
+async function readJsonSafe(response) {
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+function normalizeTeamsResponse(data) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.teams)) return data.teams;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+}
+
+function getUserId(user) {
+    return (
+        user?.userId ||
+        user?.UserId ||
+        user?.id ||
+        user?._id ||
+        null
+    );
 }
 
 function getUserName(user) {
-  const fullName =
-    user?.fullName ||
-    user?.name ||
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ");
+    const fullName =
+        user?.fullName ||
+        user?.FullName ||
+        user?.name ||
+        [user?.firstName, user?.lastName].filter(Boolean).join(" ");
 
-  return fullName?.trim() || user?.email || "Unnamed user";
+    return fullName?.trim() || user?.email || user?.Email || "Unnamed user";
 }
 
 function getUserRole(user) {
-  return (
-    user?.role?.trim() ||
-    user?.roleName?.trim() ||
-    user?.userRole?.trim() ||
-    "Employee"
-  );
+    return (
+        user?.role?.trim() ||
+        user?.Role?.trim() ||
+        user?.roleName?.trim() ||
+        user?.userRole?.trim() ||
+        "Employee"
+    );
 }
 
 function getUserJobType(user) {
-  return user?.jobType?.trim() || user?.jobTitle?.trim() || "No job type";
+    return (
+        user?.jobType?.trim() ||
+        user?.JobType?.trim() ||
+        user?.jobTitle?.trim() ||
+        user?.JobTitle?.trim() ||
+        "No job type"
+    );
 }
 
-function getUserTeam(user) {
-  if (typeof user?.team === "string" && user.team.trim()) return user.team;
-  if (typeof user?.teamName === "string" && user.teamName.trim()) return user.teamName;
-  if (typeof user?.department === "string" && user.department.trim()) return user.department;
-  if (typeof user?.groupName === "string" && user.groupName.trim()) return user.groupName;
+function getDirectUserTeam(user) {
+    if (typeof user?.team === "string" && user.team.trim()) return user.team;
+    if (typeof user?.Team === "string" && user.Team.trim()) return user.Team;
+    if (typeof user?.teamName === "string" && user.teamName.trim()) return user.teamName;
+    if (typeof user?.TeamName === "string" && user.TeamName.trim()) return user.TeamName;
+    if (typeof user?.department === "string" && user.department.trim()) return user.department;
+    if (typeof user?.groupName === "string" && user.groupName.trim()) return user.groupName;
+    return "";
+}
+
+function getTeamLeaderId(team) {
+    return String(
+        team?.teamLeaderUserId ??
+        team?.TeamLeaderUserId ??
+        team?.teamLeaderId ??
+        team?.TeamLeaderId ??
+        ""
+    );
+}
+
+function getTeamMemberIds(team) {
+    const ids =
+        team?.memberIds ??
+        team?.MemberIds ??
+        [];
+
+    if (!Array.isArray(ids)) {
+        return [];
+    }
+
+    return ids.map((id) => String(id));
+}
+
+function getTeamNameValue(team) {
+    return (
+        team?.teamName ||
+        team?.TeamName ||
+        team?.name ||
+        team?.Name ||
+        "Unassigned"
+    );
+}
+
+function getResolvedUserTeam(user, teams) {
+  const userIdRaw =
+    user?.userId ||
+    user?.UserId ||
+    user?.id ||
+    user?._id;
+
+  if (!userIdRaw) return "Unassigned";
+
+  const userId = String(userIdRaw);
+
+  if (!Array.isArray(teams) || teams.length === 0) {
+    return "Unassigned";
+  }
+
+  for (const team of teams) {
+    const leaderIdRaw =
+      team?.teamLeaderUserId ??
+      team?.TeamLeaderUserId ??
+      team?.teamLeaderId ??
+      team?.TeamLeaderId;
+
+    const leaderId = leaderIdRaw ? String(leaderIdRaw) : null;
+
+    const memberIdsRaw =
+      team?.memberIds ??
+      team?.MemberIds ??
+      [];
+
+    const memberIds = Array.isArray(memberIdsRaw)
+      ? memberIdsRaw.map((id) => String(id))
+      : [];
+
+    if (leaderId === userId || memberIds.includes(userId)) {
+      return (
+        team?.teamName ||
+        team?.TeamName ||
+        team?.name ||
+        "Unassigned"
+      );
+    }
+  }
+
   return "Unassigned";
 }
 
 function getUserStatus(user) {
-  if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Unactive";
-  if (typeof user?.active === "boolean") return user.active ? "Active" : "Unactive";
+    if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Unactive";
+    if (typeof user?.IsActive === "boolean") return user.IsActive ? "Active" : "Unactive";
+    if (typeof user?.active === "boolean") return user.active ? "Active" : "Unactive";
 
-  if (typeof user?.status === "string" && user.status.trim()) {
-    const normalizedStatus = user.status.trim().toLowerCase();
-    return normalizedStatus === "active" ? "Active" : "Unactive";
-  }
+    if (typeof user?.status === "string" && user.status.trim()) {
+        const normalizedStatus = user.status.trim().toLowerCase();
+        return normalizedStatus === "active" ? "Active" : "Unactive";
+    }
 
-  return "Active";
+    if (typeof user?.Status === "string" && user.Status.trim()) {
+        const normalizedStatus = user.Status.trim().toLowerCase();
+        return normalizedStatus === "active" ? "Active" : "Unactive";
+    }
+
+    return "Active";
 }
 
 function getInitials(name) {
-  const parts = String(name).trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "U";
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
-}
-
-async function readJsonSafe(response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "U";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
 function normalizeRoleValue(role) {
-  return String(role || "").trim().toLowerCase();
+    return String(role || "").trim().toLowerCase();
 }
 
 function normalizeStatusToBoolean(status) {
-  const normalized = String(status || "").trim().toLowerCase();
-  return normalized === "active";
+    const normalized = String(status || "").trim().toLowerCase();
+    return normalized === "active";
 }
 
 export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
-  const currentUser = useMemo(() => getStoredUser(), []);
-  const companyId = currentUser?.companyId || 0;
-  const infoCardRef = useRef(null);
+    const currentUser = useMemo(() => getStoredUser(), []);
+    const companyId = currentUser?.companyId || currentUser?.CompanyId || 0;
+    const infoCardRef = useRef(null);
 
-  const [userState, setUserState] = useState(user || null);
-  const [draftData, setDraftData] = useState({
-    role: getUserRole(user),
-    jobType: getUserJobType(user),
-    isActive: normalizeStatusToBoolean(getUserStatus(user)),
-  });
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackType, setFeedbackType] = useState("");
-
-  useEffect(() => {
-    setUserState(user || null);
-    setDraftData({
-      role: getUserRole(user),
-      jobType: getUserJobType(user),
-      isActive: normalizeStatusToBoolean(getUserStatus(user)),
+    const [userState, setUserState] = useState(user || null);
+    const [teams, setTeams] = useState([]);
+    const [draftData, setDraftData] = useState({
+        role: getUserRole(user),
+        jobType: getUserJobType(user),
+        isActive: normalizeStatusToBoolean(getUserStatus(user)),
     });
-    setIsEditing(false);
-  }, [user]);
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [feedbackType, setFeedbackType] = useState("");
 
-  useEffect(() => {
-    if (!feedbackMessage) {
-      return;
-    }
+    const userId = getUserId(userState || user);
 
-    const timeoutId = window.setTimeout(() => {
-      setFeedbackMessage("");
-      setFeedbackType("");
-    }, 3000);
+    useEffect(() => {
+        setUserState(user || null);
+        setDraftData({
+            role: getUserRole(user),
+            jobType: getUserJobType(user),
+            isActive: normalizeStatusToBoolean(getUserStatus(user)),
+        });
+        setIsEditing(false);
+    }, [user]);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [feedbackMessage]);
-
-  useEffect(() => {
-    if (!isEditing) {
-      return;
-    }
-
-    const handlePointerDownOutside = (event) => {
-      if (infoCardRef.current && !infoCardRef.current.contains(event.target)) {
-        handleCancelEdit();
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDownOutside);
-    document.addEventListener("touchstart", handlePointerDownOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDownOutside);
-      document.removeEventListener("touchstart", handlePointerDownOutside);
-    };
-  }, [isEditing, draftData, userState]);
-
-  const userId =
-    userState?.userId ||
-    userState?.id ||
-    userState?._id ||
-    null;
-
-  const name = getUserName(userState);
-  const email = userState?.email || "No email";
-  const role = getUserRole(userState);
-  const jobType = getUserJobType(userState);
-  const teamName = getUserTeam(userState);
-  const status = getUserStatus(userState);
-  const initials = getInitials(name);
-
-  const isAdminUser = normalizeRoleValue(role) === "admin";
-  const canEdit = !isAdminUser;
-
-  const hasChanges =
-    draftData.role !== role ||
-    draftData.jobType.trim() !== jobType.trim() ||
-    draftData.isActive !== normalizeStatusToBoolean(status);
-
-  const handleStartEdit = () => {
-    if (!canEdit) {
-      return;
-    }
-
-    setDraftData({
-      role,
-      jobType,
-      isActive: normalizeStatusToBoolean(status),
-    });
-    setIsEditing(true);
-    setFeedbackMessage("");
-    setFeedbackType("");
-  };
-
-  const handleCancelEdit = () => {
-    setDraftData({
-      role,
-      jobType,
-      isActive: normalizeStatusToBoolean(status),
-    });
-    setIsEditing(false);
-    setFeedbackMessage("");
-    setFeedbackType("");
-  };
-
-  const handleDraftChange = (field, value) => {
-    setDraftData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSave = async () => {
-    if (!userId) {
-      setFeedbackType("error");
-      setFeedbackMessage("User not found.");
-      return;
-    }
-
-    if (!hasChanges) {
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      setFeedbackMessage("");
-      setFeedbackType("");
-
-      const payload = {
-        userId: Number(userId),
-        companyId: Number(companyId),
-        role: draftData.role,
-        jobTitle: draftData.jobType.trim(),
-        jobType: draftData.jobType.trim(),
-        isActive: draftData.isActive,
-        active: draftData.isActive,
-        status: draftData.isActive ? "Active" : "Unactive",
-      };
-
-      const candidateRequests = [
-        {
-          url: `${API_BASE_URL}/api/auth/update-user`,
-          method: "PUT",
-          body: payload,
-        },
-        {
-          url: `${API_BASE_URL}/api/auth/update-user-role`,
-          method: "PUT",
-          body: payload,
-        },
-        {
-          url: `${API_BASE_URL}/api/users/${userId}`,
-          method: "PUT",
-          body: payload,
-        },
-        {
-          url: `${API_BASE_URL}/api/user/${userId}`,
-          method: "PUT",
-          body: payload,
-        },
-      ];
-
-      let resolvedData = null;
-      let updated = false;
-
-      for (const requestConfig of candidateRequests) {
-        try {
-          const response = await fetch(requestConfig.url, {
-            method: requestConfig.method,
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestConfig.body),
-          });
-
-          const data = await readJsonSafe(response);
-
-          if (!response.ok) {
-            continue;
-          }
-
-          resolvedData = data;
-          updated = true;
-          break;
-        } catch (error) {
-          console.error("User update request failed:", error);
+    useEffect(() => {
+        if (!userId || !companyId) {
+            return;
         }
-      }
 
-      if (!updated) {
-        throw new Error("Failed to update user information.");
-      }
+        const abortController = new AbortController();
 
-      const nextUser = {
-        ...userState,
-        ...(resolvedData?.user || {}),
-        role: draftData.role,
-        roleName: draftData.role,
-        userRole: draftData.role,
-        jobType: draftData.jobType.trim(),
-        jobTitle: draftData.jobType.trim(),
-        isActive: draftData.isActive,
-        active: draftData.isActive,
-        status: draftData.isActive ? "Active" : "Unactive",
-      };
+        const fetchLatestData = async () => {
+            try {
+                setIsLoading(true);
 
-      setUserState(nextUser);
-      setIsEditing(false);
+                const [profileResponse, teamsResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/auth/profile/${userId}`, {
+                        method: "GET",
+                        signal: abortController.signal,
+                    }),
+                    fetch(`${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}`, {
+                        method: "GET",
+                        signal: abortController.signal,
+                    }),
+                ]);
 
-      if (typeof onUserUpdated === "function") {
-        onUserUpdated(nextUser);
-      }
+                const profileData = await readJsonSafe(profileResponse);
+                const teamsData = await readJsonSafe(teamsResponse);
 
-      setFeedbackType("success");
-      setFeedbackMessage("User information updated successfully.");
-    } catch (error) {
-      console.error("Failed to update user information:", error);
-      setFeedbackType("error");
-      setFeedbackMessage(error.message || "Failed to update user information.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+                if (profileResponse.ok) {
+                    const normalizedProfile =
+                        profileData?.user ||
+                        profileData?.data ||
+                        profileData ||
+                        null;
 
-  const infoItems = [
-    {
-      key: "email",
-      label: "Email",
-      icon: <FiMail />,
-      value: <span className="profile-info-item__value">{email}</span>,
-    },
-    {
-      key: "jobType",
-      label: "Job Title",
-      icon: <FiBriefcase />,
-      value: isEditing ? (
-        <input
-          type="text"
-          className="profile-info-input"
-          value={draftData.jobType}
-          onChange={(event) => handleDraftChange("jobType", event.target.value)}
-          placeholder="Enter job title"
-        />
-      ) : (
-        <span className="profile-info-item__value">{jobType}</span>
-      ),
-    },
-    {
-      key: "team",
-      label: "Team",
-      icon: <FiUsers />,
-      value: <span className="profile-info-item__value">{teamName}</span>,
-    },
-    {
-      key: "status",
-      label: "Activity",
-      icon: <FiCheckCircle />,
-      value: isEditing ? (
-        <div className="user-details-page__status-edit">
-          <button
-            type="button"
-            className={`users-section__switch ${draftData.isActive ? "users-section__switch--active" : ""}`}
-            onClick={() => handleDraftChange("isActive", !draftData.isActive)}
-            aria-pressed={draftData.isActive}
-            disabled={isSaving}
-          >
-            <span className="users-section__switch-thumb"></span>
-          </button>
-          <span className="user-details-page__status-edit-text">
-            {draftData.isActive ? "Active" : "Unactive"}
-          </span>
-        </div>
-      ) : (
-        <span className="profile-info-item__value">{status}</span>
-      ),
-    },
-    {
-      key: "role",
-      label: "Role",
-      icon: <FiShield />,
-      value: isEditing ? (
-        <div className="user-details-page__select-wrap">
-          <select
-            className="profile-info-input user-details-page__role-select"
-            value={draftData.role}
-            onChange={(event) => handleDraftChange("role", event.target.value)}
-            disabled={isSaving}
-          >
-            <option value="Employee">Employee</option>
-            <option value="Team Leader">Team Leader</option>
-          </select>
-          <FiChevronDown className="user-details-page__select-icon" />
-        </div>
-      ) : (
-        <span className="profile-info-item__value">{role}</span>
-      ),
-    },
-    {
-      key: "userId",
-      label: "User ID",
-      icon: <FiUser />,
-      value: <span className="profile-info-item__value">{userId ?? "Unavailable"}</span>,
-    },
-  ];
+                    if (normalizedProfile) {
+                        setUserState((prev) => ({
+                            ...prev,
+                            ...normalizedProfile,
+                        }));
+                    }
+                }
 
-  return (
-    <section className="user-details-page">
-      <div className="user-details-page__title-row">
-        {typeof onBack === "function" && (
-          <button
-            type="button"
-            className="user-details-back-btn"
-            onClick={onBack}
-            aria-label="Go back"
-          >
-            <FiArrowLeft />
-          </button>
-        )}
+                if (teamsResponse.ok) {
+                    setTeams(normalizeTeamsResponse(teamsData));
+                } else {
+                    setTeams([]);
+                }
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    return;
+                }
+                console.error("Failed to fetch latest user details:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-        <h2>{name}</h2>
-        <div className="user-details-page__title-line"></div>
-      </div>
+        fetchLatestData();
 
-      <div className="user-hero-card">
-        <div className="user-hero-card__avatar-wrapper">
-          <div className="user-hero-card__avatar-fallback">{initials}</div>
-        </div>
+        return () => abortController.abort();
+    }, [userId, companyId]);
 
-        <div className="user-hero-card__content">
-          <h3>{name}</h3>
-          <p>{jobType || role}</p>
-          <span>{email}</span>
-        </div>
-      </div>
+    useEffect(() => {
+        if (!feedbackMessage) {
+            return;
+        }
 
-      <div className="user-info-card" ref={infoCardRef}>
-        <div className="user-info-card__header">
-          <h3>User Information</h3>
+        const timeoutId = window.setTimeout(() => {
+            setFeedbackMessage("");
+            setFeedbackType("");
+        }, 3000);
 
-          {canEdit && (
-            <div className="profile-info-card__actions">
-              {isEditing && (
-                <button
-                  type="button"
-                  className="profile-edit-btn"
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
+        return () => window.clearTimeout(timeoutId);
+    }, [feedbackMessage]);
+
+    useEffect(() => {
+        if (!isEditing) {
+            return;
+        }
+
+        const handlePointerDownOutside = (event) => {
+            if (infoCardRef.current && !infoCardRef.current.contains(event.target)) {
+                handleCancelEdit();
+            }
+        };
+
+        document.addEventListener("mousedown", handlePointerDownOutside);
+        document.addEventListener("touchstart", handlePointerDownOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handlePointerDownOutside);
+            document.removeEventListener("touchstart", handlePointerDownOutside);
+        };
+    }, [isEditing, draftData, userState]);
+
+    const name = getUserName(userState);
+    const email = userState?.email || userState?.Email || "No email";
+    const role = getUserRole(userState);
+    const jobType = getUserJobType(userState);
+    const teamName = getResolvedUserTeam(userState, teams);
+    const status = getUserStatus(userState);
+    const initials = getInitials(name);
+
+    const isAdminUser = normalizeRoleValue(role) === "admin";
+    const canEdit = !isAdminUser;
+
+    const hasChanges =
+        draftData.role !== role ||
+        draftData.jobType.trim() !== jobType.trim() ||
+        draftData.isActive !== normalizeStatusToBoolean(status);
+
+    const handleStartEdit = () => {
+        if (!canEdit) {
+            return;
+        }
+
+        setDraftData({
+            role,
+            jobType,
+            isActive: normalizeStatusToBoolean(status),
+        });
+        setIsEditing(true);
+        setFeedbackMessage("");
+        setFeedbackType("");
+    };
+
+    const handleCancelEdit = () => {
+        setDraftData({
+            role,
+            jobType,
+            isActive: normalizeStatusToBoolean(status),
+        });
+        setIsEditing(false);
+        setFeedbackMessage("");
+        setFeedbackType("");
+    };
+
+    const handleDraftChange = (field, value) => {
+        setDraftData((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const handleSave = async () => {
+        if (!userId) {
+            setFeedbackType("error");
+            setFeedbackMessage("User not found.");
+            return;
+        }
+
+        if (!hasChanges) {
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            setFeedbackMessage("");
+            setFeedbackType("");
+
+            const payload = {
+                userId: Number(userId),
+                companyId: Number(companyId),
+                role: draftData.role,
+                jobTitle: draftData.jobType.trim(),
+                jobType: draftData.jobType.trim(),
+                isActive: draftData.isActive,
+                active: draftData.isActive,
+                status: draftData.isActive ? "Active" : "Unactive",
+            };
+
+            const candidateRequests = [
+                {
+                    url: `${API_BASE_URL}/api/auth/update-user`,
+                    method: "PUT",
+                    body: payload,
+                },
+                {
+                    url: `${API_BASE_URL}/api/auth/update-user-role`,
+                    method: "PUT",
+                    body: payload,
+                },
+                {
+                    url: `${API_BASE_URL}/api/users/${userId}`,
+                    method: "PUT",
+                    body: payload,
+                },
+                {
+                    url: `${API_BASE_URL}/api/user/${userId}`,
+                    method: "PUT",
+                    body: payload,
+                },
+            ];
+
+            let resolvedData = null;
+            let updated = false;
+
+            for (const requestConfig of candidateRequests) {
+                try {
+                    const response = await fetch(requestConfig.url, {
+                        method: requestConfig.method,
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(requestConfig.body),
+                    });
+
+                    const data = await readJsonSafe(response);
+
+                    if (!response.ok) {
+                        continue;
+                    }
+
+                    resolvedData = data;
+                    updated = true;
+                    break;
+                } catch (error) {
+                    console.error("User update request failed:", error);
+                }
+            }
+
+            if (!updated) {
+                throw new Error("Failed to update user information.");
+            }
+
+            const nextUser = {
+                ...userState,
+                ...(resolvedData?.user || {}),
+                role: draftData.role,
+                roleName: draftData.role,
+                userRole: draftData.role,
+                jobType: draftData.jobType.trim(),
+                jobTitle: draftData.jobType.trim(),
+                isActive: draftData.isActive,
+                active: draftData.isActive,
+                status: draftData.isActive ? "Active" : "Unactive",
+            };
+
+            setUserState(nextUser);
+            setIsEditing(false);
+
+            if (typeof onUserUpdated === "function") {
+                onUserUpdated(nextUser);
+            }
+
+            setFeedbackType("success");
+            setFeedbackMessage("User information updated successfully.");
+        } catch (error) {
+            console.error("Failed to update user information:", error);
+            setFeedbackType("error");
+            setFeedbackMessage(error.message || "Failed to update user information.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const infoItems = [
+        {
+            key: "email",
+            label: "Email",
+            icon: <FiMail />,
+            value: <span className="profile-info-item__value">{email}</span>,
+        },
+        {
+            key: "jobType",
+            label: "Job Title",
+            icon: <FiBriefcase />,
+            value: isEditing ? (
+                <input
+                    type="text"
+                    className="profile-info-input"
+                    value={draftData.jobType}
+                    onChange={(event) => handleDraftChange("jobType", event.target.value)}
+                    placeholder="Enter job title"
+                />
+            ) : (
+                <span className="profile-info-item__value">{jobType}</span>
+            ),
+        },
+        {
+            key: "team",
+            label: "Team",
+            icon: <FiUsers />,
+            value: (
+                <span className="profile-info-item__value">
+                    {isLoading ? "Loading..." : teamName}
+                </span>
+            ),
+        },
+        {
+            key: "status",
+            label: "Activity",
+            icon: <FiCheckCircle />,
+            value: isEditing ? (
+                <div className="user-details-page__status-edit">
+                    <button
+                        type="button"
+                        className={`users-section__switch ${draftData.isActive ? "users-section__switch--active" : ""}`}
+                        onClick={() => handleDraftChange("isActive", !draftData.isActive)}
+                        aria-pressed={draftData.isActive}
+                        disabled={isSaving}
+                    >
+                        <span className="users-section__switch-thumb"></span>
+                    </button>
+                    <span
+                        className={`user-details-page__status-badge ${draftData.isActive
+                                ? "user-details-page__status-badge--active"
+                                : "user-details-page__status-badge--inactive"
+                            }`}
+                    >
+                        {draftData.isActive ? "Active" : "Inactive"}
+                    </span>
+                </div>
+            ) : (
+                <span
+                    className={`user-details-page__status-badge ${normalizeStatusToBoolean(status)
+                            ? "user-details-page__status-badge--active"
+                            : "user-details-page__status-badge--inactive"
+                        }`}
                 >
-                  <FiX />
-                  Cancel
-                </button>
-              )}
+                    {normalizeStatusToBoolean(status) ? "Active" : "Inactive"}
+                </span>
+            ),
+        },
+        {
+            key: "role",
+            label: "Role",
+            icon: <FiShield />,
+            value: isEditing ? (
+                <div className="user-details-page__select-wrap">
+                    <select
+                        className="profile-info-input user-details-page__role-select"
+                        value={draftData.role}
+                        onChange={(event) => handleDraftChange("role", event.target.value)}
+                        disabled={isSaving}
+                    >
+                        <option value="Employee">Employee</option>
+                        <option value="Team Leader">Team Leader</option>
+                    </select>
+                    <FiChevronDown className="user-details-page__select-icon" />
+                </div>
+            ) : (
+                <span className="profile-info-item__value">{role}</span>
+            ),
+        },
+    ];
 
-              <button
-                type="button"
-                className={`profile-edit-btn ${isEditing ? "profile-edit-btn--primary" : ""}`.trim()}
-                onClick={isEditing ? handleSave : handleStartEdit}
-                disabled={isSaving || (isEditing && !hasChanges)}
-              >
-                {isEditing ? <FiCheck /> : <FiEdit2 />}
-                {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
-              </button>
+    return (
+        <section className="user-details-page">
+            <div className="user-details-page__title-row">
+                {typeof onBack === "function" && (
+                    <button
+                        type="button"
+                        className="user-details-back-btn"
+                        onClick={onBack}
+                        aria-label="Go back"
+                    >
+                        <FiArrowLeft />
+                    </button>
+                )}
+
+                <h2>{name}</h2>
+                <div className="user-details-page__title-line"></div>
             </div>
-          )}
-        </div>
 
-        <div className="user-info-card__divider"></div>
+            <div className="user-hero-card">
+                <div className="user-hero-card__avatar-wrapper">
+                    <div className="user-hero-card__avatar-fallback">{initials}</div>
+                </div>
 
-        {feedbackMessage ? (
-          <div
-            className={`profile-form-message profile-form-message--${feedbackType}`.trim()}
-          >
-            {feedbackMessage}
-          </div>
-        ) : null}
-
-        <div className="profile-info-grid">
-          {infoItems.map((item) => (
-            <div key={item.key} className="profile-info-item">
-              <span className="profile-info-item__label">
-                <span className="profile-info-item__label-icon">{item.icon}</span>
-                {item.label}
-              </span>
-              {item.value}
+                <div className="user-hero-card__content">
+                    <h3>{name}</h3>
+                    <p>{jobType || role}</p>
+                    <span>{email}</span>
+                </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+
+            <div className="user-info-card" ref={infoCardRef}>
+                <div className="user-info-card__header">
+                    <h3>User Information</h3>
+
+                    {canEdit && (
+                        <div className="profile-info-card__actions">
+                            {isEditing && (
+                                <button
+                                    type="button"
+                                    className="profile-edit-btn"
+                                    onClick={handleCancelEdit}
+                                    disabled={isSaving}
+                                >
+                                    <FiX />
+                                    Cancel
+                                </button>
+                            )}
+
+                            <button
+                                type="button"
+                                className={`profile-edit-btn ${isEditing ? "profile-edit-btn--primary" : ""}`.trim()}
+                                onClick={isEditing ? handleSave : handleStartEdit}
+                                disabled={isSaving || (isEditing && !hasChanges)}
+                            >
+                                {isEditing ? <FiCheck /> : <FiEdit2 />}
+                                {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="user-info-card__divider"></div>
+
+                {feedbackMessage ? (
+                    <div
+                        className={`profile-form-message profile-form-message--${feedbackType}`.trim()}
+                    >
+                        {feedbackMessage}
+                    </div>
+                ) : null}
+
+                <div className="profile-info-grid">
+                    {infoItems.map((item) => (
+                        <div key={item.key} className="profile-info-item">
+                            <span className="profile-info-item__label">
+                                <span className="profile-info-item__label-icon">{item.icon}</span>
+                                {item.label}
+                            </span>
+                            {item.value}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
 }
