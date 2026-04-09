@@ -3,8 +3,10 @@ import {
   FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
+  FiSearch,
   FiTrash2,
   FiUser,
+  FiUsers,
   FiX,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
@@ -88,11 +90,33 @@ function getInitials(value) {
   return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
 }
 
+function normalizeRole(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function isTeamLeaderRole(value) {
+  const role = normalizeRole(value);
+  return role === "team leader" || role === "teamleader";
+}
+
+function isEmployeeRole(value) {
+  return normalizeRole(value) === "employee";
+}
+
+function isSelectableMemberRole(value) {
+  return isEmployeeRole(value) || isTeamLeaderRole(value);
+}
+
 export default function TeamDetailsPage({ team, onBack }) {
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
 
   const [companyMembers, setCompanyMembers] = useState([]);
+  const [allTeams, setAllTeams] = useState([]);
   const [members, setMembers] = useState([]);
   const [teamState, setTeamState] = useState(team || null);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
@@ -101,15 +125,26 @@ export default function TeamDetailsPage({ team, onBack }) {
   const [feedbackType, setFeedbackType] = useState("");
   const [memberToDelete, setMemberToDelete] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [memberSearchTerm, setMemberSearchTerm] = useState("");
+  const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
+  const [editForm, setEditForm] = useState({
+    teamLeaderId: "",
+    memberIds: [],
+  });
 
   useEffect(() => {
     setTeamState(team || null);
+    setCurrentPage(1);
   }, [team]);
 
   useEffect(() => {
-    const fetchCompanyMembers = async () => {
+    const fetchData = async () => {
       if (!companyId) {
         setCompanyMembers([]);
+        setAllTeams([]);
         setIsLoadingMembers(false);
         return;
       }
@@ -117,26 +152,36 @@ export default function TeamDetailsPage({ team, onBack }) {
       try {
         setIsLoadingMembers(true);
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/teams/company/${companyId}/members`
-        );
+        const [membersResponse, teamsResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/teams/company/${companyId}/members`),
+          fetch(`${API_BASE_URL}/api/teams/company/${companyId}`),
+        ]);
 
-        const data = await parseJsonResponse(response);
+        const [membersData, teamsData] = await Promise.all([
+          parseJsonResponse(membersResponse),
+          parseJsonResponse(teamsResponse),
+        ]);
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load company members.");
+        if (!membersResponse.ok) {
+          throw new Error(membersData.message || "Failed to load company members.");
         }
 
-        setCompanyMembers(Array.isArray(data) ? data : []);
+        if (!teamsResponse.ok) {
+          throw new Error(teamsData.message || "Failed to load teams.");
+        }
+
+        setCompanyMembers(Array.isArray(membersData) ? membersData : []);
+        setAllTeams(Array.isArray(teamsData) ? teamsData : []);
       } catch (error) {
-        console.error("Failed to fetch company members:", error);
+        console.error("Failed to fetch team details data:", error);
         setCompanyMembers([]);
+        setAllTeams([]);
       } finally {
         setIsLoadingMembers(false);
       }
     };
 
-    fetchCompanyMembers();
+    fetchData();
   }, [companyId]);
 
   useEffect(() => {
@@ -191,7 +236,9 @@ export default function TeamDetailsPage({ team, onBack }) {
   }, [teamState, companyMembers]);
 
   useEffect(() => {
-    if (!feedbackMessage) return;
+    if (!feedbackMessage) {
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       setFeedbackMessage("");
@@ -201,17 +248,58 @@ export default function TeamDetailsPage({ team, onBack }) {
     return () => window.clearTimeout(timeoutId);
   }, [feedbackMessage]);
 
+  const filteredMembers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return members;
+    }
+
+    return members.filter((member) => {
+      return (
+        member.fullName.toLowerCase().includes(normalizedSearch) ||
+        member.email.toLowerCase().includes(normalizedSearch)
+      );
+    });
+  }, [members, searchTerm]);
+
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(members.length / MEMBERS_PER_PAGE));
+    const totalPages = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
-  }, [members.length, currentPage]);
+  }, [currentPage, filteredMembers.length]);
 
   const title = teamState?.teamName || "Team";
 
+  const teamLeaderId = String(
+    teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
+  );
+
+  const teamLeader = members.find(
+    (member) => String(member.userId) === teamLeaderId
+  );
+
+  const totalMembers = members.length;
+  const activeMembersCount = members.filter((member) => member.isActive).length;
+  const inactiveMembersCount = members.filter((member) => !member.isActive).length;
+
+  const totalFilteredMembers = filteredMembers.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredMembers / MEMBERS_PER_PAGE));
+  const startIndex =
+    totalFilteredMembers === 0 ? 0 : (currentPage - 1) * MEMBERS_PER_PAGE;
+  const endIndex = Math.min(startIndex + MEMBERS_PER_PAGE, totalFilteredMembers);
+  const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+
+  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
+    Math.max(0, currentPage - 2),
+    Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
+  );
+
   const closeDeleteModal = () => {
-    if (isSaving) return;
+    if (isSaving) {
+      return;
+    }
     setMemberToDelete(null);
   };
 
@@ -219,28 +307,55 @@ export default function TeamDetailsPage({ team, onBack }) {
     setMemberToDelete(member);
   };
 
+  const openMembersModal = () => {
+    const activeMemberIds = Array.isArray(teamState?.memberIds)
+      ? teamState.memberIds.map((id) => String(id))
+      : [];
+
+    const currentLeaderId = teamLeaderId || "";
+
+    const mergedMemberIds = currentLeaderId
+      ? Array.from(new Set([...activeMemberIds, currentLeaderId]))
+      : activeMemberIds;
+
+    setEditForm({
+      teamLeaderId: currentLeaderId,
+      memberIds: mergedMemberIds,
+    });
+    setMemberSearchTerm("");
+    setLeaderSearchTerm("");
+    setIsMembersModalOpen(true);
+  };
+
+  const closeMembersModal = () => {
+    if (isSaving) {
+      return;
+    }
+    setIsMembersModalOpen(false);
+    setMemberSearchTerm("");
+    setLeaderSearchTerm("");
+  };
+
   const saveTeamMembersToBackend = async (nextMembers) => {
     if (!teamState?.teamId) {
       throw new Error("Team not found.");
     }
 
-    const currentLeaderId = String(
-      teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
-    );
-
     const activeMembers = nextMembers.filter((member) => member.isActive);
-    const memberIds = activeMembers.map((member) => Number(member.userId));
-    const nextLeaderStillExists = activeMembers.some(
-      (member) => String(member.userId) === currentLeaderId
-    );
+    const activeLeader = activeMembers.find((member) => member.role === "Team Leader");
+
+    if (teamState?.isActive !== false && !activeLeader) {
+      throw new Error(
+        "No team leader available. Assign a team leader before activating this team."
+      );
+    }
 
     const payload = {
       teamName: teamState.teamName || "",
       description: teamState.description || "",
       companyId,
-      teamLeaderId:
-        nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null,
-      memberIds,
+      teamLeaderId: activeLeader ? Number(activeLeader.userId) : null,
+      memberIds: activeMembers.map((member) => Number(member.userId)),
       isActive:
         typeof teamState?.isActive === "boolean" ? teamState.isActive : true,
     };
@@ -264,22 +379,22 @@ export default function TeamDetailsPage({ team, onBack }) {
     setTeamState((prev) => ({
       ...prev,
       ...updatedTeam,
-      teamLeaderId:
-        updatedTeam.teamLeaderId ??
-        updatedTeam.teamLeaderUserId ??
-        (nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null),
-      teamLeaderUserId:
-        updatedTeam.teamLeaderUserId ??
-        updatedTeam.teamLeaderId ??
-        (nextLeaderStillExists && currentLeaderId ? Number(currentLeaderId) : null),
-      memberIds: Array.isArray(updatedTeam.memberIds)
-        ? updatedTeam.memberIds
-        : memberIds,
-      isActive:
-        typeof updatedTeam.isActive === "boolean"
-          ? updatedTeam.isActive
-          : prev?.isActive,
+      teamLeaderId: activeLeader ? Number(activeLeader.userId) : null,
+      teamLeaderUserId: activeLeader ? Number(activeLeader.userId) : null,
+      memberIds: activeMembers.map((member) => Number(member.userId)),
     }));
+
+    const persistedMembers = nextMembers.map((member) => ({
+      ...member,
+      role:
+        activeLeader && String(member.userId) === String(activeLeader.userId)
+          ? "Team Leader"
+          : "Member",
+    }));
+
+    writeCachedTeamMembers(teamState?.teamId, persistedMembers);
+
+    return persistedMembers;
   };
 
   const handleConfirmDeleteMember = async () => {
@@ -296,10 +411,10 @@ export default function TeamDetailsPage({ team, onBack }) {
         (member) => String(member.userId) !== String(memberToDelete.userId)
       );
 
-      await saveTeamMembersToBackend(nextMembers);
-      setMembers(nextMembers);
-      writeCachedTeamMembers(teamState?.teamId, nextMembers);
+      const persistedMembers = await saveTeamMembersToBackend(nextMembers);
+      setMembers(persistedMembers);
       setMemberToDelete(null);
+
       setFeedbackType("success");
       setFeedbackMessage("Member removed from team successfully.");
     } catch (error) {
@@ -323,9 +438,8 @@ export default function TeamDetailsPage({ team, onBack }) {
           : member
       );
 
-      await saveTeamMembersToBackend(nextMembers);
-      setMembers(nextMembers);
-      writeCachedTeamMembers(teamState?.teamId, nextMembers);
+      const persistedMembers = await saveTeamMembersToBackend(nextMembers);
+      setMembers(persistedMembers);
 
       setFeedbackType("success");
       setFeedbackMessage("Member status updated.");
@@ -338,16 +452,197 @@ export default function TeamDetailsPage({ team, onBack }) {
     }
   };
 
-  const totalMembers = members.length;
-  const totalPages = Math.max(1, Math.ceil(totalMembers / MEMBERS_PER_PAGE));
-  const startIndex = totalMembers === 0 ? 0 : (currentPage - 1) * MEMBERS_PER_PAGE;
-  const endIndex = Math.min(startIndex + MEMBERS_PER_PAGE, totalMembers);
-  const paginatedMembers = members.slice(startIndex, endIndex);
+  const filteredTeamLeaders = useMemo(() => {
+    const value = leaderSearchTerm.trim().toLowerCase();
+    const currentTeamId = String(teamState?.teamId || "");
+    const selectedEditLeaderId = String(editForm.teamLeaderId || "");
 
-  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
-    Math.max(0, currentPage - 2),
-    Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
-  );
+    const leaders = companyMembers.filter((employee) => {
+      const employeeId = String(employee.userId || "");
+
+      if (!isTeamLeaderRole(employee.role)) {
+        return false;
+      }
+
+      if (employeeId === selectedEditLeaderId) {
+        return true;
+      }
+
+      const isAssignedToAnotherActiveTeam = allTeams.some((item) => {
+        if (!item || item.isActive === false) {
+          return false;
+        }
+
+        const itemTeamId = String(item.teamId || "");
+        const itemLeaderId = String(item.teamLeaderId || item.teamLeaderUserId || "");
+
+        return itemTeamId !== currentTeamId && itemLeaderId === employeeId;
+      });
+
+      return !isAssignedToAnotherActiveTeam;
+    });
+
+    if (!value) {
+      return leaders;
+    }
+
+    return leaders.filter((employee) => {
+      const fullName = (employee.fullName || "").toLowerCase();
+      const email = (employee.email || "").toLowerCase();
+      const role = (employee.role || "").toLowerCase();
+      const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
+
+      return (
+        fullName.includes(value) ||
+        email.includes(value) ||
+        role.includes(value) ||
+        jobTitle.includes(value)
+      );
+    });
+  }, [companyMembers, leaderSearchTerm, allTeams, teamState, editForm.teamLeaderId]);
+
+  const filteredEmployees = useMemo(() => {
+    const value = memberSearchTerm.trim().toLowerCase();
+    const currentTeamId = String(teamState?.teamId || "");
+    const selectedLeaderId = String(editForm.teamLeaderId || "");
+
+    const employees = companyMembers.filter((employee) => {
+      const employeeId = String(employee.userId || "");
+
+      if (!isSelectableMemberRole(employee.role) || isTeamLeaderRole(employee.role)) {
+        return false;
+      }
+
+      if (employeeId === selectedLeaderId) {
+        return false;
+      }
+
+      const isAssignedToAnotherActiveTeam = allTeams.some((item) => {
+        if (!item || item.isActive === false) {
+          return false;
+        }
+
+        const itemTeamId = String(item.teamId || "");
+        const itemLeaderId = String(item.teamLeaderId || item.teamLeaderUserId || "");
+        const itemMemberIds = Array.isArray(item.memberIds)
+          ? item.memberIds.map((id) => String(id))
+          : [];
+
+        return (
+          itemTeamId !== currentTeamId &&
+          (itemLeaderId === employeeId || itemMemberIds.includes(employeeId))
+        );
+      });
+
+      return !isAssignedToAnotherActiveTeam;
+    });
+
+    if (!value) {
+      return employees;
+    }
+
+    return employees.filter((employee) => {
+      const fullName = (employee.fullName || "").toLowerCase();
+      const email = (employee.email || "").toLowerCase();
+      const role = (employee.role || "").toLowerCase();
+      const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
+
+      return (
+        fullName.includes(value) ||
+        email.includes(value) ||
+        role.includes(value) ||
+        jobTitle.includes(value)
+      );
+    });
+  }, [companyMembers, memberSearchTerm, allTeams, teamState, editForm.teamLeaderId]);
+
+  const handleToggleMember = (memberId) => {
+    const normalizedMemberId = String(memberId);
+
+    setEditForm((prev) => ({
+      ...prev,
+      memberIds: prev.memberIds.includes(normalizedMemberId)
+        ? prev.memberIds.filter((id) => id !== normalizedMemberId)
+        : [...prev.memberIds, normalizedMemberId],
+    }));
+  };
+
+  const handleToggleLeaderInsideMembers = (leaderId) => {
+    const normalizedLeaderId = String(leaderId);
+
+    setEditForm((prev) => {
+      const currentLeaderId = String(prev.teamLeaderId || "");
+      const nextLeaderId = currentLeaderId === normalizedLeaderId ? "" : normalizedLeaderId;
+
+      const leaderIds = new Set(
+        filteredTeamLeaders.map((leader) => String(leader.userId))
+      );
+
+      const memberIdsWithoutLeaderRows = prev.memberIds.filter(
+        (id) => !leaderIds.has(String(id))
+      );
+
+      return {
+        ...prev,
+        teamLeaderId: nextLeaderId,
+        memberIds: nextLeaderId
+          ? Array.from(new Set([...memberIdsWithoutLeaderRows, nextLeaderId]))
+          : memberIdsWithoutLeaderRows,
+      };
+    });
+  };
+
+  const handleSaveMembers = async () => {
+    try {
+      setIsSaving(true);
+      setFeedbackMessage("");
+      setFeedbackType("");
+
+      const selectedIds = editForm.memberIds.map((id) => String(id));
+      const selectedLeaderId = String(editForm.teamLeaderId || "");
+      const currentActiveIds = new Set(
+        (Array.isArray(teamState?.memberIds) ? teamState.memberIds : []).map((id) => String(id))
+      );
+
+      const preservedInactiveMembers = members.filter(
+        (member) =>
+          !currentActiveIds.has(String(member.userId)) &&
+          !selectedIds.includes(String(member.userId))
+      );
+
+      const selectedMembers = selectedIds.map((id) => {
+        const existingMember =
+          members.find((member) => String(member.userId) === String(id)) ||
+          companyMembers.find((member) => String(member.userId) === String(id));
+
+        return {
+          userId: Number(id),
+          fullName: existingMember?.fullName || "Unknown Member",
+          email: existingMember?.email || "No email available",
+          jobType:
+            existingMember?.jobType ||
+            existingMember?.jobTitle ||
+            "No job type available",
+          role: String(id) === selectedLeaderId ? "Team Leader" : "Member",
+          isActive: true,
+        };
+      });
+
+      const nextMembers = [...selectedMembers, ...preservedInactiveMembers];
+      const persistedMembers = await saveTeamMembersToBackend(nextMembers);
+      setMembers(persistedMembers);
+      setIsMembersModalOpen(false);
+
+      setFeedbackType("success");
+      setFeedbackMessage("Members updated successfully.");
+    } catch (error) {
+      console.error("Failed to update team members:", error);
+      setFeedbackType("error");
+      setFeedbackMessage(error.message || "Failed to update team members.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <section className="team-details-page">
@@ -378,6 +673,70 @@ export default function TeamDetailsPage({ team, onBack }) {
           <span>{feedbackMessage}</span>
         </div>
       )}
+
+      <div className="team-details-page__summary-grid">
+        <div className="team-details-page__summary-card">
+          <span className="team-details-page__summary-label">Total Members</span>
+          <div className="team-details-page__summary-value">
+            <FiUsers />
+            <strong>{totalMembers}</strong>
+          </div>
+        </div>
+
+        <div className="team-details-page__summary-card">
+          <span className="team-details-page__summary-label">Active Members</span>
+          <div className="team-details-page__summary-value">
+            <span className="team-details-page__summary-dot team-details-page__summary-dot--active"></span>
+            <strong>{activeMembersCount}</strong>
+          </div>
+        </div>
+
+        <div className="team-details-page__summary-card">
+          <span className="team-details-page__summary-label">Inactive Members</span>
+          <div className="team-details-page__summary-value">
+            <span className="team-details-page__summary-dot team-details-page__summary-dot--inactive"></span>
+            <strong>{inactiveMembersCount}</strong>
+          </div>
+        </div>
+
+        <div className="team-details-page__summary-card">
+          <span className="team-details-page__summary-label">Current Team Leader</span>
+          <div className="team-details-page__leader-highlight">
+            <span className="users-section__avatar">
+              {getInitials(teamLeader?.fullName || "TL")}
+            </span>
+
+            <div className="team-details-page__leader-highlight-copy">
+              <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
+              <small>{teamLeader?.email || "Leader unavailable"}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="team-details-page__toolbar">
+        <div className="users-section__search team-details-page__search">
+          <FiSearch />
+          <input
+            type="text"
+            placeholder="Search members..."
+            value={searchTerm}
+            onChange={(event) => {
+              setSearchTerm(event.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+
+        <button
+          type="button"
+          className="teams-section__members-btn"
+          onClick={openMembersModal}
+        >
+          <FiUsers />
+          <span>Edit Members</span>
+        </button>
+      </div>
 
       <div className="users-section__table-card team-details-page__table-card">
         <div className="users-section__table-wrap team-details-page__table-wrap">
@@ -485,10 +844,10 @@ export default function TeamDetailsPage({ team, onBack }) {
           </table>
         </div>
 
-        {!isLoadingMembers && totalMembers > 0 && (
+        {!isLoadingMembers && totalFilteredMembers > 0 && (
           <div className="users-section__pagination">
             <div className="users-section__pagination-info">
-              {startIndex + 1} - {endIndex} of {totalMembers} members
+              {startIndex + 1} - {endIndex} of {totalFilteredMembers} members
             </div>
 
             <div className="users-section__pagination-controls">
@@ -526,6 +885,185 @@ export default function TeamDetailsPage({ team, onBack }) {
           </div>
         )}
       </div>
+
+      {isMembersModalOpen && (
+        <div className="teams-section__modal-overlay" onClick={closeMembersModal}>
+          <div
+            className="teams-section__modal teams-section__modal--large"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="teams-section__modal-header teams-section__modal-header--lined">
+              <div>
+                <h3>Edit Members</h3>
+                <p>Search and select one or more members for this team.</p>
+              </div>
+
+              <button
+                type="button"
+                className="teams-section__modal-close"
+                onClick={closeMembersModal}
+                aria-label="Close members modal"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="teams-section__form">
+              <div className="teams-section__form-group">
+                <label>
+                  Add Team Leader <span className="teams-section__required">*</span>
+                </label>
+                <p className="teams-section__field-description">
+                  Select one leader to manage this team.
+                </p>
+
+                <div className="teams-section__member-picker">
+                  <div className="teams-section__member-search">
+                    <FiSearch />
+                    <input
+                      type="text"
+                      value={leaderSearchTerm}
+                      onChange={(event) => setLeaderSearchTerm(event.target.value)}
+                      placeholder="Search for a team leader..."
+                    />
+                  </div>
+
+                  <div className="teams-section__member-table">
+                    {filteredTeamLeaders.length === 0 && (
+                      <p className="teams-section__members-empty">
+                        No matching team leaders found.
+                      </p>
+                    )}
+
+                    {filteredTeamLeaders.map((employee) => {
+                      const employeeId = String(employee.userId);
+                      const isChecked = String(editForm.teamLeaderId || "") === employeeId;
+
+                      return (
+                        <label
+                          key={`leader-${employee.userId}`}
+                          className="teams-section__member-row"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleLeaderInsideMembers(employeeId)}
+                          />
+
+                          <span className="teams-section__member-avatar">
+                            {getInitials(employee.fullName || employee.email)}
+                          </span>
+
+                          <span className="teams-section__member-copy">
+                            <strong>{employee.fullName || employee.email}</strong>
+                            <small>{employee.email}</small>
+                          </span>
+
+                          <span className="teams-section__member-tag">
+                            Team Leader
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="teams-section__form-group">
+                <label>
+                  Add Members <span className="teams-section__required">*</span>
+                </label>
+                <p className="teams-section__field-description">
+                  Select one or more members to add to this team.
+                </p>
+
+                <div className="teams-section__member-picker">
+                  <div className="teams-section__member-search">
+                    <FiSearch />
+                    <input
+                      type="text"
+                      value={memberSearchTerm}
+                      onChange={(event) => setMemberSearchTerm(event.target.value)}
+                      placeholder="Search any member in the company..."
+                    />
+                  </div>
+
+                  <div className="teams-section__member-table">
+                    {filteredEmployees.length === 0 && (
+                      <p className="teams-section__members-empty">
+                        No matching members found.
+                      </p>
+                    )}
+
+                    {filteredEmployees.map((employee) => {
+                      const employeeId = String(employee.userId);
+                      const isChecked = editForm.memberIds.includes(employeeId);
+                      const modalLeaderId = String(editForm.teamLeaderId || "");
+                      const isLeader = employeeId === modalLeaderId;
+
+                      return (
+                        <label
+                          key={employee.userId}
+                          className="teams-section__member-row"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              handleToggleMember(employeeId);
+                              if (String(editForm.teamLeaderId || "") === employeeId) {
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  teamLeaderId: "",
+                                }));
+                              }
+                            }}
+                          />
+
+                          <span className="teams-section__member-avatar">
+                            {getInitials(employee.fullName || employee.email)}
+                          </span>
+
+                          <span className="teams-section__member-copy">
+                            <strong>{employee.fullName || employee.email}</strong>
+                            <small>{employee.email}</small>
+                          </span>
+
+                          {isLeader && (
+                            <span className="teams-section__member-tag">
+                              Team Leader
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="teams-section__form-actions">
+                <button
+                  type="button"
+                  className="teams-section__secondary-btn teams-section__secondary-btn--neutral"
+                  onClick={closeMembersModal}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="teams-section__submit-btn"
+                  onClick={handleSaveMembers}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {memberToDelete && (
         <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
