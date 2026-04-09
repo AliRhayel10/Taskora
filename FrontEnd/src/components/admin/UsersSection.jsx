@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
     FiChevronLeft,
     FiChevronRight,
-    FiEdit2,
     FiPlus,
     FiSearch,
     FiTrash2,
@@ -81,6 +80,19 @@ function getUserRole(user) {
 
 function getUserJobType(user) {
     return user?.jobType?.trim() || user?.jobTitle?.trim() || "No job type";
+}
+
+function normalizeRole(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ");
+}
+
+function isAdminRole(value) {
+    const role = normalizeRole(value);
+    return role === "admin" || role === "company admin" || role === "companyadmin";
 }
 
 function getUserTeam(user) {
@@ -361,9 +373,10 @@ export default function UsersSection({ onOpenUser }) {
 
             const normalizedUsers = normalizeUsersResponse(resolvedPayload);
             const safeUsers = Array.isArray(normalizedUsers) ? normalizedUsers : [];
+            const visibleUsers = safeUsers.filter((user) => !isAdminRole(getUserRole(user)));
 
             if (isSearching) {
-                const locallyFilteredUsers = safeUsers.filter((user) =>
+                const locallyFilteredUsers = visibleUsers.filter((user) =>
                     matchesNameSearch(user, search)
                 );
                 const calculatedPages = Math.max(1, Math.ceil(locallyFilteredUsers.length / PAGE_SIZE));
@@ -381,29 +394,12 @@ export default function UsersSection({ onOpenUser }) {
 
             const pagination = resolvedPayload?.pagination || {};
             const backendPage = Number(pagination?.page ?? resolvedPayload?.page ?? page) || page;
-            const backendPageSize =
-                Number(pagination?.pageSize ?? resolvedPayload?.pageSize ?? PAGE_SIZE) || PAGE_SIZE;
-            const backendTotal =
-                Number(
-                    pagination?.totalUsers ??
-                    pagination?.totalCount ??
-                    resolvedPayload?.totalUsers ??
-                    resolvedPayload?.totalCount ??
-                    safeUsers.length
-                ) || 0;
-            const calculatedTotalPages = Math.max(
-                1,
-                Number(
-                    pagination?.totalPages ??
-                    resolvedPayload?.totalPages ??
-                    Math.ceil(backendTotal / backendPageSize) ??
-                    1
-                )
-            );
+            const filteredTotal = visibleUsers.length;
+            const calculatedTotalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
 
-            setUsers(safeUsers);
+            setUsers(visibleUsers);
             setCurrentPage(Math.min(backendPage, calculatedTotalPages));
-            setTotalUsers(backendTotal);
+            setTotalUsers(filteredTotal);
             setTotalPages(calculatedTotalPages);
         } catch (error) {
             if (error.name === "AbortError") return;
@@ -727,13 +723,16 @@ export default function UsersSection({ onOpenUser }) {
                                     const jobType = getUserJobType(user);
                                     const team = getResolvedUserTeam(user, teams);
                                     const status = getUserStatus(user);
+                                    const roleClass = normalizeRole(role) === "team leader"
+                                        ? "users-section__row--teamleader"
+                                        : "users-section__row--employee";
                                     const statusClass =
                                         String(status).toLowerCase() === "active"
                                             ? "users-section__status users-section__status--active"
                                             : "users-section__status users-section__status--inactive";
 
                                     return (
-                                        <tr key={String(userId)}>
+                                        <tr key={String(userId)} className={roleClass}>
                                             <td>
                                                 <div className="users-section__user-cell">
                                                     <div className="users-section__avatar">{getInitials(name)}</div>
