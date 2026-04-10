@@ -6,7 +6,6 @@ import {
     FiSearch,
     FiTrash2,
     FiUsers,
-    FiAlertTriangle,
     FiX,
     FiChevronDown,
     FiEyeOff,
@@ -693,75 +692,75 @@ export default function UsersSection({ onOpenUser }) {
         }
     };
 
-const handleUserUpdated = (updatedUser) => {
-    if (!updatedUser) {
-        return;
-    }
-
-    setUsers((prevUsers) =>
-        prevUsers.map((user) => {
-            const existingUserId = getUserId(user);
-            const updatedUserId = getUserId(updatedUser);
-
-            if (String(existingUserId) !== String(updatedUserId)) {
-                return user;
-            }
-
-            const resolvedRole =
-                updatedUser.role ||
-                updatedUser.roleName ||
-                updatedUser.userRole ||
-                getUserRole(user);
-
-            const resolvedJobType =
-                updatedUser.jobType ||
-                updatedUser.jobTitle ||
-                getUserJobType(user);
-
-            const resolvedIsActive =
-                typeof updatedUser.isActive === "boolean"
-                    ? updatedUser.isActive
-                    : typeof updatedUser.active === "boolean"
-                        ? updatedUser.active
-                        : String(updatedUser.status || "").trim().toLowerCase() === "active";
-
-            return {
-                ...user,
-                ...updatedUser,
-                role: resolvedRole,
-                roleName: resolvedRole,
-                userRole: resolvedRole,
-                jobType: resolvedJobType,
-                jobTitle: resolvedJobType,
-                isActive: resolvedIsActive,
-                active: resolvedIsActive,
-                status: resolvedIsActive ? "Active" : "Inactive",
-            };
-        })
-    );
-};
-
-useEffect(() => {
-    const handleExternalUserUpdate = (event) => {
-        const updatedUser = event?.detail;
-
-        if (!updatedUser || !getUserId(updatedUser)) {
+    const handleUserUpdated = (updatedUser) => {
+        if (!updatedUser) {
             return;
         }
 
-        handleUserUpdated(updatedUser);
+        setUsers((prevUsers) =>
+            prevUsers.map((user) => {
+                const existingUserId = getUserId(user);
+                const updatedUserId = getUserId(updatedUser);
 
-        const abortController = new AbortController();
-        fetchUsers(currentPage, debouncedSearchTerm, abortController.signal);
-        fetchTeams(abortController.signal);
+                if (String(existingUserId) !== String(updatedUserId)) {
+                    return user;
+                }
+
+                const resolvedRole =
+                    updatedUser.role ||
+                    updatedUser.roleName ||
+                    updatedUser.userRole ||
+                    getUserRole(user);
+
+                const resolvedJobType =
+                    updatedUser.jobType ||
+                    updatedUser.jobTitle ||
+                    getUserJobType(user);
+
+                const resolvedIsActive =
+                    typeof updatedUser.isActive === "boolean"
+                        ? updatedUser.isActive
+                        : typeof updatedUser.active === "boolean"
+                            ? updatedUser.active
+                            : String(updatedUser.status || "").trim().toLowerCase() === "active";
+
+                return {
+                    ...user,
+                    ...updatedUser,
+                    role: resolvedRole,
+                    roleName: resolvedRole,
+                    userRole: resolvedRole,
+                    jobType: resolvedJobType,
+                    jobTitle: resolvedJobType,
+                    isActive: resolvedIsActive,
+                    active: resolvedIsActive,
+                    status: resolvedIsActive ? "Active" : "Inactive",
+                };
+            })
+        );
     };
 
-    window.addEventListener("taskora:user-updated", handleExternalUserUpdate);
+    useEffect(() => {
+        const handleExternalUserUpdate = (event) => {
+            const updatedUser = event?.detail;
 
-    return () => {
-        window.removeEventListener("taskora:user-updated", handleExternalUserUpdate);
-    };
-}, [currentPage, debouncedSearchTerm, companyId]);
+            if (!updatedUser || !getUserId(updatedUser)) {
+                return;
+            }
+
+            handleUserUpdated(updatedUser);
+
+            const abortController = new AbortController();
+            fetchUsers(currentPage, debouncedSearchTerm, abortController.signal);
+            fetchTeams(abortController.signal);
+        };
+
+        window.addEventListener("taskora:user-updated", handleExternalUserUpdate);
+
+        return () => {
+            window.removeEventListener("taskora:user-updated", handleExternalUserUpdate);
+        };
+    }, [currentPage, debouncedSearchTerm, companyId]);
 
     return (
         <section className="users-section">
@@ -963,9 +962,8 @@ useEffect(() => {
                                 <button
                                     key={pageNumber}
                                     type="button"
-                                    className={`users-section__page-btn users-section__page-btn--number ${
-                                        currentPage === pageNumber ? "users-section__page-btn--active" : ""
-                                    }`}
+                                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === pageNumber ? "users-section__page-btn--active" : ""
+                                        }`}
                                     onClick={() => setCurrentPage(pageNumber)}
                                 >
                                     {pageNumber}
@@ -991,7 +989,7 @@ useEffect(() => {
                     <div className="users-section__modal users-section__modal--confirm">
                         <div className="users-section__confirm-top">
                             <div className="users-section__confirm-icon">
-                                <FiAlertTriangle />
+                                <FiX />
                             </div>
 
                             <button
@@ -1116,11 +1114,10 @@ useEffect(() => {
                                     />
                                     {emailTouched && (
                                         <span
-                                            className={`users-section__input-badge ${
-                                                emailIsValid
+                                            className={`users-section__input-badge ${emailIsValid
                                                     ? "users-section__input-badge--success"
                                                     : "users-section__input-badge--error"
-                                            }`}
+                                                }`}
                                         >
                                             {emailIsValid ? "Valid" : "Invalid"}
                                         </span>
@@ -1144,11 +1141,10 @@ useEffect(() => {
                                     />
                                     {passwordTouched && (
                                         <span
-                                            className={`users-section__input-badge users-section__input-badge--password ${
-                                                passwordIsStrong
+                                            className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong
                                                     ? "users-section__input-badge--success"
                                                     : "users-section__input-badge--error"
-                                            }`}
+                                                }`}
                                         >
                                             {passwordIsStrong ? "Strong" : "Weak"}
                                         </span>
