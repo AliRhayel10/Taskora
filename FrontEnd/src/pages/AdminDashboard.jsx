@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
+import DashboardSection from "../components/admin/DashboardSection";
 import ProfileSection from "../components/admin/ProfileSection";
 import SettingsSection from "../components/admin/SettingsSection";
 import TeamsSection from "../components/admin/TeamsSection";
@@ -157,8 +158,10 @@ export default function AdminDashboard() {
         );
 
       case "Dashboard":
+        return <DashboardSection />;
+
       default:
-        return null;
+        return <DashboardSection />;
     }
   };
 
