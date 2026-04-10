@@ -358,7 +358,7 @@
   min-height: 40px;
   border: 1px solid #dbe3ee;
   border-radius: 10px;
-  background: #ffffff;
+  background: #f8fbff;
   padding: 0 12px;
   color: #0f172a;
   font-size: 0.94rem;
@@ -366,7 +366,14 @@
   outline: none;
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.task-setup-rules-input:focus {
+  border-color: #93c5fd;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
 }
 
 .task-setup-rules-input:focus {
