@@ -83,6 +83,33 @@ function getUserJobType(user) {
     );
 }
 
+function getUserProfileImage(user) {
+    const rawValue =
+        user?.profileImageUrl ||
+        user?.ProfileImageUrl ||
+        user?.imageUrl ||
+        user?.ImageUrl ||
+        user?.avatar ||
+        user?.Avatar ||
+        "";
+
+    const value = String(rawValue || "").trim();
+
+    if (!value) {
+        return "";
+    }
+
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+        return value;
+    }
+
+    if (value.startsWith("/")) {
+        return `${API_BASE_URL}${value}`;
+    }
+
+    return `${API_BASE_URL}/${value}`;
+}
+
 function getDirectUserTeam(user) {
     if (typeof user?.team === "string" && user.team.trim()) return user.team;
     if (typeof user?.Team === "string" && user.Team.trim()) return user.Team;
@@ -246,6 +273,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackType, setFeedbackType] = useState("");
     const [isRoleChangeConfirmOpen, setIsRoleChangeConfirmOpen] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     const userId = getUserId(userState || user);
     const normalizedCurrentRole = getUserRole(userState);
@@ -271,6 +299,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             setDraftData(nextDraft);
             setIsEditing(false);
             setIsRoleChangeConfirmOpen(false);
+            setImageError(false);
             return;
         }
 
@@ -286,6 +315,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             setDraftData(nextDraft);
             setIsEditing(false);
             setIsRoleChangeConfirmOpen(false);
+            setImageError(false);
         }
     }, [user]);
 
@@ -329,6 +359,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                             ...prev,
                             ...normalizedProfile,
                         }));
+                        setImageError(false);
                     }
                 }
 
@@ -403,6 +434,8 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
     const name = getUserName(userState);
     const email = userState?.email || userState?.Email || "No email";
+    const profileImageUrl = getUserProfileImage(userState);
+    const showProfileImage = Boolean(profileImageUrl) && !imageError;
     const role = normalizedCurrentRole;
     const jobType = normalizedCurrentJobType;
     const directTeamName = getDirectUserTeam(userState);
@@ -591,6 +624,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             };
 
             setUserState(nextUser);
+            setImageError(false);
 
             setDraftData({
                 role: resolvedRole,
@@ -755,7 +789,16 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
             <div className="user-hero-card">
                 <div className="user-hero-card__avatar-wrapper">
-                    <div className="user-hero-card__avatar-fallback">{initials}</div>
+                    {showProfileImage ? (
+                        <img
+                            src={profileImageUrl}
+                            alt={name}
+                            className="user-hero-card__avatar-image"
+                            onError={() => setImageError(true)}
+                        />
+                    ) : (
+                        <div className="user-hero-card__avatar-fallback">{initials}</div>
+                    )}
                 </div>
 
                 <div className="user-hero-card__content">
