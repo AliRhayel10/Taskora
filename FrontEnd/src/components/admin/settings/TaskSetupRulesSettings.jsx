@@ -10,8 +10,6 @@ import {
     FiTrash,
     FiEdit2,
     FiX,
-    FiChevronUp,
-    FiChevronDown,
 } from "react-icons/fi";
 import "./../../../assets/styles/admin/settings/task-setup-rules-settings.css";
 
@@ -163,6 +161,14 @@ export default function TaskSetupRulesSettings({
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+
+    const [deleteModal, setDeleteModal] = useState({
+        isOpen: false,
+        type: null,
+        index: null,
+        title: "",
+        message: "",
+    });
 
     const panelRef = useRef(null);
     const [pendingNewRow, setPendingNewRow] = useState(null);
@@ -318,6 +324,26 @@ export default function TaskSetupRulesSettings({
         }));
     };
 
+    const closeDeleteModal = () => {
+        setDeleteModal({
+            isOpen: false,
+            type: null,
+            index: null,
+            title: "",
+            message: "",
+        });
+    };
+
+    const openDeleteModal = (type, index, title, message) => {
+        setDeleteModal({
+            isOpen: true,
+            type,
+            index,
+            title,
+            message,
+        });
+    };
+
     const cancelStatusEdit = (index) => {
         const isPending =
             pendingNewRow?.type === "status" && pendingNewRow?.index === index;
@@ -432,6 +458,13 @@ export default function TaskSetupRulesSettings({
 
         const handleOutsideClick = (event) => {
             const clickedInsideAnyRow = event.target.closest(".task-setup-rules-row");
+            const clickedInsideDeleteModal = event.target.closest(
+                ".task-setup-rules-delete-modal"
+            );
+
+            if (clickedInsideDeleteModal) {
+                return;
+            }
 
             if (editingStatusIndex !== null) {
                 const activeRow = panelRef.current?.querySelector(
@@ -592,33 +625,33 @@ export default function TaskSetupRulesSettings({
     };
 
     const stepMultiplierValue = (section, index, direction) => {
-    const step = 0.1;
+        const step = 0.1;
 
-    if (section === "priority") {
-        const currentRow = priorityRows[index] || { name: "", multiplier: "" };
-        const currentValue = Number(currentRow.multiplier);
-        const safeValue = Number.isNaN(currentValue) || currentValue <= 0 ? 0.1 : currentValue;
-        const nextValue =
-            direction === "up"
-                ? safeValue + step
-                : Math.max(0.1, safeValue - step);
+        if (section === "priority") {
+            const currentRow = priorityRows[index] || { name: "", multiplier: "" };
+            const currentValue = Number(currentRow.multiplier);
+            const safeValue = Number.isNaN(currentValue) || currentValue <= 0 ? 0.1 : currentValue;
+            const nextValue =
+                direction === "up"
+                    ? safeValue + step
+                    : Math.max(0.1, safeValue - step);
 
-        updatePriorityRow(index, "multiplier", nextValue.toFixed(1));
-        return;
-    }
+            updatePriorityRow(index, "multiplier", nextValue.toFixed(1));
+            return;
+        }
 
-    if (section === "complexity") {
-        const currentRow = complexityRows[index] || { name: "", multiplier: "" };
-        const currentValue = Number(currentRow.multiplier);
-        const safeValue = Number.isNaN(currentValue) || currentValue <= 0 ? 0.1 : currentValue;
-        const nextValue =
-            direction === "up"
-                ? safeValue + step
-                : Math.max(0.1, safeValue - step);
+        if (section === "complexity") {
+            const currentRow = complexityRows[index] || { name: "", multiplier: "" };
+            const currentValue = Number(currentRow.multiplier);
+            const safeValue = Number.isNaN(currentValue) || currentValue <= 0 ? 0.1 : currentValue;
+            const nextValue =
+                direction === "up"
+                    ? safeValue + step
+                    : Math.max(0.1, safeValue - step);
 
-        updateComplexityRow(index, "multiplier", nextValue.toFixed(1));
-    }
-};
+            updateComplexityRow(index, "multiplier", nextValue.toFixed(1));
+        }
+    };
 
     const addStatus = () => {
         const next = [...statusesList, ""];
@@ -647,17 +680,19 @@ export default function TaskSetupRulesSettings({
         setSuccessMessage("");
     };
 
-    const deleteStatus = async (index) => {
+    const deleteStatus = async (index, options = {}) => {
+        const { skipModal = false } = options;
         const isPending =
             pendingNewRow?.type === "status" && pendingNewRow?.index === index;
 
-        if (!isPending) {
-            const confirmed = window.confirm(
-                "Are you sure you want to delete this status?"
+        if (!isPending && !skipModal) {
+            openDeleteModal(
+                "status",
+                index,
+                "Delete status",
+                "Are you sure you want to delete this status? This action will remove it from your task setup rules."
             );
-            if (!confirmed) {
-                return;
-            }
+            return;
         }
 
         const nextStatuses = statusesList.filter((_, itemIndex) => itemIndex !== index);
@@ -684,17 +719,19 @@ export default function TaskSetupRulesSettings({
         await saveSetupRules(nextDraftData, { showSuccess: true });
     };
 
-    const deletePriority = async (index) => {
+    const deletePriority = async (index, options = {}) => {
+        const { skipModal = false } = options;
         const isPending =
             pendingNewRow?.type === "priority" && pendingNewRow?.index === index;
 
-        if (!isPending) {
-            const confirmed = window.confirm(
-                "Are you sure you want to delete this priority level?"
+        if (!isPending && !skipModal) {
+            openDeleteModal(
+                "priority",
+                index,
+                "Delete priority level",
+                "Are you sure you want to delete this priority level? This action will remove it from your task setup rules."
             );
-            if (!confirmed) {
-                return;
-            }
+            return;
         }
 
         const nextRows = priorityRows.filter((_, itemIndex) => itemIndex !== index);
@@ -721,17 +758,19 @@ export default function TaskSetupRulesSettings({
         await saveSetupRules(nextDraftData, { showSuccess: true });
     };
 
-    const deleteComplexity = async (index) => {
+    const deleteComplexity = async (index, options = {}) => {
+        const { skipModal = false } = options;
         const isPending =
             pendingNewRow?.type === "complexity" && pendingNewRow?.index === index;
 
-        if (!isPending) {
-            const confirmed = window.confirm(
-                "Are you sure you want to delete this complexity level?"
+        if (!isPending && !skipModal) {
+            openDeleteModal(
+                "complexity",
+                index,
+                "Delete complexity level",
+                "Are you sure you want to delete this complexity level? This action will remove it from your task setup rules."
             );
-            if (!confirmed) {
-                return;
-            }
+            return;
         }
 
         const nextRows = complexityRows.filter((_, itemIndex) => itemIndex !== index);
@@ -756,6 +795,25 @@ export default function TaskSetupRulesSettings({
         }
 
         await saveSetupRules(nextDraftData, { showSuccess: true });
+    };
+
+    const handleConfirmDelete = async () => {
+        const { type, index } = deleteModal;
+        closeDeleteModal();
+
+        if (type === "status") {
+            await deleteStatus(index, { skipModal: true });
+            return;
+        }
+
+        if (type === "priority") {
+            await deletePriority(index, { skipModal: true });
+            return;
+        }
+
+        if (type === "complexity") {
+            await deleteComplexity(index, { skipModal: true });
+        }
     };
 
     const handleStatusEditToggle = async (index, isEditingRow) => {
@@ -957,37 +1015,37 @@ export default function TaskSetupRulesSettings({
                             onChange={(e) => onUpdate(index, "name", e.target.value)}
                             placeholder={`${section} name`}
                         />
-<div className="task-setup-rules-stepper-field">
-    <input
-        type="number"
-        step="0.1"
-        min="0.1"
-        className="task-setup-rules-input task-setup-rules-input--row task-setup-rules-input--small task-setup-rules-input--with-stepper"
-        value={row.multiplier}
-        onChange={(e) => onUpdate(index, "multiplier", e.target.value)}
-        placeholder="1.0"
-    />
+                        <div className="task-setup-rules-stepper-field">
+                            <input
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                className="task-setup-rules-input task-setup-rules-input--row task-setup-rules-input--small task-setup-rules-input--with-stepper"
+                                value={row.multiplier}
+                                onChange={(e) => onUpdate(index, "multiplier", e.target.value)}
+                                placeholder="1.0"
+                            />
 
-<div className="task-setup-rules-stepper-buttons">
-    <button
-        type="button"
-        className="task-setup-rules-stepper-btn"
-        onClick={() => stepMultiplierValue(section, index, "down")}
-        aria-label={`Decrease ${section} multiplier`}
-    >
-        ↓
-    </button>
+                            <div className="task-setup-rules-stepper-buttons">
+                                <button
+                                    type="button"
+                                    className="task-setup-rules-stepper-btn"
+                                    onClick={() => stepMultiplierValue(section, index, "down")}
+                                    aria-label={`Decrease ${section} multiplier`}
+                                >
+                                    ↓
+                                </button>
 
-    <button
-        type="button"
-        className="task-setup-rules-stepper-btn"
-        onClick={() => stepMultiplierValue(section, index, "up")}
-        aria-label={`Increase ${section} multiplier`}
-    >
-        ↑
-    </button>
-</div>
-</div>
+                                <button
+                                    type="button"
+                                    className="task-setup-rules-stepper-btn"
+                                    onClick={() => stepMultiplierValue(section, index, "up")}
+                                    aria-label={`Increase ${section} multiplier`}
+                                >
+                                    ↑
+                                </button>
+                            </div>
+                        </div>
                     </>
                 ) : (
                     <>
@@ -1207,6 +1265,55 @@ export default function TaskSetupRulesSettings({
                     renderActivePanel()
                 )}
             </div>
+
+            {deleteModal.isOpen && (
+                <div
+                    className="users-section__modal-overlay"
+                    role="presentation"
+                    onClick={closeDeleteModal}
+                >
+                    <div
+                        className="users-section__modal users-section__modal--confirm task-setup-rules-delete-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="task-setup-delete-title"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="users-section__modal-header">
+                            <div>
+                                <h3 id="task-setup-delete-title">{deleteModal.title}</h3>
+                                <p>{deleteModal.message}</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="users-section__modal-close"
+                                onClick={closeDeleteModal}
+                                aria-label="Close delete confirmation"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+
+                        <div className="users-section__form-actions users-section__form-actions--confirm">
+                            <button
+                                type="button"
+                                className="users-section__secondary-btn"
+                                onClick={closeDeleteModal}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="users-section__submit-btn users-section__submit-btn--danger"
+                                onClick={handleConfirmDelete}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }
