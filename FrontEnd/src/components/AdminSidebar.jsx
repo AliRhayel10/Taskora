@@ -22,7 +22,6 @@ export default function AdminSidebar({
     { name: "Users", icon: <FiUsers /> },
     { name: "Teams", icon: <FiLayers /> },
     { name: "Tasks", icon: <FiCheckSquare /> },
-    { name: "Reports", icon: <FiBarChart2 /> },
     { name: "Profile", icon: <FiUser /> },
     { name: "Settings", icon: <FiSettings /> },
   ];
