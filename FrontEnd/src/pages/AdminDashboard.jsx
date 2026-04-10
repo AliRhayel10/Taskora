@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
+import AppTopbar from "../components/AppTopbar";
 import DashboardSection from "../components/admin/DashboardSection";
 import ProfileSection from "../components/admin/ProfileSection";
 import SettingsSection from "../components/admin/SettingsSection";
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [topbarSearch, setTopbarSearch] = useState("");
 
   const storedUser = useMemo(() => {
     const savedUser = localStorage.getItem("user");
@@ -89,33 +91,69 @@ export default function AdminDashboard() {
       setSelectedUser(null);
     }
 
+    setTopbarSearch("");
     setActiveSection(section);
   };
 
   const handleOpenTeamDetails = (team) => {
     setSelectedUser(null);
     setSelectedTeam(team);
+    setTopbarSearch("");
     setActiveSection("TeamDetails");
   };
 
   const handleBackToTeams = () => {
     setSelectedTeam(null);
+    setTopbarSearch("");
     setActiveSection("Teams");
   };
 
   const handleOpenUserDetails = (selectedUserData) => {
     setSelectedTeam(null);
     setSelectedUser(selectedUserData);
+    setTopbarSearch("");
     setActiveSection("UserDetails");
   };
 
   const handleBackToUsers = () => {
     setSelectedUser(null);
+    setTopbarSearch("");
     setActiveSection("Users");
   };
 
   const handleUserUpdated = (updatedUser) => {
     setSelectedUser(updatedUser);
+  };
+
+  const getTopbarTitle = () => {
+    if (activeSection === "TeamDetails" && selectedTeam?.teamName) {
+      return selectedTeam.teamName;
+    }
+
+    if (activeSection === "UserDetails" && selectedUser?.fullName) {
+      return selectedUser.fullName;
+    }
+
+    return activeSection || "Dashboard";
+  };
+
+  const shouldShowSearch = () => {
+    return activeSection !== "Settings" && activeSection !== "Profile";
+  };
+
+  const getSearchPlaceholder = () => {
+    switch (activeSection) {
+      case "Users":
+        return "Search users...";
+      case "Teams":
+        return "Search teams...";
+      case "TeamDetails":
+        return "Search team members...";
+      case "Dashboard":
+        return "Search...";
+      default:
+        return "Search...";
+    }
   };
 
   const renderSectionContent = () => {
@@ -188,7 +226,21 @@ export default function AdminDashboard() {
         onLogout={handleLogout}
       />
 
-      <main className="admin-main">{renderSectionContent()}</main>
+      <main className="admin-main">
+        <AppTopbar
+          title={getTopbarTitle()}
+          user={user}
+          showSearch={shouldShowSearch()}
+          searchValue={topbarSearch}
+          onSearchChange={setTopbarSearch}
+          searchPlaceholder={getSearchPlaceholder()}
+          notificationCount={0}
+        />
+
+        <div className="admin-main__content">
+          {renderSectionContent()}
+        </div>
+      </main>
     </div>
   );
 }
