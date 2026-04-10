@@ -73,12 +73,6 @@ export default function SettingsSection({ resetSignal = 0 }) {
       icon: <FiCheckSquare />,
     },
     {
-      key: "permissions",
-      title: "Permissions",
-      description: "Set roles, permissions, and visibility rules for teams.",
-      icon: <FiShield />,
-    },
-    {
       key: "notifications",
       title: "Notifications",
       description: "Configure notification settings, reminders, and alerts.",
