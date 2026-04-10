@@ -9,6 +9,9 @@ import {
   FiUser,
   FiUsers,
   FiX,
+  FiShield,
+  FiActivity,
+  FiUserCheck,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 import "../../assets/styles/admin/team-details-page.css";
@@ -353,7 +356,6 @@ export default function TeamDetailsPage({ team, onBack }) {
     setMembers(resolvedMembers);
     writeCachedTeamMembers(teamId, resolvedMembers);
   }, [teamState, companyMembers]);
-
 
   useEffect(() => {
     const persistedLeaderId = String(
@@ -940,42 +942,61 @@ export default function TeamDetailsPage({ team, onBack }) {
         </div>
       )}
 
-      <div className="team-details-page__summary-grid">
-        <div className="team-details-page__summary-card">
-          <span className="team-details-page__summary-label">Total Members</span>
-          <div className="team-details-page__summary-value">
-            <FiUsers />
-            <strong>{totalMembers}</strong>
-          </div>
-        </div>
-
-        <div className="team-details-page__summary-card">
-          <span className="team-details-page__summary-label">Active Members</span>
-          <div className="team-details-page__summary-value">
-            <span className="team-details-page__summary-dot team-details-page__summary-dot--active"></span>
-            <strong>{activeMembersCount}</strong>
-          </div>
-        </div>
-
-        <div className="team-details-page__summary-card">
-          <span className="team-details-page__summary-label">Inactive Members</span>
-          <div className="team-details-page__summary-value">
-            <span className="team-details-page__summary-dot team-details-page__summary-dot--inactive"></span>
-            <strong>{inactiveMembersCount}</strong>
-          </div>
-        </div>
-
-        <div className="team-details-page__summary-card team-details-page__summary-card--leader">
-          <span className="team-details-page__summary-label">Current Team Leader</span>
-          <div className="team-details-page__leader-highlight">
-            <span className="users-section__avatar">
-              {getInitials(teamLeader?.fullName || "TL")}
+      <div className="team-details-page__summary-bar">
+        <div className="team-details-page__mini-stats">
+          <div className="team-details-page__mini-stat team-details-page__mini-stat--members">
+            <span className="team-details-page__mini-stat-icon">
+              <FiUsers />
             </span>
-
-            <div className="team-details-page__leader-highlight-copy">
-              <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
-              <small>{teamLeader?.email || "Leader unavailable"}</small>
+            <div className="team-details-page__mini-stat-copy">
+              <small>Total Members</small>
+              <strong>{totalMembers}</strong>
             </div>
+          </div>
+
+          <div className="team-details-page__mini-stat team-details-page__mini-stat--active">
+            <span className="team-details-page__mini-stat-icon">
+              <FiActivity />
+            </span>
+            <div className="team-details-page__mini-stat-copy">
+              <small>Active</small>
+              <strong>{activeMembersCount}</strong>
+            </div>
+          </div>
+
+          <div className="team-details-page__mini-stat team-details-page__mini-stat--inactive">
+            <span className="team-details-page__mini-stat-icon">
+              <FiActivity />
+            </span>
+            <div className="team-details-page__mini-stat-copy">
+              <small>Inactive</small>
+              <strong>{inactiveMembersCount}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="team-details-page__leader-card">
+          <div className="team-details-page__leader-card-badge">
+            <FiShield />
+          </div>
+
+          <div className="team-details-page__leader-card-content">
+            <span className="team-details-page__leader-card-label">Team Leader</span>
+
+            <div className="team-details-page__leader-card-user">
+              <span className="users-section__avatar">
+                {getInitials(teamLeader?.fullName || "TL")}
+              </span>
+
+              <div className="team-details-page__leader-card-copy">
+                <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
+                <small>{teamLeader?.email || "Leader unavailable"}</small>
+              </div>
+            </div>
+          </div>
+
+          <div className="team-details-page__leader-card-status">
+            <FiUserCheck />
           </div>
         </div>
       </div>
