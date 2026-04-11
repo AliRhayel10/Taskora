@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FiBell, FiSearch, FiX } from "react-icons/fi";
+import { FiBell, FiChevronDown, FiSearch, FiX } from "react-icons/fi";
 import "../assets/styles/app-topbar.css";
 
 function getInitials(name) {
@@ -147,14 +147,17 @@ export default function AppTopbar({
         </button>
 
         <button type="button" className="admin-topbar__profile">
+            
           <span className="admin-topbar__profile-avatar">
             {profileImage ? <img src={profileImage} alt={displayName} /> : initials}
           </span>
+          
 
           <span className="admin-topbar__profile-copy">
             <strong>{displayName}</strong>
             <small>{email}</small>
           </span>
+          <FiChevronDown className="admin-topbar__profile-chevron" />
         </button>
       </div>
     </header>

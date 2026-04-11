@@ -13,6 +13,11 @@
   border-radius: 0;
   background:transparent;
 }
+.admin-topbar__profile-chevron {
+  color: #667085;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
 
 .admin-topbar__welcome {
   display: flex;
