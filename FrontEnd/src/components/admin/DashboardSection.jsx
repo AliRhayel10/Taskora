@@ -1,6 +1,6 @@
 import "../../assets/styles/admin/dashboard-section.css";
 
-export default function DashboardSection() {
+export default function DashboardSection({ searchValue }) {
   return (
     <section className="dashboard-section">
       <div className="dashboard-section__title-row">

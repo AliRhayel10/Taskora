@@ -127,7 +127,7 @@ export default function AdminDashboard() {
   };
 
   const shouldShowSearch = () => {
-    return ["Users", "Teams", "TeamDetails"].includes(activeSection);
+    return ["Dashboard", "Users", "Teams", "TeamDetails", "Tasks"].includes(activeSection);
   };
 
   const getSearchPlaceholder = () => {
@@ -213,10 +213,18 @@ export default function AdminDashboard() {
         );
 
       case "Tasks":
-        return <TasksSection />;
+        return (
+          <TasksSection
+            searchValue={topbarSearch}
+          />
+        );
 
       case "Dashboard":
-        return <DashboardSection />;
+        return (
+          <DashboardSection
+            searchValue={topbarSearch}
+          />
+        );
 
       default:
         return <DashboardSection />;

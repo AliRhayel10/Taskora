@@ -1,22 +1,49 @@
 @import url("https://fonts.googleapis.com/css2?family=Raleway:wght@600;700;800&display=swap");
 
 .admin-topbar {
-  width: 100%;
-  min-height: 68px;
+  position: relative;
+  width: calc(100% - 30px);
+  min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 0 28px 10px;
-  margin: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
+  padding: 10px 22px;
+  margin: 10px auto 0;
+  border: 1px solid #dbe7f5;
+  border-radius: 20px;
+  background: url("/src/assets/images/cloud.png") no-repeat center;
+  background-size: cover;
+  overflow: visible;
+  box-shadow:
+    0 12px 28px rgba(76, 113, 166, 0.12),
+    0 3px 8px rgba(15, 23, 42, 0.05);
+}
+
+.admin-topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 255, 255, 0.68) 34%,
+    rgba(245, 250, 255, 0.52) 64%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.admin-topbar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-topbar__profile-chevron {
-  color: #667085;
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.95rem;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
@@ -35,21 +62,23 @@
   font-family: "Raleway", sans-serif;
   font-size: 1.9rem;
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.08;
   letter-spacing: -0.02em;
   white-space: nowrap;
-  color: #0f172a;
+  color: #0b1b34;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .admin-topbar__welcome-name {
-  color: #1d4ed8;
+  color: #2f5ee5;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .admin-topbar__right {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -63,23 +92,26 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: 12px;
-  background: transparent;
-  color: #6b7280;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.24);
+  color: #52627a;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  backdrop-filter: blur(6px);
   transition:
     background 0.25s ease,
     color 0.25s ease,
-    transform 0.25s ease;
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .admin-topbar__search-toggle:hover {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: rgba(255, 255, 255, 0.46);
+  color: #334155;
   transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(98, 132, 175, 0.12);
 }
 
 .admin-topbar__search-toggle svg {
@@ -97,8 +129,10 @@
   gap: 10px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 12px;
-  background: #ffffff;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(99, 126, 167, 0.08);
   transition:
     width 0.3s ease,
     max-width 0.3s ease,
@@ -112,11 +146,11 @@
   max-width: 300px;
   opacity: 1;
   padding: 0 14px;
-  border-color: #dbe3ee;
+  border-color: #d4e1f1;
 }
 
 .admin-topbar__search-icon {
-  color: #94a3b8;
+  color: #64748b;
   font-size: 0.95rem;
   flex-shrink: 0;
 }
@@ -126,13 +160,13 @@
   border: none;
   outline: none;
   background: transparent;
-  color: #0f172a;
-  font-size: 0.92rem;
+  color: #10213b;
+  font-size: 0.95rem;
   font-weight: 500;
 }
 
 .admin-topbar__search input::placeholder {
-  color: #94a3b8;
+  color: #718096;
 }
 
 .admin-topbar__alerts {
@@ -140,23 +174,26 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: 12px;
-  background: transparent;
-  color: #6b7280;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.24);
+  color: #52627a;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  backdrop-filter: blur(6px);
   transition:
     background 0.2s ease,
     color 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .admin-topbar__alerts:hover {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: rgba(255, 255, 255, 0.46);
+  color: #334155;
   transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(98, 132, 175, 0.12);
 }
 
 .admin-topbar__alerts svg {
@@ -179,35 +216,41 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
 }
 
 .admin-topbar__profile-menu-wrap {
   position: relative;
+  z-index: 200;
 }
 
 .admin-topbar__profile {
-  min-height: 44px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  padding: 4px 6px;
+  min-height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(10px);
+  padding: 6px 10px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
+  box-shadow: 0 8px 20px rgba(114, 145, 189, 0.1);
   transition:
     background 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .admin-topbar__profile:hover {
-  background: #f8fafc;
+  background: rgba(255, 255, 255, 0.62);
   transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(114, 145, 189, 0.14);
 }
 
 .admin-topbar__profile-avatar {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   background: #dbeafe;
   color: #2563eb;
@@ -218,6 +261,7 @@
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.14);
 }
 
 .admin-topbar__profile-avatar img {
@@ -234,52 +278,53 @@
 }
 
 .admin-topbar__profile-copy strong {
-  color: #0f172a;
-  font-size: 0.84rem;
-  font-weight: 700;
-  line-height: 1.05;
+  color: #16243d;
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.08;
   white-space: nowrap;
 }
 
 .admin-topbar__profile-copy small {
-  color: #667085;
-  font-size: 0.72rem;
-  font-weight: 500;
-  line-height: 1.1;
+  color: #52627a;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.12;
   white-space: nowrap;
 }
 
 .admin-topbar__dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 12px);
   right: 0;
-  min-width: 210px;
-  background: #ffffff;
-  border: 1px solid #e6edf7;
-  border-radius: 14px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+  min-width: 220px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e2ebf5;
+  border-radius: 16px;
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(12px);
   padding: 8px;
-  z-index: 100;
+  z-index: 300;
 }
 
 .admin-topbar__dropdown-item {
   width: 100%;
   border: none;
   background: transparent;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
   color: #334155;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 }
 
 .admin-topbar__dropdown-item:hover {
-  background: #f8fafc;
+  background: #f4f8fc;
   color: #0f172a;
 }
 
@@ -307,6 +352,9 @@
   .admin-topbar {
     align-items: flex-start;
     flex-direction: column;
+    width: calc(100% - 20px);
+    padding: 12px 16px;
+    border-radius: 18px;
   }
 
   .admin-topbar__right {
@@ -342,6 +390,7 @@
   .admin-topbar__profile {
     width: 100%;
     justify-content: flex-start;
+    border-radius: 18px;
   }
 
   .admin-topbar__dropdown {
@@ -353,5 +402,13 @@
   .admin-topbar__welcome strong {
     font-size: 1.45rem;
     white-space: normal;
+  }
+
+  .admin-topbar__profile-copy strong {
+    font-size: 0.94rem;
+  }
+
+  .admin-topbar__profile-copy small {
+    font-size: 0.82rem;
   }
 }

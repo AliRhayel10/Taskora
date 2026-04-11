@@ -11,7 +11,7 @@ function normalizeTasksResponse(data) {
   return [];
 }
 
-export default function TasksSection() {
+export default function TasksSection({ searchValue }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
