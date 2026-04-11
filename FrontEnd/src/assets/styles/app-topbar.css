@@ -2,16 +2,16 @@
 
 .admin-topbar {
   position: relative;
-  width: calc(100% - 30px);
+  width: calc(100% - 40px);
   min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 22px;
+  padding: 10px 20px;
   margin: 10px auto 0;
   border: 1px solid #dbe7f5;
-  border-radius: 20px;
+  border-radius: 50px;
   background: url("/src/assets/images/cloud.png") no-repeat center;
   background-size: cover;
   overflow: visible;
@@ -93,25 +93,23 @@
   height: 44px;
   border: none;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.24);
+  background: transparent;
   color: #52627a;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: none;
   transition:
-    background 0.25s ease,
     color 0.25s ease,
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+    transform 0.25s ease;
 }
 
 .admin-topbar__search-toggle:hover {
-  background: rgba(255, 255, 255, 0.46);
+  background: transparent;
   color: #334155;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(98, 132, 175, 0.12);
+  box-shadow: none;
 }
 
 .admin-topbar__search-toggle svg {
@@ -175,25 +173,23 @@
   height: 44px;
   border: none;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.24);
+  background: transparent;
   color: #52627a;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: none;
   transition:
-    background 0.2s ease,
     color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.2s ease;
 }
 
 .admin-topbar__alerts:hover {
-  background: rgba(255, 255, 255, 0.46);
+  background: transparent;
   color: #334155;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(98, 132, 175, 0.12);
+  box-shadow: none;
 }
 
 .admin-topbar__alerts svg {
