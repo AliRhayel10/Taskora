@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { FiBell, FiChevronDown, FiSearch, FiX } from "react-icons/fi";
+import {
+  FiBell,
+  FiChevronDown,
+  FiLogOut,
+  FiSearch,
+  FiSettings,
+  FiUser,
+  FiX,
+} from "react-icons/fi";
 import "../assets/styles/app-topbar.css";
 
 function getInitials(name) {
@@ -60,9 +68,15 @@ export default function AppTopbar({
   notificationCount = 0,
   showSearch = true,
   searchPlaceholder = "Search...",
+  onOpenProfile,
+  onOpenSettings,
+  onLogout,
 }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
   const searchInputRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
   const displayName = getUserDisplayName(user);
   const firstName = getUserFirstName(user);
@@ -76,6 +90,22 @@ export default function AppTopbar({
     }
   }, [isSearchOpen]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleToggleSearch = () => {
     if (!showSearch) return;
     setIsSearchOpen((prev) => !prev);
@@ -88,11 +118,23 @@ export default function AppTopbar({
     }
   };
 
+  const handleToggleProfileMenu = () => {
+    setIsProfileMenuOpen((prev) => !prev);
+  };
+
+  const handleMenuAction = (callback) => {
+    setIsProfileMenuOpen(false);
+    if (typeof callback === "function") {
+      callback();
+    }
+  };
+
   return (
     <header className="admin-topbar">
       <div className="admin-topbar__welcome">
         <strong>
-          Welcome back, <span className="admin-topbar__welcome-name">{firstName}!</span>
+          Welcome back,{" "}
+          <span className="admin-topbar__welcome-name">{firstName}</span>.
         </strong>
       </div>
 
@@ -106,7 +148,7 @@ export default function AppTopbar({
             <button
               type="button"
               className="admin-topbar__search-toggle"
-              onClick={handleToggleSearch}
+              onClick={isSearchOpen ? handleCloseSearch : handleToggleSearch}
               aria-label={isSearchOpen ? "Close search" : "Open search"}
             >
               {isSearchOpen ? <FiX /> : <FiSearch />}
@@ -146,19 +188,67 @@ export default function AppTopbar({
           )}
         </button>
 
-        <button type="button" className="admin-topbar__profile">
-            
-          <span className="admin-topbar__profile-avatar">
-            {profileImage ? <img src={profileImage} alt={displayName} /> : initials}
-          </span>
-          
+        <div className="admin-topbar__profile-menu-wrap" ref={profileMenuRef}>
+          <button
+            type="button"
+            className="admin-topbar__profile"
+            onClick={handleToggleProfileMenu}
+            aria-expanded={isProfileMenuOpen}
+            aria-label="Open profile menu"
+          >
+            <span className="admin-topbar__profile-avatar">
+              {profileImage ? (
+                <img src={profileImage} alt={displayName} />
+              ) : (
+                initials
+              )}
+            </span>
 
-          <span className="admin-topbar__profile-copy">
-            <strong>{displayName}</strong>
-            <small>{email}</small>
-          </span>
-          <FiChevronDown className="admin-topbar__profile-chevron" />
-        </button>
+            <span className="admin-topbar__profile-copy">
+              <strong>{displayName}</strong>
+              <small>{email}</small>
+            </span>
+
+            <FiChevronDown
+              className={`admin-topbar__profile-chevron ${
+                isProfileMenuOpen ? "admin-topbar__profile-chevron--open" : ""
+              }`}
+            />
+          </button>
+
+          {isProfileMenuOpen && (
+            <div className="admin-topbar__dropdown">
+              <button
+                type="button"
+                className="admin-topbar__dropdown-item"
+                onClick={() => handleMenuAction(onOpenProfile)}
+              >
+                <FiUser />
+                <span>View Profile</span>
+              </button>
+
+              <button
+                type="button"
+                className="admin-topbar__dropdown-item"
+                onClick={() => handleMenuAction(onOpenSettings)}
+              >
+                <FiSettings />
+                <span>Settings</span>
+              </button>
+
+              <div className="admin-topbar__dropdown-divider"></div>
+
+              <button
+                type="button"
+                className="admin-topbar__dropdown-item admin-topbar__dropdown-item--danger"
+                onClick={() => handleMenuAction(onLogout)}
+              >
+                <FiLogOut />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
