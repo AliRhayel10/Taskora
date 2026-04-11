@@ -105,7 +105,6 @@ export default function AppTopbar({
 
           <span className="admin-topbar__profile-copy">
             <strong>{displayName}</strong>
-            <small>{displayRole}</small>
           </span>
 
           <FiChevronDown className="admin-topbar__profile-chevron" />
