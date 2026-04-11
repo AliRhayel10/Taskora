@@ -1,14 +1,15 @@
 .admin-topbar {
   width: 100%;
-  min-height: 58px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 0 0 14px;
+  gap: 14px;
+  padding: 10px 16px;
   margin-bottom: 14px;
-  border-bottom: 1px solid #dbe3ee;
-  background: transparent;
+  border: 1px solid #e6edf7;
+  border-radius: 0;
+  background: #ffffff;
 }
 
 .admin-topbar__spacer {
@@ -20,26 +21,26 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .admin-topbar__search {
-  width: 320px;
+  width: 300px;
   max-width: 100%;
   height: 42px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 16px;
+  padding: 0 14px;
   border: 1px solid #dbe3ee;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #ffffff;
 }
 
 .admin-topbar__search svg {
   color: #94a3b8;
-  font-size: 1rem;
+  font-size: 0.95rem;
   flex-shrink: 0;
 }
 
@@ -49,7 +50,7 @@
   outline: none;
   background: transparent;
   color: #0f172a;
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   font-weight: 500;
 }
 
@@ -84,20 +85,20 @@
 }
 
 .admin-topbar__alerts svg {
-  font-size: 1.08rem;
+  font-size: 1rem;
 }
 
 .admin-topbar__alerts-badge {
   position: absolute;
-  top: 7px;
-  right: 7px;
-  min-width: 16px;
-  height: 16px;
+  top: 5px;
+  right: 5px;
+  min-width: 15px;
+  height: 15px;
   padding: 0 4px;
   border-radius: 999px;
   background: #ef4444;
   color: #ffffff;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -108,12 +109,12 @@
 .admin-topbar__profile {
   min-height: 42px;
   border: 1px solid #dbe3ee;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #ffffff;
-  padding: 6px 10px 6px 8px;
+  padding: 4px 10px 4px 6px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   transition:
     background 0.2s ease,
@@ -128,15 +129,15 @@
 }
 
 .admin-topbar__profile-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   background: #dbeafe;
   color: #2563eb;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
@@ -157,23 +158,23 @@
 
 .admin-topbar__profile-copy strong {
   color: #0f172a;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
   white-space: nowrap;
 }
 
 .admin-topbar__profile-copy small {
   color: #667085;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.05;
   white-space: nowrap;
 }
 
 .admin-topbar__profile-chevron {
   color: #667085;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   flex-shrink: 0;
 }
 

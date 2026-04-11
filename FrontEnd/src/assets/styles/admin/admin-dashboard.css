@@ -6,8 +6,16 @@
 
 .admin-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   background: #f7f9fc;
-  padding: 28px;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.admin-main__content {
+  padding: 6px 28px 18px;
 }
 
 @media (max-width: 980px) {
@@ -15,7 +23,7 @@
     flex-direction: column;
   }
 
-  .admin-main {
-    padding: 18px;
+  .admin-main__content {
+    padding: 6px 18px 18px;
   }
 }
