@@ -135,7 +135,7 @@ export default function AppTopbar({
       <div className="admin-topbar__welcome">
         <strong>
           Welcome back,{" "}
-          <span className="admin-topbar__welcome-name">{firstName}</span>.
+          <span className="admin-topbar__welcome-name">{firstName}!</span>
         </strong>
       </div>
 

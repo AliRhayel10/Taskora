@@ -32,9 +32,8 @@ export default function AdminSidebar({
             <button
               key={item.name}
               type="button"
-              className={`admin-sidebar__link ${
-                activeItem === item.name ? "admin-sidebar__link--active" : ""
-              }`}
+              className={`admin-sidebar__link ${activeItem === item.name ? "admin-sidebar__link--active" : ""
+                }`}
               onClick={() => onSelect(item.name)}
             >
               <span className="admin-sidebar__link-icon">{item.icon}</span>
