@@ -119,7 +119,12 @@ function getCompanyMemberId(member) {
   return String(member?.userId || member?.id || member?.UserId || "");
 }
 
-export default function TeamDetailsPage({ team, onBack }) {
+export default function TeamDetailsPage({
+  team,
+  onBack,
+  searchValue,
+  onSearchChange,
+}) {
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
 
@@ -143,6 +148,9 @@ export default function TeamDetailsPage({ team, onBack }) {
     teamLeaderId: "",
     memberIds: [],
   });
+
+  const isTopbarSearchControlled = typeof searchValue === "string";
+  const effectiveSearchTerm = isTopbarSearchControlled ? searchValue : searchTerm;
 
   useEffect(() => {
     setTeamState(team || null);
@@ -461,7 +469,7 @@ export default function TeamDetailsPage({ team, onBack }) {
   }, [feedbackMessage]);
 
   const filteredMembers = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedSearch = effectiveSearchTerm.trim().toLowerCase();
 
     if (!normalizedSearch) {
       return members;
@@ -473,7 +481,7 @@ export default function TeamDetailsPage({ team, onBack }) {
         member.email.toLowerCase().includes(normalizedSearch)
       );
     });
-  }, [members, searchTerm]);
+  }, [members, effectiveSearchTerm]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
@@ -1001,20 +1009,7 @@ export default function TeamDetailsPage({ team, onBack }) {
         </div>
       </div>
 
-      <div className="team-details-page__toolbar">
-        <div className="users-section__search team-details-page__search">
-          <FiSearch />
-          <input
-            type="text"
-            placeholder="Search members..."
-            value={searchTerm}
-            onChange={(event) => {
-              setSearchTerm(event.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </div>
-
+      <div className="team-details-page__toolbar team-details-page__toolbar--align-end">
         <div className="team-details-page__toolbar-actions">
           <button
             type="button"

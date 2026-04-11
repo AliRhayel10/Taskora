@@ -3,7 +3,6 @@ import {
     FiChevronLeft,
     FiChevronRight,
     FiPlus,
-    FiSearch,
     FiTrash2,
     FiUsers,
     FiX,
@@ -236,7 +235,11 @@ function compareStatusValues(firstStatus, secondStatus, direction = "asc") {
     return compareTextValues(normalizedFirst, normalizedSecond, direction);
 }
 
-export default function UsersSection({ onOpenUser }) {
+export default function UsersSection({
+    onOpenUser,
+    searchValue,
+    onSearchChange,
+}) {
     const [users, setUsers] = useState([]);
     const [teams, setTeams] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -250,6 +253,10 @@ export default function UsersSection({ onOpenUser }) {
         key: "",
         direction: "asc",
     });
+
+    const isTopbarSearchControlled = typeof searchValue === "string";
+    const effectiveSearchTerm = isTopbarSearchControlled ? searchValue : searchTerm;
+
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
@@ -417,11 +424,11 @@ export default function UsersSection({ onOpenUser }) {
 
     useEffect(() => {
         const delay = setTimeout(() => {
-            setDebouncedSearchTerm(searchTerm.trim());
+            setDebouncedSearchTerm(effectiveSearchTerm.trim());
         }, 300);
 
         return () => clearTimeout(delay);
-    }, [searchTerm]);
+    }, [effectiveSearchTerm]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -769,17 +776,7 @@ export default function UsersSection({ onOpenUser }) {
                 <div className="users-section__title-line" />
             </div>
 
-            <div className="users-section__toolbar">
-                <div className="users-section__search">
-                    <FiSearch />
-                    <input
-                        type="text"
-                        placeholder="Search users by name..."
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                    />
-                </div>
-
+            <div className="users-section__toolbar users-section__toolbar--align-end">
                 <button
                     type="button"
                     className="users-section__create-btn"

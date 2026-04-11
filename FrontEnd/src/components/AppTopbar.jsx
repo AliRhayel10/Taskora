@@ -91,6 +91,17 @@ export default function AppTopbar({
   }, [isSearchOpen]);
 
   useEffect(() => {
+    if (!showSearch) {
+      setIsSearchOpen(false);
+      return;
+    }
+
+    if (String(searchValue || "").trim()) {
+      setIsSearchOpen(true);
+    }
+  }, [searchValue, showSearch]);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (
         profileMenuRef.current &&

@@ -32,6 +32,10 @@
   gap: 18px;
 }
 
+.teams-section__toolbar--align-end {
+  justify-content: flex-end;
+}
+
 .teams-section__search {
   width: 100%;
   max-width: 420px;

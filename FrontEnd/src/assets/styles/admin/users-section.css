@@ -32,6 +32,10 @@
     gap: 18px;
 }
 
+.users-section__toolbar--align-end {
+    justify-content: flex-end;
+}
+
 .users-section__search {
     width: 100%;
     max-width: 420px;

@@ -112,7 +112,11 @@ function getResolvedTeamLeader(team, companyMembers) {
   return null;
 }
 
-export default function TeamsSection({ onOpenTeam }) {
+export default function TeamsSection({
+  onOpenTeam,
+  searchValue,
+  onSearchChange,
+}) {
   const [teams, setTeams] = useState([]);
   const [companyMembers, setCompanyMembers] = useState([]);
   const [teamLeaders, setTeamLeaders] = useState([]);
@@ -141,6 +145,9 @@ export default function TeamsSection({ onOpenTeam }) {
     teamLeaderId: "",
     memberIds: [],
   });
+
+  const isTopbarSearchControlled = typeof searchValue === "string";
+  const effectiveSearchTerm = isTopbarSearchControlled ? searchValue : searchTerm;
 
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
@@ -270,7 +277,7 @@ export default function TeamsSection({ onOpenTeam }) {
   }, [successMessage, errorMessage]);
 
   const filteredTeams = useMemo(() => {
-    const value = searchTerm.trim().toLowerCase();
+    const value = effectiveSearchTerm.trim().toLowerCase();
 
     if (!value) {
       return teams;
@@ -283,7 +290,7 @@ export default function TeamsSection({ onOpenTeam }) {
         (team.teamLeaderName || "").toLowerCase().includes(value)
       );
     });
-  }, [searchTerm, teams]);
+  }, [effectiveSearchTerm, teams]);
 
   const resolvedTeams = useMemo(() => {
     return filteredTeams.map((team) => {
@@ -618,17 +625,7 @@ export default function TeamsSection({ onOpenTeam }) {
         <div className="teams-section__title-line"></div>
       </div>
 
-      <div className="teams-section__toolbar">
-        <div className="teams-section__search">
-          <FiSearch />
-          <input
-            type="text"
-            placeholder="Search teams..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-        </div>
-
+      <div className="teams-section__toolbar teams-section__toolbar--align-end">
         <button
           type="button"
           className="teams-section__create-btn"

@@ -127,7 +127,7 @@ export default function AdminDashboard() {
   };
 
   const shouldShowSearch = () => {
-    return activeSection !== "Settings" && activeSection !== "Profile";
+    return ["Users", "Teams", "TeamDetails"].includes(activeSection);
   };
 
   const getSearchPlaceholder = () => {
@@ -150,11 +150,23 @@ export default function AdminDashboard() {
   const renderSectionContent = () => {
     switch (activeSection) {
       case "Users":
-        return <UsersSection onOpenUser={handleOpenUserDetails} />;
+        return (
+          <UsersSection
+            onOpenUser={handleOpenUserDetails}
+            searchValue={topbarSearch}
+            onSearchChange={setTopbarSearch}
+          />
+        );
 
       case "UserDetails":
         if (!selectedUser) {
-          return <UsersSection onOpenUser={handleOpenUserDetails} />;
+          return (
+            <UsersSection
+              onOpenUser={handleOpenUserDetails}
+              searchValue={topbarSearch}
+              onSearchChange={setTopbarSearch}
+            />
+          );
         }
 
         return (
@@ -172,17 +184,31 @@ export default function AdminDashboard() {
         return <SettingsSection resetSignal={settingsResetSignal} />;
 
       case "Teams":
-        return <TeamsSection onOpenTeam={handleOpenTeamDetails} />;
+        return (
+          <TeamsSection
+            onOpenTeam={handleOpenTeamDetails}
+            searchValue={topbarSearch}
+            onSearchChange={setTopbarSearch}
+          />
+        );
 
       case "TeamDetails":
         if (!selectedTeam) {
-          return <TeamsSection onOpenTeam={handleOpenTeamDetails} />;
+          return (
+            <TeamsSection
+              onOpenTeam={handleOpenTeamDetails}
+              searchValue={topbarSearch}
+              onSearchChange={setTopbarSearch}
+            />
+          );
         }
 
         return (
           <TeamDetailsPage
             team={selectedTeam}
             onBack={handleBackToTeams}
+            searchValue={topbarSearch}
+            onSearchChange={setTopbarSearch}
           />
         );
 
