@@ -9,6 +9,7 @@ import TeamDetailsPage from "../components/admin/TeamDetailsPage";
 import UserDetailsPage from "../components/admin/UserDetailsPage";
 import UsersSection from "../components/admin/UsersSection";
 import "./../assets/styles/admin/admin-dashboard.css";
+import TasksSection from "../components/admin/TasksSection";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("Dashboard");
@@ -137,6 +138,8 @@ export default function AdminDashboard() {
         return "Search teams...";
       case "TeamDetails":
         return "Search team members...";
+      case "Tasks":
+        return "Search tasks...";
       case "Dashboard":
         return "Search...";
       default:
@@ -182,6 +185,9 @@ export default function AdminDashboard() {
             onBack={handleBackToTeams}
           />
         );
+
+      case "Tasks":
+        return <TasksSection />;
 
       case "Dashboard":
         return <DashboardSection />;
