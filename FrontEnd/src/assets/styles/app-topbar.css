@@ -1,15 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@600;700;800&display=swap");
 .admin-topbar {
   width: 100%;
-  min-height: 64px;
+  min-height: 68px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 16px;
-  margin-bottom: 14px;
-  border: 1px solid #e6edf7;
+  padding: 10px 18px;
+  margin: 0;
+  border: none;
   border-radius: 0;
-  background: #ffffff;
+  background: transparent;
+}
+
+.admin-topbar__welcome {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.admin-topbar__welcome strong {
+  font-family: "Raleway", sans-serif;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: #0f172a;
+}
+
+.admin-topbar__welcome-name {
+  color: #1d4ed8;
 }
 
 .admin-topbar__spacer {
@@ -164,7 +185,7 @@
   color: #667085;
   font-size: 0.72rem;
   font-weight: 500;
-  line-height: 1.05;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
@@ -209,5 +230,10 @@
   .admin-topbar__profile {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .admin-topbar__welcome strong {
+    font-size: 1.45rem;
+    white-space: normal;
   }
 }

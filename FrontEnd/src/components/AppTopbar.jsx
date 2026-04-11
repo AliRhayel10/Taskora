@@ -22,8 +22,17 @@ function getUserDisplayName(user) {
   );
 }
 
-function getUserRole(user) {
-  return user?.role || user?.user?.role || "Admin";
+function getUserFirstName(user) {
+  const fullName = getUserDisplayName(user).trim();
+  return fullName.split(/\s+/)[0] || "Admin";
+}
+
+function getUserEmail(user) {
+  return (
+    user?.email ||
+    user?.user?.email ||
+    "No email"
+  );
 }
 
 function getUserImage(user) {
@@ -56,13 +65,18 @@ export default function AppTopbar({
   searchPlaceholder = "Search...",
 }) {
   const displayName = getUserDisplayName(user);
-  const displayRole = getUserRole(user);
+  const firstName = getUserFirstName(user);
+  const email = getUserEmail(user);
   const profileImage = getUserImage(user);
   const initials = getInitials(displayName);
 
   return (
     <header className="admin-topbar">
-      <div className="admin-topbar__spacer"></div>
+<div className="admin-topbar__welcome">
+  <strong>
+    Welcome back, <span className="admin-topbar__welcome-name">{firstName}!</span>
+  </strong>
+</div>
 
       <div className="admin-topbar__right">
         {showSearch && (
@@ -105,6 +119,7 @@ export default function AppTopbar({
 
           <span className="admin-topbar__profile-copy">
             <strong>{displayName}</strong>
+            <small>{email}</small>
           </span>
 
           <FiChevronDown className="admin-topbar__profile-chevron" />
