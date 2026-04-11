@@ -101,6 +101,7 @@ export default function AppTopbar({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -134,7 +135,7 @@ export default function AppTopbar({
       <div className="admin-topbar__welcome">
         <strong>
           Welcome back,{" "}
-          <span className="admin-topbar__welcome-name">{firstName}!</span>
+          <span className="admin-topbar__welcome-name">{firstName}</span>.
         </strong>
       </div>
 
@@ -224,7 +225,7 @@ export default function AppTopbar({
                 onClick={() => handleMenuAction(onOpenProfile)}
               >
                 <FiUser />
-                <span>View Profile</span>
+                <span>Profile</span>
               </button>
 
               <button

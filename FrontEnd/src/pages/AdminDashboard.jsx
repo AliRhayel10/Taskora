@@ -125,18 +125,6 @@ export default function AdminDashboard() {
     setSelectedUser(updatedUser);
   };
 
-  const getTopbarTitle = () => {
-    if (activeSection === "TeamDetails" && selectedTeam?.teamName) {
-      return selectedTeam.teamName;
-    }
-
-    if (activeSection === "UserDetails" && selectedUser?.fullName) {
-      return selectedUser.fullName;
-    }
-
-    return activeSection || "Dashboard";
-  };
-
   const shouldShowSearch = () => {
     return activeSection !== "Settings" && activeSection !== "Profile";
   };
@@ -223,18 +211,19 @@ export default function AdminDashboard() {
               : activeSection
         }
         onSelect={handleSectionSelect}
-        onLogout={handleLogout}
       />
 
       <main className="admin-main">
         <AppTopbar
-          title={getTopbarTitle()}
           user={user}
           showSearch={shouldShowSearch()}
           searchValue={topbarSearch}
           onSearchChange={setTopbarSearch}
           searchPlaceholder={getSearchPlaceholder()}
           notificationCount={0}
+          onOpenProfile={() => handleSectionSelect("Profile")}
+          onOpenSettings={() => handleSectionSelect("Settings")}
+          onLogout={handleLogout}
         />
 
         <div className="admin-main__content">
