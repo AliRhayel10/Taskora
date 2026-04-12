@@ -13,11 +13,17 @@
   padding: 10px 24px;
   margin: 0;
   border: none;
-  border-bottom: 1px solid #e5edf8;
+  border-bottom: 1px solid #dbe7f5;
   border-radius: 0;
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
   overflow: visible;
-  box-shadow: none;
+  box-shadow:
+    0 8px 24px rgba(37, 99, 235, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .admin-topbar::before {
@@ -33,7 +39,7 @@
   color: #64748b;
   font-size: 0.95rem;
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, color 0.25s ease;
 }
 
 .admin-topbar__profile-chevron--open {
@@ -55,11 +61,13 @@
   white-space: nowrap;
   color: #0f172a;
   text-shadow: none;
+  transition: color 0.25s ease;
 }
 
 .admin-topbar__welcome-name {
   color: #2563eb;
   text-shadow: none;
+  transition: color 0.25s ease;
 }
 
 .admin-topbar__right {
@@ -76,11 +84,12 @@
   gap: 8px;
 }
 
-.admin-topbar__search-toggle {
+.admin-topbar__search-toggle,
+.admin-topbar__theme-toggle {
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   color: #475569;
   display: inline-flex;
@@ -90,18 +99,20 @@
   transition:
     color 0.25s ease,
     transform 0.25s ease,
-    opacity 0.25s ease;
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-.admin-topbar__search-toggle:hover {
-  background: transparent;
+.admin-topbar__search-toggle:hover,
+.admin-topbar__theme-toggle:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
   color: #1e293b;
-  opacity: 1;
   transform: translateY(-1px);
-  box-shadow: none;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.08);
 }
 
-.admin-topbar__search-toggle svg {
+.admin-topbar__search-toggle svg,
+.admin-topbar__theme-toggle svg {
   font-size: 1.18rem;
 }
 
@@ -116,15 +127,17 @@
   gap: 10px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 10px;
-  background: #f8fbff;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
   box-shadow: none;
   transition:
     width 0.3s ease,
     max-width 0.3s ease,
     opacity 0.25s ease,
     padding 0.3s ease,
-    border-color 0.3s ease;
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background 0.25s ease;
 }
 
 .admin-topbar__search--open {
@@ -133,12 +146,16 @@
   opacity: 1;
   padding: 0 14px;
   border-color: #dbe7f5;
+  box-shadow:
+    0 10px 22px rgba(37, 99, 235, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .admin-topbar__search-icon {
   color: #64748b;
   font-size: 0.95rem;
   flex-shrink: 0;
+  transition: color 0.25s ease;
 }
 
 .admin-topbar__search input {
@@ -149,6 +166,7 @@
   color: #0f172a;
   font-size: 0.95rem;
   font-weight: 500;
+  transition: color 0.25s ease;
 }
 
 .admin-topbar__search input::placeholder {
@@ -160,7 +178,7 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   color: #475569;
   display: inline-flex;
@@ -170,15 +188,15 @@
   transition:
     color 0.2s ease,
     transform 0.2s ease,
-    opacity 0.2s ease;
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .admin-topbar__alerts:hover {
-  background: transparent;
+  background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
   color: #1e293b;
-  opacity: 1;
   transform: translateY(-1px);
-  box-shadow: none;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.08);
 }
 
 .admin-topbar__alerts svg {
@@ -212,24 +230,24 @@
 .admin-topbar__profile {
   min-height: 48px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: transparent;
-  padding: 4px 2px;
+  padding: 4px 6px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
   box-shadow: none;
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .admin-topbar__profile:hover {
-  background: transparent;
-  opacity: 0.92;
+  background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
   transform: translateY(-1px);
-  box-shadow: none;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.08);
 }
 
 .admin-topbar__profile-avatar {
@@ -245,7 +263,11 @@
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: none;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .admin-topbar__profile-avatar img {
@@ -267,6 +289,7 @@
   font-weight: 800;
   line-height: 1.08;
   white-space: nowrap;
+  transition: color 0.25s ease;
 }
 
 .admin-topbar__profile-copy small {
@@ -275,6 +298,7 @@
   font-weight: 600;
   line-height: 1.12;
   white-space: nowrap;
+  transition: color 0.25s ease;
 }
 
 .admin-topbar__dropdown {
@@ -288,6 +312,10 @@
   box-shadow: 0 20px 44px rgba(15, 23, 42, 0.12);
   padding: 8px;
   z-index: 300;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .admin-topbar__dropdown-item {
@@ -320,6 +348,7 @@
   height: 1px;
   background: #edf2f7;
   margin: 6px 4px;
+  transition: background 0.25s ease;
 }
 
 .admin-topbar__dropdown-item--danger {
@@ -329,6 +358,101 @@
 .admin-topbar__dropdown-item--danger:hover {
   background: #fff4f4;
   color: #b42318;
+}
+
+body.dark .admin-topbar {
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border-bottom-color: #1f2937;
+  box-shadow:
+    0 8px 24px rgba(2, 6, 23, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.02) inset;
+}
+
+body.dark .admin-topbar__profile-chevron,
+body.dark .admin-topbar__search-toggle,
+body.dark .admin-topbar__theme-toggle,
+body.dark .admin-topbar__alerts {
+  color: #cbd5e1;
+}
+
+body.dark .admin-topbar__welcome strong,
+body.dark .admin-topbar__profile-copy strong {
+  color: #f8fafc;
+}
+
+body.dark .admin-topbar__welcome-name {
+  color: #60a5fa;
+}
+
+body.dark .admin-topbar__profile-copy small,
+body.dark .admin-topbar__search-icon {
+  color: #94a3b8;
+}
+
+body.dark .admin-topbar__search-toggle:hover,
+body.dark .admin-topbar__theme-toggle:hover,
+body.dark .admin-topbar__alerts:hover,
+body.dark .admin-topbar__profile:hover {
+  background: linear-gradient(135deg, #1e293b 0%, #172033 100%);
+  color: #f8fafc;
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.25);
+}
+
+body.dark .admin-topbar__search {
+  background: linear-gradient(135deg, #111827 0%, #172033 100%);
+}
+
+body.dark .admin-topbar__search--open {
+  border-color: #334155;
+  box-shadow:
+    0 10px 22px rgba(2, 6, 23, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+body.dark .admin-topbar__search input {
+  color: #f8fafc;
+}
+
+body.dark .admin-topbar__search input::placeholder {
+  color: #64748b;
+}
+
+body.dark .admin-topbar__profile-avatar {
+  background: #1e3a8a;
+  color: #bfdbfe;
+  box-shadow: 0 4px 10px rgba(2, 6, 23, 0.28);
+}
+
+body.dark .admin-topbar__alerts-badge {
+  box-shadow: 0 0 0 2px #0f172a;
+}
+
+body.dark .admin-topbar__dropdown {
+  background: #111827;
+  border-color: #334155;
+  box-shadow: 0 20px 44px rgba(2, 6, 23, 0.35);
+}
+
+body.dark .admin-topbar__dropdown-item {
+  color: #cbd5e1;
+}
+
+body.dark .admin-topbar__dropdown-item:hover {
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+body.dark .admin-topbar__dropdown-divider {
+  background: #334155;
+}
+
+body.dark .admin-topbar__dropdown-item--danger {
+  color: #f87171;
+}
+
+body.dark .admin-topbar__dropdown-item--danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
 }
 
 @media (max-width: 900px) {

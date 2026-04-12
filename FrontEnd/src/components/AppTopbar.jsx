@@ -3,8 +3,10 @@ import {
   FiBell,
   FiChevronDown,
   FiLogOut,
+  FiMoon,
   FiSearch,
   FiSettings,
+  FiSun,
   FiUser,
   FiX,
 } from "react-icons/fi";
@@ -71,6 +73,8 @@ export default function AppTopbar({
   onOpenProfile,
   onOpenSettings,
   onLogout,
+  theme = "light",
+  onToggleTheme,
 }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -186,6 +190,20 @@ export default function AppTopbar({
             </div>
           </div>
         )}
+
+        <button
+          type="button"
+          className="admin-topbar__theme-toggle"
+          onClick={onToggleTheme}
+          aria-label={
+            theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+          }
+          title={
+            theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+          }
+        >
+          {theme === "light" ? <FiMoon /> : <FiSun />}
+        </button>
 
         <button
           type="button"

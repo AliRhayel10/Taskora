@@ -19,11 +19,24 @@ export default function AdminDashboard() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [topbarSearch, setTopbarSearch] = useState("");
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("admin-theme") || "light"
+  );
 
   const storedUser = useMemo(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   }, []);
+
+  useEffect(() => {
+    document.body.classList.remove("light", "dark");
+    document.body.classList.add(theme);
+    localStorage.setItem("admin-theme", theme);
+
+    return () => {
+      document.body.classList.remove("light", "dark");
+    };
+  }, [theme]);
 
   useEffect(() => {
     if (!storedUser) {
@@ -126,8 +139,14 @@ export default function AdminDashboard() {
     setSelectedUser(updatedUser);
   };
 
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
   const shouldShowSearch = () => {
-    return ["Dashboard", "Users", "Teams", "TeamDetails", "Tasks"].includes(activeSection);
+    return ["Dashboard", "Users", "Teams", "TeamDetails", "Tasks"].includes(
+      activeSection
+    );
   };
 
   const getSearchPlaceholder = () => {
@@ -213,18 +232,10 @@ export default function AdminDashboard() {
         );
 
       case "Tasks":
-        return (
-          <TasksSection
-            searchValue={topbarSearch}
-          />
-        );
+        return <TasksSection searchValue={topbarSearch} />;
 
       case "Dashboard":
-        return (
-          <DashboardSection
-            searchValue={topbarSearch}
-          />
-        );
+        return <DashboardSection searchValue={topbarSearch} />;
 
       default:
         return <DashboardSection />;
@@ -264,11 +275,11 @@ export default function AdminDashboard() {
           onOpenProfile={() => handleSectionSelect("Profile")}
           onOpenSettings={() => handleSectionSelect("Settings")}
           onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
         />
 
-        <div className="admin-main__content">
-          {renderSectionContent()}
-        </div>
+        <div className="admin-main__content">{renderSectionContent()}</div>
       </main>
     </div>
   );
