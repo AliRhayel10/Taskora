@@ -10,6 +10,7 @@ import "./../assets/styles/admin/admin-sidebar.css";
 export default function AdminSidebar({
   activeItem = "Dashboard",
   onSelect,
+  theme = "light",
 }) {
   const navItems = [
     { name: "Dashboard", icon: <FiGrid /> },
@@ -22,7 +23,10 @@ export default function AdminSidebar({
     <aside className="admin-sidebar">
       <div className="admin-sidebar__top">
         <div className="admin-sidebar__brand">
-          <BrandLogo subtitle="Admin Panel" />
+          <BrandLogo
+            subtitle="Admin Panel"
+            dark={theme === "dark"}
+          />
         </div>
 
         <div className="admin-sidebar__divider"></div>

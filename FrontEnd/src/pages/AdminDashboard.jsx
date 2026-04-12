@@ -252,17 +252,18 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-layout">
-      <AdminSidebar
-        user={user}
-        activeItem={
-          activeSection === "TeamDetails"
-            ? "Teams"
-            : activeSection === "UserDetails"
-              ? "Users"
-              : activeSection
-        }
-        onSelect={handleSectionSelect}
-      />
+<AdminSidebar
+  user={user}
+  theme={theme}
+  activeItem={
+    activeSection === "TeamDetails"
+      ? "Teams"
+      : activeSection === "UserDetails"
+        ? "Users"
+        : activeSection
+  }
+  onSelect={handleSectionSelect}
+/>
 
       <main className="admin-main">
         <AppTopbar
