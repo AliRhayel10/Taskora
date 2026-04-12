@@ -18,7 +18,7 @@
 
 .team-details-page__title-row h2 {
   margin: 0;
-  color: #0f172a;
+  color: #1e293b;
   font-size: 1.45rem;
   font-weight: 800;
   white-space: nowrap;
@@ -27,14 +27,14 @@
 .team-details-page__title-line {
   flex: 1;
   height: 1px;
-  background: #dbe3ee;
+  background: #cbd5e1;
 }
 
 .team-details-back-btn {
   width: 40px;
   height: 40px;
   border: 1px solid #2563eb;
-  background: #ffffff;
+  background: #f8fafc;
   color: #2563eb;
   border-radius: 10px;
   cursor: pointer;
@@ -78,17 +78,20 @@
   min-width: 0;
   padding: 14px 16px;
   border-radius: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border: 1px solid #e6edf7;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #cbd5e1;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
 }
 
 .team-details-page__mini-stat::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
   width: 4px;
-  border-radius: 16px 0 0 16px;
+  border-radius: 0 6px 6px 0;
 }
 
 .team-details-page__mini-stat--members::before {
@@ -134,7 +137,7 @@
 }
 
 .team-details-page__mini-stat-copy small {
-  color: #667085;
+  color: #64748b;
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -142,7 +145,7 @@
 }
 
 .team-details-page__mini-stat-copy strong {
-  color: #0f172a;
+  color: #1e293b;
   font-size: 1rem;
   font-weight: 800;
   line-height: 1.1;
@@ -155,8 +158,8 @@
   min-width: 0;
   padding: 14px 16px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
-  border: 1px solid #dbe7f5;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  border: 1px solid #cbd5e1;
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
 }
 
@@ -205,7 +208,7 @@
 }
 
 .team-details-page__leader-card-copy strong {
-  color: #111827;
+  color: #1e293b;
   font-size: 0.96rem;
   font-weight: 800;
   line-height: 1.2;
@@ -213,7 +216,7 @@
 }
 
 .team-details-page__leader-card-copy small {
-  color: #667085;
+  color: #64748b;
   font-size: 0.79rem;
   font-weight: 500;
   line-height: 1.2;
@@ -287,7 +290,7 @@
 }
 
 .team-details-page__role-badge--member {
-  background: #f8fafc;
+  background: #f1f5f9;
   color: #475467;
 }
 
@@ -359,7 +362,7 @@
   gap: 10px;
   align-items: center;
   justify-content: center;
-  color: #667085;
+  color: #64748b;
   font-size: 0.96rem;
   font-weight: 600;
 }

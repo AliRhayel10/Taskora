@@ -13,7 +13,7 @@
 
 .settings-page__title-row h2 {
   margin: 0;
-  color: #0f172a;
+  color: #1e293b;
   font-size: 1.45rem;
   font-weight: 800;
   white-space: nowrap;
@@ -22,7 +22,7 @@
 .settings-page__title-line {
   flex: 1;
   height: 1px;
-  background: #dbe3ee;
+  background: #cbd5e1;
 }
 
 .settings-menu-card {
@@ -38,8 +38,8 @@
 
 .settings-menu-item {
   width: 100%;
-  border: 1px solid #e7eef8;
-  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
   border-radius: 20px;
   padding: 18px;
   display: flex;
@@ -55,8 +55,8 @@
 }
 
 .settings-menu-item:hover {
-  border-color: #cfe0ff;
-  background: #f8fbff;
+  border-color: #93c5fd;
+  background: #f1f5f9;
   transform: translateY(-1px);
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.06);
 }
@@ -65,7 +65,7 @@
   width: 58px;
   height: 58px;
   border-radius: 16px;
-  background: #edf3ff;
+  background: #eff6ff;
   color: #2563eb;
   display: inline-flex;
   align-items: center;
@@ -83,7 +83,7 @@
 }
 
 .settings-menu-item__title {
-  color: #0f172a;
+  color: #1e293b;
   font-size: 1.05rem;
   font-weight: 800;
 }
