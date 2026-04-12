@@ -380,10 +380,10 @@ export default function TeamDetailsPage({
 
     const assignedLeader = persistedLeaderId
       ? companyMembers.find(
-          (member) =>
-            String(member.userId) === persistedLeaderId &&
-            isTeamLeaderRole(member.role)
-        )
+        (member) =>
+          String(member.userId) === persistedLeaderId &&
+          isTeamLeaderRole(member.role)
+      )
       : null;
 
     if (assignedLeader) {
@@ -1082,11 +1082,10 @@ export default function TeamDetailsPage({
 
                     <td>
                       <span
-                        className={`team-details-page__role-badge ${
-                          isTeamLeaderRole(member.role)
+                        className={`team-details-page__role-badge ${isTeamLeaderRole(member.role)
                             ? "team-details-page__role-badge--leader"
                             : "team-details-page__role-badge--member"
-                        }`}
+                          }`}
                       >
                         {member.role}
                       </span>
@@ -1094,11 +1093,10 @@ export default function TeamDetailsPage({
 
                     <td>
                       <span
-                        className={`team-details-page__status-pill ${
-                          member.isActive
+                        className={`team-details-page__status-pill ${member.isActive
                             ? "team-details-page__status-pill--active"
                             : "team-details-page__status-pill--inactive"
-                        }`}
+                          }`}
                       >
                         {member.isActive ? "Active" : "Inactive"}
                       </span>
@@ -1108,9 +1106,8 @@ export default function TeamDetailsPage({
                       <div className="team-details-page__row-actions">
                         <button
                           type="button"
-                          className={`teams-section__switch ${
-                            member.isActive ? "teams-section__switch--active" : ""
-                          }`}
+                          className={`teams-section__switch ${member.isActive ? "teams-section__switch--active" : ""
+                            }`}
                           onClick={() => handleToggleMemberStatus(member.userId)}
                           aria-pressed={member.isActive}
                           title={member.isActive ? "Set inactive" : "Set active"}
@@ -1157,9 +1154,8 @@ export default function TeamDetailsPage({
                 <button
                   key={page}
                   type="button"
-                  className={`users-section__page-btn users-section__page-btn--number ${
-                    currentPage === page ? "users-section__page-btn--active" : ""
-                  }`}
+                  className={`users-section__page-btn users-section__page-btn--number ${currentPage === page ? "users-section__page-btn--active" : ""
+                    }`}
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
