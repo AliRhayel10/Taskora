@@ -22,7 +22,7 @@ export default function AdminSidebar({
     <aside className="admin-sidebar">
       <div className="admin-sidebar__top">
         <div className="admin-sidebar__brand">
-          <BrandLogo subtitle="Admin Panel" light />
+          <BrandLogo subtitle="Admin Panel" />
         </div>
 
         <div className="admin-sidebar__divider"></div>
@@ -32,8 +32,9 @@ export default function AdminSidebar({
             <button
               key={item.name}
               type="button"
-              className={`admin-sidebar__link ${activeItem === item.name ? "admin-sidebar__link--active" : ""
-                }`}
+              className={`admin-sidebar__link ${
+                activeItem === item.name ? "admin-sidebar__link--active" : ""
+              }`}
               onClick={() => onSelect(item.name)}
             >
               <span className="admin-sidebar__link-icon">{item.icon}</span>
