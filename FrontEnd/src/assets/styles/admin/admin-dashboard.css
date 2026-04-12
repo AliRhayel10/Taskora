@@ -1,21 +1,30 @@
 .admin-layout {
   min-height: 100vh;
   display: flex;
-  background: #f7f9fc;
+  background: #f8fbff;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
 }
 
 .admin-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f7f9fc;
+  background: #f8fbff;
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
 }
 
 .admin-main__content {
-  padding: 20px 20px 18px;
+  padding: 26px 20px 18px;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
 }
 
 @media (max-width: 980px) {
@@ -24,6 +33,6 @@
   }
 
   .admin-main__content {
-    padding: 6px 18px 18px;
+    padding: 12px 18px 18px;
   }
 }
