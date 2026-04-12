@@ -22,7 +22,7 @@ export default function AdminSidebar({
     <aside className="admin-sidebar">
       <div className="admin-sidebar__top">
         <div className="admin-sidebar__brand">
-          <BrandLogo subtitle="Admin Panel" dark />
+          <BrandLogo subtitle="Admin Panel" light />
         </div>
 
         <div className="admin-sidebar__divider"></div>

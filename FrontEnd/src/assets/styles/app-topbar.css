@@ -13,9 +13,9 @@
   padding: 10px 24px;
   margin: 0;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid #e5edf8;
   border-radius: 0;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #1e40af 100%);
+  background: #ffffff;
   overflow: visible;
   box-shadow: none;
 }
@@ -30,7 +30,7 @@
 }
 
 .admin-topbar__profile-chevron {
-  color: rgba(255, 255, 255, 0.88);
+  color: #64748b;
   font-size: 0.95rem;
   flex-shrink: 0;
   transition: transform 0.2s ease;
@@ -53,12 +53,12 @@
   line-height: 1.08;
   letter-spacing: -0.02em;
   white-space: nowrap;
-  color: #ffffff;
+  color: #0f172a;
   text-shadow: none;
 }
 
 .admin-topbar__welcome-name {
-  color: #dbeafe;
+  color: #2563eb;
   text-shadow: none;
 }
 
@@ -82,7 +82,7 @@
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
+  color: #475569;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -95,8 +95,8 @@
 
 .admin-topbar__search-toggle:hover {
   background: transparent;
-  color: #ffffff;
-  opacity: 0.92;
+  color: #1e293b;
+  opacity: 1;
   transform: translateY(-1px);
   box-shadow: none;
 }
@@ -117,8 +117,7 @@
   padding: 0;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
+  background: #f8fbff;
   box-shadow: none;
   transition:
     width 0.3s ease,
@@ -133,11 +132,11 @@
   max-width: 300px;
   opacity: 1;
   padding: 0 14px;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #dbe7f5;
 }
 
 .admin-topbar__search-icon {
-  color: rgba(255, 255, 255, 0.78);
+  color: #64748b;
   font-size: 0.95rem;
   flex-shrink: 0;
 }
@@ -147,13 +146,13 @@
   border: none;
   outline: none;
   background: transparent;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 0.95rem;
   font-weight: 500;
 }
 
 .admin-topbar__search input::placeholder {
-  color: rgba(255, 255, 255, 0.72);
+  color: #94a3b8;
 }
 
 .admin-topbar__alerts {
@@ -163,7 +162,7 @@
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
+  color: #475569;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -176,8 +175,8 @@
 
 .admin-topbar__alerts:hover {
   background: transparent;
-  color: #ffffff;
-  opacity: 0.92;
+  color: #1e293b;
+  opacity: 1;
   transform: translateY(-1px);
   box-shadow: none;
 }
@@ -202,7 +201,7 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
-  box-shadow: 0 0 0 2px #2563eb;
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
 .admin-topbar__profile-menu-wrap {
@@ -215,7 +214,6 @@
   border: none;
   border-radius: 12px;
   background: transparent;
-  backdrop-filter: none;
   padding: 4px 2px;
   display: inline-flex;
   align-items: center;
@@ -238,8 +236,8 @@
   width: 38px;
   height: 38px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
+  background: #e0ecff;
+  color: #2563eb;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -264,7 +262,7 @@
 }
 
 .admin-topbar__profile-copy strong {
-  color: #ffffff;
+  color: #0f172a;
   font-size: 0.98rem;
   font-weight: 800;
   line-height: 1.08;
@@ -272,7 +270,7 @@
 }
 
 .admin-topbar__profile-copy small {
-  color: rgba(255, 255, 255, 0.78);
+  color: #64748b;
   font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.12;
