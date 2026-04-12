@@ -27,16 +27,14 @@
 }
 
 .admin-sidebar__brand {
-  padding: 8px 10px 14px;
+  padding: 8px 2px 12px;
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 72px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
-  box-shadow:
-    0 10px 24px rgba(59, 130, 246, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   transition:
     background 0.25s ease,
     box-shadow 0.25s ease;
@@ -193,10 +191,8 @@ body.dark .admin-sidebar {
 }
 
 body.dark .admin-sidebar__brand {
-  background: linear-gradient(135deg, #111827 0%, #172033 100%);
-  box-shadow:
-    0 10px 24px rgba(2, 6, 23, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: transparent;
+  box-shadow: none;
 }
 
 body.dark .admin-sidebar__brand-title {
