@@ -950,64 +950,68 @@ export default function TeamDetailsPage({
         </div>
       )}
 
-      <div className="team-details-page__summary-bar">
-        <div className="team-details-page__mini-stats">
-          <div className="team-details-page__mini-stat team-details-page__mini-stat--members">
-            <span className="team-details-page__mini-stat-icon">
-              <FiUsers />
-            </span>
-            <div className="team-details-page__mini-stat-copy">
-              <small>Total Members</small>
-              <strong>{totalMembers}</strong>
-            </div>
-          </div>
+{/* Replace the existing summary bar div with this unified card */}
+<div className="team-details-page__summary-card">
+  <div className="team-details-page__mini-stats">
+    <div className="team-details-page__mini-stat team-details-page__mini-stat--members">
+      <span className="team-details-page__mini-stat-icon">
+        <FiUsers />
+      </span>
+      <div className="team-details-page__mini-stat-copy">
+        <small>Total Members</small>
+        <strong>{totalMembers}</strong>
+      </div>
+    </div>
 
-          <div className="team-details-page__mini-stat team-details-page__mini-stat--active">
-            <span className="team-details-page__mini-stat-icon">
-              <FiActivity />
-            </span>
-            <div className="team-details-page__mini-stat-copy">
-              <small>Active</small>
-              <strong>{activeMembersCount}</strong>
-            </div>
-          </div>
+    <div className="team-details-page__mini-stat team-details-page__mini-stat--active">
+      <span className="team-details-page__mini-stat-icon">
+        <FiActivity />
+      </span>
+      <div className="team-details-page__mini-stat-copy">
+        <small>Active</small>
+        <strong>{activeMembersCount}</strong>
+      </div>
+    </div>
 
-          <div className="team-details-page__mini-stat team-details-page__mini-stat--inactive">
-            <span className="team-details-page__mini-stat-icon">
-              <FiActivity />
-            </span>
-            <div className="team-details-page__mini-stat-copy">
-              <small>Inactive</small>
-              <strong>{inactiveMembersCount}</strong>
-            </div>
-          </div>
-        </div>
+    <div className="team-details-page__mini-stat team-details-page__mini-stat--inactive">
+      <span className="team-details-page__mini-stat-icon">
+        <FiActivity />
+      </span>
+      <div className="team-details-page__mini-stat-copy">
+        <small>Inactive</small>
+        <strong>{inactiveMembersCount}</strong>
+      </div>
+    </div>
+  </div>
 
-        <div className="team-details-page__leader-card">
-          <div className="team-details-page__leader-card-badge">
-            <FiShield />
-          </div>
+  {/* Divider between stats and leader */}
+  <div className="team-details-page__summary-divider"></div>
 
-          <div className="team-details-page__leader-card-content">
-            <span className="team-details-page__leader-card-label">Team Leader</span>
+  <div className="team-details-page__leader-card">
+    <div className="team-details-page__leader-card-badge">
+      <FiShield />
+    </div>
 
-            <div className="team-details-page__leader-card-user">
-              <span className="users-section__avatar">
-                {getInitials(teamLeader?.fullName || "TL")}
-              </span>
+    <div className="team-details-page__leader-card-content">
+      <span className="team-details-page__leader-card-label">Team Leader</span>
 
-              <div className="team-details-page__leader-card-copy">
-                <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
-                <small>{teamLeader?.email || "Leader unavailable"}</small>
-              </div>
-            </div>
-          </div>
+      <div className="team-details-page__leader-card-user">
+        <span className="users-section__avatar">
+          {getInitials(teamLeader?.fullName || "TL")}
+        </span>
 
-          <div className="team-details-page__leader-card-status">
-            <FiUserCheck />
-          </div>
+        <div className="team-details-page__leader-card-copy">
+          <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
+          <small>{teamLeader?.email || "Leader unavailable"}</small>
         </div>
       </div>
+    </div>
+
+    <div className="team-details-page__leader-card-status">
+      <FiUserCheck />
+    </div>
+  </div>
+</div>
 
       <div className="team-details-page__toolbar team-details-page__toolbar--align-end">
         <div className="team-details-page__toolbar-actions">
