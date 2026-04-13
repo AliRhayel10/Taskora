@@ -7,6 +7,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import TeamDetailsPage from "./components/admin/TeamDetailsPage";
+import TeamLeaderLayout from "./components/TeamLeaderSidebar";
 import "./assets/styles/global.css";
 
 export default function App() {
@@ -18,7 +19,7 @@ export default function App() {
 
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
-      <Route path="/teamleader" element={<div>Team Leader Page</div>} />
+      <Route path="/teamleader" element={<TeamLeaderLayout />} />
       <Route path="/employee" element={<div>Employee Page</div>} />
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
