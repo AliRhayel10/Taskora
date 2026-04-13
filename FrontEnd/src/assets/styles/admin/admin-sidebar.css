@@ -354,12 +354,12 @@ body.dark .admin-sidebar__divider {
 }
 
 body.dark .admin-sidebar__link {
-  color: #cbd5e1;
+  color: #ffffff;
 }
 
 body.dark .admin-sidebar__link:hover {
   background: linear-gradient(135deg, #172033 0%, #1f2937 100%);
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 body.dark .admin-sidebar__link--active {
@@ -377,12 +377,12 @@ body.dark .admin-sidebar.collapsed .admin-sidebar__link--active {
 }
 
 body.dark .admin-sidebar__link-icon {
-  color: #94a3b8;
+  color: #ffffff;
 }
 
 body.dark .admin-sidebar__link--active .admin-sidebar__link-icon,
 body.dark .admin-sidebar__link:hover .admin-sidebar__link-icon {
-  color: #93c5fd;
+  color: #ffffff;
 }
 
 body.dark .admin-sidebar__logout {
