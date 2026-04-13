@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 import "./../assets/styles/login.css";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,8 +24,7 @@ export default function LoginPage() {
   };
 
   const isFormValid =
-    formData.email.trim() !== "" &&
-    formData.password.trim() !== "";
+    formData.email.trim() !== "" && formData.password.trim() !== "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,16 +48,41 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify(data));
+      const role = String(data.role || "")
+        .toLowerCase()
+        .trim();
 
-      const role = (data.role || "").toLowerCase().trim();
+      const userPayload = {
+        userId: data.userId,
+        companyId: data.companyId,
+        companyName: data.companyName,
+        fullName: data.fullName,
+        email: data.email,
+        role: data.role,
+        profileImageUrl: data.profileImageUrl,
+        jobTitle: data.jobTitle,
+        token: data.token,
+      };
 
-      if (role === "admin" || role === "company admin" || role === "companyadmin") {
-        window.location.href = "/admin";
+      if (
+        role === "admin" ||
+        role === "company admin" ||
+        role === "companyadmin"
+      ) {
+        navigate("/admin", {
+          state: { user: userPayload },
+          replace: true,
+        });
       } else if (role === "team leader" || role === "teamleader") {
-        window.location.href = "/teamleader";
+        navigate("/teamleader", {
+          state: { user: userPayload },
+          replace: true,
+        });
       } else {
-        window.location.href = "/employee";
+        navigate("/employee", {
+          state: { user: userPayload },
+          replace: true,
+        });
       }
     } catch (error) {
       console.error(error);

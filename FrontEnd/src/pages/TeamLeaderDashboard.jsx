@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TeamLeaderSidebar from "../components/TeamLeaderSidebar";
 import AppTopbar from "../components/AppTopbar";
@@ -23,18 +23,44 @@ export default function TeamLeaderDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [searchValue, setSearchValue] = useState("");
 
-  const user = location.state?.user || {
-    fullName: "Team Leader",
-    email: "teamleader@example.com",
-  };
+  const user = useMemo(() => {
+    const routeUser = location.state?.user;
+
+    if (!routeUser) return null;
+
+    return {
+      userId: routeUser.userId,
+      companyId: routeUser.companyId,
+      companyName: routeUser.companyName || "",
+      fullName: routeUser.fullName || "Team Leader",
+      email: routeUser.email || "",
+      role: routeUser.role || "Team Leader",
+      profileImageUrl: routeUser.profileImageUrl || "",
+      jobTitle: routeUser.jobTitle || "",
+      token: routeUser.token || "",
+    };
+  }, [location.state]);
 
   useEffect(() => {
     document.body.classList.toggle("dark", theme === "dark");
+    return () => {
+      document.body.classList.remove("dark");
+    };
   }, [theme]);
 
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, navigate]);
+
   const handleLogout = () => {
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="admin-layout">
@@ -49,7 +75,7 @@ export default function TeamLeaderDashboard() {
           user={user}
           searchValue={searchValue}
           onSearchChange={setSearchValue}
-          notificationCount={3}
+          notificationCount={0}
           showSearch={true}
           searchPlaceholder="Search tasks, team members..."
           onOpenProfile={() => {}}
