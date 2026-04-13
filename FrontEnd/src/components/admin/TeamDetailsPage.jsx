@@ -1399,13 +1399,11 @@ export default function TeamDetailsPage({
             <FiUserCheck />
           </div>
         </div>
-      </div>
 
-      <div className="team-details-page__toolbar team-details-page__toolbar--align-end">
-        <div className="team-details-page__toolbar-actions">
+        <div className="team-details-page__summary-actions">
           <button
             type="button"
-            className="teams-section__members-btn"
+            className="teams-section__members-btn team-details-page__summary-btn"
             onClick={() => openMembersModal("members")}
           >
             <FiPlus />
@@ -1414,7 +1412,7 @@ export default function TeamDetailsPage({
 
           <button
             type="button"
-            className="teams-section__members-btn"
+            className="teams-section__members-btn team-details-page__summary-btn"
             onClick={() => openMembersModal("leader")}
           >
             <FiUser />
