@@ -26,7 +26,7 @@ body {
 }
 
 .admin-main__content {
-  padding: 26px 20px 18px;
+  padding: 40px 20px 18px;
   background: transparent;
   transition:
     background 0.25s ease,

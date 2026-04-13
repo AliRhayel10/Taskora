@@ -3,6 +3,7 @@ import {
   FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
+  FiChevronDown,
   FiPlus,
   FiSearch,
   FiTrash2,
@@ -148,6 +149,56 @@ function getCompanyMemberId(member) {
   return String(member?.userId || member?.id || member?.UserId || "");
 }
 
+function compareTextValues(firstValue, secondValue, direction = "asc") {
+  const normalizedFirst = String(firstValue || "").trim().toLowerCase();
+  const normalizedSecond = String(secondValue || "").trim().toLowerCase();
+  const result = normalizedFirst.localeCompare(normalizedSecond);
+  return direction === "asc" ? result : -result;
+}
+
+function compareRoleValues(firstRole, secondRole, direction = "asc") {
+  const rolePriority = {
+    employee: 1,
+    "team leader": 2,
+    teamleader: 2,
+  };
+
+  const normalizedFirst = normalizeRole(firstRole);
+  const normalizedSecond = normalizeRole(secondRole);
+
+  const firstPriority = rolePriority[normalizedFirst] ?? 99;
+  const secondPriority = rolePriority[normalizedSecond] ?? 99;
+
+  if (firstPriority !== secondPriority) {
+    return direction === "asc"
+      ? firstPriority - secondPriority
+      : secondPriority - firstPriority;
+  }
+
+  return compareTextValues(normalizedFirst, normalizedSecond, direction);
+}
+
+function compareStatusValues(firstStatus, secondStatus, direction = "asc") {
+  const statusPriority = {
+    active: 1,
+    inactive: 2,
+  };
+
+  const normalizedFirst = String(firstStatus || "").trim().toLowerCase();
+  const normalizedSecond = String(secondStatus || "").trim().toLowerCase();
+
+  const firstPriority = statusPriority[normalizedFirst] ?? 99;
+  const secondPriority = statusPriority[normalizedSecond] ?? 99;
+
+  if (firstPriority !== secondPriority) {
+    return direction === "asc"
+      ? firstPriority - secondPriority
+      : secondPriority - firstPriority;
+  }
+
+  return compareTextValues(normalizedFirst, normalizedSecond, direction);
+}
+
 export default function TeamDetailsPage({
   team,
   onBack,
@@ -169,6 +220,10 @@ export default function TeamDetailsPage({
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [memberImageErrors, setMemberImageErrors] = useState({});
+  const [sortConfig, setSortConfig] = useState({
+    key: "",
+    direction: "desc",
+  });
 
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [memberManagementMode, setMemberManagementMode] = useState("members");
@@ -187,6 +242,24 @@ export default function TeamDetailsPage({
       ...prev,
       [memberId]: true,
     }));
+  };
+
+  const toggleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) {
+        return {
+          key,
+          direction: "desc",
+        };
+      }
+
+      return {
+        key,
+        direction: prev.direction === "desc" ? "asc" : "desc",
+      };
+    });
+
+    setCurrentPage(1);
   };
 
   useEffect(() => {
@@ -210,13 +283,16 @@ export default function TeamDetailsPage({
     }
 
     setTeamState((prev) => {
-      const nextMemberIds = Array.isArray(latestTeam.memberIds) ? latestTeam.memberIds : [];
+      const nextMemberIds = Array.isArray(latestTeam.memberIds)
+        ? latestTeam.memberIds
+        : [];
       const prevMemberIds = Array.isArray(prev?.memberIds) ? prev.memberIds : [];
       const sameLeader =
         String(prev?.teamLeaderId || prev?.teamLeaderUserId || "") ===
         String(latestTeam.teamLeaderId || latestTeam.teamLeaderUserId || "");
       const sameMembers =
-        JSON.stringify(prevMemberIds.map(String)) === JSON.stringify(nextMemberIds.map(String));
+        JSON.stringify(prevMemberIds.map(String)) ===
+        JSON.stringify(nextMemberIds.map(String));
       const sameName = (prev?.teamName || "") === (latestTeam.teamName || "");
 
       if (sameLeader && sameMembers && sameName) {
@@ -227,8 +303,10 @@ export default function TeamDetailsPage({
         ...prev,
         ...latestTeam,
         memberIds: nextMemberIds,
-        teamLeaderId: latestTeam.teamLeaderId ?? latestTeam.teamLeaderUserId ?? null,
-        teamLeaderUserId: latestTeam.teamLeaderUserId ?? latestTeam.teamLeaderId ?? null,
+        teamLeaderId:
+          latestTeam.teamLeaderId ?? latestTeam.teamLeaderUserId ?? null,
+        teamLeaderUserId:
+          latestTeam.teamLeaderUserId ?? latestTeam.teamLeaderId ?? null,
       };
     });
   }, [allTeams, team, teamState?.teamId]);
@@ -315,19 +393,33 @@ export default function TeamDetailsPage({
 
   useEffect(() => {
     const teamId = teamState?.teamId;
-    const activeMemberIds = Array.isArray(teamState?.memberIds) ? teamState.memberIds : [];
-    const assignedLeaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
+    const activeMemberIds = Array.isArray(teamState?.memberIds)
+      ? teamState.memberIds
+      : [];
+    const assignedLeaderId = String(
+      teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
+    );
     const cachedMembers = readCachedTeamMembers(teamId);
     const availableMembers = Array.isArray(companyMembers)
-      ? companyMembers.filter((member) => (member?.userId ?? member?.UserId ?? member?.id) != null)
+      ? companyMembers.filter(
+          (member) => (member?.userId ?? member?.UserId ?? member?.id) != null
+        )
       : [];
 
     const availableMembersMap = new Map(
-      availableMembers.map((member) => [String(member.userId ?? member.UserId ?? member.id), member])
+      availableMembers.map((member) => [
+        String(member.userId ?? member.UserId ?? member.id),
+        member,
+      ])
     );
-    const assignedLeader = assignedLeaderId ? availableMembersMap.get(assignedLeaderId) : null;
+    const assignedLeader = assignedLeaderId
+      ? availableMembersMap.get(assignedLeaderId)
+      : null;
 
-    let leaderId = assignedLeader && isTeamLeaderRole(assignedLeader.role) ? assignedLeaderId : "";
+    let leaderId =
+      assignedLeader && isTeamLeaderRole(assignedLeader.role)
+        ? assignedLeaderId
+        : "";
 
     if (!leaderId) {
       const eligibleLeaderIds = activeMemberIds
@@ -358,76 +450,76 @@ export default function TeamDetailsPage({
       .filter(Boolean)
       .filter((value, index, array) => array.indexOf(value) === index);
 
-const resolvedMembers = orderedIds.map((memberId) => {
-  const numericMemberId = Number(memberId);
-  const foundMember = availableMembersMap.get(String(memberId));
-  const cachedMember = cachedMembersMap.get(String(memberId));
+    const resolvedMembers = orderedIds.map((memberId) => {
+      const numericMemberId = Number(memberId);
+      const foundMember = availableMembersMap.get(String(memberId));
+      const cachedMember = cachedMembersMap.get(String(memberId));
 
-  const resolvedIsActive =
-    typeof foundMember?.isActive === "boolean"
-      ? foundMember.isActive
-      : typeof foundMember?.IsActive === "boolean"
-        ? foundMember.IsActive
-        : typeof foundMember?.active === "boolean"
-          ? foundMember.active
-          : typeof cachedMember?.isActive === "boolean"
-            ? cachedMember.isActive
-            : typeof cachedMember?.IsActive === "boolean"
-              ? cachedMember.IsActive
-              : typeof cachedMember?.active === "boolean"
-                ? cachedMember.active
-                : true;
+      const resolvedIsActive =
+        typeof foundMember?.isActive === "boolean"
+          ? foundMember.isActive
+          : typeof foundMember?.IsActive === "boolean"
+            ? foundMember.IsActive
+            : typeof foundMember?.active === "boolean"
+              ? foundMember.active
+              : typeof cachedMember?.isActive === "boolean"
+                ? cachedMember.isActive
+                : typeof cachedMember?.IsActive === "boolean"
+                  ? cachedMember.IsActive
+                  : typeof cachedMember?.active === "boolean"
+                    ? cachedMember.active
+                    : true;
 
-  const resolvedUserRole =
-    foundMember?.role ||
-    foundMember?.Role ||
-    cachedMember?.userRole ||
-    cachedMember?.role ||
-    "Employee";
+      const resolvedUserRole =
+        foundMember?.role ||
+        foundMember?.Role ||
+        cachedMember?.userRole ||
+        cachedMember?.role ||
+        "Employee";
 
-  return {
-    userId: numericMemberId,
-    fullName:
-      foundMember?.fullName ||
-      foundMember?.FullName ||
-      cachedMember?.fullName ||
-      "Unknown Member",
-    email:
-      foundMember?.email ||
-      foundMember?.Email ||
-      cachedMember?.email ||
-      "No email available",
-    jobType:
-      foundMember?.jobType ||
-      foundMember?.JobType ||
-      foundMember?.jobTitle ||
-      foundMember?.JobTitle ||
-      cachedMember?.jobType ||
-      "No job type available",
-    role: resolvedUserRole,
-    teamPosition: String(memberId) === leaderId ? "Team Leader" : "Member",
-    userRole: resolvedUserRole,
-    isActive: resolvedIsActive,
-    profileImageUrl:
-      foundMember?.profileImageUrl ||
-      foundMember?.ProfileImageUrl ||
-      foundMember?.imageUrl ||
-      foundMember?.ImageUrl ||
-      foundMember?.avatar ||
-      foundMember?.Avatar ||
-      foundMember?.profileImage ||
-      foundMember?.ProfileImage ||
-      cachedMember?.profileImageUrl ||
-      cachedMember?.ProfileImageUrl ||
-      cachedMember?.imageUrl ||
-      cachedMember?.ImageUrl ||
-      cachedMember?.avatar ||
-      cachedMember?.Avatar ||
-      cachedMember?.profileImage ||
-      cachedMember?.ProfileImage ||
-      "",
-  };
-});
+      return {
+        userId: numericMemberId,
+        fullName:
+          foundMember?.fullName ||
+          foundMember?.FullName ||
+          cachedMember?.fullName ||
+          "Unknown Member",
+        email:
+          foundMember?.email ||
+          foundMember?.Email ||
+          cachedMember?.email ||
+          "No email available",
+        jobType:
+          foundMember?.jobType ||
+          foundMember?.JobType ||
+          foundMember?.jobTitle ||
+          foundMember?.JobTitle ||
+          cachedMember?.jobType ||
+          "No job type available",
+        role: resolvedUserRole,
+        teamPosition: String(memberId) === leaderId ? "Team Leader" : "Member",
+        userRole: resolvedUserRole,
+        isActive: resolvedIsActive,
+        profileImageUrl:
+          foundMember?.profileImageUrl ||
+          foundMember?.ProfileImageUrl ||
+          foundMember?.imageUrl ||
+          foundMember?.ImageUrl ||
+          foundMember?.avatar ||
+          foundMember?.Avatar ||
+          foundMember?.profileImage ||
+          foundMember?.ProfileImage ||
+          cachedMember?.profileImageUrl ||
+          cachedMember?.ProfileImageUrl ||
+          cachedMember?.imageUrl ||
+          cachedMember?.ImageUrl ||
+          cachedMember?.avatar ||
+          cachedMember?.Avatar ||
+          cachedMember?.profileImage ||
+          cachedMember?.ProfileImage ||
+          "",
+      };
+    });
 
     setMembers(resolvedMembers);
     writeCachedTeamMembers(teamId, resolvedMembers);
@@ -484,13 +576,16 @@ const resolvedMembers = orderedIds.map((memberId) => {
             typeof teamState?.isActive === "boolean" ? teamState.isActive : true,
         };
 
-        const response = await fetch(`${API_BASE_URL}/api/teams/${teamState.teamId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/api/teams/${teamState.teamId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
 
         const data = await parseJsonResponse(response);
 
@@ -551,12 +646,78 @@ const resolvedMembers = orderedIds.map((memberId) => {
     });
   }, [members, effectiveSearchTerm]);
 
+  const filteredMembersWithOriginalOrder = useMemo(() => {
+    return filteredMembers.map((member, index) => ({
+      member,
+      originalIndex: index,
+    }));
+  }, [filteredMembers]);
+
+  const sortedMembers = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredMembersWithOriginalOrder.map(({ member }) => member);
+    }
+
+    const sortableMembers = [...filteredMembersWithOriginalOrder];
+
+    sortableMembers.sort((firstEntry, secondEntry) => {
+      const firstMember = firstEntry.member;
+      const secondMember = secondEntry.member;
+      let result = 0;
+
+      switch (sortConfig.key) {
+        case "member":
+          result = compareTextValues(
+            firstMember.fullName,
+            secondMember.fullName,
+            sortConfig.direction
+          );
+          break;
+        case "jobType":
+          result = compareTextValues(
+            firstMember.jobType,
+            secondMember.jobType,
+            sortConfig.direction
+          );
+          break;
+        case "role":
+          result = compareRoleValues(
+            firstMember.role,
+            secondMember.role,
+            sortConfig.direction
+          );
+          break;
+        case "status":
+          result = compareStatusValues(
+            firstMember.isActive ? "Active" : "Inactive",
+            secondMember.isActive ? "Active" : "Inactive",
+            sortConfig.direction
+          );
+          break;
+        default:
+          result = 0;
+      }
+
+      if (result !== 0) {
+        return result;
+      }
+
+      return firstEntry.originalIndex - secondEntry.originalIndex;
+    });
+
+    return sortableMembers.map(({ member }) => member);
+  }, [filteredMembersWithOriginalOrder, sortConfig]);
+
   useEffect(() => {
-    const totalPagesCount = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
+    const totalPagesCount = Math.max(
+      1,
+      Math.ceil(sortedMembers.length / MEMBERS_PER_PAGE)
+    );
+
     if (currentPage > totalPagesCount) {
       setCurrentPage(totalPagesCount);
     }
-  }, [currentPage, filteredMembers.length]);
+  }, [currentPage, sortedMembers.length]);
 
   const title = teamState?.teamName || "Team";
 
@@ -590,12 +751,12 @@ const resolvedMembers = orderedIds.map((memberId) => {
   const activeMembersCount = members.filter((member) => member.isActive).length;
   const inactiveMembersCount = members.filter((member) => !member.isActive).length;
 
-  const totalFilteredMembers = filteredMembers.length;
+  const totalFilteredMembers = sortedMembers.length;
   const totalPages = Math.max(1, Math.ceil(totalFilteredMembers / MEMBERS_PER_PAGE));
   const startIndex =
     totalFilteredMembers === 0 ? 0 : (currentPage - 1) * MEMBERS_PER_PAGE;
   const endIndex = Math.min(startIndex + MEMBERS_PER_PAGE, totalFilteredMembers);
-  const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+  const paginatedMembers = sortedMembers.slice(startIndex, endIndex);
 
   const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
     Math.max(0, currentPage - 2),
@@ -653,7 +814,8 @@ const resolvedMembers = orderedIds.map((memberId) => {
     const activeLeader = activeMembers.find(
       (member) =>
         member.teamPosition === "Team Leader" ||
-        (member.role === "Team Leader" && isTeamLeaderRole(member.userRole || member.role))
+        (member.role === "Team Leader" &&
+          isTeamLeaderRole(member.userRole || member.role))
     );
 
     if (teamState?.isActive !== false && !activeLeader) {
@@ -805,9 +967,7 @@ const resolvedMembers = orderedIds.map((memberId) => {
             : typeof returnedUser?.active === "boolean"
               ? returnedUser.active
               : nextIsActive,
-      status:
-        returnedUser?.status ||
-        (nextIsActive ? "Active" : "Inactive"),
+      status: returnedUser?.status || (nextIsActive ? "Active" : "Inactive"),
     };
   };
 
@@ -855,7 +1015,10 @@ const resolvedMembers = orderedIds.map((memberId) => {
       }
 
       const nextIsActive = !existingMember.isActive;
-      const updatedMember = await updateUserActivityOnBackend(existingMember, nextIsActive);
+      const updatedMember = await updateUserActivityOnBackend(
+        existingMember,
+        nextIsActive
+      );
 
       const nextMembers = members.map((member) =>
         String(member.userId) === String(memberId)
@@ -923,7 +1086,9 @@ const resolvedMembers = orderedIds.map((memberId) => {
         }
 
         const itemTeamId = String(item.teamId || "");
-        const itemLeaderId = String(item.teamLeaderId || item.teamLeaderUserId || "");
+        const itemLeaderId = String(
+          item.teamLeaderId || item.teamLeaderUserId || ""
+        );
 
         return itemTeamId !== currentTeamId && itemLeaderId === employeeId;
       });
@@ -939,7 +1104,11 @@ const resolvedMembers = orderedIds.map((memberId) => {
       const fullName = (employee.fullName || "").toLowerCase();
       const email = (employee.email || "").toLowerCase();
       const role = (employee.role || "").toLowerCase();
-      const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
+      const jobTitle = (
+        employee.jobTitle ||
+        employee.jobType ||
+        ""
+      ).toLowerCase();
 
       return (
         fullName.includes(value) ||
@@ -972,7 +1141,9 @@ const resolvedMembers = orderedIds.map((memberId) => {
         }
 
         const itemTeamId = String(item.teamId || "");
-        const itemLeaderId = String(item.teamLeaderId || item.teamLeaderUserId || "");
+        const itemLeaderId = String(
+          item.teamLeaderId || item.teamLeaderUserId || ""
+        );
         const itemMemberIds = Array.isArray(item.memberIds)
           ? item.memberIds.map((id) => String(id))
           : [];
@@ -994,7 +1165,11 @@ const resolvedMembers = orderedIds.map((memberId) => {
       const fullName = (employee.fullName || "").toLowerCase();
       const email = (employee.email || "").toLowerCase();
       const role = (employee.role || "").toLowerCase();
-      const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
+      const jobTitle = (
+        employee.jobTitle ||
+        employee.jobType ||
+        ""
+      ).toLowerCase();
 
       return (
         fullName.includes(value) ||
@@ -1021,7 +1196,8 @@ const resolvedMembers = orderedIds.map((memberId) => {
 
     setEditForm((prev) => {
       const currentLeaderId = String(prev.teamLeaderId || "");
-      const nextLeaderId = currentLeaderId === normalizedLeaderId ? "" : normalizedLeaderId;
+      const nextLeaderId =
+        currentLeaderId === normalizedLeaderId ? "" : normalizedLeaderId;
 
       const leaderIds = new Set(
         filteredTeamLeaders.map((leader) => String(leader.userId))
@@ -1050,7 +1226,9 @@ const resolvedMembers = orderedIds.map((memberId) => {
       const selectedIds = editForm.memberIds.map((id) => String(id));
       const selectedLeaderId = String(editForm.teamLeaderId || "");
       const currentActiveIds = new Set(
-        (Array.isArray(teamState?.memberIds) ? teamState.memberIds : []).map((id) => String(id))
+        (Array.isArray(teamState?.memberIds) ? teamState.memberIds : []).map((id) =>
+          String(id)
+        )
       );
 
       const preservedInactiveMembers = members.filter(
@@ -1065,9 +1243,7 @@ const resolvedMembers = orderedIds.map((memberId) => {
           companyMembers.find((member) => String(member.userId) === String(id));
 
         const resolvedUserRole =
-          existingMember?.role ||
-          existingMember?.userRole ||
-          "Employee";
+          existingMember?.role || existingMember?.userRole || "Employee";
 
         return {
           userId: Number(id),
@@ -1112,9 +1288,7 @@ const resolvedMembers = orderedIds.map((memberId) => {
   };
 
   const membersModalTitle =
-    memberManagementMode === "members"
-      ? "Add Members"
-      : "Manage Leader";
+    memberManagementMode === "members" ? "Add Members" : "Manage Leader";
 
   const membersModalDescription =
     memberManagementMode === "members"
@@ -1192,16 +1366,22 @@ const resolvedMembers = orderedIds.map((memberId) => {
           </div>
 
           <div className="team-details-page__leader-card-content">
-            <span className="team-details-page__leader-card-label">Team Leader</span>
+            <span className="team-details-page__leader-card-label">
+              Team Leader
+            </span>
 
             <div className="team-details-page__leader-card-user">
               <span className="users-section__avatar">
-                {teamLeader && getUserProfileImage(teamLeader) && !memberImageErrors[`leader-${teamLeader.userId}`] ? (
+                {teamLeader &&
+                getUserProfileImage(teamLeader) &&
+                !memberImageErrors[`leader-${teamLeader.userId}`] ? (
                   <img
                     src={getUserProfileImage(teamLeader)}
                     alt={teamLeader.fullName || "Team Leader"}
                     className="users-section__avatar-image"
-                    onError={() => handleMemberImageError(`leader-${teamLeader.userId}`)}
+                    onError={() =>
+                      handleMemberImageError(`leader-${teamLeader.userId}`)
+                    }
                   />
                 ) : (
                   getInitials(teamLeader?.fullName || "TL")
@@ -1248,10 +1428,94 @@ const resolvedMembers = orderedIds.map((memberId) => {
           <table className="users-section__table team-details-page__table">
             <thead>
               <tr>
-                <th>Member</th>
-                <th>Job Type</th>
-                <th>Role</th>
-                <th>Status</th>
+                <th>
+                  <button
+                    type="button"
+                    className="users-section__sort-btn"
+                    onClick={() => toggleSort("member")}
+                  >
+                    <span>Member</span>
+                    <FiChevronDown
+                      className={`users-section__sort-icon ${
+                        sortConfig.key === "member"
+                          ? "users-section__sort-icon--active"
+                          : ""
+                      } ${
+                        sortConfig.key === "member" &&
+                        sortConfig.direction === "asc"
+                          ? "users-section__sort-icon--asc"
+                          : ""
+                      }`}
+                    />
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    className="users-section__sort-btn"
+                    onClick={() => toggleSort("jobType")}
+                  >
+                    <span>Job Type</span>
+                    <FiChevronDown
+                      className={`users-section__sort-icon ${
+                        sortConfig.key === "jobType"
+                          ? "users-section__sort-icon--active"
+                          : ""
+                      } ${
+                        sortConfig.key === "jobType" &&
+                        sortConfig.direction === "asc"
+                          ? "users-section__sort-icon--asc"
+                          : ""
+                      }`}
+                    />
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    className="users-section__sort-btn"
+                    onClick={() => toggleSort("role")}
+                  >
+                    <span>Role</span>
+                    <FiChevronDown
+                      className={`users-section__sort-icon ${
+                        sortConfig.key === "role"
+                          ? "users-section__sort-icon--active"
+                          : ""
+                      } ${
+                        sortConfig.key === "role" &&
+                        sortConfig.direction === "asc"
+                          ? "users-section__sort-icon--asc"
+                          : ""
+                      }`}
+                    />
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    className="users-section__sort-btn"
+                    onClick={() => toggleSort("status")}
+                  >
+                    <span>Status</span>
+                    <FiChevronDown
+                      className={`users-section__sort-icon ${
+                        sortConfig.key === "status"
+                          ? "users-section__sort-icon--active"
+                          : ""
+                      } ${
+                        sortConfig.key === "status" &&
+                        sortConfig.direction === "asc"
+                          ? "users-section__sort-icon--asc"
+                          : ""
+                      }`}
+                    />
+                  </button>
+                </th>
+
                 <th className="team-details-page__actions-col">Actions</th>
               </tr>
             </thead>
@@ -1280,7 +1544,8 @@ const resolvedMembers = orderedIds.map((memberId) => {
                     <td>
                       <div className="users-section__user-cell">
                         <span className="users-section__avatar">
-                          {getUserProfileImage(member) && !memberImageErrors[member.userId] ? (
+                          {getUserProfileImage(member) &&
+                          !memberImageErrors[member.userId] ? (
                             <img
                               src={getUserProfileImage(member)}
                               alt={member.fullName || member.email}
@@ -1390,7 +1655,9 @@ const resolvedMembers = orderedIds.map((memberId) => {
               <button
                 type="button"
                 className="users-section__page-btn"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
                 disabled={currentPage === totalPages}
               >
                 <FiChevronRight />
@@ -1452,7 +1719,8 @@ const resolvedMembers = orderedIds.map((memberId) => {
 
                       {filteredTeamLeaders.map((employee) => {
                         const employeeId = String(employee.userId);
-                        const isChecked = String(editForm.teamLeaderId || "") === employeeId;
+                        const isChecked =
+                          String(editForm.teamLeaderId || "") === employeeId;
 
                         return (
                           <label
@@ -1462,16 +1730,23 @@ const resolvedMembers = orderedIds.map((memberId) => {
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              onChange={() => handleToggleLeaderInsideMembers(employeeId)}
+                              onChange={() =>
+                                handleToggleLeaderInsideMembers(employeeId)
+                              }
                             />
 
                             <span className="teams-section__member-avatar">
-                              {getUserProfileImage(employee) && !memberImageErrors[`modal-leader-${employeeId}`] ? (
+                              {getUserProfileImage(employee) &&
+                              !memberImageErrors[`modal-leader-${employeeId}`] ? (
                                 <img
                                   src={getUserProfileImage(employee)}
                                   alt={employee.fullName || employee.email}
                                   className="teams-section__member-avatar-image"
-                                  onError={() => handleMemberImageError(`modal-leader-${employeeId}`)}
+                                  onError={() =>
+                                    handleMemberImageError(
+                                      `modal-leader-${employeeId}`
+                                    )
+                                  }
                                 />
                               ) : (
                                 <span className="teams-section__member-avatar-fallback">
@@ -1549,12 +1824,17 @@ const resolvedMembers = orderedIds.map((memberId) => {
                             />
 
                             <span className="teams-section__member-avatar">
-                              {getUserProfileImage(employee) && !memberImageErrors[`modal-member-${employeeId}`] ? (
+                              {getUserProfileImage(employee) &&
+                              !memberImageErrors[`modal-member-${employeeId}`] ? (
                                 <img
                                   src={getUserProfileImage(employee)}
                                   alt={employee.fullName || employee.email}
                                   className="teams-section__member-avatar-image"
-                                  onError={() => handleMemberImageError(`modal-member-${employeeId}`)}
+                                  onError={() =>
+                                    handleMemberImageError(
+                                      `modal-member-${employeeId}`
+                                    )
+                                  }
                                 />
                               ) : (
                                 <span className="teams-section__member-avatar-fallback">

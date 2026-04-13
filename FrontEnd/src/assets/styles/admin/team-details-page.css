@@ -297,6 +297,10 @@
   min-width: 980px;
 }
 
+.team-details-page__table thead th {
+  white-space: nowrap;
+}
+
 .team-details-page__role-badge {
   display: inline-flex;
   align-items: center;
@@ -393,6 +397,39 @@
 .team-details-page__empty svg {
   font-size: 1.4rem;
   color: #94a3b8;
+}
+
+/* Sort header fallback styling */
+.users-section__sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.users-section__sort-btn:hover {
+  color: #2563eb;
+}
+
+.users-section__sort-icon {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.users-section__sort-icon--active {
+  color: #2563eb;
+}
+
+.users-section__sort-icon--asc {
+  transform: rotate(180deg);
 }
 
 /* Avatar images */

@@ -395,7 +395,6 @@ export default function UsersSection({
             ];
 
             let resolvedPayload = null;
-            
 
             for (const url of candidateUrls) {
                 try {
@@ -514,13 +513,6 @@ export default function UsersSection({
                     result = compareTextValues(
                         getUserName(firstUser),
                         getUserName(secondUser),
-                        sortConfig.direction
-                    );
-                    break;
-                case "email":
-                    result = compareTextValues(
-                        firstUser?.email || "",
-                        secondUser?.email || "",
                         sortConfig.direction
                     );
                     break;
@@ -877,12 +869,6 @@ export default function UsersSection({
                                         </button>
                                     </th>
                                     <th>
-                                        <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("email")}>
-                                            <span>Email</span>
-                                            <FiChevronDown className={sortConfig.key === "email" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
-                                        </button>
-                                    </th>
-                                    <th>
                                         <button type="button" className="users-section__sort-btn" onClick={() => toggleSort("role")}>
                                             <span>Role</span>
                                             <FiChevronDown className={sortConfig.key === "role" ? "users-section__sort-icon users-section__sort-icon--active" : "users-section__sort-icon"} />
@@ -946,10 +932,10 @@ export default function UsersSection({
                                                     </div>
                                                     <div className="users-section__user-details">
                                                         <strong>{name}</strong>
+                                                        <small>{email}</small>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>{email}</td>
                                             <td>{role}</td>
                                             <td>{jobType}</td>
                                             <td>{team}</td>
@@ -991,10 +977,7 @@ export default function UsersSection({
                         <div className="users-section__pagination-info">
                             {totalUsers === 0
                                 ? "0 users"
-                                : `${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(
-                                    currentPage * PAGE_SIZE,
-                                    totalUsers
-                                )} of ${totalUsers} users`}
+                                : `${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(currentPage * PAGE_SIZE, totalUsers)} of ${totalUsers} users`}
                         </div>
 
                         <div className="users-section__pagination-controls">
@@ -1012,8 +995,7 @@ export default function UsersSection({
                                 <button
                                     key={pageNumber}
                                     type="button"
-                                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === pageNumber ? "users-section__page-btn--active" : ""
-                                        }`}
+                                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === pageNumber ? "users-section__page-btn--active" : ""}`}
                                     onClick={() => setCurrentPage(pageNumber)}
                                 >
                                     {pageNumber}
@@ -1164,10 +1146,7 @@ export default function UsersSection({
                                     />
                                     {emailTouched && (
                                         <span
-                                            className={`users-section__input-badge ${emailIsValid
-                                                    ? "users-section__input-badge--success"
-                                                    : "users-section__input-badge--error"
-                                                }`}
+                                            className={`users-section__input-badge ${emailIsValid ? "users-section__input-badge--success" : "users-section__input-badge--error"}`}
                                         >
                                             {emailIsValid ? "Valid" : "Invalid"}
                                         </span>
@@ -1182,19 +1161,14 @@ export default function UsersSection({
                                 <div className="users-section__password-field">
                                     <input
                                         type={showPassword ? "text" : "password"}
-                                        className={
-                                            passwordTouched ? (passwordIsStrong ? "input-success" : "input-error") : ""
-                                        }
+                                        className={passwordTouched ? (passwordIsStrong ? "input-success" : "input-error") : ""}
                                         value={createForm.password}
                                         onChange={(event) => handleCreateFormChange("password", event.target.value)}
                                         placeholder="Enter password"
                                     />
                                     {passwordTouched && (
                                         <span
-                                            className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong
-                                                    ? "users-section__input-badge--success"
-                                                    : "users-section__input-badge--error"
-                                                }`}
+                                            className={`users-section__input-badge users-section__input-badge--password ${passwordIsStrong ? "users-section__input-badge--success" : "users-section__input-badge--error"}`}
                                         >
                                             {passwordIsStrong ? "Strong" : "Weak"}
                                         </span>

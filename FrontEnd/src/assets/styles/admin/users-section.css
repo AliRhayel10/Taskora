@@ -185,12 +185,12 @@
 .users-section__table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 900px;
+    min-width: 820px;
 }
 
 .users-section__table thead th {
     padding: 14px 16px;
-    background: #f1f5f9;
+    background: #eaf2ff;
     border-bottom: 1px solid #cbd5e1;
     color: #1e293b;
     font-size: 0.98rem;
@@ -318,7 +318,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
-    max-width: 190px;
+    max-width: 220px;
+}
+
+.users-section__user-details small {
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 220px;
 }
 
 .users-section__status {
@@ -898,7 +909,8 @@
         font-size: 0.72rem;
     }
 
-    .users-section__user-details strong {
+    .users-section__user-details strong,
+    .users-section__user-details small {
         max-width: 140px;
     }
 }
