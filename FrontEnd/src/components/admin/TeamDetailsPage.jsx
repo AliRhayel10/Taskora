@@ -94,6 +94,35 @@ function getInitials(value) {
   return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
 }
 
+function getUserProfileImage(user) {
+  const rawValue =
+    user?.profileImageUrl ||
+    user?.ProfileImageUrl ||
+    user?.imageUrl ||
+    user?.ImageUrl ||
+    user?.avatar ||
+    user?.Avatar ||
+    user?.profileImage ||
+    user?.ProfileImage ||
+    "";
+
+  const value = String(rawValue || "").trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  if (value.startsWith("/")) {
+    return `${API_BASE_URL}${value}`;
+  }
+
+  return `${API_BASE_URL}/${value}`;
+}
+
 function normalizeRole(value) {
   return String(value || "")
     .trim()
@@ -139,6 +168,7 @@ export default function TeamDetailsPage({
   const [memberToDelete, setMemberToDelete] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [memberImageErrors, setMemberImageErrors] = useState({});
 
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [memberManagementMode, setMemberManagementMode] = useState("members");
@@ -151,6 +181,13 @@ export default function TeamDetailsPage({
 
   const isTopbarSearchControlled = typeof searchValue === "string";
   const effectiveSearchTerm = isTopbarSearchControlled ? searchValue : searchTerm;
+
+  const handleMemberImageError = (memberId) => {
+    setMemberImageErrors((prev) => ({
+      ...prev,
+      [memberId]: true,
+    }));
+  };
 
   useEffect(() => {
     setTeamState(team || null);
@@ -304,6 +341,7 @@ export default function TeamDetailsPage({
         leaderId = eligibleLeaderIds[0];
       }
     }
+
     const availableMemberIds = new Set(Array.from(availableMembersMap.keys()));
 
     const cachedMembersMap = new Map(
@@ -358,6 +396,24 @@ export default function TeamDetailsPage({
         teamPosition: String(memberId) === leaderId ? "Team Leader" : "Member",
         userRole: resolvedUserRole,
         isActive,
+        profileImageUrl:
+          foundMember?.profileImageUrl ||
+          foundMember?.ProfileImageUrl ||
+          foundMember?.imageUrl ||
+          foundMember?.ImageUrl ||
+          foundMember?.avatar ||
+          foundMember?.Avatar ||
+          foundMember?.profileImage ||
+          foundMember?.ProfileImage ||
+          cachedMember?.profileImageUrl ||
+          cachedMember?.ProfileImageUrl ||
+          cachedMember?.imageUrl ||
+          cachedMember?.ImageUrl ||
+          cachedMember?.avatar ||
+          cachedMember?.Avatar ||
+          cachedMember?.profileImage ||
+          cachedMember?.ProfileImage ||
+          "",
       };
     });
 
@@ -380,10 +436,10 @@ export default function TeamDetailsPage({
 
     const assignedLeader = persistedLeaderId
       ? companyMembers.find(
-        (member) =>
-          String(member.userId) === persistedLeaderId &&
-          isTeamLeaderRole(member.role)
-      )
+          (member) =>
+            String(member.userId) === persistedLeaderId &&
+            isTeamLeaderRole(member.role)
+        )
       : null;
 
     if (assignedLeader) {
@@ -484,9 +540,9 @@ export default function TeamDetailsPage({
   }, [members, effectiveSearchTerm]);
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+    const totalPagesCount = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
+    if (currentPage > totalPagesCount) {
+      setCurrentPage(totalPagesCount);
     }
   }, [currentPage, filteredMembers.length]);
 
@@ -647,6 +703,24 @@ export default function TeamDetailsPage({
           activeLeader && String(member.userId) === String(activeLeader.userId)
             ? "Team Leader"
             : "Member",
+        profileImageUrl:
+          companyMember?.profileImageUrl ||
+          companyMember?.ProfileImageUrl ||
+          companyMember?.imageUrl ||
+          companyMember?.ImageUrl ||
+          companyMember?.avatar ||
+          companyMember?.Avatar ||
+          companyMember?.profileImage ||
+          companyMember?.ProfileImage ||
+          member?.profileImageUrl ||
+          member?.ProfileImageUrl ||
+          member?.imageUrl ||
+          member?.ImageUrl ||
+          member?.avatar ||
+          member?.Avatar ||
+          member?.profileImage ||
+          member?.ProfileImage ||
+          "",
       };
     });
 
@@ -890,6 +964,16 @@ export default function TeamDetailsPage({
           teamPosition: String(id) === selectedLeaderId ? "Team Leader" : "Member",
           userRole: resolvedUserRole,
           isActive: true,
+          profileImageUrl:
+            existingMember?.profileImageUrl ||
+            existingMember?.ProfileImageUrl ||
+            existingMember?.imageUrl ||
+            existingMember?.ImageUrl ||
+            existingMember?.avatar ||
+            existingMember?.Avatar ||
+            existingMember?.profileImage ||
+            existingMember?.ProfileImage ||
+            "",
         };
       });
 
@@ -950,68 +1034,75 @@ export default function TeamDetailsPage({
         </div>
       )}
 
-{/* Replace the existing summary bar div with this unified card */}
-<div className="team-details-page__summary-card">
-  <div className="team-details-page__mini-stats">
-    <div className="team-details-page__mini-stat team-details-page__mini-stat--members">
-      <span className="team-details-page__mini-stat-icon">
-        <FiUsers />
-      </span>
-      <div className="team-details-page__mini-stat-copy">
-        <small>Total Members</small>
-        <strong>{totalMembers}</strong>
-      </div>
-    </div>
+      <div className="team-details-page__summary-card">
+        <div className="team-details-page__mini-stats">
+          <div className="team-details-page__mini-stat team-details-page__mini-stat--members">
+            <span className="team-details-page__mini-stat-icon">
+              <FiUsers />
+            </span>
+            <div className="team-details-page__mini-stat-copy">
+              <small>Total Members</small>
+              <strong>{totalMembers}</strong>
+            </div>
+          </div>
 
-    <div className="team-details-page__mini-stat team-details-page__mini-stat--active">
-      <span className="team-details-page__mini-stat-icon">
-        <FiActivity />
-      </span>
-      <div className="team-details-page__mini-stat-copy">
-        <small>Active</small>
-        <strong>{activeMembersCount}</strong>
-      </div>
-    </div>
+          <div className="team-details-page__mini-stat team-details-page__mini-stat--active">
+            <span className="team-details-page__mini-stat-icon">
+              <FiActivity />
+            </span>
+            <div className="team-details-page__mini-stat-copy">
+              <small>Active</small>
+              <strong>{activeMembersCount}</strong>
+            </div>
+          </div>
 
-    <div className="team-details-page__mini-stat team-details-page__mini-stat--inactive">
-      <span className="team-details-page__mini-stat-icon">
-        <FiActivity />
-      </span>
-      <div className="team-details-page__mini-stat-copy">
-        <small>Inactive</small>
-        <strong>{inactiveMembersCount}</strong>
-      </div>
-    </div>
-  </div>
+          <div className="team-details-page__mini-stat team-details-page__mini-stat--inactive">
+            <span className="team-details-page__mini-stat-icon">
+              <FiActivity />
+            </span>
+            <div className="team-details-page__mini-stat-copy">
+              <small>Inactive</small>
+              <strong>{inactiveMembersCount}</strong>
+            </div>
+          </div>
+        </div>
 
-  {/* Divider between stats and leader */}
-  <div className="team-details-page__summary-divider"></div>
+        <div className="team-details-page__summary-divider"></div>
 
-  <div className="team-details-page__leader-card">
-    <div className="team-details-page__leader-card-badge">
-      <FiShield />
-    </div>
+        <div className="team-details-page__leader-card">
+          <div className="team-details-page__leader-card-badge">
+            <FiShield />
+          </div>
 
-    <div className="team-details-page__leader-card-content">
-      <span className="team-details-page__leader-card-label">Team Leader</span>
+          <div className="team-details-page__leader-card-content">
+            <span className="team-details-page__leader-card-label">Team Leader</span>
 
-      <div className="team-details-page__leader-card-user">
-        <span className="users-section__avatar">
-          {getInitials(teamLeader?.fullName || "TL")}
-        </span>
+            <div className="team-details-page__leader-card-user">
+              <span className="users-section__avatar">
+                {teamLeader && getUserProfileImage(teamLeader) && !memberImageErrors[`leader-${teamLeader.userId}`] ? (
+                  <img
+                    src={getUserProfileImage(teamLeader)}
+                    alt={teamLeader.fullName || "Team Leader"}
+                    className="users-section__avatar-image"
+                    onError={() => handleMemberImageError(`leader-${teamLeader.userId}`)}
+                  />
+                ) : (
+                  getInitials(teamLeader?.fullName || "TL")
+                )}
+              </span>
 
-        <div className="team-details-page__leader-card-copy">
-          <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
-          <small>{teamLeader?.email || "Leader unavailable"}</small>
+              <div className="team-details-page__leader-card-copy">
+                <strong>{teamLeader?.fullName || "No team leader assigned"}</strong>
+                <small>{teamLeader?.email || "Leader unavailable"}</small>
+              </div>
+            </div>
+          </div>
+
+          <div className="team-details-page__leader-card-status">
+            <FiUserCheck />
+          </div>
         </div>
       </div>
-    </div>
-
-    <div className="team-details-page__leader-card-status">
-      <FiUserCheck />
-    </div>
-  </div>
-</div>
 
       <div className="team-details-page__toolbar team-details-page__toolbar--align-end">
         <div className="team-details-page__toolbar-actions">
@@ -1072,7 +1163,16 @@ export default function TeamDetailsPage({
                     <td>
                       <div className="users-section__user-cell">
                         <span className="users-section__avatar">
-                          {getInitials(member.fullName || member.email)}
+                          {getUserProfileImage(member) && !memberImageErrors[member.userId] ? (
+                            <img
+                              src={getUserProfileImage(member)}
+                              alt={member.fullName || member.email}
+                              className="users-section__avatar-image"
+                              onError={() => handleMemberImageError(member.userId)}
+                            />
+                          ) : (
+                            getInitials(member.fullName || member.email)
+                          )}
                         </span>
 
                         <span className="users-section__user-details">
@@ -1086,10 +1186,11 @@ export default function TeamDetailsPage({
 
                     <td>
                       <span
-                        className={`team-details-page__role-badge ${isTeamLeaderRole(member.role)
+                        className={`team-details-page__role-badge ${
+                          isTeamLeaderRole(member.role)
                             ? "team-details-page__role-badge--leader"
                             : "team-details-page__role-badge--member"
-                          }`}
+                        }`}
                       >
                         {member.role}
                       </span>
@@ -1097,10 +1198,11 @@ export default function TeamDetailsPage({
 
                     <td>
                       <span
-                        className={`team-details-page__status-pill ${member.isActive
+                        className={`team-details-page__status-pill ${
+                          member.isActive
                             ? "team-details-page__status-pill--active"
                             : "team-details-page__status-pill--inactive"
-                          }`}
+                        }`}
                       >
                         {member.isActive ? "Active" : "Inactive"}
                       </span>
@@ -1110,8 +1212,9 @@ export default function TeamDetailsPage({
                       <div className="team-details-page__row-actions">
                         <button
                           type="button"
-                          className={`teams-section__switch ${member.isActive ? "teams-section__switch--active" : ""
-                            }`}
+                          className={`teams-section__switch ${
+                            member.isActive ? "teams-section__switch--active" : ""
+                          }`}
                           onClick={() => handleToggleMemberStatus(member.userId)}
                           aria-pressed={member.isActive}
                           title={member.isActive ? "Set inactive" : "Set active"}
@@ -1158,8 +1261,9 @@ export default function TeamDetailsPage({
                 <button
                   key={page}
                   type="button"
-                  className={`users-section__page-btn users-section__page-btn--number ${currentPage === page ? "users-section__page-btn--active" : ""
-                    }`}
+                  className={`users-section__page-btn users-section__page-btn--number ${
+                    currentPage === page ? "users-section__page-btn--active" : ""
+                  }`}
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
@@ -1245,7 +1349,18 @@ export default function TeamDetailsPage({
                             />
 
                             <span className="teams-section__member-avatar">
-                              {getInitials(employee.fullName || employee.email)}
+                              {getUserProfileImage(employee) && !memberImageErrors[`modal-leader-${employeeId}`] ? (
+                                <img
+                                  src={getUserProfileImage(employee)}
+                                  alt={employee.fullName || employee.email}
+                                  className="teams-section__member-avatar-image"
+                                  onError={() => handleMemberImageError(`modal-leader-${employeeId}`)}
+                                />
+                              ) : (
+                                <span className="teams-section__member-avatar-fallback">
+                                  {getInitials(employee.fullName || employee.email)}
+                                </span>
+                              )}
                             </span>
 
                             <span className="teams-section__member-copy">
@@ -1317,7 +1432,18 @@ export default function TeamDetailsPage({
                             />
 
                             <span className="teams-section__member-avatar">
-                              {getInitials(employee.fullName || employee.email)}
+                              {getUserProfileImage(employee) && !memberImageErrors[`modal-member-${employeeId}`] ? (
+                                <img
+                                  src={getUserProfileImage(employee)}
+                                  alt={employee.fullName || employee.email}
+                                  className="teams-section__member-avatar-image"
+                                  onError={() => handleMemberImageError(`modal-member-${employeeId}`)}
+                                />
+                              ) : (
+                                <span className="teams-section__member-avatar-fallback">
+                                  {getInitials(employee.fullName || employee.email)}
+                                </span>
+                              )}
                             </span>
 
                             <span className="teams-section__member-copy">

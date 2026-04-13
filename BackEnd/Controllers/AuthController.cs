@@ -213,7 +213,8 @@ namespace BackEnd.Controllers
                         .FirstOrDefault() ?? "Employee",
                     jobType = u.JobTitle,
                     team = "Unassigned",
-                    isActive = true
+                    isActive = true,
+                    profileImageUrl = u.ProfileImageUrl
                 })
                 .ToListAsync();
 

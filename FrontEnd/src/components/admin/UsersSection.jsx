@@ -81,6 +81,35 @@ function getUserJobType(user) {
     return user?.jobType?.trim() || user?.jobTitle?.trim() || "No job type";
 }
 
+function getUserProfileImage(user) {
+    const rawValue =
+        user?.profileImageUrl ||
+        user?.ProfileImageUrl ||
+        user?.imageUrl ||
+        user?.ImageUrl ||
+        user?.avatar ||
+        user?.Avatar ||
+        user?.profileImage ||
+        user?.ProfileImage ||
+        "";
+
+    const value = String(rawValue || "").trim();
+
+    if (!value) {
+        return "";
+    }
+
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+        return value;
+    }
+
+    if (value.startsWith("/")) {
+        return `${API_BASE_URL}${value}`;
+    }
+
+    return `${API_BASE_URL}/${value}`;
+}
+
 function normalizeRole(value) {
     return String(value || "")
         .trim()
@@ -253,10 +282,10 @@ export default function UsersSection({
         key: "",
         direction: "asc",
     });
+    const [userImageErrors, setUserImageErrors] = useState({});
 
     const isTopbarSearchControlled = typeof searchValue === "string";
     const effectiveSearchTerm = isTopbarSearchControlled ? searchValue : searchTerm;
-
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
@@ -289,6 +318,13 @@ export default function UsersSection({
         createForm.role.trim() &&
         emailIsValid &&
         passwordIsStrong;
+
+    const handleUserImageError = (userId) => {
+        setUserImageErrors((prev) => ({
+            ...prev,
+            [userId]: true,
+        }));
+    };
 
     const fetchTeams = async (abortSignal) => {
         if (!companyId) {
@@ -353,6 +389,7 @@ export default function UsersSection({
             ];
 
             let resolvedPayload = null;
+            
 
             for (const url of candidateUrls) {
                 try {
@@ -559,7 +596,6 @@ export default function UsersSection({
 
         setCreateForm((prev) => ({ ...prev, [field]: value }));
     };
-
 
     const openDeleteModal = (user) => {
         setCreateError("");
@@ -878,6 +914,7 @@ export default function UsersSection({
                                     const jobType = getUserJobType(user);
                                     const team = getResolvedUserTeam(user, teams);
                                     const status = getUserStatus(user);
+                                    const profileImage = getUserProfileImage(user);
                                     const rowClass = index % 2 === 0
                                         ? "users-section__row--odd"
                                         : "users-section__row--even";
@@ -890,7 +927,18 @@ export default function UsersSection({
                                         <tr key={String(userId)} className={rowClass}>
                                             <td>
                                                 <div className="users-section__user-cell">
-                                                    <div className="users-section__avatar">{getInitials(name)}</div>
+                                                    <div className="users-section__avatar">
+                                                        {profileImage && !userImageErrors[String(userId)] ? (
+                                                            <img
+                                                                src={profileImage}
+                                                                alt={name}
+                                                                className="users-section__avatar-image"
+                                                                onError={() => handleUserImageError(String(userId))}
+                                                            />
+                                                        ) : (
+                                                            getInitials(name)
+                                                        )}
+                                                    </div>
                                                     <div className="users-section__user-details">
                                                         <strong>{name}</strong>
                                                     </div>

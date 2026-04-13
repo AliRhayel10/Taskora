@@ -59,9 +59,33 @@ function isTeamLeaderRole(value) {
   return role === "team leader" || role === "teamleader";
 }
 
-function isEmployeeRole(value) {
-  const role = normalizeRole(value);
-  return role === "employee";
+function getUserProfileImage(user) {
+  const rawValue =
+    user?.profileImageUrl ||
+    user?.ProfileImageUrl ||
+    user?.imageUrl ||
+    user?.ImageUrl ||
+    user?.avatar ||
+    user?.Avatar ||
+    user?.profileImage ||
+    user?.ProfileImage ||
+    "";
+
+  const value = String(rawValue || "").trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  if (value.startsWith("/")) {
+    return `${API_BASE_URL}${value}`;
+  }
+
+  return `${API_BASE_URL}/${value}`;
 }
 
 function getResolvedTeamLeader(team, companyMembers) {
@@ -71,6 +95,7 @@ function getResolvedTeamLeader(team, companyMembers) {
         userId: team.teamLeaderId || team.teamLeaderUserId || null,
         fullName: team.teamLeaderName,
         role: "Team Leader",
+        profileImageUrl: team.teamLeaderProfileImage || "",
       };
     }
 
@@ -84,7 +109,7 @@ function getResolvedTeamLeader(team, companyMembers) {
 
   if (leaderId) {
     const assignedLeader = companyMembers.find(
-      (member) => String(member.userId || "") === leaderId
+      (member) => String(member.userId || member.UserId || member.id || "") === leaderId
     );
 
     if (assignedLeader) {
@@ -93,7 +118,7 @@ function getResolvedTeamLeader(team, companyMembers) {
   }
 
   const eligibleLeaders = companyMembers.filter((member) => {
-    const memberId = String(member.userId || "");
+    const memberId = String(member.userId || member.UserId || member.id || "");
     return memberIds.includes(memberId) && isTeamLeaderRole(member.role);
   });
 
@@ -106,6 +131,7 @@ function getResolvedTeamLeader(team, companyMembers) {
       userId: team.teamLeaderId || team.teamLeaderUserId || null,
       fullName: team.teamLeaderName,
       role: "Team Leader",
+      profileImageUrl: team.teamLeaderProfileImage || "",
     };
   }
 
@@ -131,6 +157,8 @@ export default function TeamsSection({
   const [activeMenuTeamId, setActiveMenuTeamId] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [isStatusActive, setIsStatusActive] = useState(true);
+  const [leaderImageErrors, setLeaderImageErrors] = useState({});
+  const [createLeaderImageErrors, setCreateLeaderImageErrors] = useState({});
 
   const [teamForm, setTeamForm] = useState({
     teamName: "",
@@ -152,6 +180,20 @@ export default function TeamsSection({
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
   const menuRef = useRef(null);
+
+  const handleLeaderImageError = (teamId) => {
+    setLeaderImageErrors((prev) => ({
+      ...prev,
+      [teamId]: true,
+    }));
+  };
+
+  const handleCreateLeaderImageError = (leaderId) => {
+    setCreateLeaderImageErrors((prev) => ({
+      ...prev,
+      [leaderId]: true,
+    }));
+  };
 
   const fetchTeams = async () => {
     if (!companyId) {
@@ -202,25 +244,27 @@ export default function TeamsSection({
     }
   };
 
-  const fetchCompanyMembers = async () => {
-    if (!companyId) return;
+const fetchCompanyMembers = async () => {
+  if (!companyId) return;
 
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/teams/company/${companyId}/members`
-      );
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/teams/company/${companyId}/members`
+    );
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to load company members.");
-      }
+    console.log("company members response:", data);
 
-      setCompanyMembers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to fetch company members:", error);
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to load company members.");
     }
-  };
+
+    setCompanyMembers(Array.isArray(data) ? data : []);
+  } catch (error) {
+    console.error("Failed to fetch company members:", error);
+  }
+};
 
   const fetchTeamLeaders = async () => {
     if (!companyId) return;
@@ -295,12 +339,18 @@ export default function TeamsSection({
   const resolvedTeams = useMemo(() => {
     return filteredTeams.map((team) => {
       const resolvedLeader = getResolvedTeamLeader(team, companyMembers);
+      const resolvedLeaderName =
+        resolvedLeader?.fullName ||
+        resolvedLeader?.FullName ||
+        resolvedLeader?.name ||
+        team.teamLeaderName ||
+        "";
 
       return {
         ...team,
         resolvedTeamLeader: resolvedLeader,
-        resolvedTeamLeaderName:
-          resolvedLeader?.fullName || team.teamLeaderName || "",
+        resolvedTeamLeaderName: resolvedLeaderName,
+        resolvedTeamLeaderImage: getUserProfileImage(resolvedLeader),
       };
     });
   }, [filteredTeams, companyMembers]);
@@ -861,7 +911,18 @@ export default function TeamsSection({
                     ) : team.resolvedTeamLeaderName ? (
                       <div className="teams-section__leader-summary">
                         <span className="teams-section__leader-avatar">
-                          {getInitials(team.resolvedTeamLeaderName)}
+                          {team.resolvedTeamLeaderImage && !leaderImageErrors[team.teamId] ? (
+                            <img
+                              src={team.resolvedTeamLeaderImage}
+                              alt={team.resolvedTeamLeaderName}
+                              className="teams-section__leader-avatar-image"
+                              onError={() => handleLeaderImageError(team.teamId)}
+                            />
+                          ) : (
+                            <span className="teams-section__leader-avatar-fallback">
+                              {getInitials(team.resolvedTeamLeaderName)}
+                            </span>
+                          )}
                         </span>
 
                         <span className="teams-section__leader-copy">
@@ -992,6 +1053,7 @@ export default function TeamsSection({
                     {filteredCreateTeamLeaders.map((employee) => {
                       const employeeId = String(employee.userId);
                       const isChecked = String(teamForm.teamLeaderId || "") === employeeId;
+                      const employeeImage = getUserProfileImage(employee);
 
                       return (
                         <label
@@ -1005,7 +1067,18 @@ export default function TeamsSection({
                           />
 
                           <span className="teams-section__member-avatar">
-                            {getInitials(employee.fullName || employee.email)}
+                            {employeeImage && !createLeaderImageErrors[employeeId] ? (
+                              <img
+                                src={employeeImage}
+                                alt={employee.fullName || employee.email}
+                                className="teams-section__member-avatar-image"
+                                onError={() => handleCreateLeaderImageError(employeeId)}
+                              />
+                            ) : (
+                              <span className="teams-section__member-avatar-fallback">
+                                {getInitials(employee.fullName || employee.email)}
+                              </span>
+                            )}
                           </span>
 
                           <span className="teams-section__member-copy">

@@ -293,6 +293,14 @@
     font-size: 0.9rem;
     font-weight: 700;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.users-section__avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .users-section__user-details {
@@ -681,64 +689,6 @@
     transform: none;
 }
 
-@media (max-width: 860px) {
-    .users-section__toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .users-section__search {
-        max-width: none;
-    }
-
-    .users-section__create-btn {
-        width: 100%;
-    }
-}
-
-@media (max-width: 700px) {
-    .users-section__title-row h2 {
-        font-size: 1.2rem;
-    }
-
-    .users-section__input-wrap input {
-        padding-right: 72px;
-    }
-
-    .users-section__password-field input {
-        padding-right: 118px;
-    }
-
-    .users-section__input-badge {
-        font-size: 0.72rem;
-    }
-
-    .users-section__user-details strong {
-        max-width: 140px;
-    }
-}
-
-@media (max-width: 560px) {
-    .users-section__modal {
-        padding: 20px 16px;
-        border-radius: 20px;
-    }
-
-    .users-section__form-actions {
-        flex-direction: column;
-    }
-
-    .users-section__secondary-btn,
-    .users-section__submit-btn {
-        width: 100%;
-    }
-
-    .users-section__status-row {
-        align-items: center;
-        flex-wrap: wrap;
-    }
-}
-
 .users-section__actions {
     display: flex;
     align-items: center;
@@ -914,4 +864,62 @@
 .users-section__submit-btn--danger:hover {
     background: #b91c1c;
     border-color: #b91c1c;
+}
+
+@media (max-width: 860px) {
+    .users-section__toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .users-section__search {
+        max-width: none;
+    }
+
+    .users-section__create-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 700px) {
+    .users-section__title-row h2 {
+        font-size: 1.2rem;
+    }
+
+    .users-section__input-wrap input {
+        padding-right: 72px;
+    }
+
+    .users-section__password-field input {
+        padding-right: 118px;
+    }
+
+    .users-section__input-badge {
+        font-size: 0.72rem;
+    }
+
+    .users-section__user-details strong {
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 560px) {
+    .users-section__modal {
+        padding: 20px 16px;
+        border-radius: 20px;
+    }
+
+    .users-section__form-actions {
+        flex-direction: column;
+    }
+
+    .users-section__secondary-btn,
+    .users-section__submit-btn {
+        width: 100%;
+    }
+
+    .users-section__status-row {
+        align-items: center;
+        flex-wrap: wrap;
+    }
 }

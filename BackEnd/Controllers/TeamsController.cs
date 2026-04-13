@@ -130,7 +130,8 @@ namespace BackEnd.Controllers
                     fullName = user.FullName,
                     email = user.Email,
                     role = role != null ? role.RoleName : "Employee",
-                    jobTitle = user.JobTitle
+                    jobTitle = user.JobTitle,
+                    profileImageUrl = user.ProfileImageUrl
                 }
             ).ToListAsync();
 
@@ -181,7 +182,7 @@ namespace BackEnd.Controllers
                     email = member.email,
                     role = IsTeamLeader(member.role) ? "Team Leader" : "Employee",
                     jobTitle = member.jobTitle,
-                    jobType = member.jobTitle
+                    profileImageUrl = member.profileImageUrl
                 })
                 .OrderBy(member => member.fullName)
                 .ThenBy(member => member.email)
