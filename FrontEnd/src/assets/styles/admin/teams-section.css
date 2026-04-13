@@ -1,14 +1,18 @@
 .teams-section {
   width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow: hidden;
 }
 
 .teams-section__title-row {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
 }
 
 .teams-section__title-row h2 {
@@ -25,11 +29,23 @@
   background: #cbd5e1;
 }
 
+.teams-section__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 4px;
+}
+
 .teams-section__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  flex-shrink: 0;
 }
 
 .teams-section__toolbar--align-end {

@@ -705,30 +705,182 @@ export default function TeamsSection({
         <div className="teams-section__title-line"></div>
       </div>
 
-      <div className="teams-section__toolbar teams-section__toolbar--align-end">
-        <button
-          type="button"
-          className="teams-section__create-btn"
-          onClick={openCreateModal}
-        >
-          <FiPlus />
-          <span>Create Team</span>
-        </button>
+      <div className="teams-section__scroll">
+        <div className="teams-section__toolbar teams-section__toolbar--align-end">
+          <button
+            type="button"
+            className="teams-section__create-btn"
+            onClick={openCreateModal}
+          >
+            <FiPlus />
+            <span>Create Team</span>
+          </button>
+        </div>
+
+        {successMessage && (
+          <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
+            <FiCheckCircle />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && (
+          <div className="teams-section__feedback teams-section__feedback--floating teams-section__feedback--floating-error">
+            <FiSlash />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="teams-section__state-card">
+            <p>Loading teams...</p>
+          </div>
+        )}
+
+        {!isLoading && !errorMessage && filteredTeams.length === 0 && (
+          <div className="teams-section__state-card">
+            <div className="teams-section__state-icon">
+              <FiBriefcase />
+            </div>
+            <h3>No teams yet</h3>
+            <p>Created teams will appear here after they are saved in the backend.</p>
+          </div>
+        )}
+
+        {!isLoading && resolvedTeams.length > 0 && (
+          <div className="teams-section__grid">
+            {resolvedTeams.map((team) => (
+              <article key={team.teamId} className="teams-section__card teams-section__card--compact">
+                <div className="teams-section__card-top">
+                  <div className="teams-section__card-heading">
+                    <div className="teams-section__card-title-row">
+                      <button
+                        type="button"
+                        className="teams-section__title-link"
+                        onClick={() => {
+                          if (typeof onOpenTeam === "function") {
+                            onOpenTeam(team);
+                          }
+                        }}
+                      >
+                        {team.teamName}
+                      </button>
+                    </div>
+                    <p>{team.description || "No description added yet."}</p>
+                  </div>
+
+                  <div
+                    className="teams-section__menu"
+                    ref={activeMenuTeamId === team.teamId ? menuRef : null}
+                  >
+                    <div className="teams-section__menu-top">
+                      <button
+                        type="button"
+                        className="teams-section__icon-btn"
+                        aria-label={`More actions for ${team.teamName}`}
+                        onClick={() =>
+                          setActiveMenuTeamId((prev) =>
+                            prev === team.teamId ? null : team.teamId
+                          )
+                        }
+                      >
+                        <FiMoreHorizontal />
+                      </button>
+                    </div>
+
+                    <span
+                      className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
+                      aria-label={team.isActive ? "Active" : "Inactive"}
+                      title={team.isActive ? "Active" : "Inactive"}
+                    >
+                      {team.isActive ? <FiCheckCircle /> : <FiSlash />}
+                    </span>
+
+                    {activeMenuTeamId === team.teamId && (
+                      <div className="teams-section__menu-dropdown">
+                        <button
+                          type="button"
+                          className="teams-section__menu-item"
+                          onClick={() => openEditPanel(team)}
+                        >
+                          <FiEdit2 />
+                          <span>Edit Team</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="teams-section__menu-item teams-section__menu-item--danger"
+                          onClick={() => openDeleteModal(team)}
+                        >
+                          <FiTrash2 />
+                          <span>Delete Team</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="teams-section__card-bottom">
+                  <div className="teams-section__card-middle">
+                    <div className="teams-section__meta">
+                      {!team.isActive ? (
+                        <div className="teams-section__leader-unavailable">
+                          <span className="teams-section__leader-unavailable-icon">
+                            <FiSlash />
+                          </span>
+
+                          <span className="teams-section__leader-unavailable-copy">
+                            <strong>Unavailable</strong>
+                            <small>Due to inactivity</small>
+                          </span>
+                        </div>
+                      ) : team.resolvedTeamLeaderName ? (
+                        <div className="teams-section__leader-summary">
+                          <span className="teams-section__leader-avatar">
+                            {team.resolvedTeamLeaderImage && !leaderImageErrors[team.teamId] ? (
+                              <img
+                                src={team.resolvedTeamLeaderImage}
+                                alt={team.resolvedTeamLeaderName}
+                                className="teams-section__leader-avatar-image"
+                                onError={() => handleLeaderImageError(team.teamId)}
+                              />
+                            ) : (
+                              <span className="teams-section__leader-avatar-fallback">
+                                {getInitials(team.resolvedTeamLeaderName)}
+                              </span>
+                            )}
+                          </span>
+
+                          <span className="teams-section__leader-copy">
+                            <strong>{team.resolvedTeamLeaderName}</strong>
+                            <small>Team Leader</small>
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="teams-section__badge">
+                          No team leader assigned
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="teams-section__card-actions">
+                    <div className="teams-section__members-actions">
+                      <div className="teams-section__members-count">
+                        <FiUser />
+                        <span>
+                          {team.totalMembersCount}{" "}
+                          {team.totalMembersCount === 1 ? "member" : "members"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
-
-      {successMessage && (
-        <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
-          <FiCheckCircle />
-          <span>{successMessage}</span>
-        </div>
-      )}
-
-      {errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && (
-        <div className="teams-section__feedback teams-section__feedback--floating teams-section__feedback--floating-error">
-          <FiSlash />
-          <span>{errorMessage}</span>
-        </div>
-      )}
 
       {selectedTeam && !isDeleteModalOpen && renderInPortal(
         <div className="teams-section__modal-overlay" onClick={closeEditPanel}>
@@ -832,156 +984,6 @@ export default function TeamsSection({
               </div>
             </form>
           </div>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="teams-section__state-card">
-          <p>Loading teams...</p>
-        </div>
-      )}
-
-      {!isLoading && !errorMessage && filteredTeams.length === 0 && (
-        <div className="teams-section__state-card">
-          <div className="teams-section__state-icon">
-            <FiBriefcase />
-          </div>
-          <h3>No teams yet</h3>
-          <p>Created teams will appear here after they are saved in the backend.</p>
-        </div>
-      )}
-
-      {!isLoading && resolvedTeams.length > 0 && (
-        <div className="teams-section__grid">
-          {resolvedTeams.map((team) => (
-            <article key={team.teamId} className="teams-section__card teams-section__card--compact">
-              <div className="teams-section__card-top">
-                <div className="teams-section__card-heading">
-                  <div className="teams-section__card-title-row">
-                    <button
-                      type="button"
-                      className="teams-section__title-link"
-                      onClick={() => {
-                        if (typeof onOpenTeam === "function") {
-                          onOpenTeam(team);
-                        }
-                      }}
-                    >
-                      {team.teamName}
-                    </button>
-                  </div>
-                  <p>{team.description || "No description added yet."}</p>
-                </div>
-
-                <div
-                  className="teams-section__menu"
-                  ref={activeMenuTeamId === team.teamId ? menuRef : null}
-                >
-                  <div className="teams-section__menu-top">
-                    <button
-                      type="button"
-                      className="teams-section__icon-btn"
-                      aria-label={`More actions for ${team.teamName}`}
-                      onClick={() =>
-                        setActiveMenuTeamId((prev) =>
-                          prev === team.teamId ? null : team.teamId
-                        )
-                      }
-                    >
-                      <FiMoreHorizontal />
-                    </button>
-                  </div>
-
-                  <span
-                    className={`teams-section__status-badge ${team.isActive ? "teams-section__status-badge--active" : "teams-section__status-badge--inactive"}`}
-                    aria-label={team.isActive ? "Active" : "Inactive"}
-                    title={team.isActive ? "Active" : "Inactive"}
-                  >
-                    {team.isActive ? <FiCheckCircle /> : <FiSlash />}
-                  </span>
-
-                  {activeMenuTeamId === team.teamId && (
-                    <div className="teams-section__menu-dropdown">
-                      <button
-                        type="button"
-                        className="teams-section__menu-item"
-                        onClick={() => openEditPanel(team)}
-                      >
-                        <FiEdit2 />
-                        <span>Edit Team</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="teams-section__menu-item teams-section__menu-item--danger"
-                        onClick={() => openDeleteModal(team)}
-                      >
-                        <FiTrash2 />
-                        <span>Delete Team</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="teams-section__card-bottom">
-                <div className="teams-section__card-middle">
-                  <div className="teams-section__meta">
-                    {!team.isActive ? (
-                      <div className="teams-section__leader-unavailable">
-                        <span className="teams-section__leader-unavailable-icon">
-                          <FiSlash />
-                        </span>
-
-                        <span className="teams-section__leader-unavailable-copy">
-                          <strong>Unavailable</strong>
-                          <small>Due to inactivity</small>
-                        </span>
-                      </div>
-                    ) : team.resolvedTeamLeaderName ? (
-                      <div className="teams-section__leader-summary">
-                        <span className="teams-section__leader-avatar">
-                          {team.resolvedTeamLeaderImage && !leaderImageErrors[team.teamId] ? (
-                            <img
-                              src={team.resolvedTeamLeaderImage}
-                              alt={team.resolvedTeamLeaderName}
-                              className="teams-section__leader-avatar-image"
-                              onError={() => handleLeaderImageError(team.teamId)}
-                            />
-                          ) : (
-                            <span className="teams-section__leader-avatar-fallback">
-                              {getInitials(team.resolvedTeamLeaderName)}
-                            </span>
-                          )}
-                        </span>
-
-                        <span className="teams-section__leader-copy">
-                          <strong>{team.resolvedTeamLeaderName}</strong>
-                          <small>Team Leader</small>
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="teams-section__badge">
-                        No team leader assigned
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="teams-section__card-actions">
-                  <div className="teams-section__members-actions">
-                    <div className="teams-section__members-count">
-                      <FiUser />
-                      <span>
-                        {team.totalMembersCount}{" "}
-                        {team.totalMembersCount === 1 ? "member" : "members"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
         </div>
       )}
 

@@ -111,12 +111,7 @@ function getTeamLeaderName(team) {
 }
 
 function getTaskStatus(task) {
-  return (
-    task?.taskStatusName ||
-    task?.taskStatus ||
-    task?.status ||
-    "Unknown"
-  );
+  return task?.taskStatusName || task?.taskStatus || task?.status || "Unknown";
 }
 
 function normalizeStatus(value) {
@@ -181,6 +176,7 @@ async function fetchFirstSuccessful(urls) {
     try {
       const response = await fetch(url);
       const data = await readJsonSafe(response);
+
       if (response.ok) {
         return { ok: true, data };
       }
@@ -255,8 +251,6 @@ export default function DashboardSection({ searchValue = "" }) {
 
   const dashboardData = useMemo(() => {
     const activeUsers = users.filter((user) => getUserStatus(user) === "Active");
-    const inactiveUsers = users.filter((user) => getUserStatus(user) !== "Active");
-
     const completedTasks = tasks.filter((task) => isCompletedStatus(getTaskStatus(task)));
     const inProgressTasks = tasks.filter((task) => isInProgressStatus(getTaskStatus(task)));
     const todoTasks = tasks.filter((task) => isTodoStatus(getTaskStatus(task)));
@@ -316,7 +310,6 @@ export default function DashboardSection({ searchValue = "" }) {
           id: getTaskId(task, index),
           title: task?.title || "Untitled task",
           status: getTaskStatus(task),
-          priority: getTaskPriority(task),
           date: getTaskDate(task),
           teamName: taskTeam ? getTeamName(taskTeam) : "Unassigned team",
         };
@@ -345,7 +338,6 @@ export default function DashboardSection({ searchValue = "" }) {
       stats: {
         users: users.length,
         activeUsers: activeUsers.length,
-        inactiveUsers: inactiveUsers.length,
         teams: teams.length,
         tasks: tasks.length,
         completedTasks: completedTasks.length,
@@ -414,253 +406,256 @@ export default function DashboardSection({ searchValue = "" }) {
         <div className="dashboard-section__title-line"></div>
       </div>
 
-      {loading ? (
-        <div className="dashboard-section__state-card">
-          <div className="dashboard-section__state-icon">
-            <FiBarChart2 />
+      <div className="dashboard-section__scroll">
+        {loading ? (
+          <div className="dashboard-section__state-card">
+            <div className="dashboard-section__state-icon">
+              <FiBarChart2 />
+            </div>
+            <h3>Loading dashboard...</h3>
+            <p>Please wait while we fetch your workspace overview.</p>
           </div>
-          <h3>Loading dashboard...</h3>
-          <p>Please wait while we fetch your workspace overview.</p>
-        </div>
-      ) : !dashboardData.hasAnyData ? (
-        <div className="dashboard-section__state-card">
-          <div className="dashboard-section__state-icon">
-            <FiActivity />
+        ) : !dashboardData.hasAnyData ? (
+          <div className="dashboard-section__state-card">
+            <div className="dashboard-section__state-icon">
+              <FiActivity />
+            </div>
+            <h3>No dashboard data yet</h3>
+            <p>Create teams, users, and tasks to start viewing your dashboard insights.</p>
           </div>
-          <h3>No dashboard data yet</h3>
-          <p>Create teams, users, and tasks to start viewing your dashboard insights.</p>
-        </div>
-      ) : !dashboardData.searchMatches ? (
-        <div className="dashboard-section__state-card">
-          <div className="dashboard-section__state-icon">
-            <FiAlertCircle />
+        ) : !dashboardData.searchMatches ? (
+          <div className="dashboard-section__state-card">
+            <div className="dashboard-section__state-icon">
+              <FiAlertCircle />
+            </div>
+            <h3>No dashboard matches</h3>
+            <p>Try a different search term to find teams, users, or recent tasks.</p>
           </div>
-          <h3>No dashboard matches</h3>
-          <p>Try a different search term to find teams, users, or recent tasks.</p>
-        </div>
-      ) : (
-        <>
-          <div className="dashboard-section__stats-grid">
-            {statCards.map((card) => (
-              <article
-                key={card.key}
-                className={`dashboard-section__stat-card dashboard-section__stat-card--${card.tone}`}
-              >
-                <div className="dashboard-section__stat-icon">{card.icon}</div>
-                <div className="dashboard-section__stat-copy">
-                  <small>{card.label}</small>
-                  <strong>{card.value}</strong>
-                  <span>{card.meta}</span>
+        ) : (
+          <>
+            <div className="dashboard-section__stats-grid">
+              {statCards.map((card) => (
+                <article
+                  key={card.key}
+                  className={`dashboard-section__stat-card dashboard-section__stat-card--${card.tone}`}
+                >
+                  <div className="dashboard-section__stat-icon">{card.icon}</div>
+                  <div className="dashboard-section__stat-copy">
+                    <small>{card.label}</small>
+                    <strong>{card.value}</strong>
+                    <span>{card.meta}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="dashboard-section__content-grid">
+              <article className="dashboard-section__panel">
+                <div className="dashboard-section__panel-header">
+                  <div>
+                    <h3>Workspace health</h3>
+                    <p>Quick view of progress and delivery pressure</p>
+                  </div>
+                  <span className="dashboard-section__panel-pill">
+                    <FiTrendingUp />
+                    Overview
+                  </span>
+                </div>
+
+                <div className="dashboard-section__progress-list">
+                  <div className="dashboard-section__progress-item">
+                    <div className="dashboard-section__progress-copy">
+                      <span>Completion</span>
+                      <strong>{dashboardData.stats.completionRate}%</strong>
+                    </div>
+                    <div className="dashboard-section__progress-track">
+                      <div
+                        className="dashboard-section__progress-bar dashboard-section__progress-bar--blue"
+                        style={{ width: `${dashboardData.stats.completionRate}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="dashboard-section__progress-item">
+                    <div className="dashboard-section__progress-copy">
+                      <span>To do</span>
+                      <strong>{dashboardData.stats.todoTasks}</strong>
+                    </div>
+                    <div className="dashboard-section__progress-track">
+                      <div
+                        className="dashboard-section__progress-bar dashboard-section__progress-bar--slate"
+                        style={{
+                          width: `${
+                            dashboardData.stats.tasks > 0
+                              ? Math.round(
+                                  (dashboardData.stats.todoTasks / dashboardData.stats.tasks) * 100
+                                )
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="dashboard-section__progress-item">
+                    <div className="dashboard-section__progress-copy">
+                      <span>Overdue</span>
+                      <strong>{dashboardData.stats.overdueTasks}</strong>
+                    </div>
+                    <div className="dashboard-section__progress-track">
+                      <div
+                        className="dashboard-section__progress-bar dashboard-section__progress-bar--red"
+                        style={{
+                          width: `${
+                            dashboardData.stats.tasks > 0
+                              ? Math.round(
+                                  (dashboardData.stats.overdueTasks / dashboardData.stats.tasks) *
+                                    100
+                                )
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dashboard-section__chip-row">
+                  <span className="dashboard-section__chip">
+                    <FiCheckCircle />
+                    {dashboardData.stats.completedTasks} completed
+                  </span>
+                  <span className="dashboard-section__chip">
+                    <FiClock />
+                    {dashboardData.stats.inProgressTasks} in progress
+                  </span>
+                  <span className="dashboard-section__chip">
+                    <FiUsers />
+                    {dashboardData.stats.activeUsers} active users
+                  </span>
                 </div>
               </article>
-            ))}
-          </div>
 
-          <div className="dashboard-section__content-grid">
-            <article className="dashboard-section__panel">
-              <div className="dashboard-section__panel-header">
-                <div>
-                  <h3>Workspace health</h3>
-                  <p>Quick view of progress and delivery pressure</p>
-                </div>
-                <span className="dashboard-section__panel-pill">
-                  <FiTrendingUp />
-                  Overview
-                </span>
-              </div>
-
-              <div className="dashboard-section__progress-list">
-                <div className="dashboard-section__progress-item">
-                  <div className="dashboard-section__progress-copy">
-                    <span>Completion</span>
-                    <strong>{dashboardData.stats.completionRate}%</strong>
+              <article className="dashboard-section__panel">
+                <div className="dashboard-section__panel-header">
+                  <div>
+                    <h3>Top team workload</h3>
+                    <p>Teams with the highest active load</p>
                   </div>
-                  <div className="dashboard-section__progress-track">
-                    <div
-                      className="dashboard-section__progress-bar dashboard-section__progress-bar--blue"
-                      style={{ width: `${dashboardData.stats.completionRate}%` }}
-                    />
-                  </div>
+                  <span className="dashboard-section__panel-pill">
+                    <FiBriefcase />
+                    Teams
+                  </span>
                 </div>
 
-                <div className="dashboard-section__progress-item">
-                  <div className="dashboard-section__progress-copy">
-                    <span>To do</span>
-                    <strong>{dashboardData.stats.todoTasks}</strong>
+                {dashboardData.teamLoad.length === 0 ? (
+                  <div className="dashboard-section__empty">
+                    <FiLayers />
+                    <span>No teams to show yet.</span>
                   </div>
-                  <div className="dashboard-section__progress-track">
-                    <div
-                      className="dashboard-section__progress-bar dashboard-section__progress-bar--slate"
-                      style={{
-                        width: `${
-                          dashboardData.stats.tasks > 0
-                            ? Math.round(
-                                (dashboardData.stats.todoTasks / dashboardData.stats.tasks) * 100
-                              )
-                            : 0
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="dashboard-section__progress-item">
-                  <div className="dashboard-section__progress-copy">
-                    <span>Overdue</span>
-                    <strong>{dashboardData.stats.overdueTasks}</strong>
-                  </div>
-                  <div className="dashboard-section__progress-track">
-                    <div
-                      className="dashboard-section__progress-bar dashboard-section__progress-bar--red"
-                      style={{
-                        width: `${
-                          dashboardData.stats.tasks > 0
-                            ? Math.round(
-                                (dashboardData.stats.overdueTasks / dashboardData.stats.tasks) * 100
-                              )
-                            : 0
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="dashboard-section__chip-row">
-                <span className="dashboard-section__chip">
-                  <FiCheckCircle />
-                  {dashboardData.stats.completedTasks} completed
-                </span>
-                <span className="dashboard-section__chip">
-                  <FiClock />
-                  {dashboardData.stats.inProgressTasks} in progress
-                </span>
-                <span className="dashboard-section__chip">
-                  <FiUsers />
-                  {dashboardData.stats.activeUsers} active users
-                </span>
-              </div>
-            </article>
-
-            <article className="dashboard-section__panel">
-              <div className="dashboard-section__panel-header">
-                <div>
-                  <h3>Top team workload</h3>
-                  <p>Teams with the highest active load</p>
-                </div>
-                <span className="dashboard-section__panel-pill">
-                  <FiBriefcase />
-                  Teams
-                </span>
-              </div>
-
-              {dashboardData.teamLoad.length === 0 ? (
-                <div className="dashboard-section__empty">
-                  <FiLayers />
-                  <span>No teams to show yet.</span>
-                </div>
-              ) : (
-                <div className="dashboard-section__list">
-                  {dashboardData.teamLoad.map((team) => (
-                    <div key={team.id} className="dashboard-section__list-item">
-                      <div className="dashboard-section__list-main">
-                        <div className="dashboard-section__list-copy">
-                          <strong>{team.name}</strong>
-                          <small>{team.leaderName}</small>
+                ) : (
+                  <div className="dashboard-section__list">
+                    {dashboardData.teamLoad.map((team) => (
+                      <div key={team.id} className="dashboard-section__list-item">
+                        <div className="dashboard-section__list-main">
+                          <div className="dashboard-section__list-copy">
+                            <strong>{team.name}</strong>
+                            <small>{team.leaderName}</small>
+                          </div>
+                          <span className="dashboard-section__score-pill">
+                            {team.workloadScore} pts
+                          </span>
                         </div>
-                        <span className="dashboard-section__score-pill">
-                          {team.workloadScore} pts
+
+                        <div className="dashboard-section__meta-row">
+                          <span>{team.membersCount} members</span>
+                          <span>{team.tasksCount} tasks</span>
+                          <span>{team.completionRate}% complete</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </div>
+
+            <div className="dashboard-section__content-grid">
+              <article className="dashboard-section__panel">
+                <div className="dashboard-section__panel-header">
+                  <div>
+                    <h3>Recent tasks</h3>
+                    <p>Latest tasks across the workspace</p>
+                  </div>
+                </div>
+
+                {dashboardData.recentTasks.length === 0 ? (
+                  <div className="dashboard-section__empty">
+                    <FiCheckSquare />
+                    <span>No tasks to show yet.</span>
+                  </div>
+                ) : (
+                  <div className="dashboard-section__list">
+                    {dashboardData.recentTasks.map((task) => (
+                      <div key={task.id} className="dashboard-section__task-item">
+                        <div className="dashboard-section__task-copy">
+                          <strong>{task.title}</strong>
+                          <small>{task.teamName}</small>
+                        </div>
+
+                        <div className="dashboard-section__task-side">
+                          <span className="dashboard-section__status-pill">
+                            {task.status}
+                          </span>
+                          <span className="dashboard-section__task-date">
+                            {formatShortDate(task.date)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </article>
+
+              <article className="dashboard-section__panel">
+                <div className="dashboard-section__panel-header">
+                  <div>
+                    <h3>People snapshot</h3>
+                    <p>Quick look at current workspace users</p>
+                  </div>
+                </div>
+
+                {dashboardData.visibleUsers.length === 0 ? (
+                  <div className="dashboard-section__empty">
+                    <FiUsers />
+                    <span>No users to show yet.</span>
+                  </div>
+                ) : (
+                  <div className="dashboard-section__people-grid">
+                    {dashboardData.visibleUsers.map((user) => (
+                      <div key={user.id} className="dashboard-section__person-card">
+                        <div className="dashboard-section__person-avatar">
+                          {getInitials(user.name)}
+                        </div>
+
+                        <div className="dashboard-section__person-copy">
+                          <strong>{user.name}</strong>
+                          <small>{user.role}</small>
+                        </div>
+
+                        <span
+                          className={`dashboard-section__person-status dashboard-section__person-status--${user.status.toLowerCase()}`}
+                        >
+                          {user.status}
                         </span>
                       </div>
-
-                      <div className="dashboard-section__meta-row">
-                        <span>{team.membersCount} members</span>
-                        <span>{team.tasksCount} tasks</span>
-                        <span>{team.completionRate}% complete</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </article>
-          </div>
-
-          <div className="dashboard-section__content-grid">
-            <article className="dashboard-section__panel">
-              <div className="dashboard-section__panel-header">
-                <div>
-                  <h3>Recent tasks</h3>
-                  <p>Latest tasks across the workspace</p>
-                </div>
-              </div>
-
-              {dashboardData.recentTasks.length === 0 ? (
-                <div className="dashboard-section__empty">
-                  <FiCheckSquare />
-                  <span>No tasks to show yet.</span>
-                </div>
-              ) : (
-                <div className="dashboard-section__list">
-                  {dashboardData.recentTasks.map((task) => (
-                    <div key={task.id} className="dashboard-section__task-item">
-                      <div className="dashboard-section__task-copy">
-                        <strong>{task.title}</strong>
-                        <small>{task.teamName}</small>
-                      </div>
-
-                      <div className="dashboard-section__task-side">
-                        <span className="dashboard-section__status-pill">
-                          {task.status}
-                        </span>
-                        <span className="dashboard-section__task-date">
-                          {formatShortDate(task.date)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </article>
-
-            <article className="dashboard-section__panel">
-              <div className="dashboard-section__panel-header">
-                <div>
-                  <h3>People snapshot</h3>
-                  <p>Quick look at current workspace users</p>
-                </div>
-              </div>
-
-              {dashboardData.visibleUsers.length === 0 ? (
-                <div className="dashboard-section__empty">
-                  <FiUsers />
-                  <span>No users to show yet.</span>
-                </div>
-              ) : (
-                <div className="dashboard-section__people-grid">
-                  {dashboardData.visibleUsers.map((user) => (
-                    <div key={user.id} className="dashboard-section__person-card">
-                      <div className="dashboard-section__person-avatar">
-                        {getInitials(user.name)}
-                      </div>
-
-                      <div className="dashboard-section__person-copy">
-                        <strong>{user.name}</strong>
-                        <small>{user.role}</small>
-                      </div>
-
-                      <span
-                        className={`dashboard-section__person-status dashboard-section__person-status--${user.status.toLowerCase()}`}
-                      >
-                        {user.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </article>
-          </div>
-        </>
-      )}
+                    ))}
+                  </div>
+                )}
+              </article>
+            </div>
+          </>
+        )}
+      </div>
     </section>
   );
 }

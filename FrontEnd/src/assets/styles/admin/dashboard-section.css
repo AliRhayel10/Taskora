@@ -1,14 +1,18 @@
 .dashboard-section {
   width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow: hidden;
 }
 
 .dashboard-section__title-row {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
 }
 
 .dashboard-section__title-row h2 {
@@ -23,6 +27,17 @@
   flex: 1;
   height: 1px;
   background: #cbd5e1;
+}
+
+.dashboard-section__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 4px;
 }
 
 .dashboard-section__state-card {
