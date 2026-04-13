@@ -46,6 +46,14 @@ namespace BackEnd.Controllers
 
             var teamIds = teams.Select(team => team.TeamId).ToList();
 
+            var memberIdsByTeam = await _context.TeamMembers
+                .Where(teamMember => teamIds.Contains(teamMember.TeamId))
+                .GroupBy(teamMember => teamMember.TeamId)
+                .ToDictionaryAsync(
+                    group => group.Key,
+                    group => group.Select(teamMember => teamMember.UserId).Distinct().ToList()
+                );
+
             var activeMemberIdsByTeam = await _context.TeamMembers
                 .Where(teamMember => teamIds.Contains(teamMember.TeamId) && teamMember.IsActive)
                 .GroupBy(teamMember => teamMember.TeamId)
@@ -72,8 +80,12 @@ namespace BackEnd.Controllers
             var result = teams
                 .Select(team =>
                 {
-                    var activeMemberIds = team.IsActive && activeMemberIdsByTeam.TryGetValue(team.TeamId, out var memberIds)
-                        ? memberIds
+                    var memberIds = memberIdsByTeam.TryGetValue(team.TeamId, out var allMemberIds)
+                        ? allMemberIds
+                        : new List<int>();
+
+                    var activeMemberIds = team.IsActive && activeMemberIdsByTeam.TryGetValue(team.TeamId, out var resolvedActiveMemberIds)
+                        ? resolvedActiveMemberIds
                         : new List<int>();
 
                     var tasksCount = tasksCountByTeam.TryGetValue(team.TeamId, out var count)
@@ -91,8 +103,9 @@ namespace BackEnd.Controllers
                         teamLeaderName = team.TeamLeaderName,
                         tasksCount,
                         isActive = team.IsActive,
-                        memberIds = activeMemberIds,
-                        memberCount = team.IsActive ? activeMemberIds.Count : 0
+                        memberIds = memberIds,
+                        memberCount = memberIds.Count,
+                        activeMemberCount = activeMemberIds.Count
                     };
                 });
 
@@ -131,6 +144,8 @@ namespace BackEnd.Controllers
                     email = user.Email,
                     role = role != null ? role.RoleName : "Employee",
                     jobTitle = user.JobTitle,
+                    isActive = user.IsActive,
+                    status = user.IsActive ? "Active" : "Inactive",
                     profileImageUrl = user.ProfileImageUrl
                 }
             ).ToListAsync();
@@ -182,6 +197,9 @@ namespace BackEnd.Controllers
                     email = member.email,
                     role = IsTeamLeader(member.role) ? "Team Leader" : "Employee",
                     jobTitle = member.jobTitle,
+                    jobType = member.jobTitle,
+                    isActive = member.isActive,
+                    status = member.status,
                     profileImageUrl = member.profileImageUrl
                 })
                 .OrderBy(member => member.fullName)
@@ -456,7 +474,12 @@ namespace BackEnd.Controllers
                     .FirstOrDefaultAsync() ?? string.Empty;
             }
 
-            var updatedMemberIds = team.IsActive
+            var updatedMemberIds = await _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == team.TeamId)
+                .Select(teamMember => teamMember.UserId)
+                .ToListAsync();
+
+            var updatedActiveMemberIds = team.IsActive
                 ? await _context.TeamMembers
                     .Where(teamMember => teamMember.TeamId == team.TeamId && teamMember.IsActive)
                     .Select(teamMember => teamMember.UserId)
@@ -485,7 +508,8 @@ namespace BackEnd.Controllers
                     tasksCount = updatedTasksCount,
                     isActive = team.IsActive,
                     memberIds = updatedMemberIds,
-                    memberCount = team.IsActive ? updatedMemberIds.Count : 0
+                    memberCount = updatedMemberIds.Count,
+                    activeMemberCount = updatedActiveMemberIds.Count
                 }
             });
         }

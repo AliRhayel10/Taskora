@@ -162,10 +162,16 @@ function getResolvedUserTeam(user, teams) {
 
 function getUserStatus(user) {
     if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
+    if (typeof user?.IsActive === "boolean") return user.IsActive ? "Active" : "Inactive";
     if (typeof user?.active === "boolean") return user.active ? "Active" : "Inactive";
 
     if (typeof user?.status === "string" && user.status.trim()) {
         const normalizedStatus = user.status.trim().toLowerCase();
+        return normalizedStatus === "active" ? "Active" : "Inactive";
+    }
+
+    if (typeof user?.Status === "string" && user.Status.trim()) {
+        const normalizedStatus = user.Status.trim().toLowerCase();
         return normalizedStatus === "active" ? "Active" : "Inactive";
     }
 

@@ -214,8 +214,8 @@ namespace BackEnd.Controllers
                     jobType = u.JobTitle,
                     team = "Unassigned",
                     isActive = u.IsActive,
-status = u.IsActive ? "Active" : "Inactive",
-                    profileImageUrl = u.ProfileImageUrl
+                    status = u.IsActive ? "Active" : "Inactive",
+                    profileImageUrl = u.ProfileImageUrl ?? ""
                 })
                 .ToListAsync();
 
@@ -309,20 +309,20 @@ status = u.IsActive ? "Active" : "Inactive",
                 .Select(c => c.CompanyName)
                 .FirstOrDefaultAsync();
 
-return Ok(new
-{
-    success = true,
-    userId = user.UserId,
-    fullName = user.FullName,
-    email = user.Email,
-    role = roleName ?? "User",
-    companyName = companyName ?? "",
-    profileImageUrl = user.ProfileImageUrl ?? "",
-    jobTitle = user.JobTitle,
-    jobType = user.JobTitle,
-    isActive = user.IsActive,
-    status = user.IsActive ? "Active" : "Inactive"
-});
+            return Ok(new
+            {
+                success = true,
+                userId = user.UserId,
+                fullName = user.FullName,
+                email = user.Email,
+                role = roleName ?? "User",
+                companyName = companyName ?? "",
+                profileImageUrl = user.ProfileImageUrl ?? "",
+                jobTitle = user.JobTitle,
+                jobType = user.JobTitle,
+                isActive = user.IsActive,
+                status = user.IsActive ? "Active" : "Inactive"
+            });
         }
 
         [HttpPut("update-profile")]
@@ -534,17 +534,6 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
         }
     }
 
-    if (!request.IsActive)
-    {
-        var memberships = await _context.Set<TeamMember>()
-            .Where(tm => tm.UserId == user.UserId)
-            .ToListAsync();
-
-        if (memberships.Count > 0)
-        {
-            _context.Set<TeamMember>().RemoveRange(memberships);
-        }
-    }
 
     await _context.SaveChangesAsync();
 
@@ -560,8 +549,8 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
             role = normalizedRole,
             jobTitle = user.JobTitle,
             jobType = user.JobTitle,
-            isActive = user.IsActive,
-            status = user.IsActive ? "Active" : "Inactive"
+            isActive = request.IsActive,
+            status = request.IsActive ? "Active" : "Inactive"
         }
     });
 }

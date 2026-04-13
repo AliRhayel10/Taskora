@@ -319,11 +319,11 @@ export default function TeamDetailsPage({
     const assignedLeaderId = String(teamState?.teamLeaderId || teamState?.teamLeaderUserId || "");
     const cachedMembers = readCachedTeamMembers(teamId);
     const availableMembers = Array.isArray(companyMembers)
-      ? companyMembers.filter((member) => member?.userId != null)
+      ? companyMembers.filter((member) => (member?.userId ?? member?.UserId ?? member?.id) != null)
       : [];
 
     const availableMembersMap = new Map(
-      availableMembers.map((member) => [String(member.userId), member])
+      availableMembers.map((member) => [String(member.userId ?? member.UserId ?? member.id), member])
     );
     const assignedLeader = assignedLeaderId ? availableMembersMap.get(assignedLeaderId) : null;
 
