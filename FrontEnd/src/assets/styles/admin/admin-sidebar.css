@@ -5,7 +5,7 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 20px 16px 20px;
-  background: linear-gradient(180deg, #fdfefe 0%, #f4f8ff 100%);
+  background: #f4f8ff;
   border-right: 1px solid #dbe7f5;
   border-top-right-radius: 24px;
   border-bottom-right-radius: 24px;
@@ -71,7 +71,7 @@
   height: 54px;
   border: none;
   border-radius: 0 12px 12px 0;
-  background: linear-gradient(180deg, #fdfefe 0%, #f4f8ff 100%);
+  background: #f4f8ff;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
@@ -304,7 +304,7 @@
 }
 
 body.dark .admin-sidebar {
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  background: #0f172a;
   border-right-color: #1f2937;
   box-shadow:
     10px 0 30px rgba(2, 6, 23, 0.28),
@@ -317,12 +317,12 @@ body.dark .admin-sidebar__brand {
 }
 
 body.dark .admin-sidebar__toggle {
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  background: #0f172a;
   color: #ffffff;
 }
 
 body.dark .admin-sidebar__toggle:hover {
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  background: #0f172a;
   color: #ffffff;
 }
 
