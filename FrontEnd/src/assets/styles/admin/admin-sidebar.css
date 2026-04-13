@@ -70,9 +70,10 @@
   width: 30px;
   height: 54px;
   border: none;
+  border-left: none;
   border-radius: 0 12px 12px 0;
   background: #f4f8ff;
-  color: #ffffff;
+  color: #475569;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -80,19 +81,21 @@
   flex-shrink: 0;
   position: absolute;
   top: 30px;
-  right: -15px;
+  right: -10px;
   z-index: 30;
   padding: 0;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+  box-shadow: none;
   transition:
     right 0.25s ease,
     background 0.25s ease,
-    color 0.25s ease;
+    color 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .admin-sidebar__toggle svg {
   font-size: 1.15rem;
   stroke-width: 2.5;
+  color: #475569;
 }
 
 .admin-sidebar__toggle:hover {
@@ -318,6 +321,12 @@ body.dark .admin-sidebar__brand {
 
 body.dark .admin-sidebar__toggle {
   background: #0f172a;
+  color: #ffffff;
+  border-left: none;
+  box-shadow: none;
+}
+
+body.dark .admin-sidebar__toggle svg {
   color: #ffffff;
 }
 
