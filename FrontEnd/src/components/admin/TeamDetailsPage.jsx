@@ -342,80 +342,92 @@ export default function TeamDetailsPage({
       }
     }
 
-    const availableMemberIds = new Set(Array.from(availableMembersMap.keys()));
-
     const cachedMembersMap = new Map(
       cachedMembers
-        .filter((member) => availableMemberIds.has(String(member?.userId)))
+        .filter((member) => member?.userId != null)
         .map((member) => [String(member.userId), member])
     );
 
     const orderedIds = [
       ...cachedMembers
-        .filter((member) => availableMemberIds.has(String(member?.userId)))
+        .filter((member) => member?.userId != null)
         .map((member) => String(member.userId)),
       ...activeMemberIds.map((id) => String(id)),
       leaderId,
     ]
       .filter(Boolean)
-      .filter((value, index, array) => array.indexOf(value) === index)
-      .filter((memberId) => availableMemberIds.has(String(memberId)));
+      .filter((value, index, array) => array.indexOf(value) === index);
 
-    const resolvedMembers = orderedIds.map((memberId) => {
-      const numericMemberId = Number(memberId);
-      const foundMember = availableMembersMap.get(String(memberId));
-      const cachedMember = cachedMembersMap.get(String(memberId));
-      const isActive = activeMemberIds.some((id) => String(id) === String(memberId))
-        ? true
-        : typeof cachedMember?.isActive === "boolean"
-          ? cachedMember.isActive
-          : false;
+const resolvedMembers = orderedIds.map((memberId) => {
+  const numericMemberId = Number(memberId);
+  const foundMember = availableMembersMap.get(String(memberId));
+  const cachedMember = cachedMembersMap.get(String(memberId));
 
-      const resolvedUserRole =
-        foundMember?.role ||
-        cachedMember?.userRole ||
-        cachedMember?.role ||
-        "Employee";
+  const resolvedIsActive =
+    typeof foundMember?.isActive === "boolean"
+      ? foundMember.isActive
+      : typeof foundMember?.IsActive === "boolean"
+        ? foundMember.IsActive
+        : typeof foundMember?.active === "boolean"
+          ? foundMember.active
+          : typeof cachedMember?.isActive === "boolean"
+            ? cachedMember.isActive
+            : typeof cachedMember?.IsActive === "boolean"
+              ? cachedMember.IsActive
+              : typeof cachedMember?.active === "boolean"
+                ? cachedMember.active
+                : true;
 
-      return {
-        userId: numericMemberId,
-        fullName:
-          foundMember?.fullName ||
-          cachedMember?.fullName ||
-          "Unknown Member",
-        email:
-          foundMember?.email ||
-          cachedMember?.email ||
-          "No email available",
-        jobType:
-          foundMember?.jobType ||
-          foundMember?.jobTitle ||
-          cachedMember?.jobType ||
-          "No job type available",
-        role: resolvedUserRole,
-        teamPosition: String(memberId) === leaderId ? "Team Leader" : "Member",
-        userRole: resolvedUserRole,
-        isActive,
-        profileImageUrl:
-          foundMember?.profileImageUrl ||
-          foundMember?.ProfileImageUrl ||
-          foundMember?.imageUrl ||
-          foundMember?.ImageUrl ||
-          foundMember?.avatar ||
-          foundMember?.Avatar ||
-          foundMember?.profileImage ||
-          foundMember?.ProfileImage ||
-          cachedMember?.profileImageUrl ||
-          cachedMember?.ProfileImageUrl ||
-          cachedMember?.imageUrl ||
-          cachedMember?.ImageUrl ||
-          cachedMember?.avatar ||
-          cachedMember?.Avatar ||
-          cachedMember?.profileImage ||
-          cachedMember?.ProfileImage ||
-          "",
-      };
-    });
+  const resolvedUserRole =
+    foundMember?.role ||
+    foundMember?.Role ||
+    cachedMember?.userRole ||
+    cachedMember?.role ||
+    "Employee";
+
+  return {
+    userId: numericMemberId,
+    fullName:
+      foundMember?.fullName ||
+      foundMember?.FullName ||
+      cachedMember?.fullName ||
+      "Unknown Member",
+    email:
+      foundMember?.email ||
+      foundMember?.Email ||
+      cachedMember?.email ||
+      "No email available",
+    jobType:
+      foundMember?.jobType ||
+      foundMember?.JobType ||
+      foundMember?.jobTitle ||
+      foundMember?.JobTitle ||
+      cachedMember?.jobType ||
+      "No job type available",
+    role: resolvedUserRole,
+    teamPosition: String(memberId) === leaderId ? "Team Leader" : "Member",
+    userRole: resolvedUserRole,
+    isActive: resolvedIsActive,
+    profileImageUrl:
+      foundMember?.profileImageUrl ||
+      foundMember?.ProfileImageUrl ||
+      foundMember?.imageUrl ||
+      foundMember?.ImageUrl ||
+      foundMember?.avatar ||
+      foundMember?.Avatar ||
+      foundMember?.profileImage ||
+      foundMember?.ProfileImage ||
+      cachedMember?.profileImageUrl ||
+      cachedMember?.ProfileImageUrl ||
+      cachedMember?.imageUrl ||
+      cachedMember?.ImageUrl ||
+      cachedMember?.avatar ||
+      cachedMember?.Avatar ||
+      cachedMember?.profileImage ||
+      cachedMember?.ProfileImage ||
+      "",
+  };
+});
 
     setMembers(resolvedMembers);
     writeCachedTeamMembers(teamId, resolvedMembers);
@@ -729,6 +741,76 @@ export default function TeamDetailsPage({
     return persistedMembers;
   };
 
+  const updateUserActivityOnBackend = async (member, nextIsActive) => {
+    const targetUserId = Number(member?.userId);
+
+    if (!targetUserId) {
+      throw new Error("User not found.");
+    }
+
+    const payload = {
+      userId: targetUserId,
+      role: member?.userRole || member?.role || "Employee",
+      jobTitle: member?.jobType || "",
+      jobType: member?.jobType || "",
+      isActive: nextIsActive,
+      IsActive: nextIsActive,
+      active: nextIsActive,
+      status: nextIsActive ? "Active" : "Inactive",
+    };
+
+    const response = await fetch(`${API_BASE_URL}/api/auth/update-user`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await parseJsonResponse(response);
+
+    if (!response.ok || data?.success === false) {
+      throw new Error(data.message || "Failed to update member status.");
+    }
+
+    const returnedUser = data?.user || data?.data || {};
+
+    return {
+      ...member,
+      ...returnedUser,
+      role:
+        returnedUser?.role ||
+        returnedUser?.roleName ||
+        returnedUser?.userRole ||
+        member?.userRole ||
+        member?.role ||
+        "Employee",
+      userRole:
+        returnedUser?.role ||
+        returnedUser?.roleName ||
+        returnedUser?.userRole ||
+        member?.userRole ||
+        member?.role ||
+        "Employee",
+      jobType:
+        returnedUser?.jobType ||
+        returnedUser?.jobTitle ||
+        member?.jobType ||
+        "No job type available",
+      isActive:
+        typeof returnedUser?.isActive === "boolean"
+          ? returnedUser.isActive
+          : typeof returnedUser?.IsActive === "boolean"
+            ? returnedUser.IsActive
+            : typeof returnedUser?.active === "boolean"
+              ? returnedUser.active
+              : nextIsActive,
+      status:
+        returnedUser?.status ||
+        (nextIsActive ? "Active" : "Inactive"),
+    };
+  };
+
   const handleConfirmDeleteMember = async () => {
     if (!memberToDelete) {
       return;
@@ -764,14 +846,49 @@ export default function TeamDetailsPage({
       setFeedbackMessage("");
       setFeedbackType("");
 
+      const existingMember = members.find(
+        (member) => String(member.userId) === String(memberId)
+      );
+
+      if (!existingMember) {
+        throw new Error("Member not found.");
+      }
+
+      const nextIsActive = !existingMember.isActive;
+      const updatedMember = await updateUserActivityOnBackend(existingMember, nextIsActive);
+
       const nextMembers = members.map((member) =>
         String(member.userId) === String(memberId)
-          ? { ...member, isActive: !member.isActive }
+          ? {
+              ...member,
+              ...updatedMember,
+              isActive: updatedMember.isActive,
+              status: updatedMember.isActive ? "Active" : "Inactive",
+            }
           : member
       );
 
-      const persistedMembers = await saveTeamMembersToBackend(nextMembers);
-      setMembers(persistedMembers);
+      setMembers(nextMembers);
+      writeCachedTeamMembers(teamState?.teamId, nextMembers);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("taskora:user-updated", {
+            detail: {
+              userId: updatedMember.userId,
+              role: updatedMember.userRole || updatedMember.role,
+              jobType: updatedMember.jobType,
+              jobTitle: updatedMember.jobType,
+              isActive: updatedMember.isActive,
+              active: updatedMember.isActive,
+              status: updatedMember.isActive ? "Active" : "Inactive",
+              fullName: updatedMember.fullName,
+              email: updatedMember.email,
+              profileImageUrl: updatedMember.profileImageUrl || "",
+            },
+          })
+        );
+      }
 
       setFeedbackType("success");
       setFeedbackMessage("Member status updated.");

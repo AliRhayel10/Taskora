@@ -794,7 +794,6 @@ export default function UsersSection({
             handleUserUpdated(updatedUser);
 
             const abortController = new AbortController();
-            fetchUsers(currentPage, debouncedSearchTerm, abortController.signal);
             fetchTeams(abortController.signal);
         };
 

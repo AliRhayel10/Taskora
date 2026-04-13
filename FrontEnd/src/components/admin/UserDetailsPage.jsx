@@ -412,6 +412,66 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     }, [feedbackMessage, feedbackType]);
 
     useEffect(() => {
+        const handleExternalUserUpdate = (event) => {
+            const updatedUser = event?.detail;
+
+            if (!updatedUser || !getUserId(updatedUser) || String(getUserId(updatedUser)) !== String(userId)) {
+                return;
+            }
+
+            setUserState((prev) => {
+                const resolvedIsActive =
+                    typeof updatedUser?.isActive === "boolean"
+                        ? updatedUser.isActive
+                        : typeof updatedUser?.IsActive === "boolean"
+                            ? updatedUser.IsActive
+                            : typeof updatedUser?.active === "boolean"
+                                ? updatedUser.active
+                                : String(updatedUser?.status || "").trim().toLowerCase() === "active";
+
+                return {
+                    ...prev,
+                    ...updatedUser,
+                    isActive: resolvedIsActive,
+                    IsActive: resolvedIsActive,
+                    active: resolvedIsActive,
+                    status: resolvedIsActive ? "Active" : "Inactive",
+                    jobType:
+                        updatedUser?.jobType ||
+                        updatedUser?.jobTitle ||
+                        prev?.jobType ||
+                        prev?.jobTitle ||
+                        "No job type",
+                    jobTitle:
+                        updatedUser?.jobTitle ||
+                        updatedUser?.jobType ||
+                        prev?.jobTitle ||
+                        prev?.jobType ||
+                        "No job type",
+                };
+            });
+
+            setDraftData((prev) => ({
+                ...prev,
+                isActive:
+                    typeof updatedUser?.isActive === "boolean"
+                        ? updatedUser.isActive
+                        : typeof updatedUser?.IsActive === "boolean"
+                            ? updatedUser.IsActive
+                            : typeof updatedUser?.active === "boolean"
+                                ? updatedUser.active
+                                : String(updatedUser?.status || "").trim().toLowerCase() === "active",
+            }));
+        };
+
+        window.addEventListener("taskora:user-updated", handleExternalUserUpdate);
+
+        return () => {
+            window.removeEventListener("taskora:user-updated", handleExternalUserUpdate);
+        };
+    }, [userId]);
+
+    useEffect(() => {
         if (!isEditing) {
             return;
         }

@@ -109,7 +109,8 @@ function getResolvedTeamLeader(team, companyMembers) {
 
   if (leaderId) {
     const assignedLeader = companyMembers.find(
-      (member) => String(member.userId || member.UserId || member.id || "") === leaderId
+      (member) =>
+        String(member.userId || member.UserId || member.id || member._id || "") === leaderId
     );
 
     if (assignedLeader) {
@@ -118,7 +119,7 @@ function getResolvedTeamLeader(team, companyMembers) {
   }
 
   const eligibleLeaders = companyMembers.filter((member) => {
-    const memberId = String(member.userId || member.UserId || member.id || "");
+    const memberId = String(member.userId || member.UserId || member.id || member._id || "");
     return memberIds.includes(memberId) && isTeamLeaderRole(member.role);
   });
 
@@ -136,6 +137,18 @@ function getResolvedTeamLeader(team, companyMembers) {
   }
 
   return null;
+}
+
+function getTotalTeamMembersCount(team) {
+  if (typeof team?.memberCount === "number") {
+    return team.memberCount;
+  }
+
+  if (Array.isArray(team?.memberIds)) {
+    return team.memberIds.length;
+  }
+
+  return 0;
 }
 
 export default function TeamsSection({
@@ -226,13 +239,11 @@ export default function TeamsSection({
               ...team,
               memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
               memberCount:
-                team.isActive === false
-                  ? 0
-                  : typeof team.memberCount === "number"
-                    ? team.memberCount
-                    : Array.isArray(team.memberIds)
-                      ? team.memberIds.length
-                      : 0,
+                typeof team.memberCount === "number"
+                  ? team.memberCount
+                  : Array.isArray(team.memberIds)
+                    ? team.memberIds.length
+                    : 0,
             }))
           : []
       );
@@ -244,27 +255,25 @@ export default function TeamsSection({
     }
   };
 
-const fetchCompanyMembers = async () => {
-  if (!companyId) return;
+  const fetchCompanyMembers = async () => {
+    if (!companyId) return;
 
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/teams/company/${companyId}/members`
-    );
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/teams/company/${companyId}/members`
+      );
 
-    const data = await response.json();
+      const data = await response.json();
 
-    console.log("company members response:", data);
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load company members.");
+      }
 
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to load company members.");
+      setCompanyMembers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch company members:", error);
     }
-
-    setCompanyMembers(Array.isArray(data) ? data : []);
-  } catch (error) {
-    console.error("Failed to fetch company members:", error);
-  }
-};
+  };
 
   const fetchTeamLeaders = async () => {
     if (!companyId) return;
@@ -291,6 +300,20 @@ const fetchCompanyMembers = async () => {
     fetchTeams();
     fetchCompanyMembers();
     fetchTeamLeaders();
+  }, [companyId]);
+
+  useEffect(() => {
+    const handleExternalUserUpdate = () => {
+      fetchTeams();
+      fetchCompanyMembers();
+      fetchTeamLeaders();
+    };
+
+    window.addEventListener("taskora:user-updated", handleExternalUserUpdate);
+
+    return () => {
+      window.removeEventListener("taskora:user-updated", handleExternalUserUpdate);
+    };
   }, [companyId]);
 
   useEffect(() => {
@@ -351,6 +374,7 @@ const fetchCompanyMembers = async () => {
         resolvedTeamLeader: resolvedLeader,
         resolvedTeamLeaderName: resolvedLeaderName,
         resolvedTeamLeaderImage: getUserProfileImage(resolvedLeader),
+        totalMembersCount: getTotalTeamMembersCount(team),
       };
     });
   }, [filteredTeams, companyMembers]);
@@ -382,7 +406,7 @@ const fetchCompanyMembers = async () => {
     const selectedCreateLeaderId = String(teamForm.teamLeaderId || "");
 
     const leaders = companyMembers.filter((employee) => {
-      const employeeId = String(employee.userId || "");
+      const employeeId = String(employee.userId || employee.UserId || employee.id || "");
 
       if (!isTeamLeaderRole(employee.role)) {
         return false;
@@ -403,10 +427,16 @@ const fetchCompanyMembers = async () => {
     }
 
     return leaders.filter((employee) => {
-      const fullName = (employee.fullName || "").toLowerCase();
-      const email = (employee.email || "").toLowerCase();
-      const role = (employee.role || "").toLowerCase();
-      const jobTitle = (employee.jobTitle || employee.jobType || "").toLowerCase();
+      const fullName = (employee.fullName || employee.FullName || "").toLowerCase();
+      const email = (employee.email || employee.Email || "").toLowerCase();
+      const role = (employee.role || employee.Role || "").toLowerCase();
+      const jobTitle = (
+        employee.jobTitle ||
+        employee.JobTitle ||
+        employee.jobType ||
+        employee.JobType ||
+        ""
+      ).toLowerCase();
 
       return (
         fullName.includes(value) ||
@@ -943,22 +973,8 @@ const fetchCompanyMembers = async () => {
                     <div className="teams-section__members-count">
                       <FiUser />
                       <span>
-                        {team.isActive === false
-                          ? 0
-                          : typeof team.memberCount === "number"
-                            ? team.memberCount
-                            : Array.isArray(team.memberIds)
-                              ? team.memberIds.length
-                              : 0}{" "}
-                        {(team.isActive === false
-                          ? 0
-                          : typeof team.memberCount === "number"
-                            ? team.memberCount
-                            : Array.isArray(team.memberIds)
-                              ? team.memberIds.length
-                              : 0) === 1
-                          ? "member"
-                          : "members"}
+                        {team.totalMembersCount}{" "}
+                        {team.totalMembersCount === 1 ? "member" : "members"}
                       </span>
                     </div>
                   </div>
@@ -1051,13 +1067,13 @@ const fetchCompanyMembers = async () => {
                     )}
 
                     {filteredCreateTeamLeaders.map((employee) => {
-                      const employeeId = String(employee.userId);
+                      const employeeId = String(employee.userId || employee.UserId || employee.id || "");
                       const isChecked = String(teamForm.teamLeaderId || "") === employeeId;
                       const employeeImage = getUserProfileImage(employee);
 
                       return (
                         <label
-                          key={`create-leader-${employee.userId}`}
+                          key={`create-leader-${employeeId}`}
                           className="teams-section__member-row"
                         >
                           <input
@@ -1070,19 +1086,19 @@ const fetchCompanyMembers = async () => {
                             {employeeImage && !createLeaderImageErrors[employeeId] ? (
                               <img
                                 src={employeeImage}
-                                alt={employee.fullName || employee.email}
+                                alt={employee.fullName || employee.FullName || employee.email}
                                 className="teams-section__member-avatar-image"
                                 onError={() => handleCreateLeaderImageError(employeeId)}
                               />
                             ) : (
                               <span className="teams-section__member-avatar-fallback">
-                                {getInitials(employee.fullName || employee.email)}
+                                {getInitials(employee.fullName || employee.FullName || employee.email)}
                               </span>
                             )}
                           </span>
 
                           <span className="teams-section__member-copy">
-                            <strong>{employee.fullName || employee.email}</strong>
+                            <strong>{employee.fullName || employee.FullName || employee.email}</strong>
                             <small>{employee.email}</small>
                           </span>
 
