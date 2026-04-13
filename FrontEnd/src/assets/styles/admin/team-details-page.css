@@ -290,33 +290,46 @@
 
 .team-details-page__summary-btn {
   width: auto;
-  min-width: unset;
-  height: 38px;
+  min-width: 110px;
+  height: 42px;
   padding: 0 16px;
-  border-radius: 14px;
+  border-radius: 10px;
   white-space: nowrap;
   flex: 0 0 auto;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* remove hover lift from Add Member and Manage Leader */
-.team-details-page__summary-actions .teams-section__members-btn {
-  transform: none !important;
+  gap: 7px;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    color 0.2s ease !important;
-  box-shadow: none !important;
+    transform 0.2s ease;
+}
+
+.team-details-page__summary-actions .teams-section__members-btn,
+.team-details-page__summary-btn {
+  transform: none;
 }
 
 .team-details-page__summary-actions .teams-section__members-btn:hover,
 .team-details-page__summary-actions .teams-section__members-btn:focus,
-.team-details-page__summary-actions .teams-section__members-btn:active {
-  transform: none !important;
-  box-shadow: none !important;
+.team-details-page__summary-actions .teams-section__members-btn:active,
+.team-details-page__summary-btn:hover,
+.team-details-page__summary-btn:focus,
+.team-details-page__summary-btn:active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
 }
 
 /* Toolbar */
