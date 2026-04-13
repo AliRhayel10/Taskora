@@ -14,7 +14,7 @@
     2px 0 10px rgba(15, 23, 42, 0.04);
   position: relative;
   z-index: 20;
-  overflow: hidden;
+  overflow: visible;
   transition:
     width 0.25s ease,
     padding 0.25s ease,
@@ -61,34 +61,53 @@
 
 .admin-sidebar.collapsed .admin-sidebar__brand {
   padding: 8px 0 12px;
+  justify-content: center;
+  overflow: visible;
 }
 
 .admin-sidebar__toggle {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 54px;
   border: none;
-  border-radius: 12px;
-  background: #eff6ff;
-  color: #2563eb;
+  border-radius: 0 12px 12px 0;
+  background: #0f172a;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 2px;
+  position: absolute;
+  top: 30px;
+  right: -15px;
+  z-index: 30;
+  padding: 0;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
   transition:
     background 0.2s ease,
     color 0.2s ease,
-    transform 0.2s ease;
+    right 0.25s ease;
 }
 
 .admin-sidebar__toggle svg {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  stroke-width: 2.5;
 }
 
 .admin-sidebar__toggle:hover {
-  background: #dbeafe;
-  transform: scale(1.03);
+  background: #0f172a;
+  transform: none;
+}
+
+.admin-sidebar.collapsed .admin-sidebar__brand-icon {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.1);
+}
+
+.admin-sidebar.collapsed .admin-sidebar__brand-icon svg {
+  font-size: 0.95rem;
 }
 
 .admin-sidebar__brand-icon {
@@ -119,10 +138,7 @@
 }
 
 .admin-sidebar.collapsed .admin-sidebar__brand-copy {
-  opacity: 0;
-  max-width: 0;
-  margin: 0;
-  pointer-events: none;
+  display: none;
 }
 
 .admin-sidebar__brand-title {
@@ -293,12 +309,14 @@ body.dark .admin-sidebar__brand {
 }
 
 body.dark .admin-sidebar__toggle {
-  background: #172033;
-  color: #93c5fd;
+  background: #0f172a;
+  color: #ffffff;
 }
 
 body.dark .admin-sidebar__toggle:hover {
-  background: #1f2937;
+  background: #0f172a;
+  color: #ffffff;
+  transform: none;
 }
 
 body.dark .admin-sidebar__brand-title {
@@ -369,6 +387,18 @@ body.dark .admin-sidebar__logout:hover {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     box-shadow: 0 8px 20px rgba(37, 99, 235, 0.06);
+    overflow: hidden;
+  }
+
+  .admin-sidebar__toggle {
+    position: static;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+
+  .admin-sidebar__toggle:hover {
+    transform: none;
   }
 
   .admin-sidebar.collapsed {
@@ -376,10 +406,14 @@ body.dark .admin-sidebar__logout:hover {
     padding: 20px 16px 20px;
   }
 
-  .admin-sidebar.collapsed .admin-sidebar__brand-copy {
-    opacity: 1;
-    max-width: 180px;
-    pointer-events: auto;
+  .admin-sidebar.collapsed .admin-sidebar__brand-icon {
+    width: 44px;
+    height: 44px;
+    border-width: 3px;
+  }
+
+  .admin-sidebar.collapsed .admin-sidebar__brand-icon svg {
+    font-size: 1rem;
   }
 
   .admin-sidebar.collapsed .admin-sidebar__link {

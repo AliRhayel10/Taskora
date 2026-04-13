@@ -6,6 +6,7 @@ import {
   FiCheckSquare,
   FiChevronLeft,
   FiChevronRight,
+  FiCheck,
 } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
 import "./../assets/styles/admin/admin-sidebar.css";
@@ -26,24 +27,26 @@ export default function AdminSidebar({
 
   return (
     <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
+      <button
+        type="button"
+        className="admin-sidebar__toggle"
+        onClick={() => setCollapsed((prev) => !prev)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
+      </button>
+
       <div className="admin-sidebar__top">
         <div className="admin-sidebar__header">
           <div className="admin-sidebar__brand">
-            <BrandLogo
-              subtitle={collapsed ? "" : "Admin Panel"}
-              dark={theme === "dark"}
-              collapsed={collapsed}
-            />
+            {collapsed ? (
+              <span className="admin-sidebar__brand-icon admin-sidebar__brand-icon--collapsed">
+                <FiCheck />
+              </span>
+            ) : (
+              <BrandLogo subtitle="Admin Panel" dark={theme === "dark"} />
+            )}
           </div>
-
-          <button
-            type="button"
-            className="admin-sidebar__toggle"
-            onClick={() => setCollapsed((prev) => !prev)}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
-          </button>
         </div>
 
         <div className="admin-sidebar__divider"></div>
