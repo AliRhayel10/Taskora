@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiGrid,
   FiUsers,
@@ -15,7 +15,14 @@ export default function TeamLeaderSidebar({
   onSelect,
   theme = "light",
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem("teamLeaderSidebarCollapsed");
+    return saved === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("teamLeaderSidebarCollapsed", String(collapsed));
+  }, [collapsed]);
 
   const navItems = useMemo(
     () => [
@@ -28,19 +35,19 @@ export default function TeamLeaderSidebar({
   );
 
   return (
-    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside className={`teamleader-sidebar ${collapsed ? "collapsed" : ""}`}>
       <button
         type="button"
-        className="admin-sidebar__toggle"
+        className="teamleader-sidebar__toggle"
         onClick={() => setCollapsed((prev) => !prev)}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
       </button>
 
-      <div className="admin-sidebar__top">
-        <div className="admin-sidebar__header">
-          <div className="admin-sidebar__brand">
+      <div className="teamleader-sidebar__top">
+        <div className="teamleader-sidebar__header">
+          <div className="teamleader-sidebar__brand">
             <BrandLogo
               subtitle="Team Leader Panel"
               dark={theme === "dark"}
@@ -49,21 +56,21 @@ export default function TeamLeaderSidebar({
           </div>
         </div>
 
-        <div className="admin-sidebar__divider"></div>
+        <div className="teamleader-sidebar__divider"></div>
 
-        <nav className="admin-sidebar__nav">
+        <nav className="teamleader-sidebar__nav">
           {navItems.map((item) => (
             <button
               key={item.name}
               type="button"
-              className={`admin-sidebar__link ${
-                activeItem === item.name ? "admin-sidebar__link--active" : ""
+              className={`teamleader-sidebar__link ${
+                activeItem === item.name ? "teamleader-sidebar__link--active" : ""
               }`}
               onClick={() => onSelect?.(item.name)}
               title={collapsed ? item.name : ""}
             >
-              <span className="admin-sidebar__link-icon">{item.icon}</span>
-              <span className="admin-sidebar__link-text">{item.name}</span>
+              <span className="teamleader-sidebar__link-icon">{item.icon}</span>
+              <span className="teamleader-sidebar__link-text">{item.name}</span>
             </button>
           ))}
         </nav>
