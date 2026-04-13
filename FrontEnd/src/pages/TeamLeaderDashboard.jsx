@@ -1,292 +1,187 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  FiGrid,
   FiUsers,
   FiCheckSquare,
   FiBarChart2,
-  FiClock,
-  FiAlertCircle,
-  FiTrendingUp,
+  FiChevronLeft,
+  FiChevronRight,
+  FiSearch,
+  FiBell,
+  FiSun,
+  FiMoon,
 } from "react-icons/fi";
-import "./team-leader-dashboard.css";
+import BrandLogo from "./BrandLogo";
+import TeamLeaderDashboard from "../pages/TeamLeaderDashboard";
+import "../assets/styles/teamleader/team-leader-sidebar.css";
 
-const stats = [
-  {
-    title: "Team Members",
-    value: "8",
-    subtitle: "Active members",
-    icon: <FiUsers />,
-  },
-  {
-    title: "Active Tasks",
-    value: "24",
-    subtitle: "Across all team members",
-    icon: <FiCheckSquare />,
-  },
-  {
-    title: "Total Workload",
-    value: "82.5",
-    subtitle: "Combined task weight",
-    icon: <FiBarChart2 />,
-  },
-  {
-    title: "Pending Requests",
-    value: "5",
-    subtitle: "Awaiting review",
-    icon: <FiClock />,
-  },
-];
+function SidebarMenu({
+  activeItem = "Dashboard",
+  onSelect,
+  theme = "light",
+}) {
+  const [collapsed, setCollapsed] = useState(false);
 
-const workloadRows = [
-  {
-    name: "Omar Hadi",
-    tasks: 6,
-    effort: 21,
-    weight: 28.8,
-    status: "Overloaded",
-  },
-  {
-    name: "Lina Farah",
-    tasks: 4,
-    effort: 14,
-    weight: 16.2,
-    status: "Moderate",
-  },
-  {
-    name: "Noor Adel",
-    tasks: 5,
-    effort: 12,
-    weight: 13.5,
-    status: "Available",
-  },
-  {
-    name: "Jad Makki",
-    tasks: 3,
-    effort: 10,
-    weight: 11.2,
-    status: "Available",
-  },
-];
-
-const recentTasks = [
-  {
-    title: "Build Login API",
-    assignee: "Omar Hadi",
-    priority: "High",
-    status: "In Progress",
-    dueDate: "Apr 18, 2026",
-  },
-  {
-    title: "Write Test Cases",
-    assignee: "Lina Farah",
-    priority: "Medium",
-    status: "New",
-    dueDate: "Apr 20, 2026",
-  },
-  {
-    title: "Create Tasks Table",
-    assignee: "Omar Hadi",
-    priority: "Medium",
-    status: "Blocked",
-    dueDate: "Apr 19, 2026",
-  },
-  {
-    title: "Change Request Screen",
-    assignee: "Noor Adel",
-    priority: "High",
-    status: "New",
-    dueDate: "Apr 22, 2026",
-  },
-];
-
-const requestItems = [
-  {
-    employee: "Omar Hadi",
-    task: "Build Login API",
-    type: "Increase Effort",
-    change: "8h → 10h",
-    state: "Approved",
-  },
-  {
-    employee: "Omar Hadi",
-    task: "Create Tasks Table",
-    type: "Change Due Date",
-    change: "Mar 29 → Mar 31",
-    state: "Pending",
-  },
-  {
-    employee: "Noor Adel",
-    task: "Design Dashboard UI",
-    type: "Increase Effort",
-    change: "12h → 14h",
-    state: "Approved",
-  },
-];
-
-function getStatusClass(status) {
-  const value = status.toLowerCase().replace(/\s+/g, "-");
-  return `team-leader-dashboard__badge team-leader-dashboard__badge--${value}`;
-}
-
-export default function TeamLeaderDashboard() {
-  const overloadedCount = useMemo(
-    () => workloadRows.filter((member) => member.status === "Overloaded").length,
+  const navItems = useMemo(
+    () => [
+      { name: "Dashboard", icon: <FiGrid /> },
+      { name: "Team", icon: <FiUsers /> },
+      { name: "Tasks", icon: <FiCheckSquare /> },
+      { name: "Workload", icon: <FiBarChart2 /> },
+    ],
     []
   );
 
   return (
-    <div className="team-leader-dashboard">
-      <section className="team-leader-dashboard__hero">
-        <div>
-          <p className="team-leader-dashboard__eyebrow">Overview</p>
-          <h1 className="team-leader-dashboard__title">Team Leader Dashboard</h1>
-          <p className="team-leader-dashboard__description">
-            Monitor team workload, track task progress, and review change requests
-            from one place.
-          </p>
+    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
+      <button
+        type="button"
+        className="admin-sidebar__toggle"
+        onClick={() => setCollapsed((prev) => !prev)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
+      </button>
+
+      <div className="admin-sidebar__top">
+        <div className="admin-sidebar__header">
+          <div className="admin-sidebar__brand">
+            <BrandLogo
+              subtitle="Team Leader Panel"
+              dark={theme === "dark"}
+              collapsed={collapsed}
+            />
+          </div>
         </div>
 
-        <div className="team-leader-dashboard__hero-highlight">
-          <div className="team-leader-dashboard__hero-icon">
-            <FiTrendingUp />
+        <div className="admin-sidebar__divider"></div>
+
+        <nav className="admin-sidebar__nav">
+          {navItems.map((item) => (
+            <button
+              key={item.name}
+              type="button"
+              className={`admin-sidebar__link ${
+                activeItem === item.name ? "admin-sidebar__link--active" : ""
+              }`}
+              onClick={() => onSelect?.(item.name)}
+              title={collapsed ? item.name : ""}
+            >
+              <span className="admin-sidebar__link-icon">{item.icon}</span>
+              <span className="admin-sidebar__link-text">{item.name}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+    </aside>
+  );
+}
+
+function TeamLeaderTopbar({
+  title = "Dashboard",
+  theme = "light",
+  onToggleTheme,
+  leaderName = "Sarah Khalil",
+  leaderRole = "Team Leader",
+}) {
+  return (
+    <header
+      className={`team-leader-topbar ${
+        theme === "dark" ? "team-leader-topbar--dark" : ""
+      }`}
+    >
+      <div>
+        <div className="team-leader-topbar__eyebrow">Team Leader Workspace</div>
+        <h1 className="team-leader-topbar__title">{title}</h1>
+      </div>
+
+      <div className="team-leader-topbar__actions">
+        <div className="team-leader-topbar__search">
+          <FiSearch />
+          <input type="text" placeholder="Search tasks, members..." />
+        </div>
+
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="team-leader-topbar__icon-btn"
+        >
+          <FiBell />
+        </button>
+
+        <button
+          type="button"
+          aria-label="Toggle theme"
+          onClick={onToggleTheme}
+          className="team-leader-topbar__icon-btn"
+        >
+          {theme === "dark" ? <FiSun /> : <FiMoon />}
+        </button>
+
+        <div className="team-leader-topbar__profile">
+          <div className="team-leader-topbar__avatar">
+            {leaderName
+              .split(" ")
+              .map((part) => part[0])
+              .slice(0, 2)
+              .join("")}
           </div>
+
           <div>
-            <strong>{overloadedCount} overloaded member(s)</strong>
-            <span>Review workload balance for this week.</span>
+            <div className="team-leader-topbar__name">{leaderName}</div>
+            <div className="team-leader-topbar__role">{leaderRole}</div>
           </div>
         </div>
-      </section>
+      </div>
+    </header>
+  );
+}
 
-      <section className="team-leader-dashboard__stats">
-        {stats.map((item) => (
-          <article key={item.title} className="team-leader-dashboard__stat-card">
-            <div className="team-leader-dashboard__stat-icon">{item.icon}</div>
-            <div>
-              <p className="team-leader-dashboard__stat-title">{item.title}</p>
-              <h3 className="team-leader-dashboard__stat-value">{item.value}</h3>
-              <span className="team-leader-dashboard__stat-subtitle">
-                {item.subtitle}
-              </span>
-            </div>
-          </article>
-        ))}
-      </section>
+function TeamPlaceholder({ title }) {
+  return (
+    <div className="team-leader-placeholder">
+      <h2>{title}</h2>
+      <p>{title} content will go here.</p>
+    </div>
+  );
+}
 
-      <section className="team-leader-dashboard__grid">
-        <article className="team-leader-dashboard__panel team-leader-dashboard__panel--wide">
-          <div className="team-leader-dashboard__panel-head">
-            <div>
-              <h2>Workload Overview</h2>
-              <p>Current task count, effort, and weight per team member</p>
-            </div>
-            <span className="team-leader-dashboard__panel-tag">This Week</span>
-          </div>
+export default function TeamLeaderLayout() {
+  const [theme, setTheme] = useState("light");
+  const [activeItem, setActiveItem] = useState("Dashboard");
 
-          <div className="team-leader-dashboard__table-wrap">
-            <table className="team-leader-dashboard__table">
-              <thead>
-                <tr>
-                  <th>Member</th>
-                  <th>Tasks</th>
-                  <th>Effort</th>
-                  <th>Weight</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workloadRows.map((member) => (
-                  <tr key={member.name}>
-                    <td>{member.name}</td>
-                    <td>{member.tasks}</td>
-                    <td>{member.effort}h</td>
-                    <td>{member.weight}</td>
-                    <td>
-                      <span className={getStatusClass(member.status)}>
-                        {member.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
+  useEffect(() => {
+    document.body.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
-        <article className="team-leader-dashboard__panel">
-          <div className="team-leader-dashboard__panel-head">
-            <div>
-              <h2>Alerts</h2>
-              <p>Items that need quick attention</p>
-            </div>
-            <FiAlertCircle className="team-leader-dashboard__panel-head-icon" />
-          </div>
+  return (
+    <div
+      className={`team-leader-layout ${
+        theme === "dark" ? "team-leader-layout--dark" : ""
+      }`}
+    >
+      <SidebarMenu
+        activeItem={activeItem}
+        onSelect={setActiveItem}
+        theme={theme}
+      />
 
-          <div className="team-leader-dashboard__alert-list">
-            <div className="team-leader-dashboard__alert-item">
-              <strong>Omar Hadi is overloaded</strong>
-              <span>Total weight has reached 28.8 this week.</span>
-            </div>
-            <div className="team-leader-dashboard__alert-item">
-              <strong>5 pending change requests</strong>
-              <span>Review employee requests awaiting approval.</span>
-            </div>
-            <div className="team-leader-dashboard__alert-item">
-              <strong>1 blocked task</strong>
-              <span>Create Tasks Table is currently blocked.</span>
-            </div>
-          </div>
-        </article>
+      <main className="team-leader-main">
+        <TeamLeaderTopbar
+          title={activeItem}
+          theme={theme}
+          onToggleTheme={() =>
+            setTheme((prev) => (prev === "light" ? "dark" : "light"))
+          }
+        />
 
-        <article className="team-leader-dashboard__panel">
-          <div className="team-leader-dashboard__panel-head">
-            <div>
-              <h2>Recent Tasks</h2>
-              <p>Latest team task activity</p>
-            </div>
-          </div>
-
-          <div className="team-leader-dashboard__list">
-            {recentTasks.map((task) => (
-              <div key={`${task.title}-${task.assignee}`} className="team-leader-dashboard__list-item">
-                <div>
-                  <strong>{task.title}</strong>
-                  <span>{task.assignee}</span>
-                </div>
-                <div className="team-leader-dashboard__list-meta">
-                  <span>{task.priority}</span>
-                  <span>{task.status}</span>
-                  <span>{task.dueDate}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="team-leader-dashboard__panel">
-          <div className="team-leader-dashboard__panel-head">
-            <div>
-              <h2>Change Requests</h2>
-              <p>Latest submitted employee requests</p>
-            </div>
-          </div>
-
-          <div className="team-leader-dashboard__request-list">
-            {requestItems.map((request, index) => (
-              <div key={`${request.task}-${index}`} className="team-leader-dashboard__request-item">
-                <div>
-                  <strong>{request.type}</strong>
-                  <span>
-                    {request.employee} • {request.task}
-                  </span>
-                </div>
-                <div className="team-leader-dashboard__request-meta">
-                  <span>{request.change}</span>
-                  <span className={getStatusClass(request.state)}>{request.state}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
+        <section className="team-leader-content">
+          {activeItem === "Dashboard" && <TeamLeaderDashboard />}
+          {activeItem === "Team" && <TeamPlaceholder title="Team" />}
+          {activeItem === "Tasks" && <TeamPlaceholder title="Tasks" />}
+          {activeItem === "Workload" && <TeamPlaceholder title="Workload" />}
+        </section>
+      </main>
     </div>
   );
 }

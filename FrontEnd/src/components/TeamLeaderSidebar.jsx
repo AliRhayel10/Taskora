@@ -12,9 +12,10 @@ import {
   FiMoon,
 } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
-import "./team-leader-sidebar.css";
+import TeamLeaderDashboard from "../pages/TeamLeaderDashboard";
+import "../assets/styles/teamleader/team-leader-sidebar.css";
 
-function TeamLeaderSidebar({
+function SidebarMenu({
   activeItem = "Dashboard",
   onSelect,
   theme = "light",
@@ -107,7 +108,11 @@ function TeamLeaderTopbar({
           <input type="text" placeholder="Search tasks, members..." />
         </div>
 
-        <button type="button" aria-label="Notifications" className="team-leader-topbar__icon-btn">
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="team-leader-topbar__icon-btn"
+        >
           <FiBell />
         </button>
 
@@ -139,6 +144,15 @@ function TeamLeaderTopbar({
   );
 }
 
+function TeamPlaceholder({ title }) {
+  return (
+    <div className="team-leader-placeholder">
+      <h2>{title}</h2>
+      <p>{title} content will go here.</p>
+    </div>
+  );
+}
+
 export default function TeamLeaderLayout() {
   const [theme, setTheme] = useState("light");
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -148,8 +162,12 @@ export default function TeamLeaderLayout() {
   }, [theme]);
 
   return (
-    <div className={`team-leader-layout ${theme === "dark" ? "team-leader-layout--dark" : ""}`}>
-      <TeamLeaderSidebar
+    <div
+      className={`team-leader-layout ${
+        theme === "dark" ? "team-leader-layout--dark" : ""
+      }`}
+    >
+      <SidebarMenu
         activeItem={activeItem}
         onSelect={setActiveItem}
         theme={theme}
@@ -165,8 +183,10 @@ export default function TeamLeaderLayout() {
         />
 
         <section className="team-leader-content">
-          <h2>{activeItem}</h2>
-          <p>This content area is ready for the {activeItem.toLowerCase()} page.</p>
+          {activeItem === "Dashboard" && <TeamLeaderDashboard />}
+          {activeItem === "Team" && <TeamPlaceholder title="Team" />}
+          {activeItem === "Tasks" && <TeamPlaceholder title="Tasks" />}
+          {activeItem === "Workload" && <TeamPlaceholder title="Workload" />}
         </section>
       </main>
     </div>
