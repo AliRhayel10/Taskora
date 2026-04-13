@@ -14,10 +14,18 @@
     2px 0 10px rgba(15, 23, 42, 0.04);
   position: relative;
   z-index: 20;
+  overflow: hidden;
   transition:
+    width 0.25s ease,
+    padding 0.25s ease,
     background 0.25s ease,
     border-color 0.25s ease,
     box-shadow 0.25s ease;
+}
+
+.admin-sidebar.collapsed {
+  width: 92px;
+  padding: 20px 12px;
 }
 
 .admin-sidebar__top {
@@ -26,7 +34,17 @@
   gap: 18px;
 }
 
+.admin-sidebar__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 72px;
+}
+
 .admin-sidebar__brand {
+  flex: 1;
+  min-width: 0;
   padding: 8px 2px 12px;
   display: flex;
   align-items: center;
@@ -35,9 +53,42 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  overflow: hidden;
   transition:
     background 0.25s ease,
     box-shadow 0.25s ease;
+}
+
+.admin-sidebar.collapsed .admin-sidebar__brand {
+  padding: 8px 0 12px;
+}
+
+.admin-sidebar__toggle {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.admin-sidebar__toggle svg {
+  font-size: 1.1rem;
+}
+
+.admin-sidebar__toggle:hover {
+  background: #dbeafe;
+  transform: scale(1.03);
 }
 
 .admin-sidebar__brand-icon {
@@ -58,6 +109,20 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  opacity: 1;
+  max-width: 180px;
+  overflow: hidden;
+  transition:
+    opacity 0.2s ease,
+    max-width 0.2s ease,
+    margin 0.2s ease;
+}
+
+.admin-sidebar.collapsed .admin-sidebar__brand-copy {
+  opacity: 0;
+  max-width: 0;
+  margin: 0;
+  pointer-events: none;
 }
 
 .admin-sidebar__brand-title {
@@ -66,6 +131,7 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
+  white-space: nowrap;
 }
 
 .admin-sidebar__brand-subtitle {
@@ -74,6 +140,7 @@
   font-size: 0.96rem;
   font-weight: 600;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .admin-sidebar__divider {
@@ -119,10 +186,20 @@
     transform 0.2s ease;
 }
 
+.admin-sidebar.collapsed .admin-sidebar__link {
+  justify-content: center;
+  padding: 14px 0;
+  gap: 0;
+}
+
 .admin-sidebar__link:hover {
   background: linear-gradient(135deg, #f5f9ff 0%, #eaf2ff 100%);
   color: #0f172a;
   transform: translateX(2px);
+}
+
+.admin-sidebar.collapsed .admin-sidebar__link:hover {
+  transform: scale(1.03);
 }
 
 .admin-sidebar__link--active {
@@ -130,6 +207,12 @@
   color: #0f172a;
   box-shadow:
     inset 4px 0 0 #3b82f6,
+    0 10px 20px rgba(59, 130, 246, 0.12);
+}
+
+.admin-sidebar.collapsed .admin-sidebar__link--active {
+  box-shadow:
+    inset 0 0 0 2px #3b82f6,
     0 10px 20px rgba(59, 130, 246, 0.12);
 }
 
@@ -146,6 +229,20 @@
 .admin-sidebar__link--active .admin-sidebar__link-icon,
 .admin-sidebar__link:hover .admin-sidebar__link-icon {
   color: #2563eb;
+}
+
+.admin-sidebar__link-text {
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    opacity 0.2s ease,
+    width 0.2s ease;
+}
+
+.admin-sidebar.collapsed .admin-sidebar__link-text {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
 }
 
 .admin-sidebar__bottom {
@@ -195,6 +292,15 @@ body.dark .admin-sidebar__brand {
   box-shadow: none;
 }
 
+body.dark .admin-sidebar__toggle {
+  background: #172033;
+  color: #93c5fd;
+}
+
+body.dark .admin-sidebar__toggle:hover {
+  background: #1f2937;
+}
+
 body.dark .admin-sidebar__brand-title {
   color: #f8fafc;
 }
@@ -230,6 +336,12 @@ body.dark .admin-sidebar__link--active {
     0 10px 20px rgba(2, 6, 23, 0.3);
 }
 
+body.dark .admin-sidebar.collapsed .admin-sidebar__link--active {
+  box-shadow:
+    inset 0 0 0 2px #60a5fa,
+    0 10px 20px rgba(2, 6, 23, 0.3);
+}
+
 body.dark .admin-sidebar__link-icon {
   color: #94a3b8;
 }
@@ -257,6 +369,28 @@ body.dark .admin-sidebar__logout:hover {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     box-shadow: 0 8px 20px rgba(37, 99, 235, 0.06);
+  }
+
+  .admin-sidebar.collapsed {
+    width: 100%;
+    padding: 20px 16px 20px;
+  }
+
+  .admin-sidebar.collapsed .admin-sidebar__brand-copy {
+    opacity: 1;
+    max-width: 180px;
+    pointer-events: auto;
+  }
+
+  .admin-sidebar.collapsed .admin-sidebar__link {
+    justify-content: flex-start;
+    padding: 14px 14px;
+    gap: 12px;
+  }
+
+  .admin-sidebar.collapsed .admin-sidebar__link-text {
+    width: auto;
+    opacity: 1;
   }
 
   body.dark .admin-sidebar {

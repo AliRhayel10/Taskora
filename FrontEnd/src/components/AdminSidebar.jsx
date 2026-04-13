@@ -1,8 +1,11 @@
+import { useState } from "react";
 import {
   FiGrid,
   FiUsers,
   FiLayers,
   FiCheckSquare,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
 import "./../assets/styles/admin/admin-sidebar.css";
@@ -12,6 +15,8 @@ export default function AdminSidebar({
   onSelect,
   theme = "light",
 }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   const navItems = [
     { name: "Dashboard", icon: <FiGrid /> },
     { name: "Users", icon: <FiUsers /> },
@@ -20,13 +25,25 @@ export default function AdminSidebar({
   ];
 
   return (
-    <aside className="admin-sidebar">
+    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="admin-sidebar__top">
-        <div className="admin-sidebar__brand">
-          <BrandLogo
-            subtitle="Admin Panel"
-            dark={theme === "dark"}
-          />
+        <div className="admin-sidebar__header">
+          <div className="admin-sidebar__brand">
+            <BrandLogo
+              subtitle={collapsed ? "" : "Admin Panel"}
+              dark={theme === "dark"}
+              collapsed={collapsed}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="admin-sidebar__toggle"
+            onClick={() => setCollapsed((prev) => !prev)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
+          </button>
         </div>
 
         <div className="admin-sidebar__divider"></div>
@@ -39,10 +56,11 @@ export default function AdminSidebar({
               className={`admin-sidebar__link ${
                 activeItem === item.name ? "admin-sidebar__link--active" : ""
               }`}
-              onClick={() => onSelect(item.name)}
+              onClick={() => onSelect?.(item.name)}
+              title={collapsed ? item.name : ""}
             >
               <span className="admin-sidebar__link-icon">{item.icon}</span>
-              <span>{item.name}</span>
+              <span className="admin-sidebar__link-text">{item.name}</span>
             </button>
           ))}
         </nav>
