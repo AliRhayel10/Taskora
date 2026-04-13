@@ -333,6 +333,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                 const profileUrl = `${API_BASE_URL}/api/auth/profile/${userId}`;
                 const teamsUrl = `${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}`;
 
+                console.log("[UserDetailsPage] Fetching profile:", profileUrl);
+                console.log("[UserDetailsPage] Fetching teams:", teamsUrl);
+
                 const [profileResponse, teamsResponse] = await Promise.all([
                     fetch(profileUrl, {
                         method: "GET",
@@ -347,6 +350,11 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                 const profileData = await readJsonSafe(profileResponse);
                 const teamsData = await readJsonSafe(teamsResponse);
 
+                console.log("[UserDetailsPage] Profile response status:", profileResponse.status);
+                console.log("[UserDetailsPage] Profile response data:", profileData);
+                console.log("[UserDetailsPage] Teams response status:", teamsResponse.status);
+                console.log("[UserDetailsPage] Teams response data:", teamsData);
+
                 if (profileResponse.ok) {
                     const normalizedProfile =
                         profileData?.user ||
@@ -355,6 +363,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                         null;
 
                     if (normalizedProfile) {
+                        console.log("[UserDetailsPage] Normalized profile:", normalizedProfile);
                         setUserState((prev) => ({
                             ...prev,
                             ...normalizedProfile,
@@ -365,6 +374,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
                 if (teamsResponse.ok) {
                     const normalizedTeams = normalizeTeamsResponse(teamsData);
+                    console.log("[UserDetailsPage] Normalized teams:", normalizedTeams);
                     setTeams(normalizedTeams);
                 } else {
                     setTeams([]);
@@ -438,7 +448,6 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     const showProfileImage = Boolean(profileImageUrl) && !imageError;
     const role = normalizedCurrentRole;
     const jobType = normalizedCurrentJobType;
-    const directTeamName = getDirectUserTeam(userState);
     const teamName = getResolvedUserTeam(userState, teams);
     const status = getUserStatus(userState);
     const initials = getInitials(name);
@@ -456,6 +465,38 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
     const currentRoleIsLeader = isTeamLeaderRole(normalizedCurrentRole);
     const nextRoleIsLeader = isTeamLeaderRole(draftData.role);
+
+    useEffect(() => {
+        console.log("[UserDetailsPage] Current derived state:", {
+            userId,
+            name,
+            email,
+            role,
+            jobType,
+            status,
+            normalizedCurrentStatus,
+            draftData,
+            hasChanges,
+            hasRoleChanged,
+            profileImageUrl,
+            showProfileImage,
+            userState,
+        });
+    }, [
+        userId,
+        name,
+        email,
+        role,
+        jobType,
+        status,
+        normalizedCurrentStatus,
+        draftData,
+        hasChanges,
+        hasRoleChanged,
+        profileImageUrl,
+        showProfileImage,
+        userState,
+    ]);
 
     const getRoleChangeVerificationMessage = () => {
         if (!hasRoleChanged) {
@@ -504,6 +545,8 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             isActive: normalizeStatusToBoolean(status),
         };
 
+        console.log("[UserDetailsPage] Start edit with draft:", nextDraft);
+
         setDraftData(nextDraft);
         setIsEditing(true);
         setFeedbackMessage("");
@@ -518,6 +561,8 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             isActive: normalizeStatusToBoolean(status),
         };
 
+        console.log("[UserDetailsPage] Cancel edit. Reset draft:", nextDraft);
+
         setDraftData(nextDraft);
         setIsEditing(false);
         setFeedbackMessage("");
@@ -526,6 +571,8 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     };
 
     const handleDraftChange = (field, value) => {
+        console.log("[UserDetailsPage] Draft change:", field, value);
+
         setDraftData((prev) => ({
             ...prev,
             [field]: value,
@@ -540,6 +587,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
         }
 
         if (!hasChanges) {
+            console.log("[UserDetailsPage] Save skipped because no changes were detected.");
             return;
         }
 
@@ -548,14 +596,25 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             setFeedbackMessage("");
             setFeedbackType("");
 
+            const resolvedIsActive = Boolean(draftData.isActive);
+
             const payload = {
                 userId: Number(userId),
                 role: draftData.role,
                 jobTitle: draftData.jobType.trim(),
-                isActive: draftData.isActive,
+                jobType: draftData.jobType.trim(),
+                isActive: resolvedIsActive,
+                IsActive: resolvedIsActive,
+                active: resolvedIsActive,
+                status: resolvedIsActive ? "Active" : "Inactive",
             };
 
             const updateUrl = `${API_BASE_URL}/api/auth/update-user`;
+
+            console.log("[UserDetailsPage] Saving user...");
+            console.log("[UserDetailsPage] Update URL:", updateUrl);
+            console.log("[UserDetailsPage] Update payload:", payload);
+            console.log("[UserDetailsPage] Previous user state:", userState);
 
             const response = await fetch(updateUrl, {
                 method: "PUT",
@@ -567,6 +626,9 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
             const resolvedData = await readJsonSafe(response);
 
+            console.log("[UserDetailsPage] Update response status:", response.status);
+            console.log("[UserDetailsPage] Update response data:", resolvedData);
+
             if (!response.ok || resolvedData?.success === false) {
                 throw new Error(
                     resolvedData?.message || "Failed to update user information."
@@ -575,11 +637,16 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
 
             const profileUrl = `${API_BASE_URL}/api/auth/profile/${userId}`;
 
+            console.log("[UserDetailsPage] Refetching profile after save:", profileUrl);
+
             const profileResponse = await fetch(profileUrl, {
                 method: "GET",
             });
 
             const profileData = await readJsonSafe(profileResponse);
+
+            console.log("[UserDetailsPage] Refetched profile status:", profileResponse.status);
+            console.log("[UserDetailsPage] Refetched profile data:", profileData);
 
             const latestProfile =
                 profileResponse.ok
@@ -593,6 +660,10 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                 ...returnedUser,
             };
 
+            console.log("[UserDetailsPage] Returned user:", returnedUser);
+            console.log("[UserDetailsPage] Latest profile:", latestProfile);
+            console.log("[UserDetailsPage] Merged user:", mergedUser);
+
             const resolvedRole =
                 mergedUser?.role ||
                 mergedUser?.roleName ||
@@ -604,12 +675,22 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                 mergedUser?.jobType ||
                 draftData.jobType.trim();
 
-            const resolvedIsActive =
+            const resolvedSavedIsActive =
                 typeof mergedUser?.isActive === "boolean"
                     ? mergedUser.isActive
-                    : typeof mergedUser?.active === "boolean"
-                        ? mergedUser.active
-                        : draftData.isActive;
+                    : typeof mergedUser?.IsActive === "boolean"
+                        ? mergedUser.IsActive
+                        : typeof mergedUser?.active === "boolean"
+                            ? mergedUser.active
+                            : String(mergedUser?.status || "")
+                                .trim()
+                                .toLowerCase() === "active";
+
+            console.log("[UserDetailsPage] Resolved saved fields:", {
+                resolvedRole,
+                resolvedJobTitle,
+                resolvedSavedIsActive,
+            });
 
             const nextUser = {
                 ...mergedUser,
@@ -618,10 +699,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                 userRole: resolvedRole,
                 jobType: resolvedJobTitle,
                 jobTitle: resolvedJobTitle,
-                isActive: resolvedIsActive,
-                active: resolvedIsActive,
-                status: resolvedIsActive ? "Active" : "Inactive",
+                isActive: resolvedSavedIsActive,
+                IsActive: resolvedSavedIsActive,
+                active: resolvedSavedIsActive,
+                status: resolvedSavedIsActive ? "Active" : "Inactive",
             };
+
+            console.log("[UserDetailsPage] Next user state after save:", nextUser);
 
             setUserState(nextUser);
             setImageError(false);
@@ -629,7 +713,7 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
             setDraftData({
                 role: resolvedRole,
                 jobType: resolvedJobTitle,
-                isActive: resolvedIsActive,
+                isActive: resolvedSavedIsActive,
             });
 
             setIsEditing(false);
@@ -660,6 +744,12 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
     };
 
     const handleSave = async () => {
+        console.log("[UserDetailsPage] Handle save clicked.", {
+            hasRoleChanged,
+            hasChanges,
+            draftData,
+        });
+
         if (hasRoleChanged) {
             setIsRoleChangeConfirmOpen(true);
             return;
@@ -713,7 +803,12 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                         type="button"
                         className={`users-section__switch ${draftData.isActive ? "users-section__switch--active" : ""}`}
                         onClick={() => {
-                            handleDraftChange("isActive", !draftData.isActive);
+                            const nextValue = !draftData.isActive;
+                            console.log("[UserDetailsPage] Toggle activity:", {
+                                previous: draftData.isActive,
+                                next: nextValue,
+                            });
+                            handleDraftChange("isActive", nextValue);
                         }}
                         aria-pressed={draftData.isActive}
                         disabled={isSaving}
@@ -794,7 +889,13 @@ export default function UserDetailsPage({ user, onBack, onUserUpdated }) {
                             src={profileImageUrl}
                             alt={name}
                             className="user-hero-card__avatar-image"
-                            onError={() => setImageError(true)}
+                            onLoad={() => {
+                                console.log("[UserDetailsPage] Profile image loaded:", profileImageUrl);
+                            }}
+                            onError={() => {
+                                console.log("[UserDetailsPage] Profile image failed:", profileImageUrl);
+                                setImageError(true);
+                            }}
                         />
                     ) : (
                         <div className="user-hero-card__avatar-fallback">{initials}</div>

@@ -213,7 +213,8 @@ namespace BackEnd.Controllers
                         .FirstOrDefault() ?? "Employee",
                     jobType = u.JobTitle,
                     team = "Unassigned",
-                    isActive = true,
+                    isActive = u.IsActive,
+status = u.IsActive ? "Active" : "Inactive",
                     profileImageUrl = u.ProfileImageUrl
                 })
                 .ToListAsync();
@@ -308,17 +309,20 @@ namespace BackEnd.Controllers
                 .Select(c => c.CompanyName)
                 .FirstOrDefaultAsync();
 
-            return Ok(new
-            {
-                success = true,
-                userId = user.UserId,
-                fullName = user.FullName,
-                email = user.Email,
-                role = roleName ?? "User",
-                companyName = companyName ?? "",
-                profileImageUrl = user.ProfileImageUrl ?? "",
-                jobTitle = user.JobTitle
-            });
+return Ok(new
+{
+    success = true,
+    userId = user.UserId,
+    fullName = user.FullName,
+    email = user.Email,
+    role = roleName ?? "User",
+    companyName = companyName ?? "",
+    profileImageUrl = user.ProfileImageUrl ?? "",
+    jobTitle = user.JobTitle,
+    jobType = user.JobTitle,
+    isActive = user.IsActive,
+    status = user.IsActive ? "Active" : "Inactive"
+});
         }
 
         [HttpPut("update-profile")]
@@ -501,6 +505,7 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
     }
 
     user.JobTitle = request.JobTitle?.Trim() ?? user.JobTitle;
+    user.IsActive = request.IsActive;
 
     var existingUserRole = await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == user.UserId);
 
@@ -555,8 +560,8 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
             role = normalizedRole,
             jobTitle = user.JobTitle,
             jobType = user.JobTitle,
-            isActive = request.IsActive,
-            status = request.IsActive ? "Active" : "Inactive"
+            isActive = user.IsActive,
+            status = user.IsActive ? "Active" : "Inactive"
         }
     });
 }
