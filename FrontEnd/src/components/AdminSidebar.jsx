@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiGrid,
   FiUsers,
@@ -6,7 +6,6 @@ import {
   FiCheckSquare,
   FiChevronLeft,
   FiChevronRight,
-  FiCheck,
 } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
 import "./../assets/styles/admin/admin-sidebar.css";
@@ -16,7 +15,14 @@ export default function AdminSidebar({
   onSelect,
   theme = "light",
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem("adminSidebarCollapsed");
+    return saved === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("adminSidebarCollapsed", String(collapsed));
+  }, [collapsed]);
 
   const navItems = [
     { name: "Dashboard", icon: <FiGrid /> },
@@ -39,13 +45,11 @@ export default function AdminSidebar({
       <div className="admin-sidebar__top">
         <div className="admin-sidebar__header">
           <div className="admin-sidebar__brand">
-            {collapsed ? (
-              <span className="admin-sidebar__brand-icon admin-sidebar__brand-icon--collapsed">
-                <FiCheck />
-              </span>
-            ) : (
-              <BrandLogo subtitle="Admin Panel" dark={theme === "dark"} />
-            )}
+            <BrandLogo
+              subtitle="Admin Panel"
+              dark={theme === "dark"}
+              collapsed={collapsed}
+            />
           </div>
         </div>
 
