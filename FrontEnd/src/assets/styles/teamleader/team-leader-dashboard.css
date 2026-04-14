@@ -36,12 +36,13 @@ body.dark {
   color: #e2e8f0;
 }
 
+/* keep title dark because the content area is still light */
 body.dark .users-section__title-row h2 {
-  color: #e2e8f0;
+  color: #1e293b;
 }
 
 body.dark .users-section__title-line {
-  background: #334155;
+  background: #94a3b8;
 }
 
 @media (max-width: 980px) {

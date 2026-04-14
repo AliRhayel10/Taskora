@@ -1,4 +1,4 @@
-.teamleader-sidebar {
+.admin-sidebar {
   width: 230px;
   min-height: 100vh;
   display: flex;
@@ -23,32 +23,34 @@
     box-shadow 0.25s ease;
 }
 
-.teamleader-sidebar.collapsed {
+.admin-sidebar.collapsed {
   width: 92px;
   padding: 20px 12px;
 }
 
-.teamleader-sidebar__top {
+.admin-sidebar__top {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.teamleader-sidebar__header {
+.admin-sidebar__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 10px;
   min-height: 72px;
 }
 
-.teamleader-sidebar__brand {
+.admin-sidebar__brand {
   flex: 1;
   min-width: 0;
-  height: 72px;
   padding: 8px 2px 12px;
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 72px;
+  border-radius: 0;
   background: transparent;
   box-shadow: none;
   overflow: hidden;
@@ -58,16 +60,17 @@
     padding 0.25s ease;
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand {
+.admin-sidebar.collapsed .admin-sidebar__brand {
   padding: 8px 0 12px;
   justify-content: center;
   overflow: visible;
 }
 
-.teamleader-sidebar__toggle {
+.admin-sidebar__toggle {
   width: 30px;
   height: 54px;
   border: none;
+  border-left: none;
   border-radius: 0 12px 12px 0;
   background: #f4f8ff;
   color: #475569;
@@ -75,6 +78,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
   position: absolute;
   top: 30px;
   right: -10px;
@@ -88,40 +92,40 @@
     border-color 0.25s ease;
 }
 
-.teamleader-sidebar__toggle svg {
+.admin-sidebar__toggle svg {
   font-size: 1.15rem;
   stroke-width: 2.5;
   color: #475569;
 }
 
-.teamleader-sidebar__toggle:hover {
+.admin-sidebar__toggle:hover {
   transform: none;
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-icon {
+.admin-sidebar.collapsed .admin-sidebar__brand-icon {
   width: 36px;
   height: 36px;
   border-width: 3px;
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.1);
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-icon svg {
+.admin-sidebar.collapsed .admin-sidebar__brand-icon svg {
   font-size: 0.95rem;
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-copy,
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-title,
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-subtitle,
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-text,
-.teamleader-sidebar.collapsed .teamleader-sidebar__brand-label,
-.teamleader-sidebar.collapsed .brand-logo__copy,
-.teamleader-sidebar.collapsed .brand-logo__title,
-.teamleader-sidebar.collapsed .brand-logo__subtitle,
-.teamleader-sidebar.collapsed .brand-logo__text {
+.admin-sidebar.collapsed .admin-sidebar__brand-copy,
+.admin-sidebar.collapsed .admin-sidebar__brand-title,
+.admin-sidebar.collapsed .admin-sidebar__brand-subtitle,
+.admin-sidebar.collapsed .admin-sidebar__brand-text,
+.admin-sidebar.collapsed .admin-sidebar__brand-label,
+.admin-sidebar.collapsed .brand-logo__copy,
+.admin-sidebar.collapsed .brand-logo__title,
+.admin-sidebar.collapsed .brand-logo__subtitle,
+.admin-sidebar.collapsed .brand-logo__text {
   display: none !important;
 }
 
-.teamleader-sidebar__brand-icon {
+.admin-sidebar__brand-icon {
   width: 44px;
   height: 44px;
   border-radius: 999px;
@@ -135,7 +139,7 @@
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
 }
 
-.teamleader-sidebar__brand-copy {
+.admin-sidebar__brand-copy {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -148,7 +152,7 @@
     margin 0.2s ease;
 }
 
-.teamleader-sidebar__brand-title {
+.admin-sidebar__brand-title {
   color: #0f172a;
   font-size: 1.9rem;
   font-weight: 800;
@@ -157,7 +161,7 @@
   white-space: nowrap;
 }
 
-.teamleader-sidebar__brand-subtitle {
+.admin-sidebar__brand-subtitle {
   margin-top: 4px;
   color: #64748b;
   font-size: 0.96rem;
@@ -166,7 +170,7 @@
   white-space: nowrap;
 }
 
-.teamleader-sidebar__divider {
+.admin-sidebar__divider {
   width: 100%;
   height: 1px;
   background: linear-gradient(
@@ -182,13 +186,13 @@
   transition: background 0.25s ease;
 }
 
-.teamleader-sidebar__nav {
+.admin-sidebar__nav {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.teamleader-sidebar__link {
+.admin-sidebar__link {
   width: 100%;
   border: none;
   border-radius: 16px;
@@ -209,23 +213,23 @@
     transform 0.2s ease;
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__link {
+.admin-sidebar.collapsed .admin-sidebar__link {
   justify-content: center;
   padding: 14px 0;
   gap: 0;
 }
 
-.teamleader-sidebar__link:hover {
+.admin-sidebar__link:hover {
   background: linear-gradient(135deg, #f5f9ff 0%, #eaf2ff 100%);
   color: #0f172a;
   transform: translateX(2px);
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__link:hover {
+.admin-sidebar.collapsed .admin-sidebar__link:hover {
   transform: scale(1.03);
 }
 
-.teamleader-sidebar__link--active {
+.admin-sidebar__link--active {
   background: linear-gradient(135deg, #dbeafe 0%, #cfe2ff 100%);
   color: #0f172a;
   box-shadow:
@@ -233,15 +237,13 @@
     0 10px 20px rgba(59, 130, 246, 0.12);
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__link--active {
+.admin-sidebar.collapsed .admin-sidebar__link--active {
   box-shadow:
     inset 0 0 0 2px #3b82f6,
     0 10px 20px rgba(59, 130, 246, 0.12);
 }
 
-.teamleader-sidebar__link-icon {
-  width: 24px;
-  height: 24px;
+.admin-sidebar__link-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,13 +253,12 @@
   transition: color 0.2s ease;
 }
 
-.teamleader-sidebar__link--active .teamleader-sidebar__link-icon,
-.teamleader-sidebar__link:hover .teamleader-sidebar__link-icon {
+.admin-sidebar__link--active .admin-sidebar__link-icon,
+.admin-sidebar__link:hover .admin-sidebar__link-icon {
   color: #2563eb;
 }
 
-.teamleader-sidebar__link-text {
-  display: inline-block;
+.admin-sidebar__link-text {
   white-space: nowrap;
   overflow: hidden;
   transition:
@@ -265,14 +266,13 @@
     width 0.2s ease;
 }
 
-.teamleader-sidebar.collapsed .teamleader-sidebar__link-text {
-    display:none;
+.admin-sidebar.collapsed .admin-sidebar__link-text {
   width: 0;
   opacity: 0;
   overflow: hidden;
 }
 
-body.dark .teamleader-sidebar {
+body.dark .admin-sidebar {
   background: #0f172a;
   border-right-color: #1f2937;
   box-shadow:
@@ -280,35 +280,36 @@ body.dark .teamleader-sidebar {
     2px 0 10px rgba(2, 6, 23, 0.16);
 }
 
-body.dark .teamleader-sidebar__brand {
+body.dark .admin-sidebar__brand {
   background: transparent;
   box-shadow: none;
 }
 
-body.dark .teamleader-sidebar__toggle {
+body.dark .admin-sidebar__toggle {
   background: #0f172a;
   color: #ffffff;
+  border-left: none;
   box-shadow: none;
 }
 
-body.dark .teamleader-sidebar__toggle svg {
+body.dark .admin-sidebar__toggle svg {
   color: #ffffff;
 }
 
-body.dark .teamleader-sidebar__toggle:hover {
+body.dark .admin-sidebar__toggle:hover {
   background: #0f172a;
   color: #ffffff;
 }
 
-body.dark .teamleader-sidebar__brand-title {
+body.dark .admin-sidebar__brand-title {
   color: #f8fafc;
 }
 
-body.dark .teamleader-sidebar__brand-subtitle {
+body.dark .admin-sidebar__brand-subtitle {
   color: #94a3b8;
 }
 
-body.dark .teamleader-sidebar__divider {
+body.dark .admin-sidebar__divider {
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -318,16 +319,16 @@ body.dark .teamleader-sidebar__divider {
   );
 }
 
-body.dark .teamleader-sidebar__link {
+body.dark .admin-sidebar__link {
   color: #ffffff;
 }
 
-body.dark .teamleader-sidebar__link:hover {
+body.dark .admin-sidebar__link:hover {
   background: linear-gradient(135deg, #172033 0%, #1f2937 100%);
   color: #ffffff;
 }
 
-body.dark .teamleader-sidebar__link--active {
+body.dark .admin-sidebar__link--active {
   background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
   color: #ffffff;
   box-shadow:
@@ -335,23 +336,23 @@ body.dark .teamleader-sidebar__link--active {
     0 10px 20px rgba(2, 6, 23, 0.3);
 }
 
-body.dark .teamleader-sidebar.collapsed .teamleader-sidebar__link--active {
+body.dark .admin-sidebar.collapsed .admin-sidebar__link--active {
   box-shadow:
     inset 0 0 0 2px #60a5fa,
     0 10px 20px rgba(2, 6, 23, 0.3);
 }
 
-body.dark .teamleader-sidebar__link-icon {
+body.dark .admin-sidebar__link-icon {
   color: #ffffff;
 }
 
-body.dark .teamleader-sidebar__link--active .teamleader-sidebar__link-icon,
-body.dark .teamleader-sidebar__link:hover .teamleader-sidebar__link-icon {
+body.dark .admin-sidebar__link--active .admin-sidebar__link-icon,
+body.dark .admin-sidebar__link:hover .admin-sidebar__link-icon {
   color: #ffffff;
 }
 
 @media (max-width: 980px) {
-  .teamleader-sidebar {
+  .admin-sidebar {
     width: 100%;
     min-height: auto;
     border-right: none;
@@ -362,61 +363,61 @@ body.dark .teamleader-sidebar__link:hover .teamleader-sidebar__link-icon {
     overflow: hidden;
   }
 
-  .teamleader-sidebar__toggle {
+  .admin-sidebar__toggle {
     position: static;
     width: 30px;
     height: 30px;
     border-radius: 10px;
   }
 
-  .teamleader-sidebar__toggle:hover {
+  .admin-sidebar__toggle:hover {
     transform: none;
   }
 
-  .teamleader-sidebar.collapsed {
+  .admin-sidebar.collapsed {
     width: 100%;
     padding: 20px 16px 20px;
   }
 
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand {
+  .admin-sidebar.collapsed .admin-sidebar__brand {
     justify-content: flex-start;
     overflow: hidden;
   }
 
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-icon {
+  .admin-sidebar.collapsed .admin-sidebar__brand-icon {
     width: 44px;
     height: 44px;
     border-width: 3px;
   }
 
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-icon svg {
+  .admin-sidebar.collapsed .admin-sidebar__brand-icon svg {
     font-size: 1rem;
   }
 
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-copy,
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-title,
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-subtitle,
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-text,
-  .teamleader-sidebar.collapsed .teamleader-sidebar__brand-label,
-  .teamleader-sidebar.collapsed .brand-logo__copy,
-  .teamleader-sidebar.collapsed .brand-logo__title,
-  .teamleader-sidebar.collapsed .brand-logo__subtitle,
-  .teamleader-sidebar.collapsed .brand-logo__text {
+  .admin-sidebar.collapsed .admin-sidebar__brand-copy,
+  .admin-sidebar.collapsed .admin-sidebar__brand-title,
+  .admin-sidebar.collapsed .admin-sidebar__brand-subtitle,
+  .admin-sidebar.collapsed .admin-sidebar__brand-text,
+  .admin-sidebar.collapsed .admin-sidebar__brand-label,
+  .admin-sidebar.collapsed .brand-logo__copy,
+  .admin-sidebar.collapsed .brand-logo__title,
+  .admin-sidebar.collapsed .brand-logo__subtitle,
+  .admin-sidebar.collapsed .brand-logo__text {
     display: flex !important;
   }
 
-  .teamleader-sidebar.collapsed .teamleader-sidebar__link {
+  .admin-sidebar.collapsed .admin-sidebar__link {
     justify-content: flex-start;
     padding: 14px 14px;
     gap: 12px;
   }
 
-  .teamleader-sidebar.collapsed .teamleader-sidebar__link-text {
+  .admin-sidebar.collapsed .admin-sidebar__link-text {
     width: auto;
     opacity: 1;
   }
 
-  body.dark .teamleader-sidebar {
+  body.dark .admin-sidebar {
     border-bottom-color: #1f2937;
     box-shadow: 0 8px 20px rgba(2, 6, 23, 0.2);
   }

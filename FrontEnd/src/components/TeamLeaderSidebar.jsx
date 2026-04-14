@@ -16,11 +16,14 @@ export default function TeamLeaderSidebar({
   theme = "light",
 }) {
   const [collapsed, setCollapsed] = useState(() => {
-    return localStorage.getItem("tl_sidebar") === "true";
+    return localStorage.getItem("teamLeaderSidebarCollapsed") === "true";
   });
 
   useEffect(() => {
-    localStorage.setItem("tl_sidebar", collapsed);
+    localStorage.setItem(
+      "teamLeaderSidebarCollapsed",
+      String(collapsed)
+    );
   }, [collapsed]);
 
   const navItems = useMemo(
@@ -34,17 +37,19 @@ export default function TeamLeaderSidebar({
   );
 
   return (
-    <aside className={`teamleader-sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
       <button
-        className="teamleader-sidebar__toggle"
+        type="button"
+        className="admin-sidebar__toggle"
         onClick={() => setCollapsed((prev) => !prev)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
       </button>
 
-      <div className="teamleader-sidebar__top">
-        <div className="teamleader-sidebar__header">
-          <div className="teamleader-sidebar__brand">
+      <div className="admin-sidebar__top">
+        <div className="admin-sidebar__header">
+          <div className="admin-sidebar__brand">
             <BrandLogo
               subtitle="Team Leader Panel"
               dark={theme === "dark"}
@@ -53,25 +58,21 @@ export default function TeamLeaderSidebar({
           </div>
         </div>
 
-        <div className="teamleader-sidebar__divider" />
+        <div className="admin-sidebar__divider"></div>
 
-        <nav className="teamleader-sidebar__nav">
+        <nav className="admin-sidebar__nav">
           {navItems.map((item) => (
             <button
               key={item.name}
-              className={`teamleader-sidebar__link ${
-                activeItem === item.name
-                  ? "teamleader-sidebar__link--active"
-                  : ""
+              type="button"
+              className={`admin-sidebar__link ${
+                activeItem === item.name ? "admin-sidebar__link--active" : ""
               }`}
               onClick={() => onSelect?.(item.name)}
+              title={collapsed ? item.name : ""}
             >
-              <span className="teamleader-sidebar__link-icon">
-                {item.icon}
-              </span>
-              <span className="teamleader-sidebar__link-text">
-                {item.name}
-              </span>
+              <span className="admin-sidebar__link-icon">{item.icon}</span>
+              <span className="admin-sidebar__link-text">{item.name}</span>
             </button>
           ))}
         </nav>
