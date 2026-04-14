@@ -499,7 +499,9 @@ export default function TasksSection({
   ]);
 
   const isStepOneValid =
-    formState.title.trim() !== "" && formState.assignedUserId !== "";
+  formState.title.trim() !== "" &&
+  formState.description.trim() !== "" &&
+  formState.assignedUserId !== "";
 
   const isCreateDisabled =
     isSubmitting ||
@@ -980,15 +982,18 @@ export default function TasksSection({
                   </div>
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
-                    <label htmlFor="task-description">Description</label>
-                    <textarea
-                      id="task-description"
-                      value={formState.description}
-                      onChange={(event) =>
-                        handleFormChange("description", event.target.value)
-                      }
-                      rows={4}
-                    />
+                    <label htmlFor="task-description">
+  Description <span className="tasks-section__required">*</span>
+</label>
+<textarea
+  id="task-description"
+  value={formState.description}
+  onChange={(event) =>
+    handleFormChange("description", event.target.value)
+  }
+  rows={4}
+  required
+/>
                   </div>
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
