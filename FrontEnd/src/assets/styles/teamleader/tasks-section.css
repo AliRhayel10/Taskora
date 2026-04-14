@@ -27,14 +27,16 @@
 
 .tasks-section__toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
-.tasks-section__toolbar--align-end {
-  justify-content: flex-end;
+.tasks-section__toolbar--tabs-row {
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 .tasks-section__create-btn {
@@ -86,8 +88,9 @@
   display: flex;
   align-items: center;
   gap: 22px;
-  flex-wrap: wrap;
-  padding-top: 4px;
+  flex-wrap: nowrap;
+  padding-top: 0;
+  min-width: 0;
 }
 
 .tasks-section__tab {
@@ -733,6 +736,15 @@
   .tasks-section__toolbar {
     flex-direction: column;
     align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .tasks-section__toolbar--tabs-row {
+    gap: 14px;
+  }
+
+  .tasks-section__tabs {
+    flex-wrap: wrap;
   }
 
   .tasks-section__create-btn {
