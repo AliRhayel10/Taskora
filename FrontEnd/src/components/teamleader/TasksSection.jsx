@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../assets/styles/teamleader/tasks-section.css";
 import {
@@ -227,6 +226,7 @@ export default function TasksSection({
   const [openStatusMenuId, setOpenStatusMenuId] = useState(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState(DEFAULT_RANGE);
+  const [draftRange, setDraftRange] = useState(DEFAULT_RANGE);
 
   const statusMenuRef = useRef(null);
   const datePickerRef = useRef(null);
@@ -359,6 +359,23 @@ export default function TasksSection({
     setCurrentPage(1);
   }, [activeTab]);
 
+  const syncDraftWithAppliedRange = () => {
+    setDraftRange({
+      from: selectedRange?.from || undefined,
+      to: selectedRange?.to || undefined,
+    });
+  };
+
+  const openDatePicker = () => {
+    syncDraftWithAppliedRange();
+    setIsDatePickerOpen(true);
+  };
+
+  const closeDatePicker = () => {
+    syncDraftWithAppliedRange();
+    setIsDatePickerOpen(false);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -372,7 +389,7 @@ export default function TasksSection({
         datePickerRef.current &&
         !datePickerRef.current.contains(event.target)
       ) {
-        setIsDatePickerOpen(false);
+        closeDatePicker();
       }
     };
 
@@ -381,7 +398,7 @@ export default function TasksSection({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [selectedRange]);
 
   useEffect(() => {
     if (formState.startDate && formState.dueDate) {
@@ -390,12 +407,12 @@ export default function TasksSection({
 
       if (!Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime())) {
         setSelectedRange({ from, to });
+        return;
       }
-    } else {
-      setSelectedRange(DEFAULT_RANGE);
     }
-  }, [formState.startDate, formState.dueDate]);
 
+    setSelectedRange(DEFAULT_RANGE);
+  }, [formState.startDate, formState.dueDate]);
 
   const assignableUsers = useMemo(() => {
     const filteredByRole = users.filter((user) => {
@@ -495,9 +512,9 @@ export default function TasksSection({
     !computedTaskWeight;
 
   const formattedRangeLabel =
-    formState.startDate && formState.dueDate
-      ? `${format(new Date(formState.startDate), "dd/MM/yyyy")} - ${format(
-          new Date(formState.dueDate),
+    selectedRange?.from && selectedRange?.to
+      ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
+          selectedRange.to,
           "dd/MM/yyyy"
         )}`
       : "Select date range";
@@ -507,6 +524,7 @@ export default function TasksSection({
     setCreateStep(1);
     setMemberSearch("");
     setSelectedRange(DEFAULT_RANGE);
+    setDraftRange(DEFAULT_RANGE);
     setIsDatePickerOpen(false);
     setIsCreateOpen(true);
   };
@@ -516,29 +534,25 @@ export default function TasksSection({
     setCreateStep(1);
     setMemberSearch("");
     setSelectedRange(DEFAULT_RANGE);
+    setDraftRange(DEFAULT_RANGE);
     setIsDatePickerOpen(false);
-  };
-
-  const handleRangeSelect = (range) => {
-    setSelectedRange(range ?? DEFAULT_RANGE);
-
-    if (range?.from && range?.to) {
-      setFormState((previous) => ({
-        ...previous,
-        startDate: format(range.from, "yyyy-MM-dd"),
-        dueDate: format(range.to, "yyyy-MM-dd"),
-      }));
-    } else {
-      setFormState((previous) => ({
-        ...previous,
-        startDate: "",
-        dueDate: "",
-      }));
-    }
+    setFormState(DEFAULT_FORM);
   };
 
   const applyDateRange = () => {
-    if (!selectedRange?.from || !selectedRange?.to) return;
+    if (!draftRange?.from || !draftRange?.to) return;
+
+    setSelectedRange({
+      from: draftRange.from,
+      to: draftRange.to,
+    });
+
+    setFormState((previous) => ({
+      ...previous,
+      startDate: format(draftRange.from, "yyyy-MM-dd"),
+      dueDate: format(draftRange.to, "yyyy-MM-dd"),
+    }));
+
     setIsDatePickerOpen(false);
   };
 
@@ -1144,7 +1158,13 @@ export default function TasksSection({
                       <button
                         type="button"
                         className="tasks-section__date-picker-trigger"
-                        onClick={() => setIsDatePickerOpen((previous) => !previous)}
+                        onClick={() => {
+                          if (isDatePickerOpen) {
+                            closeDatePicker();
+                          } else {
+                            openDatePicker();
+                          }
+                        }}
                       >
                         <span>{formattedRangeLabel}</span>
                         <FiCalendar />
@@ -1155,8 +1175,13 @@ export default function TasksSection({
                           <div className="tasks-section__date-picker-calendar">
                             <DayPicker
                               mode="range"
-                              selected={selectedRange}
-                              onSelect={handleRangeSelect}
+                              selected={draftRange}
+                              onSelect={(range) =>
+                                setDraftRange({
+                                  from: range?.from || undefined,
+                                  to: range?.to || undefined,
+                                })
+                              }
                               showOutsideDays
                               numberOfMonths={1}
                               className="tasks-section__day-picker"
@@ -1167,7 +1192,7 @@ export default function TasksSection({
                             type="button"
                             className="tasks-section__apply-btn"
                             onClick={applyDateRange}
-                            disabled={!selectedRange?.from || !selectedRange?.to}
+                            disabled={!draftRange?.from || !draftRange?.to}
                           >
                             Apply Range
                           </button>

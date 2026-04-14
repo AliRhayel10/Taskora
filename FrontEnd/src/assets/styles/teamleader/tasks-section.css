@@ -194,12 +194,19 @@
 }
 
 .tasks-section__tabs {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-top: 2px;
 }
+
+.tasks-section__tab-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 
 .tasks-section__tab {
     border: none;
