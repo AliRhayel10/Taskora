@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiUsers,
   FiClipboard,
@@ -12,13 +12,23 @@ import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
 const PAGE_SIZE = 6;
 
-function getWeekRange() {
+function getTodayRange() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+function getWeekRange(offsetWeeks = 0) {
   const now = new Date();
   const day = now.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
 
   const start = new Date(now);
-  start.setDate(now.getDate() + diffToMonday);
+  start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
   start.setHours(0, 0, 0, 0);
 
   const end = new Date(start);
@@ -26,6 +36,67 @@ function getWeekRange() {
   end.setHours(23, 59, 59, 999);
 
   return { start, end };
+}
+
+function formatInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseInputDate(value, endOfDay = false) {
+  if (!value) return null;
+
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  if (endOfDay) {
+    date.setHours(23, 59, 59, 999);
+  } else {
+    date.setHours(0, 0, 0, 0);
+  }
+
+  return date;
+}
+
+function getPresetRange(preset, customRange) {
+  switch (preset) {
+    case "today":
+      return getTodayRange();
+    case "nextWeek":
+      return getWeekRange(1);
+    case "custom": {
+      const start = parseInputDate(customRange.startDate);
+      const end = parseInputDate(customRange.endDate, true);
+
+      if (start && end && start <= end) {
+        return { start, end };
+      }
+
+      return getWeekRange(0);
+    }
+    case "thisWeek":
+    default:
+      return getWeekRange(0);
+  }
+}
+
+function getRangeLabel(preset, customRange) {
+  switch (preset) {
+    case "today":
+      return "Today";
+    case "nextWeek":
+      return "Next Week";
+    case "custom":
+      if (customRange.startDate && customRange.endDate) {
+        return "Custom Range";
+      }
+      return "Custom Range";
+    case "thisWeek":
+    default:
+      return "This Week";
+  }
 }
 
 function doesTaskOverlapRange(task, start, end) {
@@ -127,7 +198,48 @@ export default function TeamLeaderDashboardSection({
   const [errorMessage, setErrorMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { start, end } = useMemo(() => getWeekRange(), []);
+  const [selectedPreset, setSelectedPreset] = useState("thisWeek");
+  const [customRange, setCustomRange] = useState(() => {
+    const currentWeek = getWeekRange(0);
+    return {
+      startDate: formatInputDate(currentWeek.start),
+      endDate: formatInputDate(currentWeek.end),
+    };
+  });
+  const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
+
+  const rangeMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!isRangeMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (
+        rangeMenuRef.current &&
+        !rangeMenuRef.current.contains(event.target)
+      ) {
+        setIsRangeMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isRangeMenuOpen]);
+
+  const activeRange = useMemo(
+    () => getPresetRange(selectedPreset, customRange),
+    [selectedPreset, customRange]
+  );
+
+  const rangeLabel = useMemo(
+    () => getRangeLabel(selectedPreset, customRange),
+    [selectedPreset, customRange]
+  );
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -223,7 +335,11 @@ export default function TeamLeaderDashboardSection({
 
         const filteredTasks = (tasksData.tasks || []).filter((task) => {
           const belongsToLeaderTeam = leaderTeamIds.includes(Number(task.teamId));
-          const isInRange = doesTaskOverlapRange(task, start, end);
+          const isInRange = doesTaskOverlapRange(
+            task,
+            activeRange.start,
+            activeRange.end
+          );
           return belongsToLeaderTeam && isInRange;
         });
 
@@ -238,7 +354,7 @@ export default function TeamLeaderDashboardSection({
     };
 
     fetchDashboardData();
-  }, [user, start, end]);
+  }, [user, activeRange.start, activeRange.end]);
 
   const workloadRows = useMemo(() => {
     const search = searchValue.trim().toLowerCase();
@@ -320,7 +436,7 @@ export default function TeamLeaderDashboardSection({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchValue, members.length, tasks.length]);
+  }, [searchValue, members.length, tasks.length, selectedPreset, customRange]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -349,16 +465,101 @@ export default function TeamLeaderDashboardSection({
     [totalPages, currentPage]
   );
 
+  const handleSelectPreset = (preset) => {
+    setSelectedPreset(preset);
+    setIsRangeMenuOpen(false);
+  };
+
+  const handleCustomDateChange = (field, value) => {
+    setCustomRange((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setSelectedPreset("custom");
+  };
+
   return (
     <section className="teamleader-dashboard-section">
       <div className="teamleader-dashboard-section__toolbar">
-        <button
-          type="button"
-          className="teamleader-dashboard-section__range-btn"
+        <div
+          className="teamleader-dashboard-section__range-menu"
+          ref={rangeMenuRef}
         >
-          <span>This Week</span>
-          <FiChevronDown />
-        </button>
+          <button
+            type="button"
+            className="teamleader-dashboard-section__range-btn"
+            onClick={() => setIsRangeMenuOpen((prev) => !prev)}
+          >
+            <span>{rangeLabel}</span>
+            <FiChevronDown />
+          </button>
+
+          {isRangeMenuOpen && (
+            <div className="teamleader-dashboard-section__range-dropdown">
+              <button
+                type="button"
+                className={`teamleader-dashboard-section__range-option ${
+                  selectedPreset === "today"
+                    ? "teamleader-dashboard-section__range-option--active"
+                    : ""
+                }`}
+                onClick={() => handleSelectPreset("today")}
+              >
+                Today
+              </button>
+
+              <button
+                type="button"
+                className={`teamleader-dashboard-section__range-option ${
+                  selectedPreset === "thisWeek"
+                    ? "teamleader-dashboard-section__range-option--active"
+                    : ""
+                }`}
+                onClick={() => handleSelectPreset("thisWeek")}
+              >
+                This Week
+              </button>
+
+              <button
+                type="button"
+                className={`teamleader-dashboard-section__range-option ${
+                  selectedPreset === "nextWeek"
+                    ? "teamleader-dashboard-section__range-option--active"
+                    : ""
+                }`}
+                onClick={() => handleSelectPreset("nextWeek")}
+              >
+                Next Week
+              </button>
+
+              <div className="teamleader-dashboard-section__range-divider"></div>
+
+              <div className="teamleader-dashboard-section__custom-range">
+                <label>
+                  <span>Start</span>
+                  <input
+                    type="date"
+                    value={customRange.startDate}
+                    onChange={(event) =>
+                      handleCustomDateChange("startDate", event.target.value)
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>End</span>
+                  <input
+                    type="date"
+                    value={customRange.endDate}
+                    onChange={(event) =>
+                      handleCustomDateChange("endDate", event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -418,7 +619,7 @@ export default function TeamLeaderDashboardSection({
                         colSpan="5"
                         className="teamleader-dashboard-section__empty-cell"
                       >
-                        No workload data found for this week.
+                        No workload data found for the selected range.
                       </td>
                     </tr>
                   ) : (
