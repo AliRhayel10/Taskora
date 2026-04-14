@@ -84,13 +84,20 @@
   color: #b42318;
 }
 
-.tasks-section__tabs {
-  display: flex;
+.tasks-section__tab {
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
-  gap: 22px;
-  flex-wrap: nowrap;
-  padding-top: 0;
-  min-width: 0;
+  gap: 8px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  width: fit-content;
+  flex: 0 0 auto;
 }
 
 .tasks-section__tab {
@@ -113,8 +120,7 @@
 
 .tasks-section__tab-text {
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   line-height: 1.1;
   padding-bottom: 4px;
 }
@@ -146,6 +152,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
 }
 
 .tasks-section__state-card {
