@@ -38,14 +38,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
   min-height: 72px;
 }
 
 .teamleader-sidebar__brand {
   flex: 1;
   min-width: 0;
-  min-height: 72px;
+  height: 72px;
   padding: 8px 2px 12px;
   display: flex;
   align-items: center;
@@ -241,6 +240,8 @@
 }
 
 .teamleader-sidebar__link-icon {
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,6 +257,7 @@
 }
 
 .teamleader-sidebar__link-text {
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   transition:
@@ -264,6 +266,7 @@
 }
 
 .teamleader-sidebar.collapsed .teamleader-sidebar__link-text {
+    display:none;
   width: 0;
   opacity: 0;
   overflow: hidden;

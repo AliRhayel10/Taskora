@@ -16,12 +16,11 @@ export default function TeamLeaderSidebar({
   theme = "light",
 }) {
   const [collapsed, setCollapsed] = useState(() => {
-    const saved = localStorage.getItem("teamLeaderSidebarCollapsed");
-    return saved === "true";
+    return localStorage.getItem("tl_sidebar") === "true";
   });
 
   useEffect(() => {
-    localStorage.setItem("teamLeaderSidebarCollapsed", String(collapsed));
+    localStorage.setItem("tl_sidebar", collapsed);
   }, [collapsed]);
 
   const navItems = useMemo(
@@ -37,10 +36,8 @@ export default function TeamLeaderSidebar({
   return (
     <aside className={`teamleader-sidebar ${collapsed ? "collapsed" : ""}`}>
       <button
-        type="button"
         className="teamleader-sidebar__toggle"
         onClick={() => setCollapsed((prev) => !prev)}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
       </button>
@@ -56,21 +53,25 @@ export default function TeamLeaderSidebar({
           </div>
         </div>
 
-        <div className="teamleader-sidebar__divider"></div>
+        <div className="teamleader-sidebar__divider" />
 
         <nav className="teamleader-sidebar__nav">
           {navItems.map((item) => (
             <button
               key={item.name}
-              type="button"
               className={`teamleader-sidebar__link ${
-                activeItem === item.name ? "teamleader-sidebar__link--active" : ""
+                activeItem === item.name
+                  ? "teamleader-sidebar__link--active"
+                  : ""
               }`}
               onClick={() => onSelect?.(item.name)}
-              title={collapsed ? item.name : ""}
             >
-              <span className="teamleader-sidebar__link-icon">{item.icon}</span>
-              <span className="teamleader-sidebar__link-text">{item.name}</span>
+              <span className="teamleader-sidebar__link-icon">
+                {item.icon}
+              </span>
+              <span className="teamleader-sidebar__link-text">
+                {item.name}
+              </span>
             </button>
           ))}
         </nav>

@@ -19,7 +19,14 @@ export default function TeamLeaderDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState(() => {
+  return localStorage.getItem("tl_theme") || "light";
+});
+
+useEffect(() => {
+  localStorage.setItem("tl_theme", theme);
+  document.body.classList.toggle("dark", theme === "dark");
+}, [theme]);
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [searchValue, setSearchValue] = useState("");
 
