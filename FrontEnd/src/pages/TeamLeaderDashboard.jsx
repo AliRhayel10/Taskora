@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TeamLeaderSidebar from "../components/TeamLeaderSidebar";
 import AppTopbar from "../components/AppTopbar";
@@ -28,26 +28,26 @@ export default function TeamLeaderDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [searchValue, setSearchValue] = useState("");
 
-  const user = useMemo(() => {
-    const routeUser = location.state?.user;
-    const savedUser = localStorage.getItem("user");
+const [user, setUser] = useState(() => {
+  const routeUser = location.state?.user;
+  const savedUser = localStorage.getItem("user");
 
-    const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
+  const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
 
-    if (!currentUser) return null;
+  if (!currentUser) return null;
 
-    return {
-      userId: currentUser.userId,
-      companyId: currentUser.companyId,
-      companyName: currentUser.companyName || "",
-      fullName: currentUser.fullName || "Team Leader",
-      email: currentUser.email || "",
-      role: currentUser.role || "Team Leader",
-      profileImageUrl: currentUser.profileImageUrl || "",
-      jobTitle: currentUser.jobTitle || "",
-      token: currentUser.token || "",
-    };
-  }, [location.state]);
+  return {
+    userId: currentUser.userId,
+    companyId: currentUser.companyId,
+    companyName: currentUser.companyName || "",
+    fullName: currentUser.fullName || "Team Leader",
+    email: currentUser.email || "",
+    role: currentUser.role || "Team Leader",
+    profileImageUrl: currentUser.profileImageUrl || "",
+    jobTitle: currentUser.jobTitle || "",
+    token: currentUser.token || "",
+  };
+});
 
   useEffect(() => {
     localStorage.setItem("tl_theme", theme);
@@ -111,7 +111,7 @@ export default function TeamLeaderDashboard() {
               />
             </>
           ) : activeItem === "Profile" ? (
-            <TeamLeaderProfileSection user={user} />
+            <TeamLeaderProfileSection user={user} setUser={setUser} />
           ) : (
             <SectionTitle title={activeItem} />
           )}

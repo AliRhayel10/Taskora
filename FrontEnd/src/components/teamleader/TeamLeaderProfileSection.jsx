@@ -70,7 +70,7 @@ function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export default function TeamLeaderProfileSection({ user }) {
+export default function TeamLeaderProfileSection({ user, setUser }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
@@ -458,6 +458,18 @@ export default function TeamLeaderProfileSection({ user }) {
 
       await fetchProfileFromBackend();
 
+// update parent user + localStorage
+const updatedUser = {
+  ...user,
+  fullName: nextFullName,
+  email: cleanedData.email,
+  jobTitle: cleanedData.jobTitle,
+  companyName: cleanedData.companyName,
+};
+
+setUser(updatedUser);
+localStorage.setItem("user", JSON.stringify(updatedUser));
+
       setCurrentPassword("");
       setFormMessage({
         type: "success",
@@ -517,6 +529,13 @@ export default function TeamLeaderProfileSection({ user }) {
       }
 
       await fetchProfileFromBackend();
+      const updatedUser = {
+  ...user,
+  profileImageUrl: data.imageUrl,
+};
+
+setUser(updatedUser);
+localStorage.setItem("user", JSON.stringify(updatedUser));
       handleCloseCropModal();
       setFormMessage({
         type: "success",
