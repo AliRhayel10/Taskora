@@ -43,16 +43,6 @@ function getWeekRange(offsetWeeks = 0) {
   return { start, end };
 }
 
-function getDefaultRangeState() {
-  return {
-    selectedPreset: "thisWeek",
-    customRange: {
-      from: null,
-      to: null,
-    },
-  };
-}
-
 function loadRangeState() {
   try {
     const saved = localStorage.getItem(RANGE_STORAGE_KEY);
@@ -264,6 +254,11 @@ export default function TeamLeaderDashboardSection({
 
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
 
+  const [sortConfig, setSortConfig] = useState({
+    key: "",
+    direction: "asc",
+  });
+
   const rangeMenuRef = useRef(null);
 
   useEffect(() => {
@@ -451,46 +446,108 @@ export default function TeamLeaderDashboardSection({
     fetchDashboardData();
   }, [user, activeRange.start, activeRange.end]);
 
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return {
+        key,
+        direction: "asc",
+      };
+    });
+  };
+
   const workloadRows = useMemo(() => {
     const search = searchValue.trim().toLowerCase();
 
-    const rows = members
-      .map((member) => {
-        const memberTasks = tasks.filter(
-          (task) => Number(task.assignedToUserId) === Number(member.userId)
-        );
+    let rows = members.map((member) => {
+      const memberTasks = tasks.filter(
+        (task) => Number(task.assignedToUserId) === Number(member.userId)
+      );
 
-        const totalTasks = memberTasks.length;
-        const totalEffort = memberTasks.reduce(
-          (sum, task) => sum + Number(task.estimatedEffortHours || 0),
-          0
-        );
-        const totalWeight = memberTasks.reduce(
-          (sum, task) => sum + Number(task.weight || 0),
-          0
-        );
+      const totalTasks = memberTasks.length;
+      const totalEffort = memberTasks.reduce(
+        (sum, task) => sum + Number(task.estimatedEffortHours || 0),
+        0
+      );
+      const totalWeight = memberTasks.reduce(
+        (sum, task) => sum + Number(task.weight || 0),
+        0
+      );
 
-        return {
-          userId: member.userId,
-          employee: member.fullName,
-          email: member.email || "",
-          tasks: totalTasks,
-          effort: `${totalEffort}h`,
-          weight: Number(totalWeight.toFixed(2)),
-          status: getWorkloadStatus(totalWeight),
-          profileImageUrl: member.profileImageUrl || "",
-        };
-      })
-      .sort((a, b) => a.employee.localeCompare(b.employee));
+      return {
+        userId: member.userId,
+        employee: member.fullName,
+        email: member.email || "",
+        tasks: totalTasks,
+        effort: `${totalEffort}h`,
+        effortValue: totalEffort,
+        weight: Number(totalWeight.toFixed(2)),
+        status: getWorkloadStatus(totalWeight),
+        profileImageUrl: member.profileImageUrl || "",
+      };
+    });
 
-    if (!search) return rows;
+    if (search) {
+      rows = rows.filter(
+        (row) =>
+          String(row.employee || "").toLowerCase().includes(search) ||
+          String(row.email || "").toLowerCase().includes(search)
+      );
+    }
 
-    return rows.filter(
-      (row) =>
-        String(row.employee || "").toLowerCase().includes(search) ||
-        String(row.email || "").toLowerCase().includes(search)
-    );
-  }, [members, tasks, searchValue]);
+    if (sortConfig.key) {
+      rows = [...rows].sort((a, b) => {
+        let firstValue;
+        let secondValue;
+
+        switch (sortConfig.key) {
+          case "employee":
+            firstValue = String(a.employee || "").toLowerCase();
+            secondValue = String(b.employee || "").toLowerCase();
+            break;
+          case "tasks":
+            firstValue = Number(a.tasks || 0);
+            secondValue = Number(b.tasks || 0);
+            break;
+          case "effort":
+            firstValue = Number(a.effortValue || 0);
+            secondValue = Number(b.effortValue || 0);
+            break;
+          case "weight":
+            firstValue = Number(a.weight || 0);
+            secondValue = Number(b.weight || 0);
+            break;
+          case "status":
+            firstValue = String(a.status || "").toLowerCase();
+            secondValue = String(b.status || "").toLowerCase();
+            break;
+          default:
+            firstValue = "";
+            secondValue = "";
+        }
+
+        if (firstValue < secondValue) {
+          return sortConfig.direction === "asc" ? -1 : 1;
+        }
+
+        if (firstValue > secondValue) {
+          return sortConfig.direction === "asc" ? 1 : -1;
+        }
+
+        return 0;
+      });
+    } else {
+      rows = [...rows].sort((a, b) => a.employee.localeCompare(b.employee));
+    }
+
+    return rows;
+  }, [members, tasks, searchValue, sortConfig]);
 
   const summaryCards = useMemo(() => {
     const totalTasks = tasks.length;
@@ -531,7 +588,7 @@ export default function TeamLeaderDashboardSection({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchValue, members.length, tasks.length, selectedPreset, customRange]);
+  }, [searchValue, members.length, tasks.length, selectedPreset, customRange, sortConfig]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -747,44 +804,129 @@ export default function TeamLeaderDashboardSection({
           <div className="teamleader-dashboard-section__table-card">
             <div className="teamleader-dashboard-section__table-wrap">
               <table className="teamleader-dashboard-section__table">
-<thead>
-  <tr>
-    <th>
-      <button type="button" className="teamleader-dashboard-section__sort-btn">
-        <span>Employee</span>
-        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
-      </button>
-    </th>
+                <thead>
+                  <tr>
+                    <th>
+                      <button
+                        type="button"
+                        className="teamleader-dashboard-section__sort-btn"
+                        onClick={() => handleSort("employee")}
+                      >
+                        <span>Employee</span>
+                        <FiChevronDown
+                          className={`teamleader-dashboard-section__sort-icon ${
+                            sortConfig.key === "employee"
+                              ? "teamleader-dashboard-section__sort-icon--active"
+                              : ""
+                          }`}
+                          style={{
+                            transform:
+                              sortConfig.key === "employee" &&
+                              sortConfig.direction === "desc"
+                                ? "rotate(180deg)"
+                                : "rotate(0deg)",
+                          }}
+                        />
+                      </button>
+                    </th>
 
-    <th>
-      <button type="button" className="teamleader-dashboard-section__sort-btn">
-        <span>Tasks</span>
-        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
-      </button>
-    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="teamleader-dashboard-section__sort-btn"
+                        onClick={() => handleSort("tasks")}
+                      >
+                        <span>Tasks</span>
+                        <FiChevronDown
+                          className={`teamleader-dashboard-section__sort-icon ${
+                            sortConfig.key === "tasks"
+                              ? "teamleader-dashboard-section__sort-icon--active"
+                              : ""
+                          }`}
+                          style={{
+                            transform:
+                              sortConfig.key === "tasks" &&
+                              sortConfig.direction === "desc"
+                                ? "rotate(180deg)"
+                                : "rotate(0deg)",
+                          }}
+                        />
+                      </button>
+                    </th>
 
-    <th>
-      <button type="button" className="teamleader-dashboard-section__sort-btn">
-        <span>Effort</span>
-        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
-      </button>
-    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="teamleader-dashboard-section__sort-btn"
+                        onClick={() => handleSort("effort")}
+                      >
+                        <span>Effort</span>
+                        <FiChevronDown
+                          className={`teamleader-dashboard-section__sort-icon ${
+                            sortConfig.key === "effort"
+                              ? "teamleader-dashboard-section__sort-icon--active"
+                              : ""
+                          }`}
+                          style={{
+                            transform:
+                              sortConfig.key === "effort" &&
+                              sortConfig.direction === "desc"
+                                ? "rotate(180deg)"
+                                : "rotate(0deg)",
+                          }}
+                        />
+                      </button>
+                    </th>
 
-    <th>
-      <button type="button" className="teamleader-dashboard-section__sort-btn">
-        <span>Weight</span>
-        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
-      </button>
-    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="teamleader-dashboard-section__sort-btn"
+                        onClick={() => handleSort("weight")}
+                      >
+                        <span>Weight</span>
+                        <FiChevronDown
+                          className={`teamleader-dashboard-section__sort-icon ${
+                            sortConfig.key === "weight"
+                              ? "teamleader-dashboard-section__sort-icon--active"
+                              : ""
+                          }`}
+                          style={{
+                            transform:
+                              sortConfig.key === "weight" &&
+                              sortConfig.direction === "desc"
+                                ? "rotate(180deg)"
+                                : "rotate(0deg)",
+                          }}
+                        />
+                      </button>
+                    </th>
 
-    <th>
-      <button type="button" className="teamleader-dashboard-section__sort-btn">
-        <span>Status</span>
-        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
-      </button>
-    </th>
-  </tr>
-</thead>
+                    <th>
+                      <button
+                        type="button"
+                        className="teamleader-dashboard-section__sort-btn"
+                        onClick={() => handleSort("status")}
+                      >
+                        <span>Status</span>
+                        <FiChevronDown
+                          className={`teamleader-dashboard-section__sort-icon ${
+                            sortConfig.key === "status"
+                              ? "teamleader-dashboard-section__sort-icon--active"
+                              : ""
+                          }`}
+                          style={{
+                            transform:
+                              sortConfig.key === "status" &&
+                              sortConfig.direction === "desc"
+                                ? "rotate(180deg)"
+                                : "rotate(0deg)",
+                          }}
+                        />
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
 
                 <tbody>
                   {paginatedRows.length === 0 ? (

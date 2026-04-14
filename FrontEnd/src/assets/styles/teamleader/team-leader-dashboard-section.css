@@ -413,6 +413,10 @@
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
+.teamleader-dashboard-section__sort-icon--active {
+  color: #1e293b;
+}
+
 .teamleader-dashboard-section__sort-btn:hover .teamleader-dashboard-section__sort-icon {
   color: #1e293b;
 }

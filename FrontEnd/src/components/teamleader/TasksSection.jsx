@@ -10,13 +10,6 @@ import {
   FiX,
 } from "react-icons/fi";
 
-const STATUS_OPTIONS = [
-  { value: "todo", label: "To Do" },
-  { value: "inprogress", label: "In Progress" },
-  { value: "blocked", label: "Blocked" },
-  { value: "done", label: "Done" },
-];
-
 const DEFAULT_FORM = {
   title: "",
   description: "",
@@ -60,21 +53,25 @@ const normalizeStatus = (status = "") => {
   if (safe === "blocked") return "blocked";
   if (safe === "done") return "done";
 
-  return safe || "todo";
+  return safe || "unknown";
 };
 
-const getStatusLabel = (status = "") => {
-  const normalized = normalizeStatus(status);
-  const known = STATUS_OPTIONS.find((option) => option.value === normalized);
-  if (known) return known.label;
-
-  if (!status) return "Unknown";
-  return String(status)
+const prettifyLabel = (value = "") =>
+  String(value)
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/[_-]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const getStatusClass = (status = "") => {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "inprogress") return "tasks-section__status--progress";
+  if (normalized === "blocked") return "tasks-section__status--blocked";
+  if (normalized === "done") return "tasks-section__status--done";
+
+  return "tasks-section__status--todo";
 };
 
 const getPriorityClass = (priority = "") => {
@@ -87,24 +84,12 @@ const getPriorityClass = (priority = "") => {
   return "tasks-section__badge--low";
 };
 
-const getStatusClass = (status = "") => {
-  const normalized = normalizeStatus(status);
-
-  if (normalized === "inprogress") return "tasks-section__status--progress";
-  if (normalized === "blocked") return "tasks-section__status--blocked";
-  if (normalized === "done") return "tasks-section__status--done";
-
-  return "tasks-section__status--todo";
-};
-
-const mapOptionLabel = (item, fallbackKeys = []) => {
-  if (typeof item === "string") return item;
-
-  for (const key of fallbackKeys) {
-    if (item?.[key]) return item[key];
+const getResponseData = (payload) => {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return payload.data;
   }
 
-  return item?.name ?? item?.value ?? "";
+  return payload;
 };
 
 const mapTaskFromApi = (task) => ({
@@ -122,7 +107,7 @@ const mapTaskFromApi = (task) => ({
     task.assignedToUserEmail ??
     task.assignedEmployeeEmail ??
     "",
-  assignedUserAvatar: task.assignedUserAvatar ?? "",
+  assignedUserAvatar: task.assignedUserAvatar ?? task.profileImageUrl ?? "",
   priority: task.priority ?? "Low",
   complexity: task.complexity ?? "Simple",
   estimatedEffortHours:
@@ -135,17 +120,46 @@ const mapTaskFromApi = (task) => ({
 });
 
 export default function TasksSection({
-  tasksEndpoint = "/api/tasks",
-  createTaskEndpoint = "/api/tasks",
-  updateTaskStatusEndpoint = "/api/tasks/status",
-  setupRulesEndpoint = "/api/tasks/setup-rules",
-  usersEndpoint = "/api/users",
+  companyId,
+  tasksEndpoint,
+  createTaskEndpoint,
+  updateTaskStatusEndpoint,
+  setupRulesEndpoint,
+  statusesEndpoint,
+  membersEndpoint,
   pageSize = 5,
 }) {
+  const resolvedCompanyId =
+    companyId ??
+    JSON.parse(localStorage.getItem("user") || "{}")?.companyId ??
+    null;
+
+  const resolvedTasksEndpoint =
+    tasksEndpoint ?? "/api/tasks";
+
+  const resolvedCreateTaskEndpoint =
+    createTaskEndpoint ?? "/api/tasks";
+
+  const resolvedUpdateTaskStatusEndpoint =
+    updateTaskStatusEndpoint ?? "/api/tasks/status";
+
+  const resolvedSetupRulesEndpoint =
+    setupRulesEndpoint ??
+    (resolvedCompanyId ? `/api/tasks/setup-rules/${resolvedCompanyId}` : "");
+
+  const resolvedStatusesEndpoint =
+    statusesEndpoint ??
+    (resolvedCompanyId ? `/api/tasks/statuses/${resolvedCompanyId}` : "");
+
+  const resolvedMembersEndpoint =
+    membersEndpoint ??
+    (resolvedCompanyId ? `/api/Teams/company/${resolvedCompanyId}/members` : "");
+
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [priorityOptions, setPriorityOptions] = useState([]);
   const [complexityOptions, setComplexityOptions] = useState([]);
+  const [statusTabs, setStatusTabs] = useState([{ key: "all", label: "All" }]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,6 +178,8 @@ export default function TasksSection({
     let isMounted = true;
 
     const fetchJson = async (url) => {
+      if (!url) return null;
+
       const response = await fetch(url, {
         headers: { "Content-Type": "application/json" },
       });
@@ -176,17 +192,30 @@ export default function TasksSection({
     };
 
     const loadData = async () => {
+      if (!resolvedCompanyId) {
+        setErrorMessage("Company information is missing.");
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage("");
 
       try {
-        const [tasksData, setupRulesData, usersData] = await Promise.all([
-          fetchJson(tasksEndpoint).catch(() => []),
-          fetchJson(setupRulesEndpoint).catch(() => ({})),
-          fetchJson(usersEndpoint).catch(() => []),
-        ]);
+        const [tasksPayload, setupRulesPayload, statusesPayload, membersPayload] =
+          await Promise.all([
+            fetchJson(resolvedTasksEndpoint).catch(() => []),
+            fetchJson(resolvedSetupRulesEndpoint).catch(() => null),
+            fetchJson(resolvedStatusesEndpoint).catch(() => null),
+            fetchJson(resolvedMembersEndpoint).catch(() => []),
+          ]);
 
         if (!isMounted) return;
+
+        const tasksData = getResponseData(tasksPayload);
+        const setupRulesData = getResponseData(setupRulesPayload);
+        const statusesData = getResponseData(statusesPayload);
+        const membersData = getResponseData(membersPayload);
 
         const normalizedTasks = Array.isArray(tasksData)
           ? tasksData.map(mapTaskFromApi)
@@ -196,29 +225,56 @@ export default function TasksSection({
 
         setTasks(normalizedTasks);
 
-        setPriorityOptions(
-          Array.isArray(setupRulesData?.priorities)
-            ? setupRulesData.priorities
-                .map((item) => mapOptionLabel(item, ["priorityName", "label"]))
-                .filter(Boolean)
-            : ["Low", "Medium", "High", "Critical"]
-        );
+        const priorities =
+          setupRulesData?.priorityMultipliers &&
+          typeof setupRulesData.priorityMultipliers === "object"
+            ? Object.keys(setupRulesData.priorityMultipliers)
+            : [];
 
-        setComplexityOptions(
-          Array.isArray(setupRulesData?.complexities)
-            ? setupRulesData.complexities
-                .map((item) => mapOptionLabel(item, ["complexityName", "label"]))
-                .filter(Boolean)
-            : ["Simple", "Medium", "Complex"]
-        );
+        const complexities =
+          setupRulesData?.complexityMultipliers &&
+          typeof setupRulesData.complexityMultipliers === "object"
+            ? Object.keys(setupRulesData.complexityMultipliers)
+            : [];
 
-        setUsers(
-          Array.isArray(usersData)
-            ? usersData
-            : Array.isArray(usersData?.items)
-            ? usersData.items
-            : []
-        );
+        setPriorityOptions(priorities);
+        setComplexityOptions(complexities);
+
+        const members = Array.isArray(membersData)
+          ? membersData
+          : Array.isArray(membersData?.items)
+          ? membersData.items
+          : [];
+
+        setUsers(members);
+
+        const backendStatuses = Array.isArray(statusesData?.statuses)
+          ? statusesData.statuses
+          : Array.isArray(setupRulesData?.statuses)
+          ? setupRulesData.statuses
+          : [];
+
+        const tabs = backendStatuses
+          .map((item) => {
+            const raw =
+              typeof item === "string"
+                ? item
+                : item?.statusName ?? item?.name ?? item?.value ?? "";
+
+            if (!raw) return null;
+
+            return {
+              key: normalizeStatus(raw),
+              label: prettifyLabel(raw),
+            };
+          })
+          .filter(Boolean)
+          .filter(
+            (tab, index, array) =>
+              array.findIndex((entry) => entry.key === tab.key) === index
+          );
+
+        setStatusTabs([{ key: "all", label: "All" }, ...tabs]);
       } catch (error) {
         if (!isMounted) return;
         setErrorMessage("Unable to load tasks right now.");
@@ -232,7 +288,13 @@ export default function TasksSection({
     return () => {
       isMounted = false;
     };
-  }, [tasksEndpoint, setupRulesEndpoint, usersEndpoint]);
+  }, [
+    resolvedCompanyId,
+    resolvedTasksEndpoint,
+    resolvedSetupRulesEndpoint,
+    resolvedStatusesEndpoint,
+    resolvedMembersEndpoint,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -254,55 +316,6 @@ export default function TasksSection({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const selectedEmployee = useMemo(() => {
-    return users.find(
-      (user) =>
-        String(user.id ?? user.userId) === String(formState.assignedUserId)
-    );
-  }, [users, formState.assignedUserId]);
-
-  const resolvedTeamId = useMemo(() => {
-    if (!selectedEmployee) return null;
-    return (
-      selectedEmployee.teamId ??
-      selectedEmployee.team?.id ??
-      selectedEmployee.team?.teamId ??
-      (Array.isArray(selectedEmployee.teamIds) && selectedEmployee.teamIds.length
-        ? selectedEmployee.teamIds[0]
-        : null)
-    );
-  }, [selectedEmployee]);
-
-  const taskTabs = useMemo(() => {
-    const seen = new Set();
-    const dynamicTabs = [];
-
-    tasks.forEach((task) => {
-      const key = normalizeStatus(task.status);
-      if (!seen.has(key)) {
-        seen.add(key);
-        dynamicTabs.push({
-          key,
-          label: getStatusLabel(task.status),
-        });
-      }
-    });
-
-    const orderedDynamicTabs = dynamicTabs.sort((a, b) => {
-      const order = ["todo", "inprogress", "blocked", "done"];
-      const aIndex = order.indexOf(a.key);
-      const bIndex = order.indexOf(b.key);
-
-      if (aIndex === -1 && bIndex === -1) return a.label.localeCompare(b.label);
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-
-      return aIndex - bIndex;
-    });
-
-    return [{ key: "all", label: "All" }, ...orderedDynamicTabs];
-  }, [tasks]);
 
   const taskCounts = useMemo(() => {
     const counts = { all: tasks.length };
@@ -349,11 +362,16 @@ export default function TasksSection({
     setFeedback(null);
 
     try {
+      const selectedUser = users.find(
+        (user) =>
+          String(user.userId ?? user.id) === String(formState.assignedUserId)
+      );
+
       const payload = {
         title: formState.title.trim(),
         description: formState.description.trim(),
-        teamId: Number(resolvedTeamId ?? 0),
         assignedUserId: Number(formState.assignedUserId),
+        teamId: selectedUser?.teamId ?? 0,
         priority: formState.priority,
         complexity: formState.complexity,
         estimatedEffortHours: Number(formState.estimatedEffortHours),
@@ -361,7 +379,7 @@ export default function TasksSection({
         dueDate: formState.dueDate,
       };
 
-      const response = await fetch(createTaskEndpoint, {
+      const response = await fetch(resolvedCreateTaskEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -371,10 +389,11 @@ export default function TasksSection({
         throw new Error("Failed to create task.");
       }
 
-      const createdTask = await response.json().catch(() => null);
+      const createdTaskPayload = await response.json().catch(() => null);
+      const createdTaskData = getResponseData(createdTaskPayload);
 
-      if (createdTask) {
-        setTasks((previous) => [mapTaskFromApi(createdTask), ...previous]);
+      if (createdTaskData) {
+        setTasks((previous) => [mapTaskFromApi(createdTaskData), ...previous]);
       }
 
       setFormState(DEFAULT_FORM);
@@ -404,7 +423,7 @@ export default function TasksSection({
     setOpenStatusMenuId(null);
 
     try {
-      const response = await fetch(updateTaskStatusEndpoint, {
+      const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -466,7 +485,7 @@ export default function TasksSection({
 
       <div className="tasks-section__toolbar tasks-section__toolbar--tabs-row">
         <div className="tasks-section__tabs">
-          {taskTabs.map((tab) => (
+          {statusTabs.map((tab) => (
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
@@ -596,13 +615,13 @@ export default function TasksSection({
                             )
                           }
                         >
-                          <span>{getStatusLabel(task.status)}</span>
+                          <span>{prettifyLabel(task.status)}</span>
                           <FiChevronDown />
                         </button>
 
                         {openStatusMenuId === task.id && (
                           <div className="tasks-section__status-menu">
-                            {taskTabs
+                            {statusTabs
                               .filter((tab) => tab.key !== "all")
                               .map((tab) => (
                                 <button
@@ -669,18 +688,18 @@ export default function TasksSection({
               </button>
 
               {pageNumbers.map((pageNumber) => (
-                                <button
-                                    key={pageNumber}
-                                    type="button"
-                                    className={`tasks-section__page-btn tasks-section__page-btn--number ${
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
                     currentPage === pageNumber
                       ? "tasks-section__page-btn--active"
                       : ""
                   }`}
-                                    onClick={() => setCurrentPage(pageNumber)}
-                                >
-                                    {pageNumber}
-                                </button>
+                  onClick={() => setCurrentPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
               ))}
 
               <button
@@ -767,10 +786,10 @@ export default function TasksSection({
                       <option value="">Select employee</option>
                       {users.map((user) => (
                         <option
-                          key={user.id ?? user.userId}
-                          value={user.id ?? user.userId}
+                          key={user.userId ?? user.id}
+                          value={user.userId ?? user.id}
                         >
-                          {user.fullName ?? user.name}
+                          {(user.fullName ?? user.name) || "Unknown User"}
                           {user.email ? ` (${user.email})` : ""}
                         </option>
                       ))}
