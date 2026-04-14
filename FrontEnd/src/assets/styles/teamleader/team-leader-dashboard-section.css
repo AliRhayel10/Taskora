@@ -8,6 +8,7 @@
   display: flex;
   justify-content: flex-end;
 }
+
 .teamleader-dashboard-section__range-menu {
   position: relative;
 }
@@ -16,12 +17,12 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 260px;
+  width: 320px;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 16px;
+  border-radius: 18px;
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.1);
-  padding: 10px;
+  padding: 14px;
   z-index: 20;
 }
 
@@ -31,11 +32,14 @@
   background: transparent;
   color: #1e293b;
   text-align: left;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 0.92rem;
-  font-weight: 600;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .teamleader-dashboard-section__range-option:hover {
@@ -50,43 +54,52 @@
 .teamleader-dashboard-section__range-divider {
   height: 1px;
   background: #e2e8f0;
-  margin: 8px 0;
+  margin: 10px 0 12px;
 }
 
 .teamleader-dashboard-section__custom-range {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .teamleader-dashboard-section__custom-range label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .teamleader-dashboard-section__custom-range span {
   color: #475569;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
 .teamleader-dashboard-section__custom-range input {
   width: 100%;
-  height: 40px;
+  height: 48px;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #ffffff;
   color: #1e293b;
-  padding: 0 12px;
-  font-size: 0.9rem;
+  padding: 0 14px;
+  font-size: 0.96rem;
   font-weight: 600;
   outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .teamleader-dashboard-section__custom-range input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.teamleader-dashboard-section__custom-range input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  transform: scale(1.25);
 }
 
 .teamleader-dashboard-section__range-btn {

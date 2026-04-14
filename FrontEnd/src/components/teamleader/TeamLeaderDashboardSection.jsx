@@ -82,16 +82,13 @@ function getPresetRange(preset, customRange) {
   }
 }
 
-function getRangeLabel(preset, customRange) {
+function getRangeLabel(preset) {
   switch (preset) {
     case "today":
       return "Today";
     case "nextWeek":
       return "Next Week";
     case "custom":
-      if (customRange.startDate && customRange.endDate) {
-        return "Custom Range";
-      }
       return "Custom Range";
     case "thisWeek":
     default:
@@ -237,8 +234,8 @@ export default function TeamLeaderDashboardSection({
   );
 
   const rangeLabel = useMemo(
-    () => getRangeLabel(selectedPreset, customRange),
-    [selectedPreset, customRange]
+    () => getRangeLabel(selectedPreset),
+    [selectedPreset]
   );
 
   useEffect(() => {
