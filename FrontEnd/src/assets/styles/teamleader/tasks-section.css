@@ -43,8 +43,7 @@
 
 .tasks-section__filter,
 .tasks-section__filter-select,
-.tasks-section__date-range,
-.tasks-section__search {
+.tasks-section__date-range {
     min-height: 42px;
     border: 1px solid #cbd5e1;
     background: #f8fafc;
@@ -52,8 +51,7 @@
 }
 
 .tasks-section__filter,
-.tasks-section__date-range,
-.tasks-section__search {
+.tasks-section__date-range {
     display: flex;
     align-items: center;
 }
@@ -70,7 +68,6 @@
 
 .tasks-section__filter svg,
 .tasks-section__date-range svg,
-.tasks-section__search svg,
 .tasks-section__filter-select svg {
     color: #64748b;
     flex-shrink: 0;
@@ -124,28 +121,6 @@
     color: #1e293b;
     font-size: 0.92rem;
     font-weight: 600;
-}
-
-.tasks-section__search {
-    min-width: 280px;
-    max-width: 420px;
-    flex: 1;
-    gap: 10px;
-    padding: 0 16px;
-}
-
-.tasks-section__search input {
-    width: 100%;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: #1e293b;
-    font-size: 0.96rem;
-    font-weight: 600;
-}
-
-.tasks-section__search input::placeholder {
-    color: #94a3b8;
 }
 
 .tasks-section__create-btn {
@@ -803,10 +778,6 @@
         width: 100%;
     }
 
-    .tasks-section__search {
-        max-width: none;
-    }
-
     .tasks-section__create-btn {
         width: 100%;
     }
@@ -844,8 +815,7 @@
 
     .tasks-section__filter,
     .tasks-section__filter-select,
-    .tasks-section__date-range,
-    .tasks-section__search {
+    .tasks-section__date-range {
         width: 100%;
         max-width: none;
     }

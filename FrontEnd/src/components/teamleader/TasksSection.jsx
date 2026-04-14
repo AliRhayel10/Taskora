@@ -7,7 +7,6 @@ import {
   FiChevronRight,
   FiEdit2,
   FiPlus,
-  FiSearch,
   FiTrash2,
   FiX,
 } from "react-icons/fi";
@@ -60,15 +59,6 @@ const normalizeStatus = (status = "") => {
   if (safe === "done") return "done";
 
   return "todo";
-};
-
-const getStatusLabel = (status = "") => {
-  const normalized = normalizeStatus(status);
-
-  if (normalized === "inprogress") return "In Progress";
-  if (normalized === "blocked") return "Blocked";
-  if (normalized === "done") return "Done";
-  return "To Do";
 };
 
 const getPriorityClass = (priority = "") => {
@@ -147,7 +137,6 @@ export default function TasksSection({
   const [feedback, setFeedback] = useState(null);
 
   const [activeTab, setActiveTab] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
@@ -243,18 +232,12 @@ export default function TasksSection({
     return () => {
       isMounted = false;
     };
-  }, [
-    tasksEndpoint,
-    setupRulesEndpoint,
-    teamsEndpoint,
-    usersEndpoint,
-  ]);
+  }, [tasksEndpoint, setupRulesEndpoint, teamsEndpoint, usersEndpoint]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [
     activeTab,
-    searchTerm,
     selectedPriority,
     selectedComplexity,
     startDateFilter,
@@ -295,8 +278,6 @@ export default function TasksSection({
   }, [tasks]);
 
   const filteredTasks = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-
     return tasks.filter((task) => {
       const statusKey = normalizeStatus(task.status);
 
@@ -317,33 +298,15 @@ export default function TasksSection({
       const startBound = startDateFilter ? new Date(startDateFilter) : null;
       const endBound = endDateFilter ? new Date(endDateFilter) : null;
 
-      const matchesStart =
-        !startBound || !dueDate || dueDate >= startBound;
-
+      const matchesStart = !startBound || !dueDate || dueDate >= startBound;
       const matchesEnd = !endBound || !dueDate || dueDate <= endBound;
-
-      const text = [
-        task.title,
-        task.description,
-        task.assignedUserName,
-        task.assignedUserEmail,
-        task.priority,
-        task.complexity,
-        getStatusLabel(task.status),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      const matchesSearch = query ? text.includes(query) : true;
 
       return (
         matchesTab &&
         matchesPriority &&
         matchesComplexity &&
         matchesStart &&
-        matchesEnd &&
-        matchesSearch
+        matchesEnd
       );
     });
   }, [
@@ -353,7 +316,6 @@ export default function TasksSection({
     selectedComplexity,
     startDateFilter,
     endDateFilter,
-    searchTerm,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
@@ -528,16 +490,6 @@ export default function TasksSection({
               value={endDateFilter}
               onChange={(event) => setEndDateFilter(event.target.value)}
               aria-label="End date"
-            />
-          </div>
-
-          <div className="tasks-section__search">
-            <FiSearch />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
         </div>

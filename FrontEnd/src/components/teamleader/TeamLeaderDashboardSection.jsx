@@ -15,6 +15,7 @@ import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
 const PAGE_SIZE = 6;
+const RANGE_STORAGE_KEY = "teamleader_dashboard_range";
 
 function getTodayRange() {
   const start = new Date();
@@ -40,6 +41,53 @@ function getWeekRange(offsetWeeks = 0) {
   end.setHours(23, 59, 59, 999);
 
   return { start, end };
+}
+
+function getDefaultRangeState() {
+  const currentWeek = getWeekRange(0);
+
+  return {
+    selectedPreset: "thisWeek",
+    customRange: {
+      from: currentWeek.start,
+      to: currentWeek.end,
+    },
+  };
+}
+
+function loadRangeState() {
+  try {
+    const saved = localStorage.getItem(RANGE_STORAGE_KEY);
+
+    if (!saved) {
+      return getDefaultRangeState();
+    }
+
+    const parsed = JSON.parse(saved);
+
+    return {
+      selectedPreset: parsed?.selectedPreset || "thisWeek",
+      customRange: {
+        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
+        to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
+      },
+    };
+  } catch {
+    return getDefaultRangeState();
+  }
+}
+
+function saveRangeState(selectedPreset, customRange) {
+  localStorage.setItem(
+    RANGE_STORAGE_KEY,
+    JSON.stringify({
+      selectedPreset,
+      customRange: {
+        from: customRange?.from ? customRange.from.toISOString() : null,
+        to: customRange?.to ? customRange.to.toISOString() : null,
+      },
+    })
+  );
 }
 
 function getPresetRange(preset, customRange) {
@@ -185,23 +233,46 @@ export default function TeamLeaderDashboardSection({
   user,
   searchValue = "",
 }) {
+  const initialRangeState = useMemo(() => loadRangeState(), []);
+  const defaultDraftState = useMemo(() => getDefaultRangeState(), []);
+
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [selectedPreset, setSelectedPreset] = useState("thisWeek");
-  const [customRange, setCustomRange] = useState(() => {
-    const currentWeek = getWeekRange(0);
-    return {
-      from: currentWeek.start,
-      to: currentWeek.end,
-    };
-  });
+  const [selectedPreset, setSelectedPreset] = useState(
+    initialRangeState.selectedPreset
+  );
+  const [customRange, setCustomRange] = useState(initialRangeState.customRange);
+
+  const [draftPreset, setDraftPreset] = useState(defaultDraftState.selectedPreset);
+  const [draftCustomRange, setDraftCustomRange] = useState(
+    defaultDraftState.customRange
+  );
+
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
 
   const rangeMenuRef = useRef(null);
+
+  useEffect(() => {
+    saveRangeState(selectedPreset, customRange);
+  }, [selectedPreset, customRange]);
+
+  const openRangeMenu = () => {
+    const freshDefault = getDefaultRangeState();
+    setDraftPreset(freshDefault.selectedPreset);
+    setDraftCustomRange(freshDefault.customRange);
+    setIsRangeMenuOpen(true);
+  };
+
+  const closeRangeMenu = () => {
+    const freshDefault = getDefaultRangeState();
+    setDraftPreset(freshDefault.selectedPreset);
+    setDraftCustomRange(freshDefault.customRange);
+    setIsRangeMenuOpen(false);
+  };
 
   useEffect(() => {
     if (!isRangeMenuOpen) return;
@@ -211,7 +282,7 @@ export default function TeamLeaderDashboardSection({
         rangeMenuRef.current &&
         !rangeMenuRef.current.contains(event.target)
       ) {
-        setIsRangeMenuOpen(false);
+        closeRangeMenu();
       }
     };
 
@@ -468,31 +539,43 @@ export default function TeamLeaderDashboardSection({
   );
 
   const handleSelectPreset = (preset) => {
+    let nextRange = draftCustomRange;
+
     if (preset === "today") {
       const range = getTodayRange();
-      setCustomRange({ from: range.start, to: range.end });
+      nextRange = { from: range.start, to: range.end };
     }
 
     if (preset === "thisWeek") {
       const range = getWeekRange(0);
-      setCustomRange({ from: range.start, to: range.end });
+      nextRange = { from: range.start, to: range.end };
     }
 
     if (preset === "nextWeek") {
       const range = getWeekRange(1);
-      setCustomRange({ from: range.start, to: range.end });
+      nextRange = { from: range.start, to: range.end };
     }
 
+    setDraftPreset(preset);
+    setDraftCustomRange(nextRange);
+
     setSelectedPreset(preset);
+    setCustomRange(nextRange);
     setIsRangeMenuOpen(false);
   };
 
   const handleCustomRangeSelect = (range) => {
-    setCustomRange({
+    setDraftPreset("custom");
+    setDraftCustomRange({
       from: range?.from || null,
       to: range?.to || null,
     });
-    setSelectedPreset("custom");
+  };
+
+  const handleApplyCustomRange = () => {
+    setSelectedPreset(draftPreset);
+    setCustomRange(draftCustomRange);
+    setIsRangeMenuOpen(false);
   };
 
   return (
@@ -505,7 +588,7 @@ export default function TeamLeaderDashboardSection({
           <button
             type="button"
             className="teamleader-dashboard-section__range-btn"
-            onClick={() => setIsRangeMenuOpen((prev) => !prev)}
+            onClick={openRangeMenu}
           >
             <span>{rangeLabel}</span>
             <FiChevronDown />
@@ -516,7 +599,7 @@ export default function TeamLeaderDashboardSection({
               <button
                 type="button"
                 className={`teamleader-dashboard-section__range-option ${
-                  selectedPreset === "today"
+                  draftPreset === "today"
                     ? "teamleader-dashboard-section__range-option--active"
                     : ""
                 }`}
@@ -528,7 +611,7 @@ export default function TeamLeaderDashboardSection({
               <button
                 type="button"
                 className={`teamleader-dashboard-section__range-option ${
-                  selectedPreset === "thisWeek"
+                  draftPreset === "thisWeek"
                     ? "teamleader-dashboard-section__range-option--active"
                     : ""
                 }`}
@@ -540,7 +623,7 @@ export default function TeamLeaderDashboardSection({
               <button
                 type="button"
                 className={`teamleader-dashboard-section__range-option ${
-                  selectedPreset === "nextWeek"
+                  draftPreset === "nextWeek"
                     ? "teamleader-dashboard-section__range-option--active"
                     : ""
                 }`}
@@ -558,21 +641,38 @@ export default function TeamLeaderDashboardSection({
                 </div>
 
                 <div className="teamleader-dashboard-section__custom-range-preview">
-                  {customRange?.from ? formatDateText(customRange.from) : "Start"}{" "}
+                  {draftCustomRange?.from
+                    ? formatDateText(draftCustomRange.from)
+                    : "Start"}{" "}
                   <span>to</span>{" "}
-                  {customRange?.to ? formatDateText(customRange.to) : "End"}
+                  {draftCustomRange?.to
+                    ? formatDateText(draftCustomRange.to)
+                    : "End"}
                 </div>
 
                 <div className="teamleader-dashboard-section__calendar-shell">
                   <DayPicker
                     mode="range"
-                    selected={customRange}
+                    selected={draftCustomRange}
                     onSelect={handleCustomRangeSelect}
                     showOutsideDays
                     numberOfMonths={1}
                     className="teamleader-dashboard-section__day-picker"
                   />
                 </div>
+
+                <button
+                  type="button"
+                  className="teamleader-dashboard-section__apply-btn"
+                  onClick={handleApplyCustomRange}
+                  disabled={
+                    !draftCustomRange?.from ||
+                    !draftCustomRange?.to ||
+                    draftPreset !== "custom"
+                  }
+                >
+                  Apply Range
+                </button>
               </div>
             </div>
           )}
