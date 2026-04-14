@@ -22,5 +22,7 @@ namespace BackEnd.Models
         public bool IsActive { get; set; }
 
         public DateTime CreatedAt { get; set; }
+
+        public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
     }
 }
