@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import TeamLeaderSidebar from "../components/TeamLeaderSidebar";
 import AppTopbar from "../components/AppTopbar";
 import TeamLeaderDashboardSection from "../components/teamleader/TeamLeaderDashboardSection";
+import TeamLeaderProfileSection from "../components/teamleader/TeamLeaderProfileSection";
 import "../assets/styles/teamleader/team-leader-dashboard.css";
 
 function SectionTitle({ title }) {
@@ -91,7 +92,7 @@ export default function TeamLeaderDashboard() {
           notificationCount={0}
           showSearch={true}
           searchPlaceholder="Search tasks, team members..."
-          onOpenProfile={() => {}}
+          onOpenProfile={() => setActiveItem("Profile")}
           onOpenSettings={() => {}}
           onLogout={handleLogout}
           theme={theme}
@@ -103,6 +104,8 @@ export default function TeamLeaderDashboard() {
         <section className="admin-main__content">
           {activeItem === "Dashboard" ? (
             <TeamLeaderDashboardSection />
+          ) : activeItem === "Profile" ? (
+            <TeamLeaderProfileSection user={user} />
           ) : (
             <SectionTitle title={activeItem} />
           )}
