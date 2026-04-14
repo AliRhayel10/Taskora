@@ -1,14 +1,20 @@
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../assets/styles/teamleader/tasks-section.css";
 import {
+  FiCalendar,
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
   FiEdit2,
   FiPlus,
+  FiSearch,
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+import { DayPicker } from "react-day-picker";
+import { format } from "date-fns";
+import "react-day-picker/dist/style.css";
 
 const API_BASE = "http://localhost:5000";
 
@@ -21,6 +27,11 @@ const DEFAULT_FORM = {
   estimatedEffortHours: "",
   startDate: "",
   dueDate: "",
+};
+
+const DEFAULT_RANGE = {
+  from: undefined,
+  to: undefined,
 };
 
 const getStoredUser = () => {
@@ -102,6 +113,29 @@ const getResponseData = (payload) => {
   return payload;
 };
 
+const getProfileImage = (user = {}) => {
+  const rawValue =
+    user.profileImageUrl ||
+    user.ProfileImageUrl ||
+    user.imageUrl ||
+    user.ImageUrl ||
+    "";
+
+  const value = String(rawValue || "").trim();
+
+  if (!value) return "";
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  if (value.startsWith("/")) {
+    return `${API_BASE}${value}`;
+  }
+
+  return `${API_BASE}/${value}`;
+};
+
 const mapTaskFromApi = (task) => ({
   id: task.id ?? task.taskId ?? crypto.randomUUID(),
   title: task.title ?? "",
@@ -175,6 +209,8 @@ export default function TasksSection({
   const [users, setUsers] = useState([]);
   const [priorityOptions, setPriorityOptions] = useState([]);
   const [complexityOptions, setComplexityOptions] = useState([]);
+  const [priorityMultipliers, setPriorityMultipliers] = useState({});
+  const [complexityMultipliers, setComplexityMultipliers] = useState({});
   const [statusTabs, setStatusTabs] = useState([{ key: "all", label: "All" }]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -184,11 +220,16 @@ export default function TasksSection({
 
   const [activeTab, setActiveTab] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createStep, setCreateStep] = useState(1);
+  const [memberSearch, setMemberSearch] = useState("");
   const [formState, setFormState] = useState(DEFAULT_FORM);
   const [currentPage, setCurrentPage] = useState(1);
   const [openStatusMenuId, setOpenStatusMenuId] = useState(null);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedRange, setSelectedRange] = useState(DEFAULT_RANGE);
 
   const statusMenuRef = useRef(null);
+  const datePickerRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -241,20 +282,22 @@ export default function TasksSection({
 
         setTasks(normalizedTasks);
 
-        const priorities =
+        const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
           typeof setupRulesData.priorityMultipliers === "object"
-            ? Object.keys(setupRulesData.priorityMultipliers)
-            : [];
+            ? setupRulesData.priorityMultipliers
+            : {};
 
-        const complexities =
+        const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
           typeof setupRulesData.complexityMultipliers === "object"
-            ? Object.keys(setupRulesData.complexityMultipliers)
-            : [];
+            ? setupRulesData.complexityMultipliers
+            : {};
 
-        setPriorityOptions(priorities);
-        setComplexityOptions(complexities);
+        setPriorityMultipliers(mappedPriorityMultipliers);
+        setComplexityMultipliers(mappedComplexityMultipliers);
+        setPriorityOptions(Object.keys(mappedPriorityMultipliers));
+        setComplexityOptions(Object.keys(mappedComplexityMultipliers));
 
         const members = Array.isArray(membersData)
           ? membersData
@@ -291,7 +334,7 @@ export default function TasksSection({
           );
 
         setStatusTabs([{ key: "all", label: "All" }, ...tabs]);
-      } catch (error) {
+      } catch {
         if (!isMounted) return;
         setErrorMessage("Unable to load tasks right now.");
       } finally {
@@ -324,6 +367,13 @@ export default function TasksSection({
       ) {
         setOpenStatusMenuId(null);
       }
+
+      if (
+        datePickerRef.current &&
+        !datePickerRef.current.contains(event.target)
+      ) {
+        setIsDatePickerOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -332,6 +382,55 @@ export default function TasksSection({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (formState.startDate && formState.dueDate) {
+      const from = new Date(formState.startDate);
+      const to = new Date(formState.dueDate);
+
+      if (!Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime())) {
+        setSelectedRange({ from, to });
+      }
+    } else {
+      setSelectedRange(DEFAULT_RANGE);
+    }
+  }, [formState.startDate, formState.dueDate]);
+
+
+  const assignableUsers = useMemo(() => {
+    const filteredByRole = users.filter((user) => {
+      const role = String(user.role || "").trim().toLowerCase();
+      return role !== "team leader";
+    });
+
+    const source = filteredByRole.length ? filteredByRole : users;
+    const query = memberSearch.trim().toLowerCase();
+
+    if (!query) return source;
+
+    return source.filter((user) => {
+      const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
+      const email = String(user.email ?? "").toLowerCase();
+      const role = String(user.role ?? "").toLowerCase();
+      const jobTitle = String(user.jobTitle ?? "").toLowerCase();
+
+      return (
+        fullName.includes(query) ||
+        email.includes(query) ||
+        role.includes(query) ||
+        jobTitle.includes(query)
+      );
+    });
+  }, [users, memberSearch]);
+
+  const selectedUser = useMemo(
+    () =>
+      users.find(
+        (user) =>
+          String(user.userId ?? user.id) === String(formState.assignedUserId)
+      ) || null,
+    [users, formState.assignedUserId]
+  );
 
   const taskCounts = useMemo(() => {
     const counts = { all: tasks.length };
@@ -362,15 +461,86 @@ export default function TasksSection({
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }, [totalPages]);
 
+  const computedTaskWeight = useMemo(() => {
+    const baseEffort = Number(formState.estimatedEffortHours);
+    const priorityMultiplier = Number(priorityMultipliers[formState.priority] ?? 0);
+    const complexityMultiplier = Number(
+      complexityMultipliers[formState.complexity] ?? 0
+    );
+
+    if (!baseEffort || !priorityMultiplier || !complexityMultiplier) {
+      return "";
+    }
+
+    return (baseEffort * priorityMultiplier * complexityMultiplier).toFixed(2);
+  }, [
+    formState.estimatedEffortHours,
+    formState.priority,
+    formState.complexity,
+    priorityMultipliers,
+    complexityMultipliers,
+  ]);
+
+  const isStepOneValid =
+    formState.title.trim() !== "" && formState.assignedUserId !== "";
+
   const isCreateDisabled =
     isSubmitting ||
-    !formState.title.trim() ||
-    !formState.assignedUserId ||
+    !isStepOneValid ||
     !formState.priority ||
     !formState.complexity ||
     !formState.estimatedEffortHours ||
     !formState.startDate ||
-    !formState.dueDate;
+    !formState.dueDate ||
+    !computedTaskWeight;
+
+  const formattedRangeLabel =
+    formState.startDate && formState.dueDate
+      ? `${format(new Date(formState.startDate), "dd/MM/yyyy")} - ${format(
+          new Date(formState.dueDate),
+          "dd/MM/yyyy"
+        )}`
+      : "Select date range";
+
+  const openCreateModal = () => {
+    setFormState(DEFAULT_FORM);
+    setCreateStep(1);
+    setMemberSearch("");
+    setSelectedRange(DEFAULT_RANGE);
+    setIsDatePickerOpen(false);
+    setIsCreateOpen(true);
+  };
+
+  const closeCreateModal = () => {
+    setIsCreateOpen(false);
+    setCreateStep(1);
+    setMemberSearch("");
+    setSelectedRange(DEFAULT_RANGE);
+    setIsDatePickerOpen(false);
+  };
+
+  const handleRangeSelect = (range) => {
+    setSelectedRange(range ?? DEFAULT_RANGE);
+
+    if (range?.from && range?.to) {
+      setFormState((previous) => ({
+        ...previous,
+        startDate: format(range.from, "yyyy-MM-dd"),
+        dueDate: format(range.to, "yyyy-MM-dd"),
+      }));
+    } else {
+      setFormState((previous) => ({
+        ...previous,
+        startDate: "",
+        dueDate: "",
+      }));
+    }
+  };
+
+  const applyDateRange = () => {
+    if (!selectedRange?.from || !selectedRange?.to) return;
+    setIsDatePickerOpen(false);
+  };
 
   const createTask = async (event) => {
     event.preventDefault();
@@ -378,11 +548,6 @@ export default function TasksSection({
     setFeedback(null);
 
     try {
-      const selectedUser = users.find(
-        (user) =>
-          String(user.userId ?? user.id) === String(formState.assignedUserId)
-      );
-
       const payload = {
         title: formState.title.trim(),
         description: formState.description.trim(),
@@ -392,6 +557,7 @@ export default function TasksSection({
         priority: formState.priority,
         complexity: formState.complexity,
         estimatedEffortHours: Number(formState.estimatedEffortHours),
+        weight: Number(computedTaskWeight),
         startDate: formState.startDate,
         dueDate: formState.dueDate,
       };
@@ -413,13 +579,12 @@ export default function TasksSection({
         setTasks((previous) => [mapTaskFromApi(createdTaskData), ...previous]);
       }
 
-      setFormState(DEFAULT_FORM);
-      setIsCreateOpen(false);
+      closeCreateModal();
       setFeedback({
         type: "success",
         message: "Task created successfully.",
       });
-    } catch (error) {
+    } catch {
       setFeedback({
         type: "error",
         message: "Unable to create task.",
@@ -452,7 +617,7 @@ export default function TasksSection({
       if (!response.ok) {
         throw new Error("Failed to update status.");
       }
-    } catch (error) {
+    } catch {
       setTasks(previousTasks);
       setFeedback({
         type: "error",
@@ -524,7 +689,7 @@ export default function TasksSection({
         <button
           type="button"
           className="tasks-section__create-btn"
-          onClick={() => setIsCreateOpen(true)}
+          onClick={openCreateModal}
         >
           <FiPlus />
           Create Task
@@ -737,200 +902,310 @@ export default function TasksSection({
       {isCreateOpen && (
         <div
           className="tasks-section__modal-overlay"
-          onClick={() => setIsCreateOpen(false)}
+          onClick={closeCreateModal}
         >
           <div
-            className="tasks-section__modal"
+            className="tasks-section__modal tasks-section__modal--wide"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
                 <h3>Create Task</h3>
-                <p>Fill in the task details and assign it to a team member.</p>
+                <p>
+                  {createStep === 1
+                    ? "Add the main task details and choose the assigned employee."
+                    : "Complete the remaining task details and review the calculated weight."}
+                </p>
               </div>
 
               <button
                 type="button"
                 className="tasks-section__modal-close"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={closeCreateModal}
               >
                 <FiX />
               </button>
             </div>
 
-            <form className="tasks-section__form" onSubmit={createTask}>
-              <div className="tasks-section__form-grid">
-                <div className="tasks-section__form-group tasks-section__form-group--full">
-                  <label htmlFor="task-title">
-                    Title <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-title"
-                    type="text"
-                    value={formState.title}
-                    onChange={(event) =>
-                      handleFormChange("title", event.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group tasks-section__form-group--full">
-                  <label htmlFor="task-description">Description</label>
-                  <textarea
-                    id="task-description"
-                    value={formState.description}
-                    onChange={(event) =>
-                      handleFormChange("description", event.target.value)
-                    }
-                    rows={4}
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-user">
-                    Assigned employee <span className="tasks-section__required">*</span>
-                  </label>
-                  <div className="tasks-section__select-wrapper">
-                    <select
-                      id="task-user"
-                      value={formState.assignedUserId}
-                      onChange={(event) =>
-                        handleFormChange("assignedUserId", event.target.value)
-                      }
-                      required
-                    >
-                      <option value="">Select employee</option>
-                      {users.map((user) => (
-                        <option
-                          key={user.userId ?? user.id}
-                          value={user.userId ?? user.id}
-                        >
-                          {(user.fullName ?? user.name) || "Unknown User"}
-                          {user.email ? ` (${user.email})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <FiChevronDown />
-                  </div>
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-priority">
-                    Priority <span className="tasks-section__required">*</span>
-                  </label>
-                  <div className="tasks-section__select-wrapper">
-                    <select
-                      id="task-priority"
-                      value={formState.priority}
-                      onChange={(event) =>
-                        handleFormChange("priority", event.target.value)
-                      }
-                      required
-                    >
-                      <option value="">Select priority</option>
-                      {priorityOptions.map((priority) => (
-                        <option key={priority} value={priority}>
-                          {priority}
-                        </option>
-                      ))}
-                    </select>
-                    <FiChevronDown />
-                  </div>
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-complexity">
-                    Complexity <span className="tasks-section__required">*</span>
-                  </label>
-                  <div className="tasks-section__select-wrapper">
-                    <select
-                      id="task-complexity"
-                      value={formState.complexity}
-                      onChange={(event) =>
-                        handleFormChange("complexity", event.target.value)
-                      }
-                      required
-                    >
-                      <option value="">Select complexity</option>
-                      {complexityOptions.map((complexity) => (
-                        <option key={complexity} value={complexity}>
-                          {complexity}
-                        </option>
-                      ))}
-                    </select>
-                    <FiChevronDown />
-                  </div>
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-effort">
-                    Estimated effort (hours) <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-effort"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={formState.estimatedEffortHours}
-                    onChange={(event) =>
-                      handleFormChange(
-                        "estimatedEffortHours",
-                        event.target.value
-                      )
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-start">
-                    Start date <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-start"
-                    type="date"
-                    value={formState.startDate}
-                    onChange={(event) =>
-                      handleFormChange("startDate", event.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-due">
-                    Due date <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-due"
-                    type="date"
-                    value={formState.dueDate}
-                    onChange={(event) =>
-                      handleFormChange("dueDate", event.target.value)
-                    }
-                    required
-                  />
-                </div>
+            <div className="tasks-section__stepper">
+              <div
+                className={`tasks-section__step ${
+                  createStep === 1 ? "tasks-section__step--active" : ""
+                }`}
+              >
+                <span className="tasks-section__step-number">1</span>
+                <span className="tasks-section__step-label">Task Info</span>
               </div>
+              <div className="tasks-section__step-line" />
+              <div
+                className={`tasks-section__step ${
+                  createStep === 2 ? "tasks-section__step--active" : ""
+                }`}
+              >
+                <span className="tasks-section__step-number">2</span>
+                <span className="tasks-section__step-label">Details</span>
+              </div>
+            </div>
+
+            <form className="tasks-section__form" onSubmit={createTask}>
+              {createStep === 1 ? (
+                <div className="tasks-section__form-grid">
+                  <div className="tasks-section__form-group tasks-section__form-group--full">
+                    <label htmlFor="task-title">
+                      Name <span className="tasks-section__required">*</span>
+                    </label>
+                    <input
+                      id="task-title"
+                      type="text"
+                      value={formState.title}
+                      onChange={(event) =>
+                        handleFormChange("title", event.target.value)
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="tasks-section__form-group tasks-section__form-group--full">
+                    <label htmlFor="task-description">Description</label>
+                    <textarea
+                      id="task-description"
+                      value={formState.description}
+                      onChange={(event) =>
+                        handleFormChange("description", event.target.value)
+                      }
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="tasks-section__form-group tasks-section__form-group--full">
+                    <label>
+                      Selected user <span className="tasks-section__required">*</span>
+                    </label>
+                    <p className="tasks-section__field-description">
+                      Search and select one employee to assign this task to.
+                    </p>
+
+                    <div className="tasks-section__member-picker">
+                      <div className="tasks-section__member-search">
+                        <FiSearch />
+                        <input
+                          type="text"
+                          placeholder="Search any member in the company..."
+                          value={memberSearch}
+                          onChange={(event) => setMemberSearch(event.target.value)}
+                        />
+                      </div>
+
+                      <div className="tasks-section__member-table">
+                        {assignableUsers.length === 0 ? (
+                          <p className="tasks-section__members-empty">
+                            No members found.
+                          </p>
+                        ) : (
+                          assignableUsers.map((user) => {
+                            const userId = user.userId ?? user.id;
+                            const isSelected =
+                              String(formState.assignedUserId) === String(userId);
+                            const imageUrl = getProfileImage(user);
+
+                            return (
+                              <button
+                                key={userId}
+                                type="button"
+                                className={`tasks-section__member-row ${
+                                  isSelected
+                                    ? "tasks-section__member-row--selected"
+                                    : ""
+                                }`}
+                                onClick={() =>
+                                  handleFormChange("assignedUserId", String(userId))
+                                }
+                              >
+                                <span
+                                  className={`tasks-section__member-check ${
+                                    isSelected
+                                      ? "tasks-section__member-check--selected"
+                                      : ""
+                                  }`}
+                                >
+                                  {isSelected ? "✓" : ""}
+                                </span>
+
+                                <span className="tasks-section__member-avatar">
+                                  {imageUrl ? (
+                                    <img
+                                      src={imageUrl}
+                                      alt={user.fullName ?? user.name ?? "User"}
+                                      className="tasks-section__member-avatar-image"
+                                    />
+                                  ) : (
+                                    <span className="tasks-section__member-avatar-fallback">
+                                      {getInitials(user.fullName ?? user.name ?? "")}
+                                    </span>
+                                  )}
+                                </span>
+
+                                <span className="tasks-section__member-copy">
+                                  <strong>{user.fullName ?? user.name ?? "Unknown User"}</strong>
+                                  <small>{user.email || "—"}</small>
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="tasks-section__form-grid">
+                  <div className="tasks-section__form-group">
+                    <label htmlFor="task-priority">
+                      Priority <span className="tasks-section__required">*</span>
+                    </label>
+                    <div className="tasks-section__select-wrapper">
+                      <select
+                        id="task-priority"
+                        value={formState.priority}
+                        onChange={(event) =>
+                          handleFormChange("priority", event.target.value)
+                        }
+                        required
+                      >
+                        <option value="">Select priority</option>
+                        {priorityOptions.map((priority) => (
+                          <option key={priority} value={priority}>
+                            {priority}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown />
+                    </div>
+                  </div>
+
+                  <div className="tasks-section__form-group">
+                    <label htmlFor="task-complexity">
+                      Complexity <span className="tasks-section__required">*</span>
+                    </label>
+                    <div className="tasks-section__select-wrapper">
+                      <select
+                        id="task-complexity"
+                        value={formState.complexity}
+                        onChange={(event) =>
+                          handleFormChange("complexity", event.target.value)
+                        }
+                        required
+                      >
+                        <option value="">Select complexity</option>
+                        {complexityOptions.map((complexity) => (
+                          <option key={complexity} value={complexity}>
+                            {complexity}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown />
+                    </div>
+                  </div>
+
+                  <div className="tasks-section__form-group">
+                    <label htmlFor="task-effort">
+                      Base effort <span className="tasks-section__required">*</span>
+                    </label>
+                    <input
+                      id="task-effort"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={formState.estimatedEffortHours}
+                      onChange={(event) =>
+                        handleFormChange("estimatedEffortHours", event.target.value)
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="tasks-section__form-group">
+                    <label htmlFor="task-weight">Task weight</label>
+                    <input
+                      id="task-weight"
+                      type="text"
+                      value={computedTaskWeight}
+                      readOnly
+                      placeholder="Calculated automatically"
+                    />
+                  </div>
+
+                  <div className="tasks-section__form-group tasks-section__form-group--full">
+                    <label>
+                      Date range <span className="tasks-section__required">*</span>
+                    </label>
+
+                    <div className="tasks-section__date-picker-shell" ref={datePickerRef}>
+                      <button
+                        type="button"
+                        className="tasks-section__date-picker-trigger"
+                        onClick={() => setIsDatePickerOpen((previous) => !previous)}
+                      >
+                        <span>{formattedRangeLabel}</span>
+                        <FiCalendar />
+                      </button>
+
+                      {isDatePickerOpen && (
+                        <div className="tasks-section__date-picker-popover">
+                          <div className="tasks-section__date-picker-calendar">
+                            <DayPicker
+                              mode="range"
+                              selected={selectedRange}
+                              onSelect={handleRangeSelect}
+                              showOutsideDays
+                              numberOfMonths={1}
+                              className="tasks-section__day-picker"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            className="tasks-section__apply-btn"
+                            onClick={applyDateRange}
+                            disabled={!selectedRange?.from || !selectedRange?.to}
+                          >
+                            Apply Range
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="tasks-section__form-actions">
                 <button
                   type="button"
                   className="tasks-section__secondary-btn"
-                  onClick={() => setIsCreateOpen(false)}
+                  onClick={createStep === 1 ? closeCreateModal : () => setCreateStep(1)}
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {createStep === 1 ? "Cancel" : "Back"}
                 </button>
 
-                <button
-                  type="submit"
-                  className="tasks-section__submit-btn"
-                  disabled={isCreateDisabled}
-                >
-                  {isSubmitting ? "Creating..." : "Create Task"}
-                </button>
+                {createStep === 1 ? (
+                  <button
+                    type="button"
+                    className="tasks-section__submit-btn"
+                    onClick={() => setCreateStep(2)}
+                    disabled={!isStepOneValid}
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="tasks-section__submit-btn"
+                    disabled={isCreateDisabled}
+                  >
+                    {isSubmitting ? "Creating..." : "Create Task"}
+                  </button>
+                )}
               </div>
             </form>
           </div>
