@@ -234,7 +234,6 @@ export default function TeamLeaderDashboardSection({
   searchValue = "",
 }) {
   const initialRangeState = useMemo(() => loadRangeState(), []);
-  const defaultDraftState = useMemo(() => getDefaultRangeState(), []);
 
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -247,10 +246,14 @@ export default function TeamLeaderDashboardSection({
   );
   const [customRange, setCustomRange] = useState(initialRangeState.customRange);
 
-  const [draftPreset, setDraftPreset] = useState(defaultDraftState.selectedPreset);
-  const [draftCustomRange, setDraftCustomRange] = useState(
-    defaultDraftState.customRange
-  );
+  const [draftPreset, setDraftPreset] = useState("thisWeek");
+  const [draftCustomRange, setDraftCustomRange] = useState(() => {
+    const currentWeek = getWeekRange(0);
+    return {
+      from: currentWeek.start,
+      to: currentWeek.end,
+    };
+  });
 
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
 
@@ -260,17 +263,22 @@ export default function TeamLeaderDashboardSection({
     saveRangeState(selectedPreset, customRange);
   }, [selectedPreset, customRange]);
 
+  const resetDraftToThisWeek = () => {
+    const thisWeek = getWeekRange(0);
+    setDraftPreset("thisWeek");
+    setDraftCustomRange({
+      from: thisWeek.start,
+      to: thisWeek.end,
+    });
+  };
+
   const openRangeMenu = () => {
-    const freshDefault = getDefaultRangeState();
-    setDraftPreset(freshDefault.selectedPreset);
-    setDraftCustomRange(freshDefault.customRange);
+    resetDraftToThisWeek();
     setIsRangeMenuOpen(true);
   };
 
   const closeRangeMenu = () => {
-    const freshDefault = getDefaultRangeState();
-    setDraftPreset(freshDefault.selectedPreset);
-    setDraftCustomRange(freshDefault.customRange);
+    resetDraftToThisWeek();
     setIsRangeMenuOpen(false);
   };
 
@@ -573,9 +581,12 @@ export default function TeamLeaderDashboardSection({
   };
 
   const handleApplyCustomRange = () => {
-    setSelectedPreset(draftPreset);
+    if (!draftCustomRange?.from || !draftCustomRange?.to) return;
+
+    setSelectedPreset("custom");
     setCustomRange(draftCustomRange);
     setIsRangeMenuOpen(false);
+    resetDraftToThisWeek();
   };
 
   return (
