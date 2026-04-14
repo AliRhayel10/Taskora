@@ -747,15 +747,44 @@ export default function TeamLeaderDashboardSection({
           <div className="teamleader-dashboard-section__table-card">
             <div className="teamleader-dashboard-section__table-wrap">
               <table className="teamleader-dashboard-section__table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Tasks</th>
-                    <th>Effort</th>
-                    <th>Weight</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
+<thead>
+  <tr>
+    <th>
+      <button type="button" className="teamleader-dashboard-section__sort-btn">
+        <span>Employee</span>
+        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
+      </button>
+    </th>
+
+    <th>
+      <button type="button" className="teamleader-dashboard-section__sort-btn">
+        <span>Tasks</span>
+        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
+      </button>
+    </th>
+
+    <th>
+      <button type="button" className="teamleader-dashboard-section__sort-btn">
+        <span>Effort</span>
+        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
+      </button>
+    </th>
+
+    <th>
+      <button type="button" className="teamleader-dashboard-section__sort-btn">
+        <span>Weight</span>
+        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
+      </button>
+    </th>
+
+    <th>
+      <button type="button" className="teamleader-dashboard-section__sort-btn">
+        <span>Status</span>
+        <FiChevronDown className="teamleader-dashboard-section__sort-icon" />
+      </button>
+    </th>
+  </tr>
+</thead>
 
                 <tbody>
                   {paginatedRows.length === 0 ? (

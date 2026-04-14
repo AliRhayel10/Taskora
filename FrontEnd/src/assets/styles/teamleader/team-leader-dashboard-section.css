@@ -394,6 +394,28 @@
   text-align: left;
   white-space: nowrap;
 }
+.teamleader-dashboard-section__sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.teamleader-dashboard-section__sort-icon {
+  font-size: 0.92rem;
+  color: #64748b;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.teamleader-dashboard-section__sort-btn:hover .teamleader-dashboard-section__sort-icon {
+  color: #1e293b;
+}
 
 .teamleader-dashboard-section__table tbody td {
   padding: 12px 16px;
