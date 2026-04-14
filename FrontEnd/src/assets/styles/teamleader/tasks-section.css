@@ -194,19 +194,18 @@
 }
 
 .tasks-section__tabs {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding-top: 2px;
 }
 
 .tasks-section__tab-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
-
 
 .tasks-section__tab {
     border: none;
@@ -450,36 +449,34 @@
     color: #b91c1c;
 }
 
+.tasks-section__badge--simple {
+    background: #ecfdf5;
+    color: #166534;
+}
+
+.tasks-section__badge--medium-complexity {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.tasks-section__badge--complex {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
 .tasks-section__cell-status {
     min-width: 150px;
 }
 
-.tasks-section__status-select-wrap {
-    position: relative;
-    width: 100%;
-    max-width: 145px;
-}
-
-.tasks-section__status-select-wrap svg {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: inherit;
-    pointer-events: none;
-}
-
-.tasks-section__status {
-    width: 100%;
-    appearance: none;
-    border: none;
-    outline: none;
+.tasks-section__status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-height: 32px;
     border-radius: 10px;
-    padding: 0 34px 0 12px;
+    padding: 0 12px;
     font-size: 0.82rem;
     font-weight: 700;
-    cursor: pointer;
 }
 
 .tasks-section__status--todo {
@@ -616,6 +613,57 @@
     border-radius: 24px;
     padding: 24px;
     box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+
+.tasks-section__confirm-modal {
+    width: 100%;
+    max-width: 460px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+
+.tasks-section__confirm-copy h3 {
+    margin: 0 0 8px;
+    color: #1e293b;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.tasks-section__confirm-copy p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.tasks-section__confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.tasks-section__danger-btn {
+    min-width: 110px;
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid #dc2626;
+    background: #dc2626;
+    color: #ffffff;
+    padding: 0 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.tasks-section__danger-btn:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+    transform: translateY(-1px);
 }
 
 .tasks-section__modal-header {
@@ -794,7 +842,8 @@
 }
 
 .tasks-section__secondary-btn:disabled,
-.tasks-section__submit-btn:disabled {
+.tasks-section__submit-btn:disabled,
+.tasks-section__danger-btn:disabled {
     opacity: 0.65;
     cursor: not-allowed;
     transform: none;
@@ -828,17 +877,20 @@
         grid-template-columns: 1fr;
     }
 
-    .tasks-section__modal {
+    .tasks-section__modal,
+    .tasks-section__confirm-modal {
         padding: 20px 16px;
         border-radius: 20px;
     }
 
-    .tasks-section__form-actions {
+    .tasks-section__form-actions,
+    .tasks-section__confirm-actions {
         flex-direction: column;
     }
 
     .tasks-section__secondary-btn,
-    .tasks-section__submit-btn {
+    .tasks-section__submit-btn,
+    .tasks-section__danger-btn {
         width: 100%;
     }
 }
@@ -865,7 +917,6 @@
         font-size: 0.94rem;
     }
 }
-
 
 .tasks-section__required {
   color: #dc2626;
@@ -1091,8 +1142,8 @@
 
 .tasks-section__date-picker-trigger {
   width: 100%;
-  min-height: 46px;
-  border: 1.5px solid #cbd5e1;
+  min-height: 44px;
+  border: 1px solid #cbd5e1;
   border-radius: 14px;
   background: #f8fafc;
   color: #1e293b;
@@ -1101,8 +1152,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.96rem;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tasks-section__date-picker-trigger:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
 }
 
 .tasks-section__date-picker-trigger svg {
@@ -1116,65 +1178,8 @@
   bottom: calc(100% + 10px);
   top: auto;
   z-index: 30;
-  width: 320px;
-  max-width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 18px;
-  background: #f8fafc;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
-  padding: 14px;
-}
-
-.tasks-section__date-picker-calendar {
-  display: flex;
-  justify-content: center;
-}
-
-.tasks-section__day-picker .rdp {
-  --rdp-accent-color: #2563eb;
-  --rdp-background-color: #dbeafe;
-  margin: 0;
-}
-
-.tasks-section__apply-btn {
-  width: 100%;
-  margin-top: 12px;
-  min-height: 40px;
-  border: 1px solid #2563eb;
-  border-radius: 10px;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.tasks-section__apply-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-@media (max-width: 760px) {
-  .tasks-section__modal--wide {
-    max-width: 100%;
-  }
-
-  .tasks-section__stepper {
-    gap: 10px;
-  }
-
-  .tasks-section__step-label {
-    font-size: 0.86rem;
-  }
-
-  .tasks-section__date-picker-popover {
-    width: 100%;
-  }
-}
-
-
-.tasks-section__date-picker-popover {
   width: 332px;
+  max-width: 100%;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 16px;
@@ -1182,26 +1187,9 @@
   padding: 12px;
 }
 
-.tasks-section__date-picker-trigger {
-  min-height: 44px;
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  background: #f8fafc;
-  font-size: 0.95rem;
-  font-weight: 700;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.tasks-section__date-picker-trigger:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  transform: translateY(-1px);
-}
-
 .tasks-section__date-picker-calendar {
+  display: flex;
+  justify-content: center;
   border: 1px solid #dbe7f5;
   border-radius: 14px;
   background: #ffffff;
@@ -1366,4 +1354,22 @@
   color: #64748b;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .tasks-section__modal--wide {
+    max-width: 100%;
+  }
+
+  .tasks-section__stepper {
+    gap: 10px;
+  }
+
+  .tasks-section__step-label {
+    font-size: 0.86rem;
+  }
+
+  .tasks-section__date-picker-popover {
+    width: 100%;
+  }
 }

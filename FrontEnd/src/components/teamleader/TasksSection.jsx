@@ -104,6 +104,15 @@ const getPriorityClass = (priority = "") => {
   return "tasks-section__badge--low";
 };
 
+const getComplexityClass = (complexity = "") => {
+  const safe = String(complexity).toLowerCase();
+
+  if (safe === "complex") return "tasks-section__badge--complex";
+  if (safe === "medium") return "tasks-section__badge--medium-complexity";
+
+  return "tasks-section__badge--simple";
+};
+
 const getResponseData = (payload) => {
   if (payload && typeof payload === "object" && "data" in payload) {
     return payload.data;
@@ -149,12 +158,14 @@ const mapTaskFromApi = (task) => ({
     task.assignedToUserName ??
     task.assignedEmployeeName ??
     task.fullName ??
-    "Unknown User",
+    task.FullName ??
+    "",
   assignedUserEmail:
     task.assignedUserEmail ??
     task.assignedToUserEmail ??
     task.assignedEmployeeEmail ??
     task.email ??
+    task.Email ??
     "",
   assignedUserAvatar:
     task.assignedUserAvatar ??
@@ -229,7 +240,6 @@ export default function TasksSection({
   const [priorityMultipliers, setPriorityMultipliers] = useState({});
   const [complexityMultipliers, setComplexityMultipliers] = useState({});
   const [statusTabs, setStatusTabs] = useState([{ key: "all", label: "All" }]);
-  const [statusItems, setStatusItems] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -242,12 +252,11 @@ export default function TasksSection({
   const [memberSearch, setMemberSearch] = useState("");
   const [formState, setFormState] = useState(DEFAULT_FORM);
   const [currentPage, setCurrentPage] = useState(1);
-  const [openStatusMenuId, setOpenStatusMenuId] = useState(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState(DEFAULT_RANGE);
   const [draftRange, setDraftRange] = useState(DEFAULT_RANGE);
+  const [deleteTaskId, setDeleteTaskId] = useState(null);
 
-  const statusMenuRef = useRef(null);
   const datePickerRef = useRef(null);
 
   const capitalizeWords = (value = "") =>
@@ -335,21 +344,22 @@ export default function TasksSection({
           ? setupRulesData.statuses
           : [];
 
-        setStatusItems(backendStatuses);
-
         const tabs = backendStatuses
           .map((item) => {
             const raw =
               typeof item === "string"
                 ? item
-                : item?.statusName ?? item?.StatusName ?? item?.name ?? item?.value ?? "";
+                : item?.statusName ??
+                  item?.StatusName ??
+                  item?.name ??
+                  item?.value ??
+                  "";
 
             if (!raw) return null;
 
             return {
               key: normalizeStatus(raw),
               label: prettifyLabel(raw),
-              taskStatusId: item?.taskStatusId ?? item?.TaskStatusId ?? null,
             };
           })
           .filter(Boolean)
@@ -358,7 +368,7 @@ export default function TasksSection({
               array.findIndex((entry) => entry.key === tab.key) === index
           );
 
-        setStatusTabs([{ key: "all", label: "All", taskStatusId: null }, ...tabs]);
+        setStatusTabs([{ key: "all", label: "All" }, ...tabs]);
       } catch {
         if (!isMounted) return;
         setErrorMessage("Unable to load tasks right now.");
@@ -403,13 +413,6 @@ export default function TasksSection({
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        statusMenuRef.current &&
-        !statusMenuRef.current.contains(event.target)
-      ) {
-        setOpenStatusMenuId(null);
-      }
-
       if (
         datePickerRef.current &&
         !datePickerRef.current.contains(event.target)
@@ -502,20 +505,25 @@ export default function TasksSection({
           String(user.userId ?? user.id) === String(task.assignedUserId)
       );
 
+      const fallbackName =
+        matchedUser?.fullName ??
+        matchedUser?.name ??
+        "Unknown User";
+
+      const fallbackEmail = matchedUser?.email ?? "";
+      const fallbackAvatar = getProfileImage(matchedUser || {});
+
+      const rawName = String(task.assignedUserName || "").trim();
+      const resolvedName =
+        !rawName || rawName.toLowerCase() === "unknown user"
+          ? fallbackName
+          : rawName;
+
       return {
         ...task,
-        assignedUserName:
-          task.assignedUserName ||
-          matchedUser?.fullName ||
-          matchedUser?.name ||
-          "Unknown User",
-        assignedUserEmail:
-          task.assignedUserEmail ||
-          matchedUser?.email ||
-          "",
-        assignedUserAvatar:
-          task.assignedUserAvatar ||
-          getProfileImage(matchedUser || {}),
+        assignedUserName: resolvedName,
+        assignedUserEmail: task.assignedUserEmail || fallbackEmail,
+        assignedUserAvatar: task.assignedUserAvatar || fallbackAvatar,
       };
     });
   }, [tasks, users]);
@@ -696,51 +704,11 @@ export default function TasksSection({
     }
   };
 
-  const updateTaskStatus = async (taskId, newStatusKey) => {
-    const previousTasks = [...tasks];
+  const confirmDeleteTask = () => {
+    if (!deleteTaskId) return;
 
-    const targetStatus = statusTabs.find((tab) => tab.key === newStatusKey);
-
-    if (!targetStatus?.taskStatusId) {
-      setFeedback({
-        type: "error",
-        message: "Unable to update task status.",
-      });
-      return;
-    }
-
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === taskId ? { ...task, status: targetStatus.label } : task
-      )
-    );
-    setOpenStatusMenuId(null);
-
-    try {
-      const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskId: Number(taskId),
-          newTaskStatusId: Number(targetStatus.taskStatusId),
-          changedByUserId: Number(resolvedCurrentUserId),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update status.");
-      }
-    } catch {
-      setTasks(previousTasks);
-      setFeedback({
-        type: "error",
-        message: "Unable to update task status.",
-      });
-    }
-  };
-
-  const handleDeleteTask = (taskId) => {
-    setTasks((current) => current.filter((task) => task.id !== taskId));
+    setTasks((current) => current.filter((task) => task.id !== deleteTaskId));
+    setDeleteTaskId(null);
     setFeedback({
       type: "success",
       message: "Task removed from the list.",
@@ -890,53 +858,27 @@ export default function TasksSection({
                       </span>
                     </td>
 
-                    <td>{task.complexity}</td>
+                    <td>
+                      <span
+                        className={`tasks-section__badge ${getComplexityClass(
+                          task.complexity
+                        )}`}
+                      >
+                        {task.complexity}
+                      </span>
+                    </td>
+
                     <td>{formatHours(task.estimatedEffortHours)}</td>
                     <td>{task.weight}</td>
 
                     <td className="tasks-section__cell-status">
-                      <div
-                        className="tasks-section__status-menu-wrap"
-                        ref={openStatusMenuId === task.id ? statusMenuRef : null}
+                      <span
+                        className={`tasks-section__status-badge ${getStatusClass(
+                          task.status
+                        )}`}
                       >
-                        <button
-                          type="button"
-                          className={`tasks-section__status-button ${getStatusClass(
-                            task.status
-                          )}`}
-                          onClick={() =>
-                            setOpenStatusMenuId((current) =>
-                              current === task.id ? null : task.id
-                            )
-                          }
-                        >
-                          <span>{prettifyLabel(task.status)}</span>
-                          <FiChevronDown />
-                        </button>
-
-                        {openStatusMenuId === task.id && (
-                          <div className="tasks-section__status-menu">
-                            {statusTabs
-                              .filter((tab) => tab.key !== "all")
-                              .map((tab) => (
-                                <button
-                                  key={tab.key}
-                                  type="button"
-                                  className={`tasks-section__status-menu-item ${
-                                    normalizeStatus(task.status) === tab.key
-                                      ? "tasks-section__status-menu-item--active"
-                                      : ""
-                                  }`}
-                                  onClick={() =>
-                                    updateTaskStatus(task.id, tab.key)
-                                  }
-                                >
-                                  {tab.label}
-                                </button>
-                              ))}
-                          </div>
-                        )}
-                      </div>
+                        {prettifyLabel(task.status)}
+                      </span>
                     </td>
 
                     <td>{formatDate(task.dueDate)}</td>
@@ -955,7 +897,7 @@ export default function TasksSection({
                           type="button"
                           className="tasks-section__action-btn tasks-section__action-btn--danger"
                           title="Delete task"
-                          onClick={() => handleDeleteTask(task.id)}
+                          onClick={() => setDeleteTaskId(task.id)}
                         >
                           <FiTrash2 />
                         </button>
@@ -1086,7 +1028,10 @@ export default function TasksSection({
                       id="task-description"
                       value={formState.description}
                       onChange={(event) =>
-                        handleFormChange("description", capitalizeWords(event.target.value))
+                        handleFormChange(
+                          "description",
+                          capitalizeWords(event.target.value)
+                        )
                       }
                       rows={4}
                       required
@@ -1335,6 +1280,41 @@ export default function TasksSection({
                 )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTaskId && (
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={() => setDeleteTaskId(null)}
+        >
+          <div
+            className="tasks-section__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="tasks-section__confirm-copy">
+              <h3>Delete Task</h3>
+              <p>Are you sure you want to delete this task?</p>
+            </div>
+
+            <div className="tasks-section__confirm-actions">
+              <button
+                type="button"
+                className="tasks-section__secondary-btn"
+                onClick={() => setDeleteTaskId(null)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="tasks-section__danger-btn"
+                onClick={confirmDeleteTask}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}
