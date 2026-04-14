@@ -20,10 +20,7 @@ export default function TeamLeaderSidebar({
   });
 
   useEffect(() => {
-    localStorage.setItem(
-      "teamLeaderSidebarCollapsed",
-      String(collapsed)
-    );
+    localStorage.setItem("teamLeaderSidebarCollapsed", String(collapsed));
   }, [collapsed]);
 
   const navItems = useMemo(
@@ -51,7 +48,7 @@ export default function TeamLeaderSidebar({
         <div className="admin-sidebar__header">
           <div className="admin-sidebar__brand">
             <BrandLogo
-              subtitle="Team Leader Panel"
+              subtitle="Team Leader"
               dark={theme === "dark"}
               collapsed={collapsed}
             />
