@@ -32,13 +32,22 @@ export default function TeamLeaderDashboard() {
     const routeUser = location.state?.user;
     const savedUser = localStorage.getItem("user");
 
-    const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
+    let currentUser = routeUser;
+
+    if (!currentUser && savedUser) {
+      try {
+        currentUser = JSON.parse(savedUser);
+      } catch (error) {
+        console.error("Invalid user in localStorage:", error);
+        currentUser = null;
+      }
+    }
 
     if (!currentUser) return null;
 
     return {
-      userId: currentUser.userId,
-      companyId: currentUser.companyId,
+      userId: Number(currentUser.userId),
+      companyId: Number(currentUser.companyId),
       companyName: currentUser.companyName || "",
       fullName: currentUser.fullName || "Team Leader",
       email: currentUser.email || "",
@@ -59,7 +68,7 @@ export default function TeamLeaderDashboard() {
   }, [theme]);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !user.userId || !user.companyId) {
       navigate("/login", { replace: true });
       return;
     }
@@ -103,7 +112,10 @@ export default function TeamLeaderDashboard() {
 
         <section className="admin-main__content">
           {activeItem === "Dashboard" ? (
-            <TeamLeaderDashboardSection />
+            <TeamLeaderDashboardSection
+              user={user}
+              searchValue={searchValue}
+            />
           ) : activeItem === "Profile" ? (
             <TeamLeaderProfileSection user={user} />
           ) : (

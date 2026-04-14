@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   FiUsers,
   FiClipboard,
@@ -7,75 +8,232 @@ import {
 } from "react-icons/fi";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
-const summaryCards = [
-  {
-    title: "Team Members",
-    value: 5,
-    icon: <FiUsers />,
-  },
-  {
-    title: "Tasks",
-    value: 18,
-    icon: <FiClipboard />,
-  },
-  {
-    title: "Total Effort",
-    value: "62h",
-    icon: <FiClock />,
-  },
-  {
-    title: "Total Weight",
-    value: 84,
-    icon: <FiBarChart2 />,
-  },
-];
+function getWeekRange() {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
 
-const workloadRows = [
-  {
-    employee: "Omar Ahmed",
-    tasks: 3,
-    effort: "14h",
-    weight: 18,
-    status: "Moderate",
-  },
-  {
-    employee: "Lina Hassan",
-    tasks: 5,
-    effort: "22h",
-    weight: 28,
-    status: "Overloaded",
-  },
-  {
-    employee: "Karim Mostafa",
-    tasks: 2,
-    effort: "8h",
-    weight: 11,
-    status: "Available",
-  },
-  {
-    employee: "Sarah Khaili",
-    tasks: 4,
-    effort: "10h",
-    weight: 15,
-    status: "Available",
-  },
-  {
-    employee: "Amina Salim",
-    tasks: 4,
-    effort: "8h",
-    weight: 12,
-    status: "Available",
-  },
-];
+  const start = new Date(now);
+  start.setDate(now.getDate() + diffToMonday);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+function doesTaskOverlapRange(task, start, end) {
+  const taskStart = task.startDate ? new Date(task.startDate) : null;
+  const taskDue = task.dueDate ? new Date(task.dueDate) : null;
+
+  if (!taskStart && !taskDue) return true;
+  if (taskStart && taskDue) return taskStart <= end && taskDue >= start;
+  if (taskDue) return taskDue >= start && taskDue <= end;
+  if (taskStart) return taskStart >= start && taskStart <= end;
+
+  return true;
+}
 
 function getStatusClass(status) {
   const normalized = status.toLowerCase();
-  if (normalized === "available") return "teamleader-dashboard-section__status--available";
-  if (normalized === "moderate") return "teamleader-dashboard-section__status--moderate";
+
+  if (normalized === "available") {
+    return "teamleader-dashboard-section__status--available";
+  }
+
+  if (normalized === "moderate") {
+    return "teamleader-dashboard-section__status--moderate";
+  }
+
   return "teamleader-dashboard-section__status--overloaded";
 }
 
-export default function TeamLeaderDashboardSection() {
+function getWorkloadStatus(weight) {
+  if (weight <= 15) return "Available";
+  if (weight <= 25) return "Moderate";
+  return "Overloaded";
+}
+
+function getInitials(fullName) {
+  return String(fullName || "")
+    .split(" ")
+    .filter(Boolean)
+    .map((name) => name[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+export default function TeamLeaderDashboardSection({
+  user,
+  searchValue = "",
+}) {
+  const [teams, setTeams] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const { start, end } = useMemo(() => getWeekRange(), []);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      const companyId = Number(user?.companyId);
+      const userId = Number(user?.userId);
+
+      if (!companyId || !userId) {
+        setErrorMessage("Missing user information.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setErrorMessage("");
+
+        const teamsUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(
+          companyId
+        )}`;
+        const membersUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(
+          companyId
+        )}/members`;
+        const tasksUrl = `http://localhost:5000/api/tasks/company/${encodeURIComponent(
+          companyId
+        )}`;
+
+        const [teamsResponse, membersResponse, tasksResponse] =
+          await Promise.all([
+            fetch(teamsUrl),
+            fetch(membersUrl),
+            fetch(tasksUrl),
+          ]);
+
+        const teamsData = await teamsResponse.json();
+        const membersData = await membersResponse.json();
+        const tasksData = await tasksResponse.json();
+
+        if (!teamsResponse.ok) {
+          throw new Error("Failed to load teams.");
+        }
+
+        if (!membersResponse.ok) {
+          throw new Error("Failed to load members.");
+        }
+
+        if (!tasksResponse.ok || !tasksData.success) {
+          throw new Error(tasksData.message || "Failed to load tasks.");
+        }
+
+        const leaderTeams = (teamsData || []).filter(
+          (team) => Number(team.teamLeaderUserId) === userId
+        );
+
+        const leaderTeamIds = leaderTeams.map((team) => team.teamId);
+
+        const leaderMemberIds = [
+          ...new Set(
+            leaderTeams.flatMap((team) =>
+              Array.isArray(team.memberIds) ? team.memberIds : []
+            )
+          ),
+        ];
+
+        const filteredMembers = (membersData || []).filter((member) =>
+          leaderMemberIds.includes(member.userId)
+        );
+
+        const filteredTasks = (tasksData.tasks || []).filter((task) => {
+          const belongsToLeaderTeam = leaderTeamIds.includes(task.teamId);
+          const isInRange = doesTaskOverlapRange(task, start, end);
+          return belongsToLeaderTeam && isInRange;
+        });
+
+        setTeams(leaderTeams);
+        setMembers(filteredMembers);
+        setTasks(filteredTasks);
+      } catch (error) {
+        console.error("Dashboard fetch error:", error);
+        setErrorMessage(error.message || "Failed to load dashboard data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user, start, end]);
+
+  const workloadRows = useMemo(() => {
+    const search = searchValue.trim().toLowerCase();
+
+    const rows = members.map((member) => {
+      const memberTasks = tasks.filter(
+        (task) => Number(task.assignedToUserId) === Number(member.userId)
+      );
+
+      const totalTasks = memberTasks.length;
+      const totalEffort = memberTasks.reduce(
+        (sum, task) => sum + Number(task.estimatedEffortHours || 0),
+        0
+      );
+      const totalWeight = memberTasks.reduce(
+        (sum, task) => sum + Number(task.weight || 0),
+        0
+      );
+
+      return {
+        userId: member.userId,
+        employee: member.fullName,
+        tasks: totalTasks,
+        effort: `${totalEffort}h`,
+        weight: Number(totalWeight.toFixed(2)),
+        status: getWorkloadStatus(totalWeight),
+      };
+    });
+
+    if (!search) return rows;
+
+    return rows.filter((row) =>
+      row.employee.toLowerCase().includes(search)
+    );
+  }, [members, tasks, searchValue]);
+
+  const summaryCards = useMemo(() => {
+    const totalTasks = tasks.length;
+    const totalEffort = tasks.reduce(
+      (sum, task) => sum + Number(task.estimatedEffortHours || 0),
+      0
+    );
+    const totalWeight = tasks.reduce(
+      (sum, task) => sum + Number(task.weight || 0),
+      0
+    );
+
+    return [
+      {
+        title: "Team Members",
+        value: members.length,
+        icon: <FiUsers />,
+      },
+      {
+        title: "Tasks",
+        value: totalTasks,
+        icon: <FiClipboard />,
+      },
+      {
+        title: "Total Effort",
+        value: `${totalEffort}h`,
+        icon: <FiClock />,
+      },
+      {
+        title: "Total Weight",
+        value: Number(totalWeight.toFixed(2)),
+        icon: <FiBarChart2 />,
+      },
+    ];
+  }, [members.length, tasks]);
+
   return (
     <section className="teamleader-dashboard-section">
       <div className="teamleader-dashboard-section__header">
@@ -93,75 +251,94 @@ export default function TeamLeaderDashboardSection() {
         </button>
       </div>
 
-      <div className="teamleader-dashboard-section__cards">
-        {summaryCards.map((card) => (
-          <article
-            key={card.title}
-            className="teamleader-dashboard-section__card"
-          >
-            <div className="teamleader-dashboard-section__card-icon">
-              {card.icon}
-            </div>
+      {loading ? (
+        <div className="teamleader-dashboard-section__state-card">
+          Loading dashboard...
+        </div>
+      ) : errorMessage ? (
+        <div className="teamleader-dashboard-section__state-card teamleader-dashboard-section__state-card--error">
+          {errorMessage}
+        </div>
+      ) : (
+        <>
+          <div className="teamleader-dashboard-section__cards">
+            {summaryCards.map((card) => (
+              <article
+                key={card.title}
+                className="teamleader-dashboard-section__card"
+              >
+                <div className="teamleader-dashboard-section__card-icon">
+                  {card.icon}
+                </div>
 
-            <div className="teamleader-dashboard-section__card-content">
-              <span className="teamleader-dashboard-section__card-label">
-                {card.title}
-              </span>
-              <strong className="teamleader-dashboard-section__card-value">
-                {card.value}
-              </strong>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="teamleader-dashboard-section__workload-head">
-        <h3>Team Member Workload</h3>
-        <span className="teamleader-dashboard-section__workload-line"></span>
-      </div>
-
-      <div className="teamleader-dashboard-section__table-wrap">
-        <table className="teamleader-dashboard-section__table">
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Tasks</th>
-              <th>Effort</th>
-              <th>Weight</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {workloadRows.map((row) => (
-              <tr key={row.employee}>
-                <td className="teamleader-dashboard-section__employee-cell">
-                  <div className="teamleader-dashboard-section__avatar">
-                    {row.employee
-                      .split(" ")
-                      .map((name) => name[0])
-                      .slice(0, 2)
-                      .join("")}
-                  </div>
-                  <span>{row.employee}</span>
-                </td>
-                <td>{row.tasks}</td>
-                <td>{row.effort}</td>
-                <td>{row.weight}</td>
-                <td>
-                  <span
-                    className={`teamleader-dashboard-section__status ${getStatusClass(
-                      row.status
-                    )}`}
-                  >
-                    {row.status}
+                <div className="teamleader-dashboard-section__card-content">
+                  <span className="teamleader-dashboard-section__card-label">
+                    {card.title}
                   </span>
-                </td>
-              </tr>
+                  <strong className="teamleader-dashboard-section__card-value">
+                    {card.value}
+                  </strong>
+                </div>
+              </article>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          <div className="teamleader-dashboard-section__workload-head">
+            <h3>Team Member Workload</h3>
+            <span className="teamleader-dashboard-section__workload-line"></span>
+          </div>
+
+          <div className="teamleader-dashboard-section__table-wrap">
+            <table className="teamleader-dashboard-section__table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Tasks</th>
+                  <th>Effort</th>
+                  <th>Weight</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {workloadRows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="teamleader-dashboard-section__empty-cell"
+                    >
+                      No workload data found for this week.
+                    </td>
+                  </tr>
+                ) : (
+                  workloadRows.map((row) => (
+                    <tr key={row.userId}>
+                      <td className="teamleader-dashboard-section__employee-cell">
+                        <div className="teamleader-dashboard-section__avatar">
+                          {getInitials(row.employee)}
+                        </div>
+                        <span>{row.employee}</span>
+                      </td>
+                      <td>{row.tasks}</td>
+                      <td>{row.effort}</td>
+                      <td>{row.weight}</td>
+                      <td>
+                        <span
+                          className={`teamleader-dashboard-section__status ${getStatusClass(
+                            row.status
+                          )}`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   );
 }

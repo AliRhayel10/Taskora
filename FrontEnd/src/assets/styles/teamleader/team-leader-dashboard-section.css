@@ -5,6 +5,7 @@
 }
 
 .teamleader-dashboard-section__header {
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -16,6 +17,7 @@
   align-items: center;
   gap: 16px;
   flex: 1;
+  min-height: 46px;
 }
 
 .teamleader-dashboard-section__title {
@@ -24,6 +26,7 @@
   font-size: 1.45rem;
   font-weight: 800;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .teamleader-dashboard-section__title-line,
@@ -46,6 +49,7 @@
   font-size: 0.96rem;
   font-weight: 700;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .teamleader-dashboard-section__cards {
@@ -110,6 +114,7 @@
   font-size: 1.2rem;
   font-weight: 800;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .teamleader-dashboard-section__table-wrap {
@@ -190,6 +195,28 @@
 .teamleader-dashboard-section__status--overloaded {
   background: #fecaca;
   color: #b91c1c;
+}
+
+.teamleader-dashboard-section__state-card {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 700;
+}
+
+.teamleader-dashboard-section__state-card--error {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.teamleader-dashboard-section__empty-cell {
+  text-align: center;
+  color: #64748b;
+  font-weight: 700;
+  padding: 28px 20px !important;
 }
 
 body.dark .teamleader-dashboard-section__title,
