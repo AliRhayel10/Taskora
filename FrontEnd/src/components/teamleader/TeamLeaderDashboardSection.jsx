@@ -7,7 +7,11 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+  FiCalendar,
 } from "react-icons/fi";
+import { DayPicker } from "react-day-picker";
+import { format } from "date-fns";
+import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
 const PAGE_SIZE = 6;
@@ -38,28 +42,6 @@ function getWeekRange(offsetWeeks = 0) {
   return { start, end };
 }
 
-function formatInputDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function parseInputDate(value, endOfDay = false) {
-  if (!value) return null;
-
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-
-  if (endOfDay) {
-    date.setHours(23, 59, 59, 999);
-  } else {
-    date.setHours(0, 0, 0, 0);
-  }
-
-  return date;
-}
-
 function getPresetRange(preset, customRange) {
   switch (preset) {
     case "today":
@@ -67,11 +49,21 @@ function getPresetRange(preset, customRange) {
     case "nextWeek":
       return getWeekRange(1);
     case "custom": {
-      const start = parseInputDate(customRange.startDate);
-      const end = parseInputDate(customRange.endDate, true);
+      if (
+        customRange?.from instanceof Date &&
+        !Number.isNaN(customRange.from.getTime()) &&
+        customRange?.to instanceof Date &&
+        !Number.isNaN(customRange.to.getTime())
+      ) {
+        const start = new Date(customRange.from);
+        start.setHours(0, 0, 0, 0);
 
-      if (start && end && start <= end) {
-        return { start, end };
+        const end = new Date(customRange.to);
+        end.setHours(23, 59, 59, 999);
+
+        if (start <= end) {
+          return { start, end };
+        }
       }
 
       return getWeekRange(0);
@@ -185,6 +177,10 @@ function buildPageNumbers(totalPages, currentPage) {
   ];
 }
 
+function formatDateText(date) {
+  return format(date, "dd/MM/yyyy");
+}
+
 export default function TeamLeaderDashboardSection({
   user,
   searchValue = "",
@@ -199,8 +195,8 @@ export default function TeamLeaderDashboardSection({
   const [customRange, setCustomRange] = useState(() => {
     const currentWeek = getWeekRange(0);
     return {
-      startDate: formatInputDate(currentWeek.start),
-      endDate: formatInputDate(currentWeek.end),
+      from: currentWeek.start,
+      to: currentWeek.end,
     };
   });
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
@@ -233,10 +229,19 @@ export default function TeamLeaderDashboardSection({
     [selectedPreset, customRange]
   );
 
-  const rangeLabel = useMemo(
-    () => getRangeLabel(selectedPreset),
-    [selectedPreset]
-  );
+  const rangeLabel = useMemo(() => {
+    if (
+      selectedPreset === "custom" &&
+      customRange?.from instanceof Date &&
+      customRange?.to instanceof Date
+    ) {
+      return `${formatDateText(customRange.from)} - ${formatDateText(
+        customRange.to
+      )}`;
+    }
+
+    return getRangeLabel(selectedPreset);
+  }, [selectedPreset, customRange]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -463,15 +468,30 @@ export default function TeamLeaderDashboardSection({
   );
 
   const handleSelectPreset = (preset) => {
+    if (preset === "today") {
+      const range = getTodayRange();
+      setCustomRange({ from: range.start, to: range.end });
+    }
+
+    if (preset === "thisWeek") {
+      const range = getWeekRange(0);
+      setCustomRange({ from: range.start, to: range.end });
+    }
+
+    if (preset === "nextWeek") {
+      const range = getWeekRange(1);
+      setCustomRange({ from: range.start, to: range.end });
+    }
+
     setSelectedPreset(preset);
     setIsRangeMenuOpen(false);
   };
 
-  const handleCustomDateChange = (field, value) => {
-    setCustomRange((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleCustomRangeSelect = (range) => {
+    setCustomRange({
+      from: range?.from || null,
+      to: range?.to || null,
+    });
     setSelectedPreset("custom");
   };
 
@@ -532,27 +552,27 @@ export default function TeamLeaderDashboardSection({
               <div className="teamleader-dashboard-section__range-divider"></div>
 
               <div className="teamleader-dashboard-section__custom-range">
-                <label>
-                  <span>Start</span>
-                  <input
-                    type="date"
-                    value={customRange.startDate}
-                    onChange={(event) =>
-                      handleCustomDateChange("startDate", event.target.value)
-                    }
-                  />
-                </label>
+                <div className="teamleader-dashboard-section__custom-range-header">
+                  <FiCalendar />
+                  <span>Pick a custom range</span>
+                </div>
 
-                <label>
-                  <span>End</span>
-                  <input
-                    type="date"
-                    value={customRange.endDate}
-                    onChange={(event) =>
-                      handleCustomDateChange("endDate", event.target.value)
-                    }
+                <div className="teamleader-dashboard-section__custom-range-preview">
+                  {customRange?.from ? formatDateText(customRange.from) : "Start"}{" "}
+                  <span>to</span>{" "}
+                  {customRange?.to ? formatDateText(customRange.to) : "End"}
+                </div>
+
+                <div className="teamleader-dashboard-section__calendar-shell">
+                  <DayPicker
+                    mode="range"
+                    selected={customRange}
+                    onSelect={handleCustomRangeSelect}
+                    showOutsideDays
+                    numberOfMonths={1}
+                    className="teamleader-dashboard-section__day-picker"
                   />
-                </label>
+                </div>
               </div>
             </div>
           )}

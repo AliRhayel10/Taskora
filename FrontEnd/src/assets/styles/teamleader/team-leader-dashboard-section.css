@@ -17,12 +17,12 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 320px;
+  width: 332px;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 18px;
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.1);
-  padding: 14px;
+  border-radius: 16px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
+  padding: 12px;
   z-index: 20;
 }
 
@@ -32,9 +32,9 @@
   background: transparent;
   color: #1e293b;
   text-align: left;
-  padding: 11px 14px;
-  border-radius: 12px;
-  font-size: 0.95rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.93rem;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -60,59 +60,161 @@
 .teamleader-dashboard-section__custom-range {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.teamleader-dashboard-section__custom-range label {
+.teamleader-dashboard-section__custom-range-header {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.teamleader-dashboard-section__custom-range span {
-  color: #475569;
-  font-size: 0.84rem;
+  align-items: center;
+  gap: 8px;
+  color: #1e293b;
+  font-size: 0.92rem;
   font-weight: 700;
 }
 
-.teamleader-dashboard-section__custom-range input {
-  width: 100%;
-  height: 48px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+.teamleader-dashboard-section__custom-range-header svg {
+  color: #2563eb;
+  font-size: 0.95rem;
+}
+
+.teamleader-dashboard-section__custom-range-preview {
+  min-height: 40px;
+  border: 1px solid #dbe7f5;
+  border-radius: 10px;
   background: #ffffff;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: #1e293b;
-  padding: 0 14px;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.teamleader-dashboard-section__custom-range-preview span {
+  color: #64748b;
   font-weight: 600;
-  outline: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
 }
 
-.teamleader-dashboard-section__custom-range input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+.teamleader-dashboard-section__calendar-shell {
+  border: 1px solid #dbe7f5;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 10px;
 }
 
-.teamleader-dashboard-section__custom-range input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  transform: scale(1.25);
+.teamleader-dashboard-section__day-picker {
+  width: 100%;
+}
+
+.teamleader-dashboard-section__day-picker .rdp {
+  --rdp-cell-size: 38px;
+  --rdp-accent-color: #2563eb;
+  --rdp-background-color: #eff6ff;
+  margin: 0;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-months {
+  justify-content: center;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-month {
+  width: 100%;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-caption {
+  padding: 0 2px 10px;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-caption_label {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-head_cell {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day {
+  border-radius: 10px;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day_button {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.teamleader-dashboard-section__day-picker
+  .rdp-day:not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end)
+  .rdp-day_button {
+  color: #334155;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day_today .rdp-day_button {
+  color: #1d4ed8;
+  font-weight: 800;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day_outside .rdp-day_button {
+  color: #94a3b8;
+  opacity: 0.9;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day_selected .rdp-day_button,
+.teamleader-dashboard-section__day-picker .rdp-day_range_start .rdp-day_button,
+.teamleader-dashboard-section__day-picker .rdp-day_range_end .rdp-day_button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day_range_middle .rdp-day_button {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.teamleader-dashboard-section__day-picker
+  .rdp-button:hover:not([disabled]):not(.rdp-day_selected)
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker .rdp-day_button:hover {
+  background: #eff6ff;
+  color: #1e293b;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-chevron {
+  fill: #2563eb;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-nav_button {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-nav_button:hover {
+  background: #eff6ff;
 }
 
 .teamleader-dashboard-section__range-btn {
-  height: 42px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 16px;
   border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #f8fafc;
   color: #1e293b;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
@@ -489,6 +591,10 @@ body.dark .teamleader-dashboard-section__workload-line {
     justify-content: center;
   }
 
+  .teamleader-dashboard-section__range-dropdown {
+    width: min(100%, 320px);
+  }
+
   .teamleader-dashboard-section__cards {
     grid-template-columns: 1fr;
   }
@@ -500,5 +606,15 @@ body.dark .teamleader-dashboard-section__workload-line {
   .teamleader-dashboard-section__employee-details strong,
   .teamleader-dashboard-section__employee-details small {
     max-width: 140px;
+  }
+
+  .teamleader-dashboard-section__day-picker .rdp {
+    --rdp-cell-size: 34px;
+  }
+
+  .teamleader-dashboard-section__day-picker .rdp-day_button {
+    width: 32px;
+    height: 32px;
+    font-size: 0.84rem;
   }
 }
