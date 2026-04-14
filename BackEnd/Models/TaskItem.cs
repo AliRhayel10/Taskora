@@ -37,9 +37,8 @@ namespace BackEnd.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal Weight { get; set; }
 
-        public DateTime StartDate { get; set; }
-
-        public DateTime DueDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
 
         public int TaskStatusId { get; set; }
 

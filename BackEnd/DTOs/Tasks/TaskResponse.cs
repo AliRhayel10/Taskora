@@ -18,8 +18,8 @@ namespace BackEnd.DTOs.Tasks
         public decimal EstimatedEffortHours { get; set; }
         public decimal Weight { get; set; }
 
-        public DateTime StartDate { get; set; }
-        public DateTime DueDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
 
         public int TaskStatusId { get; set; }
         public string TaskStatusName { get; set; } = string.Empty;

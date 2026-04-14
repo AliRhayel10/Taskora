@@ -66,11 +66,22 @@ function getInitials(fullName) {
     .toUpperCase();
 }
 
+async function parseJsonSafely(response) {
+  const text = await response.text();
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 export default function TeamLeaderDashboardSection({
   user,
   searchValue = "",
 }) {
-  const [teams, setTeams] = useState([]);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,8 +91,8 @@ export default function TeamLeaderDashboardSection({
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      const companyId = Number(user?.companyId);
-      const userId = Number(user?.userId);
+      const companyId = parseInt(user?.companyId, 10);
+      const userId = parseInt(user?.userId, 10);
 
       if (!companyId || !userId) {
         setErrorMessage("Missing user information.");
@@ -110,47 +121,71 @@ export default function TeamLeaderDashboardSection({
             fetch(tasksUrl),
           ]);
 
-        const teamsData = await teamsResponse.json();
-        const membersData = await membersResponse.json();
-        const tasksData = await tasksResponse.json();
-
         if (!teamsResponse.ok) {
-          throw new Error("Failed to load teams.");
+          const rawError = await teamsResponse.text();
+          console.error("Teams endpoint raw error:", rawError);
+          throw new Error(`Failed to load teams. (${teamsResponse.status})`);
         }
 
         if (!membersResponse.ok) {
-          throw new Error("Failed to load members.");
+          const rawError = await membersResponse.text();
+          console.error("Members endpoint raw error:", rawError);
+          throw new Error(`Failed to load members. (${membersResponse.status})`);
         }
 
-        if (!tasksResponse.ok || !tasksData.success) {
-          throw new Error(tasksData.message || "Failed to load tasks.");
+        if (!tasksResponse.ok) {
+          const rawError = await tasksResponse.text();
+          console.error("Tasks endpoint raw error:", rawError);
+          throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
         }
 
-        const leaderTeams = (teamsData || []).filter(
+        const teamsData = await parseJsonSafely(teamsResponse);
+        const membersData = await parseJsonSafely(membersResponse);
+        const tasksData = await parseJsonSafely(tasksResponse);
+
+        if (!Array.isArray(teamsData)) {
+          console.error("Unexpected teams response:", teamsData);
+          throw new Error("Teams response format is invalid.");
+        }
+
+        if (!Array.isArray(membersData)) {
+          console.error("Unexpected members response:", membersData);
+          throw new Error("Members response format is invalid.");
+        }
+
+        if (!tasksData || typeof tasksData !== "object" || !tasksData.success) {
+          console.error("Unexpected tasks response:", tasksData);
+          throw new Error(
+            tasksData?.message || "Tasks response format is invalid."
+          );
+        }
+
+        const leaderTeams = teamsData.filter(
           (team) => Number(team.teamLeaderUserId) === userId
         );
 
-        const leaderTeamIds = leaderTeams.map((team) => team.teamId);
+        const leaderTeamIds = leaderTeams.map((team) => Number(team.teamId));
 
         const leaderMemberIds = [
           ...new Set(
             leaderTeams.flatMap((team) =>
-              Array.isArray(team.memberIds) ? team.memberIds : []
+              Array.isArray(team.memberIds)
+                ? team.memberIds.map((id) => Number(id))
+                : []
             )
           ),
         ];
 
-        const filteredMembers = (membersData || []).filter((member) =>
-          leaderMemberIds.includes(member.userId)
+        const filteredMembers = membersData.filter((member) =>
+          leaderMemberIds.includes(Number(member.userId))
         );
 
         const filteredTasks = (tasksData.tasks || []).filter((task) => {
-          const belongsToLeaderTeam = leaderTeamIds.includes(task.teamId);
+          const belongsToLeaderTeam = leaderTeamIds.includes(Number(task.teamId));
           const isInRange = doesTaskOverlapRange(task, start, end);
           return belongsToLeaderTeam && isInRange;
         });
 
-        setTeams(leaderTeams);
         setMembers(filteredMembers);
         setTasks(filteredTasks);
       } catch (error) {
@@ -195,7 +230,7 @@ export default function TeamLeaderDashboardSection({
     if (!search) return rows;
 
     return rows.filter((row) =>
-      row.employee.toLowerCase().includes(search)
+      String(row.employee || "").toLowerCase().includes(search)
     );
   }, [members, tasks, searchValue]);
 

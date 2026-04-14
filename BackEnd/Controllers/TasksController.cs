@@ -641,8 +641,8 @@ namespace BackEnd.Controllers
                     Complexity = t.Complexity,
                     EstimatedEffortHours = t.EstimatedEffortHours,
                     Weight = t.Weight,
-                    StartDate = t.StartDate,
-                    DueDate = t.DueDate,
+                    StartDate = t.StartDate ?? null,
+                    DueDate = t.DueDate?? null,
                     TaskStatusId = t.TaskStatusId,
                     TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : ""
                 })
