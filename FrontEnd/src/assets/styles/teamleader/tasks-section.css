@@ -84,19 +84,19 @@
   color: #b42318;
 }
 
-.tasks-section__tab {
-  border: none;
-  background: transparent;
-  color: #334155;
-  font-size: 1rem;
-  font-weight: 700;
-  padding: 0;
+.tasks-section__tabs {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: nowrap;
+  padding-top: 0;
+  min-width: 0;
+}
+
+.tasks-section__tab-wrap {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  width: fit-content;
   flex: 0 0 auto;
 }
 
@@ -106,12 +106,13 @@
   color: #334155;
   font-size: 1rem;
   font-weight: 700;
-  padding: 8px 0;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   cursor: pointer;
   transition: color 0.2s ease;
+  width: fit-content;
+  flex: 0 0 auto;
 }
 
 .tasks-section__tab:hover {
@@ -153,6 +154,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  pointer-events: none;
 }
 
 .tasks-section__state-card {
@@ -633,6 +635,10 @@
   color: #1e293b;
   font-size: 0.94rem;
   font-weight: 600;
+}
+
+.tasks-section__required {
+  color: #dc2626;
 }
 
 .tasks-section__form-group input,
