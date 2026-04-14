@@ -44,13 +44,11 @@ function getWeekRange(offsetWeeks = 0) {
 }
 
 function getDefaultRangeState() {
-  const currentWeek = getWeekRange(0);
-
   return {
     selectedPreset: "thisWeek",
     customRange: {
-      from: currentWeek.start,
-      to: currentWeek.end,
+      from: null,
+      to: null,
     },
   };
 }
@@ -60,7 +58,13 @@ function loadRangeState() {
     const saved = localStorage.getItem(RANGE_STORAGE_KEY);
 
     if (!saved) {
-      return getDefaultRangeState();
+      return {
+        selectedPreset: "thisWeek",
+        customRange: {
+          from: null,
+          to: null,
+        },
+      };
     }
 
     const parsed = JSON.parse(saved);
@@ -73,7 +77,13 @@ function loadRangeState() {
       },
     };
   } catch {
-    return getDefaultRangeState();
+    return {
+      selectedPreset: "thisWeek",
+      customRange: {
+        from: null,
+        to: null,
+      },
+    };
   }
 }
 
@@ -246,13 +256,10 @@ export default function TeamLeaderDashboardSection({
   );
   const [customRange, setCustomRange] = useState(initialRangeState.customRange);
 
-  const [draftPreset, setDraftPreset] = useState("thisWeek");
-  const [draftCustomRange, setDraftCustomRange] = useState(() => {
-    const currentWeek = getWeekRange(0);
-    return {
-      from: currentWeek.start,
-      to: currentWeek.end,
-    };
+  const [draftPreset, setDraftPreset] = useState(initialRangeState.selectedPreset);
+  const [draftCustomRange, setDraftCustomRange] = useState({
+    from: null,
+    to: null,
   });
 
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
@@ -263,22 +270,29 @@ export default function TeamLeaderDashboardSection({
     saveRangeState(selectedPreset, customRange);
   }, [selectedPreset, customRange]);
 
-  const resetDraftToThisWeek = () => {
-    const thisWeek = getWeekRange(0);
-    setDraftPreset("thisWeek");
-    setDraftCustomRange({
-      from: thisWeek.start,
-      to: thisWeek.end,
-    });
+  const syncDraftWithAppliedState = () => {
+    setDraftPreset(selectedPreset);
+
+    if (selectedPreset === "custom") {
+      setDraftCustomRange({
+        from: customRange?.from || null,
+        to: customRange?.to || null,
+      });
+    } else {
+      setDraftCustomRange({
+        from: null,
+        to: null,
+      });
+    }
   };
 
   const openRangeMenu = () => {
-    resetDraftToThisWeek();
+    syncDraftWithAppliedState();
     setIsRangeMenuOpen(true);
   };
 
   const closeRangeMenu = () => {
-    resetDraftToThisWeek();
+    syncDraftWithAppliedState();
     setIsRangeMenuOpen(false);
   };
 
@@ -301,7 +315,7 @@ export default function TeamLeaderDashboardSection({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, [isRangeMenuOpen]);
+  }, [isRangeMenuOpen, selectedPreset, customRange]);
 
   const activeRange = useMemo(
     () => getPresetRange(selectedPreset, customRange),
@@ -547,28 +561,27 @@ export default function TeamLeaderDashboardSection({
   );
 
   const handleSelectPreset = (preset) => {
-    let nextRange = draftCustomRange;
+    let nextRange = customRange;
 
     if (preset === "today") {
-      const range = getTodayRange();
-      nextRange = { from: range.start, to: range.end };
-    }
-
-    if (preset === "thisWeek") {
-      const range = getWeekRange(0);
-      nextRange = { from: range.start, to: range.end };
-    }
-
-    if (preset === "nextWeek") {
-      const range = getWeekRange(1);
-      nextRange = { from: range.start, to: range.end };
+      nextRange = getTodayRange();
+    } else if (preset === "thisWeek") {
+      nextRange = getWeekRange(0);
+    } else if (preset === "nextWeek") {
+      nextRange = getWeekRange(1);
     }
 
     setDraftPreset(preset);
-    setDraftCustomRange(nextRange);
+    setDraftCustomRange({
+      from: null,
+      to: null,
+    });
 
     setSelectedPreset(preset);
-    setCustomRange(nextRange);
+    setCustomRange({
+      from: nextRange.start,
+      to: nextRange.end,
+    });
     setIsRangeMenuOpen(false);
   };
 
@@ -586,7 +599,11 @@ export default function TeamLeaderDashboardSection({
     setSelectedPreset("custom");
     setCustomRange(draftCustomRange);
     setIsRangeMenuOpen(false);
-    resetDraftToThisWeek();
+
+    setDraftCustomRange({
+      from: null,
+      to: null,
+    });
   };
 
   return (
