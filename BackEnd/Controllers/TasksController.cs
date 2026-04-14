@@ -655,8 +655,8 @@ namespace BackEnd.Controllers
             });
         }
 
-        [HttpGet("{taskId}")]
-        public async Task<IActionResult> GetTaskById(int taskId)
+[HttpGet("by-id/{taskId:int}")]
+public async Task<IActionResult> GetTaskById(int taskId)
         {
             var task = await _context.Tasks
                 .Include(t => t.TaskStatus)

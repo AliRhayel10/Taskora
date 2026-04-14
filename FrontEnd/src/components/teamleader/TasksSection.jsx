@@ -177,14 +177,14 @@ export default function TasksSection({
     const resolvedCompanyId = companyId ?? storedUser?.companyId ?? null;
     const resolvedCurrentUserId = storedUser?.userId ?? null;
 
-    const resolvedTasksEndpoint =
-        tasksEndpoint ?? `${API_BASE}/api/tasks`;
+const resolvedTasksEndpoint =
+  tasksEndpoint ?? `${API_BASE}/api/tasks/company/${resolvedCompanyId}`;
 
-    const resolvedCreateTaskEndpoint =
-        createTaskEndpoint ?? `${API_BASE}/api/tasks`;
+const resolvedCreateTaskEndpoint =
+  createTaskEndpoint ?? `${API_BASE}/api/tasks/create`;
 
-    const resolvedUpdateTaskStatusEndpoint =
-        updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/status`;
+const resolvedUpdateTaskStatusEndpoint =
+  updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/update-status`;
 
     const resolvedSetupRulesEndpoint =
         setupRulesEndpoint ??
@@ -567,19 +567,19 @@ export default function TasksSection({
         setFeedback(null);
 
         try {
-            const payload = {
-                title: formState.title.trim(),
-                description: formState.description.trim(),
-                assignedUserId: Number(formState.assignedUserId),
-                teamId: selectedUser?.teamId ?? 0,
-                createdByUserId: resolvedCurrentUserId ?? 0,
-                priority: formState.priority,
-                complexity: formState.complexity,
-                estimatedEffortHours: Number(formState.estimatedEffortHours),
-                weight: Number(computedTaskWeight),
-                startDate: formState.startDate,
-                dueDate: formState.dueDate,
-            };
+const payload = {
+  companyId: Number(resolvedCompanyId),
+  teamId: selectedUser?.teamId ?? 0,
+  title: formState.title.trim(),
+  description: formState.description.trim(),
+  assignedToUserId: Number(formState.assignedUserId),
+  createdByUserId: Number(resolvedCurrentUserId),
+  priority: formState.priority,
+  complexity: formState.complexity,
+  estimatedEffortHours: Number(formState.estimatedEffortHours),
+  startDate: formState.startDate,
+  dueDate: formState.dueDate,
+};
 
             const response = await fetch(resolvedCreateTaskEndpoint, {
                 method: "POST",
