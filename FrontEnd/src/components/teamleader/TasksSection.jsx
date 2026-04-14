@@ -967,15 +967,15 @@ export default function TasksSection({
                                         <label htmlFor="task-title">
                                             Name <span className="tasks-section__required">*</span>
                                         </label>
-<input
-  id="task-title"
-  type="text"
-  value={formState.title}
-  onChange={(event) =>
-    handleFormChange("title", capitalizeWords(event.target.value))
-  }
-  required
-/>
+                                        <input
+                                            id="task-title"
+                                            type="text"
+                                            value={formState.title}
+                                            onChange={(event) =>
+                                                handleFormChange("title", capitalizeWords(event.target.value))
+                                            }
+                                            required
+                                        />
                                     </div>
 
                                     <div className="tasks-section__form-group tasks-section__form-group--full">
