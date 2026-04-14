@@ -189,7 +189,26 @@ const mapTaskFromApi = (task) => ({
   startDate: task.startDate ?? task.StartDate ?? "",
   dueDate: task.dueDate ?? task.DueDate ?? "",
   teamId: task.teamId ?? task.TeamId ?? "",
+  isAcknowledged:
+    task.isAcknowledged ??
+    task.IsAcknowledged ??
+    task.acknowledged ??
+    task.Acknowledged ??
+    task.hasAcknowledged ??
+    task.HasAcknowledged ??
+    false,
 });
+
+const getEffectiveTaskStatus = (task) => {
+  const rawStatus = String(task?.status || "").trim();
+  const normalizedRawStatus = normalizeStatus(rawStatus);
+
+  if (normalizedRawStatus === "pending" && !task?.isAcknowledged) {
+    return "New";
+  }
+
+  return rawStatus || "New";
+};
 
 export default function TasksSection({
   companyId,
@@ -519,11 +538,14 @@ export default function TasksSection({
           ? fallbackName
           : rawName;
 
+      const effectiveStatus = getEffectiveTaskStatus(task);
+
       return {
         ...task,
         assignedUserName: resolvedName,
         assignedUserEmail: task.assignedUserEmail || fallbackEmail,
         assignedUserAvatar: task.assignedUserAvatar || fallbackAvatar,
+        effectiveStatus,
       };
     });
   }, [tasks, users]);
@@ -532,7 +554,7 @@ export default function TasksSection({
     const counts = { all: tasksWithUsers.length };
 
     tasksWithUsers.forEach((task) => {
-      const key = normalizeStatus(task.status);
+      const key = normalizeStatus(task.effectiveStatus);
       counts[key] = (counts[key] ?? 0) + 1;
     });
 
@@ -541,7 +563,7 @@ export default function TasksSection({
 
   const filteredTasks = useMemo(() => {
     return tasksWithUsers.filter((task) => {
-      const statusKey = normalizeStatus(task.status);
+      const statusKey = normalizeStatus(task.effectiveStatus);
       return activeTab === "all" ? true : statusKey === activeTab;
     });
   }, [tasksWithUsers, activeTab]);
@@ -874,10 +896,10 @@ export default function TasksSection({
                     <td className="tasks-section__cell-status">
                       <span
                         className={`tasks-section__status-badge ${getStatusClass(
-                          task.status
+                          task.effectiveStatus
                         )}`}
                       >
-                        {prettifyLabel(task.status)}
+                        {prettifyLabel(task.effectiveStatus)}
                       </span>
                     </td>
 
