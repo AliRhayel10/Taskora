@@ -10,6 +10,8 @@ import {
   FiX,
 } from "react-icons/fi";
 
+const API_BASE = "http://localhost:5000";
+
 const DEFAULT_FORM = {
   title: "",
   description: "",
@@ -19,6 +21,14 @@ const DEFAULT_FORM = {
   estimatedEffortHours: "",
   startDate: "",
   dueDate: "",
+};
+
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
 };
 
 const getInitials = (fullName = "") => {
@@ -129,31 +139,37 @@ export default function TasksSection({
   membersEndpoint,
   pageSize = 5,
 }) {
-  const resolvedCompanyId =
-    companyId ??
-    JSON.parse(localStorage.getItem("user") || "{}")?.companyId ??
-    null;
+  const storedUser = getStoredUser();
+
+  const resolvedCompanyId = companyId ?? storedUser?.companyId ?? null;
+  const resolvedCurrentUserId = storedUser?.userId ?? null;
 
   const resolvedTasksEndpoint =
-    tasksEndpoint ?? "/api/tasks";
+    tasksEndpoint ?? `${API_BASE}/api/tasks`;
 
   const resolvedCreateTaskEndpoint =
-    createTaskEndpoint ?? "/api/tasks";
+    createTaskEndpoint ?? `${API_BASE}/api/tasks`;
 
   const resolvedUpdateTaskStatusEndpoint =
-    updateTaskStatusEndpoint ?? "/api/tasks/status";
+    updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/status`;
 
   const resolvedSetupRulesEndpoint =
     setupRulesEndpoint ??
-    (resolvedCompanyId ? `/api/tasks/setup-rules/${resolvedCompanyId}` : "");
+    (resolvedCompanyId
+      ? `${API_BASE}/api/tasks/setup-rules/${resolvedCompanyId}`
+      : "");
 
   const resolvedStatusesEndpoint =
     statusesEndpoint ??
-    (resolvedCompanyId ? `/api/tasks/statuses/${resolvedCompanyId}` : "");
+    (resolvedCompanyId
+      ? `${API_BASE}/api/tasks/statuses/${resolvedCompanyId}`
+      : "");
 
   const resolvedMembersEndpoint =
     membersEndpoint ??
-    (resolvedCompanyId ? `/api/Teams/company/${resolvedCompanyId}/members` : "");
+    (resolvedCompanyId
+      ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}/members`
+      : "");
 
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -372,6 +388,7 @@ export default function TasksSection({
         description: formState.description.trim(),
         assignedUserId: Number(formState.assignedUserId),
         teamId: selectedUser?.teamId ?? 0,
+        createdByUserId: resolvedCurrentUserId ?? 0,
         priority: formState.priority,
         complexity: formState.complexity,
         estimatedEffortHours: Number(formState.estimatedEffortHours),
