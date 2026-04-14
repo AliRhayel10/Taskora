@@ -5,8 +5,12 @@ import {
   FiClock,
   FiBarChart2,
   FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
+
+const PAGE_SIZE = 6;
 
 function getWeekRange() {
   const now = new Date();
@@ -78,6 +82,41 @@ async function parseJsonSafely(response) {
   }
 }
 
+function normalizeRole(role) {
+  return String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]/g, " ");
+}
+
+function buildPageNumbers(totalPages, currentPage) {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, 5];
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
+  }
+
+  return [
+    currentPage - 2,
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    currentPage + 2,
+  ];
+}
+
 export default function TeamLeaderDashboardSection({
   user,
   searchValue = "",
@@ -86,6 +125,7 @@ export default function TeamLeaderDashboardSection({
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { start, end } = useMemo(() => getWeekRange(), []);
 
@@ -173,9 +213,13 @@ export default function TeamLeaderDashboardSection({
           ),
         ];
 
-        const filteredMembers = membersData.filter((member) =>
-          leaderMemberIds.includes(Number(member.userId))
-        );
+        const filteredMembers = membersData.filter((member) => {
+          const memberId = Number(member.userId);
+          const role = normalizeRole(member.role);
+          const isEmployee = role === "employee";
+
+          return leaderMemberIds.includes(memberId) && isEmployee;
+        });
 
         const filteredTasks = (tasksData.tasks || []).filter((task) => {
           const belongsToLeaderTeam = leaderTeamIds.includes(Number(task.teamId));
@@ -199,35 +243,41 @@ export default function TeamLeaderDashboardSection({
   const workloadRows = useMemo(() => {
     const search = searchValue.trim().toLowerCase();
 
-    const rows = members.map((member) => {
-      const memberTasks = tasks.filter(
-        (task) => Number(task.assignedToUserId) === Number(member.userId)
-      );
+    const rows = members
+      .map((member) => {
+        const memberTasks = tasks.filter(
+          (task) => Number(task.assignedToUserId) === Number(member.userId)
+        );
 
-      const totalTasks = memberTasks.length;
-      const totalEffort = memberTasks.reduce(
-        (sum, task) => sum + Number(task.estimatedEffortHours || 0),
-        0
-      );
-      const totalWeight = memberTasks.reduce(
-        (sum, task) => sum + Number(task.weight || 0),
-        0
-      );
+        const totalTasks = memberTasks.length;
+        const totalEffort = memberTasks.reduce(
+          (sum, task) => sum + Number(task.estimatedEffortHours || 0),
+          0
+        );
+        const totalWeight = memberTasks.reduce(
+          (sum, task) => sum + Number(task.weight || 0),
+          0
+        );
 
-      return {
-        userId: member.userId,
-        employee: member.fullName,
-        tasks: totalTasks,
-        effort: `${totalEffort}h`,
-        weight: Number(totalWeight.toFixed(2)),
-        status: getWorkloadStatus(totalWeight),
-      };
-    });
+        return {
+          userId: member.userId,
+          employee: member.fullName,
+          email: member.email || "",
+          tasks: totalTasks,
+          effort: `${totalEffort}h`,
+          weight: Number(totalWeight.toFixed(2)),
+          status: getWorkloadStatus(totalWeight),
+          profileImageUrl: member.profileImageUrl || "",
+        };
+      })
+      .sort((a, b) => a.employee.localeCompare(b.employee));
 
     if (!search) return rows;
 
-    return rows.filter((row) =>
-      String(row.employee || "").toLowerCase().includes(search)
+    return rows.filter(
+      (row) =>
+        String(row.employee || "").toLowerCase().includes(search) ||
+        String(row.email || "").toLowerCase().includes(search)
     );
   }, [members, tasks, searchValue]);
 
@@ -265,6 +315,39 @@ export default function TeamLeaderDashboardSection({
       },
     ];
   }, [members.length, tasks]);
+
+  const totalPages = Math.max(1, Math.ceil(workloadRows.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchValue, members.length, tasks.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return workloadRows.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [workloadRows, currentPage]);
+
+  const paginationInfo = useMemo(() => {
+    if (workloadRows.length === 0) {
+      return "Showing 0 of 0 employees";
+    }
+
+    const startIndex = (currentPage - 1) * PAGE_SIZE + 1;
+    const endIndex = Math.min(currentPage * PAGE_SIZE, workloadRows.length);
+
+    return `Showing ${startIndex}-${endIndex} of ${workloadRows.length} employees`;
+  }, [workloadRows.length, currentPage]);
+
+  const pageNumbers = useMemo(
+    () => buildPageNumbers(totalPages, currentPage),
+    [totalPages, currentPage]
+  );
 
   return (
     <section className="teamleader-dashboard-section">
@@ -315,54 +398,122 @@ export default function TeamLeaderDashboardSection({
             <span className="teamleader-dashboard-section__workload-line"></span>
           </div>
 
-          <div className="teamleader-dashboard-section__table-wrap">
-            <table className="teamleader-dashboard-section__table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Tasks</th>
-                  <th>Effort</th>
-                  <th>Weight</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {workloadRows.length === 0 ? (
+          <div className="teamleader-dashboard-section__table-card">
+            <div className="teamleader-dashboard-section__table-wrap">
+              <table className="teamleader-dashboard-section__table">
+                <thead>
                   <tr>
-                    <td
-                      colSpan="5"
-                      className="teamleader-dashboard-section__empty-cell"
-                    >
-                      No workload data found for this week.
-                    </td>
+                    <th>Employee</th>
+                    <th>Tasks</th>
+                    <th>Effort</th>
+                    <th>Weight</th>
+                    <th>Status</th>
                   </tr>
-                ) : (
-                  workloadRows.map((row) => (
-                    <tr key={row.userId}>
-                      <td className="teamleader-dashboard-section__employee-cell">
-                        <div className="teamleader-dashboard-section__avatar">
-                          {getInitials(row.employee)}
-                        </div>
-                        <span>{row.employee}</span>
-                      </td>
-                      <td>{row.tasks}</td>
-                      <td>{row.effort}</td>
-                      <td>{row.weight}</td>
-                      <td>
-                        <span
-                          className={`teamleader-dashboard-section__status ${getStatusClass(
-                            row.status
-                          )}`}
-                        >
-                          {row.status}
-                        </span>
+                </thead>
+
+                <tbody>
+                  {paginatedRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="5"
+                        className="teamleader-dashboard-section__empty-cell"
+                      >
+                        No workload data found for this week.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    paginatedRows.map((row, index) => (
+                      <tr
+                        key={row.userId}
+                        className={
+                          index % 2 === 0
+                            ? "teamleader-dashboard-section__row--odd"
+                            : "teamleader-dashboard-section__row--even"
+                        }
+                      >
+                        <td>
+                          <div className="teamleader-dashboard-section__employee-cell">
+                            <div className="teamleader-dashboard-section__avatar">
+                              {row.profileImageUrl ? (
+                                <img
+                                  src={
+                                    row.profileImageUrl.startsWith("http")
+                                      ? row.profileImageUrl
+                                      : `http://localhost:5000${row.profileImageUrl}`
+                                  }
+                                  alt={row.employee}
+                                  className="teamleader-dashboard-section__avatar-image"
+                                />
+                              ) : (
+                                getInitials(row.employee)
+                              )}
+                            </div>
+
+                            <div className="teamleader-dashboard-section__employee-details">
+                              <strong>{row.employee}</strong>
+                              <small>{row.email || "No email"}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{row.tasks}</td>
+                        <td>{row.effort}</td>
+                        <td>{row.weight}</td>
+                        <td>
+                          <span
+                            className={`teamleader-dashboard-section__status ${getStatusClass(
+                              row.status
+                            )}`}
+                          >
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="teamleader-dashboard-section__pagination">
+              <span className="teamleader-dashboard-section__pagination-info">
+                {paginationInfo}
+              </span>
+
+              <div className="teamleader-dashboard-section__pagination-controls">
+                <button
+                  type="button"
+                  className="teamleader-dashboard-section__page-btn"
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <FiChevronLeft />
+                </button>
+
+                {pageNumbers.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    className={`teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
+                      currentPage === page
+                        ? "teamleader-dashboard-section__page-btn--active"
+                        : ""
+                    }`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  className="teamleader-dashboard-section__page-btn"
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <FiChevronRight />
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
