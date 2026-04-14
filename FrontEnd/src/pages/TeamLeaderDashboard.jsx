@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TeamLeaderSidebar from "../components/TeamLeaderSidebar";
 import AppTopbar from "../components/AppTopbar";
+import TeamLeaderDashboardSection from "../components/teamleader/TeamLeaderDashboardSection";
 import "../assets/styles/teamleader/team-leader-dashboard.css";
 
 function SectionTitle({ title }) {
@@ -20,36 +21,37 @@ export default function TeamLeaderDashboard() {
   const navigate = useNavigate();
 
   const [theme, setTheme] = useState(() => {
-  return localStorage.getItem("tl_theme") || "light";
-});
+    return localStorage.getItem("tl_theme") || "light";
+  });
 
-useEffect(() => {
-  localStorage.setItem("tl_theme", theme);
-  document.body.classList.toggle("dark", theme === "dark");
-}, [theme]);
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [searchValue, setSearchValue] = useState("");
 
   const user = useMemo(() => {
     const routeUser = location.state?.user;
+    const savedUser = localStorage.getItem("user");
 
-    if (!routeUser) return null;
+    const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
+
+    if (!currentUser) return null;
 
     return {
-      userId: routeUser.userId,
-      companyId: routeUser.companyId,
-      companyName: routeUser.companyName || "",
-      fullName: routeUser.fullName || "Team Leader",
-      email: routeUser.email || "",
-      role: routeUser.role || "Team Leader",
-      profileImageUrl: routeUser.profileImageUrl || "",
-      jobTitle: routeUser.jobTitle || "",
-      token: routeUser.token || "",
+      userId: currentUser.userId,
+      companyId: currentUser.companyId,
+      companyName: currentUser.companyName || "",
+      fullName: currentUser.fullName || "Team Leader",
+      email: currentUser.email || "",
+      role: currentUser.role || "Team Leader",
+      profileImageUrl: currentUser.profileImageUrl || "",
+      jobTitle: currentUser.jobTitle || "",
+      token: currentUser.token || "",
     };
   }, [location.state]);
 
   useEffect(() => {
+    localStorage.setItem("tl_theme", theme);
     document.body.classList.toggle("dark", theme === "dark");
+
     return () => {
       document.body.classList.remove("dark");
     };
@@ -58,10 +60,14 @@ useEffect(() => {
   useEffect(() => {
     if (!user) {
       navigate("/login", { replace: true });
+      return;
     }
+
+    localStorage.setItem("user", JSON.stringify(user));
   }, [user, navigate]);
 
   const handleLogout = () => {
+    localStorage.removeItem("user");
     navigate("/login", { replace: true });
   };
 
@@ -95,7 +101,11 @@ useEffect(() => {
         />
 
         <section className="admin-main__content">
-          <SectionTitle title={activeItem} />
+          {activeItem === "Dashboard" ? (
+            <TeamLeaderDashboardSection />
+          ) : (
+            <SectionTitle title={activeItem} />
+          )}
         </section>
       </main>
     </div>

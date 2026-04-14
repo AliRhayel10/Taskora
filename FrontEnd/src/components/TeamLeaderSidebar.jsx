@@ -3,7 +3,6 @@ import {
   FiGrid,
   FiUsers,
   FiCheckSquare,
-  FiBarChart2,
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
@@ -28,7 +27,6 @@ export default function TeamLeaderSidebar({
       { name: "Dashboard", icon: <FiGrid /> },
       { name: "Team", icon: <FiUsers /> },
       { name: "Tasks", icon: <FiCheckSquare /> },
-      { name: "Workload", icon: <FiBarChart2 /> },
     ],
     []
   );
