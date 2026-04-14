@@ -4,7 +4,9 @@ import TeamLeaderSidebar from "../components/TeamLeaderSidebar";
 import AppTopbar from "../components/AppTopbar";
 import TeamLeaderDashboardSection from "../components/teamleader/TeamLeaderDashboardSection";
 import TeamLeaderProfileSection from "../components/teamleader/TeamLeaderProfileSection";
+import TasksSection from "../components/teamleader/TasksSection";
 import "../assets/styles/teamleader/team-leader-dashboard.css";
+import "../assets/styles/teamleader/tasks-section.css";
 
 function SectionTitle({ title }) {
   return (
@@ -28,26 +30,26 @@ export default function TeamLeaderDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [searchValue, setSearchValue] = useState("");
 
-const [user, setUser] = useState(() => {
-  const routeUser = location.state?.user;
-  const savedUser = localStorage.getItem("user");
+  const [user, setUser] = useState(() => {
+    const routeUser = location.state?.user;
+    const savedUser = localStorage.getItem("user");
 
-  const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
+    const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
 
-  if (!currentUser) return null;
+    if (!currentUser) return null;
 
-  return {
-    userId: currentUser.userId,
-    companyId: currentUser.companyId,
-    companyName: currentUser.companyName || "",
-    fullName: currentUser.fullName || "Team Leader",
-    email: currentUser.email || "",
-    role: currentUser.role || "Team Leader",
-    profileImageUrl: currentUser.profileImageUrl || "",
-    jobTitle: currentUser.jobTitle || "",
-    token: currentUser.token || "",
-  };
-});
+    return {
+      userId: currentUser.userId,
+      companyId: currentUser.companyId,
+      companyName: currentUser.companyName || "",
+      fullName: currentUser.fullName || "Team Leader",
+      email: currentUser.email || "",
+      role: currentUser.role || "Team Leader",
+      profileImageUrl: currentUser.profileImageUrl || "",
+      jobTitle: currentUser.jobTitle || "",
+      token: currentUser.token || "",
+    };
+  });
 
   useEffect(() => {
     localStorage.setItem("tl_theme", theme);
@@ -108,6 +110,13 @@ const [user, setUser] = useState(() => {
               <TeamLeaderDashboardSection
                 user={user}
                 searchValue={searchValue}
+              />
+            </>
+          ) : activeItem === "Tasks" ? (
+            <>
+              <TasksSection
+                searchValue={searchValue}
+                user={user}
               />
             </>
           ) : activeItem === "Profile" ? (
