@@ -982,15 +982,15 @@ export default function TasksSection({
                                         <label htmlFor="task-description">
                                             Description <span className="tasks-section__required">*</span>
                                         </label>
-<textarea
-  id="task-description"
-  value={formState.description}
-  onChange={(event) =>
-    handleFormChange("description", capitalizeWords(event.target.value))
-  }
-  rows={4}
-  required
-/>
+                                        <textarea
+                                            id="task-description"
+                                            value={formState.description}
+                                            onChange={(event) =>
+                                                handleFormChange("description", capitalizeWords(event.target.value))
+                                            }
+                                            rows={4}
+                                            required
+                                        />
                                     </div>
 
                                     <div className="tasks-section__form-group tasks-section__form-group--full">
