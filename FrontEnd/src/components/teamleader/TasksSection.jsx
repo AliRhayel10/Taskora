@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../assets/styles/teamleader/tasks-section.css";
 import {
-  FiCalendar,
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
@@ -19,6 +18,13 @@ const STATUS_TABS = [
   { key: "done", label: "Done" },
 ];
 
+const STATUS_OPTIONS = [
+  { value: "todo", label: "To Do" },
+  { value: "inprogress", label: "In Progress" },
+  { value: "blocked", label: "Blocked" },
+  { value: "done", label: "Done" },
+];
+
 const DEFAULT_FORM = {
   title: "",
   description: "",
@@ -33,15 +39,20 @@ const DEFAULT_FORM = {
 
 const getInitials = (fullName = "") => {
   const parts = fullName.trim().split(" ").filter(Boolean);
+
   if (!parts.length) return "NA";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
 const formatDate = (value) => {
   if (!value) return "—";
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+
+  if (Number.isNaN(date.getTime())) return "—";
+
   return date.toLocaleDateString("en-GB");
 };
 
@@ -61,19 +72,30 @@ const normalizeStatus = (status = "") => {
   return "todo";
 };
 
+const getStatusLabel = (status = "") => {
+  const normalized = normalizeStatus(status);
+  return (
+    STATUS_OPTIONS.find((option) => option.value === normalized)?.label || "To Do"
+  );
+};
+
 const getPriorityClass = (priority = "") => {
   const safe = String(priority).toLowerCase();
+
   if (safe === "critical") return "tasks-section__badge--critical";
   if (safe === "high") return "tasks-section__badge--high";
   if (safe === "medium") return "tasks-section__badge--medium";
+
   return "tasks-section__badge--low";
 };
 
 const getStatusClass = (status = "") => {
   const normalized = normalizeStatus(status);
+
   if (normalized === "inprogress") return "tasks-section__status--progress";
   if (normalized === "blocked") return "tasks-section__status--blocked";
   if (normalized === "done") return "tasks-section__status--done";
+
   return "tasks-section__status--todo";
 };
 
@@ -137,14 +159,12 @@ export default function TasksSection({
   const [feedback, setFeedback] = useState(null);
 
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedPriority, setSelectedPriority] = useState("");
-  const [selectedComplexity, setSelectedComplexity] = useState("");
-  const [startDateFilter, setStartDateFilter] = useState("");
-  const [endDateFilter, setEndDateFilter] = useState("");
-
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formState, setFormState] = useState(DEFAULT_FORM);
   const [currentPage, setCurrentPage] = useState(1);
+  const [openStatusMenuId, setOpenStatusMenuId] = useState(null);
+
+  const statusMenuRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -236,13 +256,24 @@ export default function TasksSection({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    activeTab,
-    selectedPriority,
-    selectedComplexity,
-    startDateFilter,
-    endDateFilter,
-  ]);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        statusMenuRef.current &&
+        !statusMenuRef.current.contains(event.target)
+      ) {
+        setOpenStatusMenuId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const filteredUsers = useMemo(() => {
     if (!formState.teamId) return users;
@@ -280,43 +311,9 @@ export default function TasksSection({
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const statusKey = normalizeStatus(task.status);
-
-      const matchesTab =
-        activeTab === "all" ? true : statusKey === activeTab;
-
-      const matchesPriority = selectedPriority
-        ? String(task.priority).toLowerCase() ===
-          String(selectedPriority).toLowerCase()
-        : true;
-
-      const matchesComplexity = selectedComplexity
-        ? String(task.complexity).toLowerCase() ===
-          String(selectedComplexity).toLowerCase()
-        : true;
-
-      const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-      const startBound = startDateFilter ? new Date(startDateFilter) : null;
-      const endBound = endDateFilter ? new Date(endDateFilter) : null;
-
-      const matchesStart = !startBound || !dueDate || dueDate >= startBound;
-      const matchesEnd = !endBound || !dueDate || dueDate <= endBound;
-
-      return (
-        matchesTab &&
-        matchesPriority &&
-        matchesComplexity &&
-        matchesStart &&
-        matchesEnd
-      );
+      return activeTab === "all" ? true : statusKey === activeTab;
     });
-  }, [
-    tasks,
-    activeTab,
-    selectedPriority,
-    selectedComplexity,
-    startDateFilter,
-    endDateFilter,
-  ]);
+  }, [tasks, activeTab]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
 
@@ -370,13 +367,14 @@ export default function TasksSection({
   };
 
   const updateTaskStatus = async (taskId, newStatus) => {
-    const previousTasks = tasks;
+    const previousTasks = [...tasks];
 
     setTasks((current) =>
       current.map((task) =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     );
+    setOpenStatusMenuId(null);
 
     try {
       const response = await fetch(updateTaskStatusEndpoint, {
@@ -439,61 +437,7 @@ export default function TasksSection({
         </div>
       )}
 
-      <div className="tasks-section__toolbar">
-        <div className="tasks-section__filters">
-          <div className="tasks-section__filter">
-            <span>Status</span>
-            <FiChevronDown />
-          </div>
-
-          <div className="tasks-section__filter-select">
-            <select
-              value={selectedPriority}
-              onChange={(event) => setSelectedPriority(event.target.value)}
-            >
-              <option value="">Priority</option>
-              {priorityOptions.map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority}
-                </option>
-              ))}
-            </select>
-            <FiChevronDown />
-          </div>
-
-          <div className="tasks-section__filter-select">
-            <select
-              value={selectedComplexity}
-              onChange={(event) => setSelectedComplexity(event.target.value)}
-            >
-              <option value="">Complexity</option>
-              {complexityOptions.map((complexity) => (
-                <option key={complexity} value={complexity}>
-                  {complexity}
-                </option>
-              ))}
-            </select>
-            <FiChevronDown />
-          </div>
-
-          <div className="tasks-section__date-range">
-            <FiCalendar />
-            <input
-              type="date"
-              value={startDateFilter}
-              onChange={(event) => setStartDateFilter(event.target.value)}
-              aria-label="Start date"
-            />
-            <span>to</span>
-            <input
-              type="date"
-              value={endDateFilter}
-              onChange={(event) => setEndDateFilter(event.target.value)}
-              aria-label="End date"
-            />
-          </div>
-        </div>
-
+      <div className="tasks-section__toolbar tasks-section__toolbar--align-end">
         <button
           type="button"
           className="tasks-section__create-btn"
@@ -514,7 +458,7 @@ export default function TasksSection({
             }`}
             onClick={() => setActiveTab(tab.key)}
           >
-            {tab.label}
+            <span className="tasks-section__tab-text">{tab.label}</span>
             <span className="tasks-section__tab-count">
               {taskCounts[tab.key]}
             </span>
@@ -535,7 +479,7 @@ export default function TasksSection({
       ) : filteredTasks.length === 0 ? (
         <div className="tasks-section__state-card">
           <h3>No tasks found</h3>
-          <p>Try changing the filters or create a new task to get started.</p>
+          <p>Try changing the selected tab or create a new task to get started.</p>
         </div>
       ) : (
         <div className="tasks-section__table-card">
@@ -608,22 +552,45 @@ export default function TasksSection({
                     <td>{task.weight}</td>
 
                     <td className="tasks-section__cell-status">
-                      <div className="tasks-section__status-select-wrap">
-                        <select
-                          className={`tasks-section__status ${getStatusClass(
+                      <div
+                        className="tasks-section__status-menu-wrap"
+                        ref={openStatusMenuId === task.id ? statusMenuRef : null}
+                      >
+                        <button
+                          type="button"
+                          className={`tasks-section__status-button ${getStatusClass(
                             task.status
                           )}`}
-                          value={normalizeStatus(task.status)}
-                          onChange={(event) =>
-                            updateTaskStatus(task.id, event.target.value)
+                          onClick={() =>
+                            setOpenStatusMenuId((current) =>
+                              current === task.id ? null : task.id
+                            )
                           }
                         >
-                          <option value="todo">To Do</option>
-                          <option value="inprogress">In Progress</option>
-                          <option value="blocked">Blocked</option>
-                          <option value="done">Done</option>
-                        </select>
-                        <FiChevronDown />
+                          <span>{getStatusLabel(task.status)}</span>
+                          <FiChevronDown />
+                        </button>
+
+                        {openStatusMenuId === task.id && (
+                          <div className="tasks-section__status-menu">
+                            {STATUS_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                className={`tasks-section__status-menu-item ${
+                                  normalizeStatus(task.status) === option.value
+                                    ? "tasks-section__status-menu-item--active"
+                                    : ""
+                                }`}
+                                onClick={() =>
+                                  updateTaskStatus(task.id, option.value)
+                                }
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -794,8 +761,8 @@ export default function TasksSection({
                           key={user.id ?? user.userId}
                           value={user.id ?? user.userId}
                         >
-                          {user.fullName ?? user.name}{" "}
-                          {user.email ? `(${user.email})` : ""}
+                          {user.fullName ?? user.name}
+                          {user.email ? ` (${user.email})` : ""}
                         </option>
                       ))}
                     </select>
