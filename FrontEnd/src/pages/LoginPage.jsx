@@ -63,6 +63,7 @@ export default function LoginPage() {
         jobTitle: data.jobTitle,
         token: data.token,
       };
+      localStorage.setItem("user", JSON.stringify(userPayload));
 
       if (
         role === "admin" ||

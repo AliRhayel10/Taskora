@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import AppTopbar from "../components/AppTopbar";
 import DashboardSection from "../components/admin/DashboardSection";
@@ -8,10 +9,13 @@ import TeamsSection from "../components/admin/TeamsSection";
 import TeamDetailsPage from "../components/admin/TeamDetailsPage";
 import UserDetailsPage from "../components/admin/UserDetailsPage";
 import UsersSection from "../components/admin/UsersSection";
-import "./../assets/styles/admin/admin-dashboard.css";
 import TasksSection from "../components/admin/TasksSection";
+import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [activeSection, setActiveSection] = useState("Dashboard");
   const [settingsResetSignal, setSettingsResetSignal] = useState(0);
   const [user, setUser] = useState(null);
@@ -23,10 +27,17 @@ export default function AdminDashboard() {
     () => localStorage.getItem("admin-theme") || "light"
   );
 
-  const storedUser = useMemo(() => {
+  const resolvedUser = useMemo(() => {
+    const routeUser = location.state?.user;
+
+    if (routeUser) {
+      localStorage.setItem("user", JSON.stringify(routeUser));
+      return routeUser;
+    }
+
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
-  }, []);
+  }, [location.state]);
 
   useEffect(() => {
     document.body.classList.remove("light", "dark");
@@ -39,26 +50,29 @@ export default function AdminDashboard() {
   }, [theme]);
 
   useEffect(() => {
-    if (!storedUser) {
-      window.location.href = "/login";
+    if (!resolvedUser) {
+      navigate("/login", { replace: true });
       return;
     }
 
-    const role = (storedUser.role || "").toLowerCase().trim();
+    const role = String(resolvedUser.role || "")
+      .toLowerCase()
+      .trim();
 
     if (
       role !== "admin" &&
       role !== "company admin" &&
       role !== "companyadmin"
     ) {
-      window.location.href = "/login";
+      localStorage.removeItem("user");
+      navigate("/login", { replace: true });
       return;
     }
 
     const fetchFreshProfile = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/auth/profile/${storedUser.userId}`
+          `http://localhost:5000/api/auth/profile/${resolvedUser.userId}`
         );
 
         const data = await response.json();
@@ -67,29 +81,27 @@ export default function AdminDashboard() {
           throw new Error(data.message || "Failed to fetch latest profile.");
         }
 
-        setUser(data);
+        const mergedUser = {
+          ...resolvedUser,
+          ...data,
+        };
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            ...storedUser,
-            ...data,
-          })
-        );
+        setUser(mergedUser);
+        localStorage.setItem("user", JSON.stringify(mergedUser));
       } catch (error) {
         console.error("Failed to fetch fresh profile:", error);
-        setUser(storedUser);
+        setUser(resolvedUser);
       } finally {
         setLoading(false);
       }
     };
 
     fetchFreshProfile();
-  }, [storedUser]);
+  }, [resolvedUser, navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    window.location.href = "/login";
+    navigate("/login", { replace: true });
   };
 
   const handleSectionSelect = (section) => {
@@ -252,18 +264,18 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-layout">
-<AdminSidebar
-  user={user}
-  theme={theme}
-  activeItem={
-    activeSection === "TeamDetails"
-      ? "Teams"
-      : activeSection === "UserDetails"
-        ? "Users"
-        : activeSection
-  }
-  onSelect={handleSectionSelect}
-/>
+      <AdminSidebar
+        user={user}
+        theme={theme}
+        activeItem={
+          activeSection === "TeamDetails"
+            ? "Teams"
+            : activeSection === "UserDetails"
+            ? "Users"
+            : activeSection
+        }
+        onSelect={handleSectionSelect}
+      />
 
       <main className="admin-main">
         <AppTopbar
