@@ -102,16 +102,19 @@ export default function TeamLeaderDashboard() {
         />
 
         <section className="admin-main__content">
-          <SectionTitle title={activeItem} />
-
           {activeItem === "Dashboard" ? (
-            <TeamLeaderDashboardSection
-              user={user}
-              searchValue={searchValue}
-            />
+            <>
+              <SectionTitle title="Dashboard" />
+              <TeamLeaderDashboardSection
+                user={user}
+                searchValue={searchValue}
+              />
+            </>
           ) : activeItem === "Profile" ? (
             <TeamLeaderProfileSection user={user} />
-          ) : null}
+          ) : (
+            <SectionTitle title={activeItem} />
+          )}
         </section>
       </main>
     </div>

@@ -110,11 +110,7 @@ export default function TeamLeaderProfileSection({ user }) {
   const userId = user?.userId || user?.id || 0;
 
   const syncProfileStateFromBackend = useCallback((profile) => {
-    const backendFullName =
-      profile?.fullName ||
-      [profile?.firstName, profile?.lastName].filter(Boolean).join(" ").trim();
-
-    const fullName = backendFullName || "Not available";
+    const fullName = profile?.fullName || "Not available";
     const nameParts = fullName.trim().split(" ").filter(Boolean);
 
     const nextProfileData = {
@@ -146,9 +142,7 @@ export default function TeamLeaderProfileSection({ user }) {
     try {
       setIsLoadingProfile(true);
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/team-leader/profile/${userId}`
-      );
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${userId}`);
       const rawText = await response.text();
 
       let data = {};
@@ -162,9 +156,13 @@ export default function TeamLeaderProfileSection({ user }) {
         throw new Error(data.message || "Failed to load profile.");
       }
 
-      syncProfileStateFromBackend(data.data || data);
+      syncProfileStateFromBackend(data);
     } catch (error) {
-      console.error("Failed to fetch team leader profile from backend:", error);
+      console.error("Failed to fetch profile from backend:", error);
+      setFormMessage({
+        type: "error",
+        text: error.message || "Failed to load profile.",
+      });
     } finally {
       setIsLoadingProfile(false);
     }
@@ -300,7 +298,10 @@ export default function TeamLeaderProfileSection({ user }) {
       setShowCropModal(true);
     } catch (error) {
       console.error("Failed to load image for editing:", error);
-      alert("Could not open current image for editing.");
+      setFormMessage({
+        type: "error",
+        text: "Could not open current image for editing.",
+      });
     }
   };
 
@@ -381,17 +382,26 @@ export default function TeamLeaderProfileSection({ user }) {
       !cleanedData.companyName ||
       !cleanedData.email
     ) {
-      setFormMessage({ type: "error", text: "Invalid email or password." });
+      setFormMessage({
+        type: "error",
+        text: "Please fill in all required fields.",
+      });
       return;
     }
 
     if (!validateEmail(cleanedData.email)) {
-      setFormMessage({ type: "error", text: "Invalid email or password." });
+      setFormMessage({
+        type: "error",
+        text: "Please enter a valid email address.",
+      });
       return;
     }
 
     if (emailChanged && !currentPassword.trim()) {
-      setFormMessage({ type: "error", text: "Invalid email or password." });
+      setFormMessage({
+        type: "error",
+        text: "Please enter your current password to change your email.",
+      });
       return;
     }
 
@@ -403,25 +413,22 @@ export default function TeamLeaderProfileSection({ user }) {
     try {
       setIsSavingProfile(true);
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/team-leader/update-profile`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId,
-            firstName: cleanedData.firstName,
-            lastName: cleanedData.lastName,
-            fullName: nextFullName,
-            jobTitle: cleanedData.jobTitle,
-            companyName: cleanedData.companyName,
-            email: cleanedData.email,
-            currentPassword: emailChanged ? currentPassword.trim() : "",
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          firstName: cleanedData.firstName,
+          lastName: cleanedData.lastName,
+          fullName: nextFullName,
+          jobTitle: cleanedData.jobTitle,
+          companyName: cleanedData.companyName,
+          email: cleanedData.email,
+          currentPassword: emailChanged ? currentPassword.trim() : "",
+        }),
+      });
 
       const rawText = await response.text();
       let data = {};
@@ -433,7 +440,10 @@ export default function TeamLeaderProfileSection({ user }) {
       }
 
       if (!response.ok || data.success === false) {
-        setFormMessage({ type: "error", text: "Invalid email or password." });
+        setFormMessage({
+          type: "error",
+          text: data.message || "Failed to update profile.",
+        });
         return;
       }
 
@@ -456,7 +466,10 @@ export default function TeamLeaderProfileSection({ user }) {
       setIsEditingProfile(false);
     } catch (error) {
       console.error("Error saving profile:", error);
-      setFormMessage({ type: "error", text: "Invalid email or password." });
+      setFormMessage({
+        type: "error",
+        text: error.message || "Something went wrong while updating the profile.",
+      });
     } finally {
       setIsSavingProfile(false);
     }
@@ -466,7 +479,10 @@ export default function TeamLeaderProfileSection({ user }) {
     if (isUploading) return;
 
     if (!selectedImage || !croppedAreaPixels || !userId) {
-      alert("Please wait a moment and try again.");
+      setFormMessage({
+        type: "error",
+        text: "Please wait a moment and try again.",
+      });
       return;
     }
 
@@ -480,7 +496,7 @@ export default function TeamLeaderProfileSection({ user }) {
       formData.append("userId", String(userId));
 
       const response = await fetch(
-        `${API_BASE_URL}/api/team-leader/upload-profile-image`,
+        `${API_BASE_URL}/api/auth/upload-profile-image`,
         {
           method: "POST",
           body: formData,
@@ -502,9 +518,16 @@ export default function TeamLeaderProfileSection({ user }) {
 
       await fetchProfileFromBackend();
       handleCloseCropModal();
+      setFormMessage({
+        type: "success",
+        text: "Profile image updated successfully.",
+      });
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert(error.message || "Saving image failed. Check backend and try again.");
+      setFormMessage({
+        type: "error",
+        text: error.message || "Saving image failed.",
+      });
     } finally {
       setIsUploading(false);
     }
