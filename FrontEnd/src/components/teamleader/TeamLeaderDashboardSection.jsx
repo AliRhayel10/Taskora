@@ -144,17 +144,14 @@ export default function TeamLeaderDashboardSection({
         const tasksData = await parseJsonSafely(tasksResponse);
 
         if (!Array.isArray(teamsData)) {
-          console.error("Unexpected teams response:", teamsData);
           throw new Error("Teams response format is invalid.");
         }
 
         if (!Array.isArray(membersData)) {
-          console.error("Unexpected members response:", membersData);
           throw new Error("Members response format is invalid.");
         }
 
         if (!tasksData || typeof tasksData !== "object" || !tasksData.success) {
-          console.error("Unexpected tasks response:", tasksData);
           throw new Error(
             tasksData?.message || "Tasks response format is invalid."
           );
@@ -271,12 +268,7 @@ export default function TeamLeaderDashboardSection({
 
   return (
     <section className="teamleader-dashboard-section">
-      <div className="teamleader-dashboard-section__header">
-        <div className="teamleader-dashboard-section__title-wrap">
-          <h2 className="teamleader-dashboard-section__title">Dashboard</h2>
-          <span className="teamleader-dashboard-section__title-line"></span>
-        </div>
-
+      <div className="teamleader-dashboard-section__toolbar">
         <button
           type="button"
           className="teamleader-dashboard-section__range-btn"
