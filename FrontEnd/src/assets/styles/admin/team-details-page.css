@@ -465,6 +465,18 @@
   font-size: 1rem;
 }
 
+.team-details-page__delete-btn--leader-action {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.team-details-page__delete-btn--leader-action:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
 .team-details-page__empty {
   min-height: 180px;
   display: flex;

@@ -7,6 +7,7 @@ import {
   FiPlus,
   FiSearch,
   FiTrash2,
+  FiEdit2,
   FiUser,
   FiUsers,
   FiX,
@@ -1409,15 +1410,6 @@ export default function TeamDetailsPage({
             <FiPlus />
             <span>Add Member</span>
           </button>
-
-          <button
-            type="button"
-            className="teams-section__members-btn team-details-page__summary-btn"
-            onClick={() => openMembersModal("leader")}
-          >
-            <FiUser />
-            <span>Manage Leader</span>
-          </button>
         </div>
       </div>
 
@@ -1537,7 +1529,11 @@ export default function TeamDetailsPage({
                   </td>
                 </tr>
               ) : (
-                paginatedMembers.map((member) => (
+                paginatedMembers.map((member) => {
+                  const isCurrentTeamLeader =
+                    String(member.userId) === String(teamLeaderId || "");
+
+                  return (
                   <tr key={member.userId}>
                     <td>
                       <div className="users-section__user-cell">
@@ -1605,17 +1601,31 @@ export default function TeamDetailsPage({
 
                         <button
                           type="button"
-                          className="team-details-page__delete-btn"
-                          onClick={() => openDeleteModal(member)}
-                          title="Delete member"
+                          className={`team-details-page__delete-btn ${
+                            isCurrentTeamLeader
+                              ? "team-details-page__delete-btn--leader-action"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            isCurrentTeamLeader
+                              ? openMembersModal("leader")
+                              : openDeleteModal(member)
+                          }
+                          title={
+                            isCurrentTeamLeader ? "Edit leader" : "Delete member"
+                          }
+                          aria-label={
+                            isCurrentTeamLeader ? "Edit leader" : "Delete member"
+                          }
                           disabled={isSaving}
                         >
-                          <FiTrash2 />
+                          {isCurrentTeamLeader ? <FiEdit2 /> : <FiTrash2 />}
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
