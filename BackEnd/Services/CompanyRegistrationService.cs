@@ -180,6 +180,45 @@ namespace BackEnd.Services
                     }
                 );
 
+                _context.TaskStatuses.AddRange(
+                    new BackEnd.Models.TaskStatus
+                    {
+                        CompanyId = company.CompanyId,
+                        StatusName = "New",
+                        DisplayOrder = 1,
+                        IsDefault = true,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    },
+                    new BackEnd.Models.TaskStatus
+                    {
+                        CompanyId = company.CompanyId,
+                        StatusName = "Acknowledged",
+                        DisplayOrder = 2,
+                        IsDefault = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    },
+                    new BackEnd.Models.TaskStatus
+                    {
+                        CompanyId = company.CompanyId,
+                        StatusName = "Pending",
+                        DisplayOrder = 3,
+                        IsDefault = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    },
+                    new BackEnd.Models.TaskStatus
+                    {
+                        CompanyId = company.CompanyId,
+                        StatusName = "Done",
+                        DisplayOrder = 4,
+                        IsDefault = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    }
+                );
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

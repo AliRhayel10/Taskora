@@ -58,7 +58,7 @@ namespace BackEnd.Controllers
             var statuses = await _context.TaskStatuses
                 .Where(s => s.CompanyId == companyId && s.IsActive)
                 .OrderBy(s => s.DisplayOrder)
-                .Select(s => s.StatusName)
+                .Select(s => new { s.StatusName, s.IsDefault })
                 .ToListAsync();
 
             var priorityMultipliers = await _context.PriorityMultipliers
@@ -82,7 +82,8 @@ namespace BackEnd.Controllers
                 success = true,
                 data = new TaskSetupRulesResponse
                 {
-                    Statuses = statuses,
+                    Statuses = statuses.Select(s => s.StatusName).ToList(),
+                    DefaultStatus = statuses.FirstOrDefault(s => s.IsDefault)?.StatusName ?? string.Empty,
                     PriorityMultipliers = priorityMultipliers,
                     ComplexityMultipliers = complexityMultipliers,
                     EffortFormula = "Task Weight = Base Effort × Priority Multiplier × Complexity Multiplier"
@@ -123,6 +124,25 @@ namespace BackEnd.Controllers
                 });
             }
 
+            if (string.IsNullOrWhiteSpace(request.DefaultStatus))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "A default status is required."
+                });
+            }
+
+            if (!request.Statuses.Any(status =>
+                    status.Trim().Equals(request.DefaultStatus.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "The default status must exist in the statuses list."
+                });
+            }
+
             if (request.PriorityMultipliers == null || !request.PriorityMultipliers.Any())
             {
                 return BadRequest(new
@@ -154,7 +174,7 @@ namespace BackEnd.Controllers
                     CompanyId = companyId,
                     StatusName = statusName.Trim(),
                     DisplayOrder = index + 1,
-                    IsDefault = index == 0,
+                    IsDefault = statusName.Trim().Equals(request.DefaultStatus.Trim(), StringComparison.OrdinalIgnoreCase),
                     IsActive = true,
                     CreatedAt = DateTime.Now
                 })
