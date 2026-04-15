@@ -552,7 +552,7 @@ export default function TaskSetupRulesSettings({
             payload.statuses[0] ||
             "";
 
-            console.log("Saving payload:", payload);
+        console.log("Saving payload:", payload);
 
         if (!payload.statuses.length) {
             setErrorMessage("Please enter at least one task status.");
@@ -570,22 +570,22 @@ export default function TaskSetupRulesSettings({
         }
 
         try {
-const response = await fetch(`${apiBaseUrl}/setup-rules/${companyId}`, {
-    method: "PUT",
-    headers: {
-        "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-});
+            const response = await fetch(`${apiBaseUrl}/setup-rules/${companyId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
 
-const rawText = await response.text();
-console.log("Raw response:", rawText);
+            const rawText = await response.text();
+            console.log("Raw response:", rawText);
 
-const result = rawText ? JSON.parse(rawText) : null;
+            const result = rawText ? JSON.parse(rawText) : null;
 
-if (!response.ok || !result?.success) {
-    throw new Error(result?.message || "Failed to save task setup rules.");
-}
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.message || "Failed to save task setup rules.");
+            }
 
             const normalizedData = {
                 statuses: payload.statuses.join(", "),
