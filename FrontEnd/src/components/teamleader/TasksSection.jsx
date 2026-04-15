@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../assets/styles/teamleader/tasks-section.css";
 import {
   FiCalendar,
+  FiCheck,
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
   FiEdit2,
+  FiEye,
   FiPlus,
   FiSearch,
   FiTrash2,
@@ -275,11 +277,42 @@ export default function TasksSection({
   const [selectedRange, setSelectedRange] = useState(DEFAULT_RANGE);
   const [draftRange, setDraftRange] = useState(DEFAULT_RANGE);
   const [deleteTaskId, setDeleteTaskId] = useState(null);
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editFormState, setEditFormState] = useState(null);
+  const [isEditAssigneeOpen, setIsEditAssigneeOpen] = useState(false);
+  const [isEditTaskInfoOpen, setIsEditTaskInfoOpen] = useState(false);
+  const [editMemberSearch, setEditMemberSearch] = useState("");
+  const [editTaskDraft, setEditTaskDraft] = useState({ title: "", description: "" });
 
   const datePickerRef = useRef(null);
+  const editRowRef = useRef(null);
+  const editTaskInfoModalRef = useRef(null);
+  const editAssigneeModalRef = useRef(null);
 
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
+  useEffect(() => {
+    if (!editingTaskId) return undefined;
+
+    const handlePointerDown = (event) => {
+      const target = event.target;
+
+      if (editRowRef.current?.contains(target)) return;
+      if (editTaskInfoModalRef.current?.contains(target)) return;
+      if (editAssigneeModalRef.current?.contains(target)) return;
+
+      cancelEditMode();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [editingTaskId]);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -517,6 +550,41 @@ export default function TasksSection({
     return 76;
   }, [selectedUser]);
 
+  const editingSelectedUser = useMemo(
+    () =>
+      users.find(
+        (user) =>
+          String(user.userId ?? user.id) === String(editFormState?.assignedUserId ?? "")
+      ) || null,
+    [users, editFormState]
+  );
+
+  const filteredEditAssignableUsers = useMemo(() => {
+    const filteredByRole = users.filter((user) => {
+      const role = String(user.role || "").trim().toLowerCase();
+      return role !== "team leader";
+    });
+
+    const source = filteredByRole.length ? filteredByRole : users;
+    const query = editMemberSearch.trim().toLowerCase();
+
+    if (!query) return source;
+
+    return source.filter((user) => {
+      const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
+      const email = String(user.email ?? "").toLowerCase();
+      const role = String(user.role ?? "").toLowerCase();
+      const jobTitle = String(user.jobTitle ?? "").toLowerCase();
+
+      return (
+        fullName.includes(query) ||
+        email.includes(query) ||
+        role.includes(query) ||
+        jobTitle.includes(query)
+      );
+    });
+  }, [users, editMemberSearch]);
+
   const tasksWithUsers = useMemo(() => {
     return tasks.map((task) => {
       const matchedUser = users.find(
@@ -613,6 +681,26 @@ export default function TasksSection({
     !formState.startDate ||
     !formState.dueDate ||
     !computedTaskWeight;
+
+  const computedEditTaskWeight = useMemo(() => {
+    const baseEffort = Number(editFormState?.estimatedEffortHours);
+    const priorityMultiplier = Number(
+      priorityMultipliers[editFormState?.priority] ?? 0
+    );
+    const complexityMultiplier = Number(
+      complexityMultipliers[editFormState?.complexity] ?? 0
+    );
+
+    if (!baseEffort || !priorityMultiplier || !complexityMultiplier) {
+      return "";
+    }
+
+    return (baseEffort * priorityMultiplier * complexityMultiplier).toFixed(2);
+  }, [
+    editFormState,
+    priorityMultipliers,
+    complexityMultipliers,
+  ]);
 
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
@@ -744,6 +832,90 @@ export default function TasksSection({
     }));
   };
 
+  const handleEditFormChange = (field, value) => {
+    setEditFormState((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const openEditMode = (task) => {
+    setEditingTaskId(task.id);
+    setEditMemberSearch("");
+    setEditFormState({
+      id: task.id,
+      title: task.title || "",
+      description: task.description || "",
+      assignedUserId: String(task.assignedUserId ?? ""),
+      priority: task.priority || "",
+      complexity: task.complexity || "",
+      estimatedEffortHours:
+        task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
+          ? ""
+          : String(task.estimatedEffortHours),
+    });
+  };
+
+  const cancelEditMode = () => {
+    setEditingTaskId(null);
+    setEditFormState(null);
+    setIsEditAssigneeOpen(false);
+    setIsEditTaskInfoOpen(false);
+    setEditMemberSearch("");
+    setEditTaskDraft({ title: "", description: "" });
+  };
+
+  const openEditTaskInfoModal = () => {
+    if (!editFormState) return;
+    setEditTaskDraft({
+      title: editFormState.title || "",
+      description: editFormState.description || "",
+    });
+    setIsEditTaskInfoOpen(true);
+  };
+
+  const applyEditTaskInfo = () => {
+    handleEditFormChange("title", capitalizeWords(editTaskDraft.title));
+    handleEditFormChange("description", capitalizeWords(editTaskDraft.description));
+    setIsEditTaskInfoOpen(false);
+  };
+
+  const saveTaskChanges = () => {
+    if (!editingTaskId || !editFormState) return;
+
+    setTasks((current) =>
+      current.map((task) => {
+        if (task.id !== editingTaskId) return task;
+
+        const matchedUser = users.find(
+          (user) =>
+            String(user.userId ?? user.id) === String(editFormState.assignedUserId)
+        );
+
+        return {
+          ...task,
+          title: editFormState.title.trim(),
+          description: editFormState.description.trim(),
+          assignedUserId: editFormState.assignedUserId,
+          assignedUserName: matchedUser?.fullName ?? matchedUser?.name ?? task.assignedUserName,
+          assignedUserEmail: matchedUser?.email ?? task.assignedUserEmail,
+          assignedUserAvatar: getProfileImage(matchedUser || {}) || task.assignedUserAvatar,
+          priority: editFormState.priority,
+          complexity: editFormState.complexity,
+          estimatedEffortHours: Number(editFormState.estimatedEffortHours),
+          weight: computedEditTaskWeight || task.weight,
+        };
+      })
+    );
+
+    setFeedback({
+      type: "success",
+      message: "Task updated successfully.",
+    });
+
+    cancelEditMode();
+  };
+
   const startIndex = filteredTasks.length
     ? (currentPage - 1) * pageSize + 1
     : 0;
@@ -833,9 +1005,14 @@ export default function TasksSection({
               </thead>
 
               <tbody>
-                {paginatedTasks.map((task, index) => (
+                {paginatedTasks.map((task, index) => {
+                  const isEditing = editingTaskId === task.id && editFormState;
+                  const previewUser = isEditing ? editingSelectedUser : null;
+
+                  return (
                   <tr
                     key={task.id}
+                    ref={isEditing ? editRowRef : null}
                     className={
                       index % 2 === 0
                         ? "tasks-section__row--odd"
@@ -843,55 +1020,150 @@ export default function TasksSection({
                     }
                   >
                     <td>
-                      <div className="tasks-section__task-cell">
-                        <strong>{task.title}</strong>
-                        <small>{task.description || "No description"}</small>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="tasks-section__user-cell">
-                        <div className="tasks-section__avatar">
-                          {task.assignedUserAvatar ? (
-                            <img
-                              src={task.assignedUserAvatar}
-                              alt={task.assignedUserName}
-                              className="tasks-section__avatar-image"
-                            />
-                          ) : (
-                            getInitials(task.assignedUserName)
-                          )}
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          className="tasks-section__inline-link"
+                          onClick={openEditTaskInfoModal}
+                        >
+                          <div className="tasks-section__task-cell">
+                            <strong>{editFormState.title || "Add task name"}</strong>
+                            <small>{editFormState.description || "Add task description"}</small>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="tasks-section__task-cell">
+                          <strong>{task.title}</strong>
+                          <small>{task.description || "No description"}</small>
                         </div>
+                      )}
+                    </td>
 
-                        <div className="tasks-section__user-details">
-                          <strong>{task.assignedUserName}</strong>
-                          <small>{task.assignedUserEmail || "—"}</small>
+                    <td>
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          className="tasks-section__inline-link"
+                          onClick={() => setIsEditAssigneeOpen(true)}
+                        >
+                          <div className="tasks-section__user-cell">
+                            <div className="tasks-section__avatar">
+                              {previewUser && getProfileImage(previewUser) ? (
+                                <img
+                                  src={getProfileImage(previewUser)}
+                                  alt={previewUser.fullName ?? previewUser.name ?? "User"}
+                                  className="tasks-section__avatar-image"
+                                />
+                              ) : (
+                                getInitials(
+                                  previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName
+                                )
+                              )}
+                            </div>
+
+                            <div className="tasks-section__user-details">
+                              <strong>{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</strong>
+                              <small>{previewUser?.email ?? task.assignedUserEmail ?? "—"}</small>
+                            </div>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="tasks-section__user-cell">
+                          <div className="tasks-section__avatar">
+                            {task.assignedUserAvatar ? (
+                              <img
+                                src={task.assignedUserAvatar}
+                                alt={task.assignedUserName}
+                                className="tasks-section__avatar-image"
+                              />
+                            ) : (
+                              getInitials(task.assignedUserName)
+                            )}
+                          </div>
+
+                          <div className="tasks-section__user-details">
+                            <strong>{task.assignedUserName}</strong>
+                            <small>{task.assignedUserEmail || "—"}</small>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </td>
 
                     <td>
-                      <span
-                        className={`tasks-section__badge ${getPriorityClass(
-                          task.priority
-                        )}`}
-                      >
-                        {task.priority}
-                      </span>
+                      {isEditing ? (
+                        <div className="tasks-section__inline-select-wrap">
+                          <select
+                            value={editFormState.priority}
+                            onChange={(event) =>
+                              handleEditFormChange("priority", event.target.value)
+                            }
+                            className="tasks-section__inline-select"
+                          >
+                            {priorityOptions.map((priority) => (
+                              <option key={priority} value={priority}>
+                                {priority}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      ) : (
+                        <span
+                          className={`tasks-section__badge ${getPriorityClass(
+                            task.priority
+                          )}`}
+                        >
+                          {task.priority}
+                        </span>
+                      )}
                     </td>
 
                     <td>
-                      <span
-                        className={`tasks-section__badge ${getComplexityClass(
-                          task.complexity
-                        )}`}
-                      >
-                        {task.complexity}
-                      </span>
+                      {isEditing ? (
+                        <div className="tasks-section__inline-select-wrap">
+                          <select
+                            value={editFormState.complexity}
+                            onChange={(event) =>
+                              handleEditFormChange("complexity", event.target.value)
+                            }
+                            className="tasks-section__inline-select"
+                          >
+                            {complexityOptions.map((complexity) => (
+                              <option key={complexity} value={complexity}>
+                                {complexity}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      ) : (
+                        <span
+                          className={`tasks-section__badge ${getComplexityClass(
+                            task.complexity
+                          )}`}
+                        >
+                          {task.complexity}
+                        </span>
+                      )}
                     </td>
 
-                    <td>{formatHours(task.estimatedEffortHours)}</td>
-                    <td>{task.weight}</td>
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          className="tasks-section__inline-effort-input"
+                          value={editFormState.estimatedEffortHours}
+                          onChange={(event) =>
+                            handleEditFormChange("estimatedEffortHours", event.target.value)
+                          }
+                        />
+                      ) : (
+                        formatHours(task.estimatedEffortHours)
+                      )}
+                    </td>
+                    <td>{isEditing ? (computedEditTaskWeight || task.weight) : task.weight}</td>
 
                     <td className="tasks-section__cell-status">
                       <span
@@ -907,26 +1179,69 @@ export default function TasksSection({
 
                     <td className="tasks-section__cell-actions">
                       <div className="tasks-section__actions">
-                        <button
-                          type="button"
-                          className="tasks-section__action-btn tasks-section__action-btn--edit"
-                          title="Edit task"
-                        >
-                          <FiEdit2 />
-                        </button>
+                        {isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              className="tasks-section__action-btn tasks-section__action-btn--edit"
+                              title="Save changes"
+                              onClick={saveTaskChanges}
+                              disabled={
+                                !editFormState.title?.trim() ||
+                                !editFormState.description?.trim() ||
+                                !editFormState.assignedUserId ||
+                                !editFormState.priority ||
+                                !editFormState.complexity ||
+                                !editFormState.estimatedEffortHours ||
+                                !computedEditTaskWeight
+                              }
+                            >
+                              <FiCheck />
+                            </button>
 
-                        <button
-                          type="button"
-                          className="tasks-section__action-btn tasks-section__action-btn--danger"
-                          title="Delete task"
-                          onClick={() => setDeleteTaskId(task.id)}
-                        >
-                          <FiTrash2 />
-                        </button>
+                            <button
+                              type="button"
+                              className="tasks-section__action-btn tasks-section__action-btn--danger"
+                              title="Cancel"
+                              onClick={cancelEditMode}
+                            >
+                              <FiX />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="tasks-section__action-btn tasks-section__action-btn--view"
+                              title="View task"
+                            >
+                              <FiEye />
+                            </button>
+
+                            <button
+                              type="button"
+                              className="tasks-section__action-btn tasks-section__action-btn--edit"
+                              title="Edit task"
+                              onClick={() => openEditMode(task)}
+                            >
+                              <FiEdit2 />
+                            </button>
+
+                            <button
+                              type="button"
+                              className="tasks-section__action-btn tasks-section__action-btn--danger"
+                              title="Delete task"
+                              onClick={() => setDeleteTaskId(task.id)}
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1302,6 +1617,177 @@ export default function TasksSection({
                 )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isEditTaskInfoOpen && editFormState && (
+        <div className="tasks-section__modal-overlay" onClick={cancelEditMode}>
+          <div ref={editTaskInfoModalRef} className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="tasks-section__modal-header tasks-section__modal-header--lined">
+              <div>
+                <h3>Edit Task Info</h3>
+                <p>Update the task name and description.</p>
+              </div>
+
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={cancelEditMode}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="tasks-section__form">
+              <div className="tasks-section__form-group">
+                <label htmlFor="edit-task-title">Name</label>
+                <input
+                  id="edit-task-title"
+                  type="text"
+                  value={editTaskDraft.title}
+                  onChange={(event) =>
+                    setEditTaskDraft((previous) => ({
+                      ...previous,
+                      title: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="tasks-section__form-group">
+                <label htmlFor="edit-task-description">Description</label>
+                <textarea
+                  id="edit-task-description"
+                  rows={4}
+                  value={editTaskDraft.description}
+                  onChange={(event) =>
+                    setEditTaskDraft((previous) => ({
+                      ...previous,
+                      description: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="tasks-section__form-actions">
+                <button
+                  type="button"
+                  className="tasks-section__secondary-btn"
+                  onClick={cancelEditMode}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="tasks-section__submit-btn"
+                  onClick={applyEditTaskInfo}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditAssigneeOpen && editFormState && (
+        <div className="tasks-section__modal-overlay" onClick={cancelEditMode}>
+          <div ref={editAssigneeModalRef} className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="tasks-section__modal-header tasks-section__modal-header--lined">
+              <div>
+                <h3>Edit Assignee</h3>
+                <p>Search and choose a different employee.</p>
+              </div>
+
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={cancelEditMode}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="tasks-section__member-picker">
+              <div className="tasks-section__member-search">
+                <FiSearch />
+                <input
+                  type="text"
+                  placeholder="Search any member in the company..."
+                  value={editMemberSearch}
+                  onChange={(event) => setEditMemberSearch(event.target.value)}
+                />
+              </div>
+
+              <div className="tasks-section__member-table">
+                {filteredEditAssignableUsers.length === 0 ? (
+                  <p className="tasks-section__members-empty">No members found.</p>
+                ) : (
+                  filteredEditAssignableUsers.map((user) => {
+                    const userId = user.userId ?? user.id;
+                    const isSelected =
+                      String(editFormState.assignedUserId) === String(userId);
+                    const imageUrl = getProfileImage(user);
+
+                    return (
+                      <button
+                        key={userId}
+                        type="button"
+                        className={`tasks-section__member-row ${
+                          isSelected ? "tasks-section__member-row--selected" : ""
+                        }`}
+                        onClick={() => handleEditFormChange("assignedUserId", String(userId))}
+                      >
+                        <span
+                          className={`tasks-section__member-check ${
+                            isSelected ? "tasks-section__member-check--selected" : ""
+                          }`}
+                        >
+                          {isSelected ? "✓" : ""}
+                        </span>
+
+                        <span className="tasks-section__member-avatar">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={user.fullName ?? user.name ?? "User"}
+                              className="tasks-section__member-avatar-image"
+                            />
+                          ) : (
+                            <span className="tasks-section__member-avatar-fallback">
+                              {getInitials(user.fullName ?? user.name ?? "")}
+                            </span>
+                          )}
+                        </span>
+
+                        <span className="tasks-section__member-copy">
+                          <strong>{user.fullName ?? user.name ?? "Unknown User"}</strong>
+                          <small>{user.email || "—"}</small>
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="tasks-section__form-actions">
+              <button
+                type="button"
+                className="tasks-section__secondary-btn"
+                onClick={cancelEditMode}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tasks-section__submit-btn"
+                onClick={cancelEditMode}
+              >
+                Apply
+              </button>
+            </div>
           </div>
         </div>
       )}
