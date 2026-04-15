@@ -59,8 +59,10 @@ function formatMultiplierObject(obj = {}) {
 }
 
 function mapApiDataToForm(data) {
+    const statusesArray = Array.isArray(data?.statuses) ? data.statuses : [];
+
     return {
-        statuses: Array.isArray(data?.statuses) ? data.statuses.join(", ") : "",
+        statuses: statusesArray.join(", "),
         priorities: data?.priorityMultipliers
             ? Object.keys(data.priorityMultipliers).join(", ")
             : "",
@@ -72,6 +74,11 @@ function mapApiDataToForm(data) {
             data?.complexityMultipliers || {}
         ),
         effortFormula: data?.effortFormula || DEFAULT_FORMULA,
+        defaultStatus:
+            data?.defaultStatus ||
+            statusesArray.find((status) => status.trim().toLowerCase() === "new") ||
+            statusesArray[0] ||
+            "",
     };
 }
 
@@ -100,9 +107,8 @@ function TabButton({ isActive, icon, label, onClick }) {
     return (
         <button
             type="button"
-            className={`task-setup-rules-tab ${
-                isActive ? "task-setup-rules-tab--active" : ""
-            }`}
+            className={`task-setup-rules-tab ${isActive ? "task-setup-rules-tab--active" : ""
+                }`}
             onClick={onClick}
         >
             <span className="task-setup-rules-tab__icon">{icon}</span>
@@ -138,6 +144,7 @@ export default function TaskSetupRulesSettings({
         priorityMultipliers: "",
         complexityMultipliers: "",
         effortFormula: DEFAULT_FORMULA,
+        defaultStatus: "",
     });
 
     const [draftData, setDraftData] = useState({
@@ -147,6 +154,7 @@ export default function TaskSetupRulesSettings({
         priorityMultipliers: "",
         complexityMultipliers: "",
         effortFormula: DEFAULT_FORMULA,
+        defaultStatus: "",
     });
 
     const [statusesList, setStatusesList] = useState([]);
@@ -275,7 +283,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-                String(originalRow.multiplier || "").trim()
+            String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -286,7 +294,7 @@ export default function TaskSetupRulesSettings({
         return (
             (currentRow.name || "").trim() !== (originalRow.name || "").trim() ||
             String(currentRow.multiplier || "").trim() !==
-                String(originalRow.multiplier || "").trim()
+            String(originalRow.multiplier || "").trim()
         );
     };
 
@@ -538,6 +546,14 @@ export default function TaskSetupRulesSettings({
             effortFormula: nextDraftData.effortFormula.trim() || DEFAULT_FORMULA,
         };
 
+        payload.defaultStatus =
+            nextDraftData.defaultStatus?.trim() ||
+            payload.statuses.find((status) => status.trim().toLowerCase() === "new") ||
+            payload.statuses[0] ||
+            "";
+
+            console.log("Saving payload:", payload);
+
         if (!payload.statuses.length) {
             setErrorMessage("Please enter at least one task status.");
             return false;
@@ -554,19 +570,22 @@ export default function TaskSetupRulesSettings({
         }
 
         try {
-            const response = await fetch(`${apiBaseUrl}/setup-rules/${companyId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
+const response = await fetch(`${apiBaseUrl}/setup-rules/${companyId}`, {
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+});
 
-            const result = await response.json();
+const rawText = await response.text();
+console.log("Raw response:", rawText);
 
-            if (!response.ok || !result?.success) {
-                throw new Error(result?.message || "Failed to save task setup rules.");
-            }
+const result = rawText ? JSON.parse(rawText) : null;
+
+if (!response.ok || !result?.success) {
+    throw new Error(result?.message || "Failed to save task setup rules.");
+}
 
             const normalizedData = {
                 statuses: payload.statuses.join(", "),
@@ -575,6 +594,7 @@ export default function TaskSetupRulesSettings({
                 priorityMultipliers: formatMultiplierObject(payload.priorityMultipliers),
                 complexityMultipliers: formatMultiplierObject(payload.complexityMultipliers),
                 effortFormula: payload.effortFormula,
+                defaultStatus: payload.defaultStatus,
             };
 
             setTaskData(normalizedData);

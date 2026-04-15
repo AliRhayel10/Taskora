@@ -91,139 +91,192 @@ namespace BackEnd.Controllers
             });
         }
 
-        [HttpPut("setup-rules/{companyId}")]
-        public async Task<IActionResult> UpdateTaskSetupRules(int companyId, [FromBody] TaskSetupRulesRequest request)
+[HttpPut("setup-rules/{companyId}")]
+public async Task<IActionResult> UpdateTaskSetupRules(int companyId, [FromBody] TaskSetupRulesRequest request)
+{
+    try
+    {
+        if (request == null)
         {
-            if (request == null)
+            return BadRequest(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Invalid request."
-                });
-            }
-
-            var company = await _context.Companies
-                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
-
-            if (company == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "Company not found."
-                });
-            }
-
-            if (request.Statuses == null || !request.Statuses.Any())
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "At least one status is required."
-                });
-            }
-
-            if (string.IsNullOrWhiteSpace(request.DefaultStatus))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "A default status is required."
-                });
-            }
-
-            if (!request.Statuses.Any(status =>
-                    status.Trim().Equals(request.DefaultStatus.Trim(), StringComparison.OrdinalIgnoreCase)))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "The default status must exist in the statuses list."
-                });
-            }
-
-            if (request.PriorityMultipliers == null || !request.PriorityMultipliers.Any())
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "At least one priority multiplier is required."
-                });
-            }
-
-            if (request.ComplexityMultipliers == null || !request.ComplexityMultipliers.Any())
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "At least one complexity multiplier is required."
-                });
-            }
-
-            var existingStatuses = await _context.TaskStatuses
-                .Where(s => s.CompanyId == companyId)
-                .ToListAsync();
-
-            _context.TaskStatuses.RemoveRange(existingStatuses);
-
-            var newStatuses = request.Statuses
-                .Distinct()
-                .Select((statusName, index) => new BackEnd.Models.TaskStatus
-                {
-                    CompanyId = companyId,
-                    StatusName = statusName.Trim(),
-                    DisplayOrder = index + 1,
-                    IsDefault = statusName.Trim().Equals(request.DefaultStatus.Trim(), StringComparison.OrdinalIgnoreCase),
-                    IsActive = true,
-                    CreatedAt = DateTime.Now
-                })
-                .ToList();
-
-            await _context.TaskStatuses.AddRangeAsync(newStatuses);
-
-            var existingPriorities = await _context.PriorityMultipliers
-                .Where(p => p.CompanyId == companyId)
-                .ToListAsync();
-
-            _context.PriorityMultipliers.RemoveRange(existingPriorities);
-
-            var newPriorities = request.PriorityMultipliers
-                .Select(x => new PriorityMultiplier
-                {
-                    CompanyId = companyId,
-                    PriorityName = x.Key.Trim(),
-                    Multiplier = x.Value
-                })
-                .ToList();
-
-            await _context.PriorityMultipliers.AddRangeAsync(newPriorities);
-
-            var existingComplexities = await _context.ComplexityMultipliers
-                .Where(c => c.CompanyId == companyId)
-                .ToListAsync();
-
-            _context.ComplexityMultipliers.RemoveRange(existingComplexities);
-
-            var newComplexities = request.ComplexityMultipliers
-                .Select(x => new ComplexityMultiplier
-                {
-                    CompanyId = companyId,
-                    ComplexityName = x.Key.Trim(),
-                    Multiplier = x.Value
-                })
-                .ToList();
-
-            await _context.ComplexityMultipliers.AddRangeAsync(newComplexities);
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                success = true,
-                message = "Task setup rules updated successfully."
+                success = false,
+                message = "Invalid request."
             });
         }
+
+        var company = await _context.Companies
+            .FirstOrDefaultAsync(c => c.CompanyId == companyId);
+
+        if (company == null)
+        {
+            return NotFound(new
+            {
+                success = false,
+                message = "Company not found."
+            });
+        }
+
+        var cleanedStatuses = request.Statuses?
+            .Where(status => !string.IsNullOrWhiteSpace(status))
+            .Select(status => status.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? new List<string>();
+
+        if (!cleanedStatuses.Any())
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "At least one status is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DefaultStatus))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "A default status is required."
+            });
+        }
+
+        var normalizedDefaultStatus = request.DefaultStatus.Trim();
+
+        if (!cleanedStatuses.Any(status =>
+                status.Equals(normalizedDefaultStatus, StringComparison.OrdinalIgnoreCase)))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "The default status must exist in the statuses list."
+            });
+        }
+
+        if (request.PriorityMultipliers == null || !request.PriorityMultipliers.Any())
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "At least one priority multiplier is required."
+            });
+        }
+
+        if (request.ComplexityMultipliers == null || !request.ComplexityMultipliers.Any())
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "At least one complexity multiplier is required."
+            });
+        }
+
+        var existingStatuses = await _context.TaskStatuses
+            .Where(s => s.CompanyId == companyId)
+            .ToListAsync();
+
+        var existingStatusMap = existingStatuses
+            .ToDictionary(s => s.StatusName.Trim(), s => s, StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i < cleanedStatuses.Count; i++)
+        {
+            var statusName = cleanedStatuses[i];
+
+            if (existingStatusMap.TryGetValue(statusName, out var existingStatus))
+            {
+                existingStatus.DisplayOrder = i + 1;
+                existingStatus.IsDefault = statusName.Equals(normalizedDefaultStatus, StringComparison.OrdinalIgnoreCase);
+                existingStatus.IsActive = true;
+            }
+            else
+            {
+                _context.TaskStatuses.Add(new BackEnd.Models.TaskStatus
+                {
+                    CompanyId = companyId,
+                    StatusName = statusName,
+                    DisplayOrder = i + 1,
+                    IsDefault = statusName.Equals(normalizedDefaultStatus, StringComparison.OrdinalIgnoreCase),
+                    IsActive = true,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+
+        var statusesToRemove = existingStatuses
+            .Where(existing => !cleanedStatuses.Any(s =>
+                s.Equals(existing.StatusName.Trim(), StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        foreach (var statusToRemove in statusesToRemove)
+        {
+            var isUsedByTasks = await _context.Tasks
+                .AnyAsync(t => t.TaskStatusId == statusToRemove.TaskStatusId);
+
+            if (isUsedByTasks)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"The status '{statusToRemove.StatusName}' is already used by tasks and cannot be removed."
+                });
+            }
+
+            _context.TaskStatuses.Remove(statusToRemove);
+        }
+
+        var existingPriorities = await _context.PriorityMultipliers
+            .Where(p => p.CompanyId == companyId)
+            .ToListAsync();
+
+        _context.PriorityMultipliers.RemoveRange(existingPriorities);
+
+        var newPriorities = request.PriorityMultipliers
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key))
+            .Select(x => new PriorityMultiplier
+            {
+                CompanyId = companyId,
+                PriorityName = x.Key.Trim(),
+                Multiplier = x.Value
+            })
+            .ToList();
+
+        await _context.PriorityMultipliers.AddRangeAsync(newPriorities);
+
+        var existingComplexities = await _context.ComplexityMultipliers
+            .Where(c => c.CompanyId == companyId)
+            .ToListAsync();
+
+        _context.ComplexityMultipliers.RemoveRange(existingComplexities);
+
+        var newComplexities = request.ComplexityMultipliers
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key))
+            .Select(x => new ComplexityMultiplier
+            {
+                CompanyId = companyId,
+                ComplexityName = x.Key.Trim(),
+                Multiplier = x.Value
+            })
+            .ToList();
+
+        await _context.ComplexityMultipliers.AddRangeAsync(newComplexities);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Task setup rules updated successfully."
+        });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
+        {
+            success = false,
+            message = ex.InnerException?.Message ?? ex.Message
+        });
+    }
+}
 
         [HttpPost("statuses/{companyId}")]
         public async Task<IActionResult> AddTaskStatus(int companyId, [FromBody] AddTaskStatusRequest request)
