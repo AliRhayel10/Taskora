@@ -283,11 +283,15 @@ export default function TasksSection({
   const [isEditTaskInfoOpen, setIsEditTaskInfoOpen] = useState(false);
   const [editMemberSearch, setEditMemberSearch] = useState("");
   const [editTaskDraft, setEditTaskDraft] = useState({ title: "", description: "" });
+  const [activeEditField, setActiveEditField] = useState(null);
 
   const datePickerRef = useRef(null);
   const editRowRef = useRef(null);
   const editTaskInfoModalRef = useRef(null);
   const editAssigneeModalRef = useRef(null);
+  const prioritySelectRef = useRef(null);
+  const complexitySelectRef = useRef(null);
+  const effortInputRef = useRef(null);
 
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
@@ -297,9 +301,27 @@ export default function TasksSection({
     const handlePointerDown = (event) => {
       const target = event.target;
 
-      if (editRowRef.current?.contains(target)) return;
       if (editTaskInfoModalRef.current?.contains(target)) return;
       if (editAssigneeModalRef.current?.contains(target)) return;
+      if (editRowRef.current?.contains(target)) return;
+
+      if (isEditTaskInfoOpen) {
+        setIsEditTaskInfoOpen(false);
+        setActiveEditField(null);
+        return;
+      }
+
+      if (isEditAssigneeOpen) {
+        setIsEditAssigneeOpen(false);
+        setEditMemberSearch("");
+        setActiveEditField(null);
+        return;
+      }
+
+      if (activeEditField) {
+        setActiveEditField(null);
+        return;
+      }
 
       cancelEditMode();
     };
@@ -311,7 +333,24 @@ export default function TasksSection({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
     };
-  }, [editingTaskId]);
+  }, [editingTaskId, activeEditField, isEditTaskInfoOpen, isEditAssigneeOpen]);
+
+  useEffect(() => {
+    if (activeEditField === "priority" && prioritySelectRef.current) {
+      prioritySelectRef.current.focus();
+      prioritySelectRef.current.showPicker?.();
+    }
+
+    if (activeEditField === "complexity" && complexitySelectRef.current) {
+      complexitySelectRef.current.focus();
+      complexitySelectRef.current.showPicker?.();
+    }
+
+    if (activeEditField === "effort" && effortInputRef.current) {
+      effortInputRef.current.focus();
+      effortInputRef.current.select?.();
+    }
+  }, [activeEditField]);
 
 
   useEffect(() => {
@@ -842,6 +881,7 @@ export default function TasksSection({
   const openEditMode = (task) => {
     setEditingTaskId(task.id);
     setEditMemberSearch("");
+    setActiveEditField(null);
     setEditFormState({
       id: task.id,
       title: task.title || "",
@@ -863,10 +903,12 @@ export default function TasksSection({
     setIsEditTaskInfoOpen(false);
     setEditMemberSearch("");
     setEditTaskDraft({ title: "", description: "" });
+    setActiveEditField(null);
   };
 
   const openEditTaskInfoModal = () => {
     if (!editFormState) return;
+    setActiveEditField("task");
     setEditTaskDraft({
       title: editFormState.title || "",
       description: editFormState.description || "",
@@ -877,7 +919,22 @@ export default function TasksSection({
   const applyEditTaskInfo = () => {
     handleEditFormChange("title", capitalizeWords(editTaskDraft.title));
     handleEditFormChange("description", capitalizeWords(editTaskDraft.description));
+    closeEditTaskInfoModal();
+  };
+
+  const closeEditTaskInfoModal = () => {
     setIsEditTaskInfoOpen(false);
+    setActiveEditField(null);
+  };
+
+  const closeEditAssigneeModal = () => {
+    setIsEditAssigneeOpen(false);
+    setEditMemberSearch("");
+    setActiveEditField(null);
+  };
+
+  const activateInlineField = (field) => {
+    setActiveEditField(field);
   };
 
   const saveTaskChanges = () => {
@@ -1008,6 +1065,9 @@ export default function TasksSection({
                 {paginatedTasks.map((task, index) => {
                   const isEditing = editingTaskId === task.id && editFormState;
                   const previewUser = isEditing ? editingSelectedUser : null;
+                  const isPriorityEditing = isEditing && activeEditField === "priority";
+                  const isComplexityEditing = isEditing && activeEditField === "complexity";
+                  const isEffortEditing = isEditing && activeEditField === "effort";
 
                   return (
                   <tr
@@ -1027,7 +1087,12 @@ export default function TasksSection({
                           onClick={openEditTaskInfoModal}
                         >
                           <div className="tasks-section__task-cell">
-                            <strong>{editFormState.title || "Add task name"}</strong>
+                            <strong>
+                              <span className="tasks-section__text-ellipsis">{editFormState.title || "Add task name"}</span>
+                              <span className="tasks-section__editable-indicator" aria-hidden="true">
+                                <FiEdit2 />
+                              </span>
+                            </strong>
                             <small>{editFormState.description || "Add task description"}</small>
                           </div>
                         </button>
@@ -1044,7 +1109,10 @@ export default function TasksSection({
                         <button
                           type="button"
                           className="tasks-section__inline-link"
-                          onClick={() => setIsEditAssigneeOpen(true)}
+                          onClick={() => {
+                                                    setActiveEditField("assignee");
+                            setIsEditAssigneeOpen(true);
+                          }}
                         >
                           <div className="tasks-section__user-cell">
                             <div className="tasks-section__avatar">
@@ -1062,7 +1130,12 @@ export default function TasksSection({
                             </div>
 
                             <div className="tasks-section__user-details">
-                              <strong>{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</strong>
+                              <strong>
+                                <span className="tasks-section__text-ellipsis">{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</span>
+                                <span className="tasks-section__editable-indicator" aria-hidden="true">
+                                  <FiEdit2 />
+                                </span>
+                              </strong>
                               <small>{previewUser?.email ?? task.assignedUserEmail ?? "—"}</small>
                             </div>
                           </div>
@@ -1091,22 +1164,37 @@ export default function TasksSection({
 
                     <td>
                       {isEditing ? (
-                        <div className="tasks-section__inline-select-wrap">
-                          <select
-                            value={editFormState.priority}
-                            onChange={(event) =>
-                              handleEditFormChange("priority", event.target.value)
-                            }
-                            className="tasks-section__inline-select"
+                        isPriorityEditing ? (
+                          <div className="tasks-section__inline-select-wrap">
+                            <select
+                              ref={prioritySelectRef}
+                              value={editFormState.priority}
+                              onChange={(event) =>
+                                handleEditFormChange("priority", event.target.value)
+                              }
+                              onBlur={() => setActiveEditField((current) => current === "priority" ? null : current)}
+                              className="tasks-section__inline-select"
+                            >
+                              {priorityOptions.map((priority) => (
+                                <option key={priority} value={priority}>
+                                  {priority}
+                                </option>
+                              ))}
+                            </select>
+                            <FiChevronDown />
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-badge-trigger"
+                            onClick={() => activateInlineField("priority")}
                           >
-                            {priorityOptions.map((priority) => (
-                              <option key={priority} value={priority}>
-                                {priority}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
+                            <span className={`tasks-section__badge ${getPriorityClass(editFormState.priority)}`}>
+                              {editFormState.priority}
+                            </span>
+                            <FiChevronDown />
+                          </button>
+                        )
                       ) : (
                         <span
                           className={`tasks-section__badge ${getPriorityClass(
@@ -1120,22 +1208,37 @@ export default function TasksSection({
 
                     <td>
                       {isEditing ? (
-                        <div className="tasks-section__inline-select-wrap">
-                          <select
-                            value={editFormState.complexity}
-                            onChange={(event) =>
-                              handleEditFormChange("complexity", event.target.value)
-                            }
-                            className="tasks-section__inline-select"
+                        isComplexityEditing ? (
+                          <div className="tasks-section__inline-select-wrap">
+                            <select
+                              ref={complexitySelectRef}
+                              value={editFormState.complexity}
+                              onChange={(event) =>
+                                handleEditFormChange("complexity", event.target.value)
+                              }
+                              onBlur={() => setActiveEditField((current) => current === "complexity" ? null : current)}
+                              className="tasks-section__inline-select"
+                            >
+                              {complexityOptions.map((complexity) => (
+                                <option key={complexity} value={complexity}>
+                                  {complexity}
+                                </option>
+                              ))}
+                            </select>
+                            <FiChevronDown />
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-badge-trigger"
+                            onClick={() => activateInlineField("complexity")}
                           >
-                            {complexityOptions.map((complexity) => (
-                              <option key={complexity} value={complexity}>
-                                {complexity}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
+                            <span className={`tasks-section__badge ${getComplexityClass(editFormState.complexity)}`}>
+                              {editFormState.complexity}
+                            </span>
+                            <FiChevronDown />
+                          </button>
+                        )
                       ) : (
                         <span
                           className={`tasks-section__badge ${getComplexityClass(
@@ -1149,16 +1252,28 @@ export default function TasksSection({
 
                     <td>
                       {isEditing ? (
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          className="tasks-section__inline-effort-input"
-                          value={editFormState.estimatedEffortHours}
-                          onChange={(event) =>
-                            handleEditFormChange("estimatedEffortHours", event.target.value)
-                          }
-                        />
+                        isEffortEditing ? (
+                          <input
+                            ref={effortInputRef}
+                            type="number"
+                            min="1"
+                            step="1"
+                            className="tasks-section__inline-effort-input"
+                            value={editFormState.estimatedEffortHours}
+                            onChange={(event) =>
+                              handleEditFormChange("estimatedEffortHours", event.target.value)
+                            }
+                            onBlur={() => setActiveEditField((current) => current === "effort" ? null : current)}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-edit-trigger"
+                            onClick={() => activateInlineField("effort")}
+                          >
+                            {formatHours(editFormState.estimatedEffortHours) || "—"}
+                          </button>
+                        )
                       ) : (
                         formatHours(task.estimatedEffortHours)
                       )}
@@ -1622,7 +1737,7 @@ export default function TasksSection({
       )}
 
       {isEditTaskInfoOpen && editFormState && (
-        <div className="tasks-section__modal-overlay" onClick={cancelEditMode}>
+        <div className="tasks-section__modal-overlay" onClick={closeEditTaskInfoModal}>
           <div ref={editTaskInfoModalRef} className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
@@ -1633,7 +1748,7 @@ export default function TasksSection({
               <button
                 type="button"
                 className="tasks-section__modal-close"
-                onClick={cancelEditMode}
+                onClick={closeEditTaskInfoModal}
               >
                 <FiX />
               </button>
@@ -1674,7 +1789,7 @@ export default function TasksSection({
                 <button
                   type="button"
                   className="tasks-section__secondary-btn"
-                  onClick={cancelEditMode}
+                  onClick={closeEditTaskInfoModal}
                 >
                   Cancel
                 </button>
@@ -1692,7 +1807,7 @@ export default function TasksSection({
       )}
 
       {isEditAssigneeOpen && editFormState && (
-        <div className="tasks-section__modal-overlay" onClick={cancelEditMode}>
+        <div className="tasks-section__modal-overlay" onClick={closeEditAssigneeModal}>
           <div ref={editAssigneeModalRef} className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
@@ -1703,7 +1818,7 @@ export default function TasksSection({
               <button
                 type="button"
                 className="tasks-section__modal-close"
-                onClick={cancelEditMode}
+                onClick={closeEditAssigneeModal}
               >
                 <FiX />
               </button>
@@ -1737,7 +1852,10 @@ export default function TasksSection({
                         className={`tasks-section__member-row ${
                           isSelected ? "tasks-section__member-row--selected" : ""
                         }`}
-                        onClick={() => handleEditFormChange("assignedUserId", String(userId))}
+                        onClick={() => {
+                          handleEditFormChange("assignedUserId", String(userId));
+                          closeEditAssigneeModal();
+                        }}
                       >
                         <span
                           className={`tasks-section__member-check ${
@@ -1776,14 +1894,14 @@ export default function TasksSection({
               <button
                 type="button"
                 className="tasks-section__secondary-btn"
-                onClick={cancelEditMode}
+                onClick={closeEditAssigneeModal}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 className="tasks-section__submit-btn"
-                onClick={cancelEditMode}
+                onClick={closeEditAssigneeModal}
               >
                 Apply
               </button>
