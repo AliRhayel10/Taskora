@@ -70,10 +70,13 @@ const formatHours = (value) => {
 const normalizeStatus = (status = "") => {
   const safe = String(status).trim().toLowerCase();
 
-  if (["new", "todo", "to do"].includes(safe)) return "todo";
+  if (["new"].includes(safe)) return "new";
+  if (["pending"].includes(safe)) return "pending";
+  if (["acknowledged"].includes(safe)) return "acknowledged";
+  if (["done", "completed", "complete"].includes(safe)) return "done";
+  if (["todo", "to do"].includes(safe)) return "todo";
   if (["inprogress", "in progress"].includes(safe)) return "inprogress";
   if (safe === "blocked") return "blocked";
-  if (safe === "done") return "done";
 
   return safe || "unknown";
 };
@@ -89,6 +92,9 @@ const prettifyLabel = (value = "") =>
 const getStatusClass = (status = "") => {
   const normalized = normalizeStatus(status);
 
+  if (normalized === "new") return "tasks-section__status--todo";
+  if (normalized === "pending") return "tasks-section__status--todo";
+  if (normalized === "acknowledged") return "tasks-section__status--progress";
   if (normalized === "inprogress") return "tasks-section__status--progress";
   if (normalized === "blocked") return "tasks-section__status--blocked";
   if (normalized === "done") return "tasks-section__status--done";
@@ -146,8 +152,23 @@ const getProfileImage = (user = {}) => {
   return `${API_BASE}/${value}`;
 };
 
+const getTaskStatusId = (task) =>
+  task.taskStatusId ?? task.TaskStatusId ?? task.statusId ?? task.StatusId ?? null;
+
+const getBackendStatusId = (status) =>
+  status?.taskStatusId ?? status?.TaskStatusId ?? status?.id ?? status?.Id ?? null;
+
+const getBackendStatusName = (status) =>
+  status?.statusName ??
+  status?.StatusName ??
+  status?.name ??
+  status?.Name ??
+  status?.value ??
+  "";
+
 const mapTaskFromApi = (task) => ({
   id: task.id ?? task.taskId ?? task.TaskId ?? crypto.randomUUID(),
+  taskStatusId: getTaskStatusId(task),
   title: task.title ?? task.Title ?? "",
   description: task.description ?? task.Description ?? "",
   assignedUserId:
@@ -184,10 +205,11 @@ const mapTaskFromApi = (task) => ({
     0,
   weight: task.weight ?? task.Weight ?? 0,
   status:
-    task.status ??
     task.taskStatusName ??
     task.TaskStatusName ??
-    "New",
+    task.status ??
+    task.Status ??
+    "Unknown",
   startDate: task.startDate ?? task.StartDate ?? "",
   dueDate: task.dueDate ?? task.DueDate ?? "",
   teamId: task.teamId ?? task.TeamId ?? "",
@@ -203,13 +225,7 @@ const mapTaskFromApi = (task) => ({
 
 const getEffectiveTaskStatus = (task) => {
   const rawStatus = String(task?.status || "").trim();
-  const normalizedRawStatus = normalizeStatus(rawStatus);
-
-  if (normalizedRawStatus === "pending" && !task?.isAcknowledged) {
-    return "New";
-  }
-
-  return rawStatus || "New";
+  return rawStatus || "Unknown";
 };
 
 export default function TasksSection({
@@ -256,6 +272,7 @@ export default function TasksSection({
 
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  const [backendStatuses, setBackendStatuses] = useState([]);
   const [priorityOptions, setPriorityOptions] = useState([]);
   const [complexityOptions, setComplexityOptions] = useState([]);
   const [priorityMultipliers, setPriorityMultipliers] = useState({});
@@ -296,6 +313,14 @@ export default function TasksSection({
 
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const newStatusId = useMemo(() => {
+    const newStatus = backendStatuses.find(
+      (status) => normalizeStatus(getBackendStatusName(status)) === "new"
+    );
+
+    return getBackendStatusId(newStatus);
+  }, [backendStatuses]);
 
   useEffect(() => {
     if (!editingTaskId) return undefined;
@@ -430,22 +455,20 @@ export default function TasksSection({
 
         setUsers(members);
 
-        const backendStatuses = Array.isArray(statusesData?.statuses)
+        const resolvedStatuses = Array.isArray(statusesData?.statuses)
           ? statusesData.statuses
+          : Array.isArray(statusesData)
+          ? statusesData
           : Array.isArray(setupRulesData?.statuses)
           ? setupRulesData.statuses
           : [];
 
-        const tabs = backendStatuses
+        setBackendStatuses(resolvedStatuses);
+
+        const tabs = resolvedStatuses
           .map((item) => {
             const raw =
-              typeof item === "string"
-                ? item
-                : item?.statusName ??
-                  item?.StatusName ??
-                  item?.name ??
-                  item?.value ??
-                  "";
+              typeof item === "string" ? item : getBackendStatusName(item);
 
             if (!raw) return null;
 
@@ -767,7 +790,8 @@ export default function TasksSection({
     !formState.estimatedEffortHours ||
     !formState.startDate ||
     !formState.dueDate ||
-    !computedTaskWeight;
+    !computedTaskWeight ||
+    !newStatusId;
 
   const computedEditTaskWeight = useMemo(() => {
     const baseEffort = Number(editFormState?.estimatedEffortHours);
@@ -840,6 +864,10 @@ export default function TasksSection({
     setFeedback(null);
 
     try {
+      if (!newStatusId) {
+        throw new Error("New task status is not configured.");
+      }
+
       const payload = {
         companyId: Number(resolvedCompanyId),
         teamId: selectedUserTeamId,
@@ -852,6 +880,7 @@ export default function TasksSection({
         estimatedEffortHours: Number(formState.estimatedEffortHours),
         startDate: formState.startDate,
         dueDate: formState.dueDate,
+        taskStatusId: Number(newStatusId),
       };
 
       const response = await fetch(resolvedCreateTaskEndpoint, {
@@ -891,10 +920,13 @@ export default function TasksSection({
       });
       setActiveTab("all");
       setCurrentPage(1);
-    } catch {
+    } catch (error) {
       setFeedback({
         type: "error",
-        message: "Unable to create task.",
+        message:
+          error?.message === "New task status is not configured."
+            ? 'Unable to create task because the "New" status was not found in backend statuses.'
+            : "Unable to create task.",
       });
     } finally {
       setIsSubmitting(false);
