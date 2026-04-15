@@ -1499,6 +1499,26 @@
 .tasks-section__table thead th:nth-child(9),
 .tasks-section__table tbody td:nth-child(9) { width: 10%; }
 
+/* Center align columns from Priority → Due Date */
+.tasks-section__table thead th:nth-child(3),
+.tasks-section__table thead th:nth-child(4),
+.tasks-section__table thead th:nth-child(5),
+.tasks-section__table thead th:nth-child(6),
+.tasks-section__table thead th:nth-child(7),
+.tasks-section__table thead th:nth-child(8),
+.tasks-section__table tbody td:nth-child(3),
+.tasks-section__table tbody td:nth-child(4),
+.tasks-section__table tbody td:nth-child(5),
+.tasks-section__table tbody td:nth-child(6),
+.tasks-section__table tbody td:nth-child(7),
+.tasks-section__table tbody td:nth-child(8) {
+  text-align: center;
+}
+.tasks-section__badge,
+.tasks-section__status-badge {
+  margin: 0 auto;
+}
+
 .tasks-section__table-wrap {
   overflow-x: hidden;
 }
