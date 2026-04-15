@@ -6,7 +6,6 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
-  FiClipboard,
   FiEdit2,
   FiEye,
   FiPlus,
@@ -285,6 +284,7 @@ export default function TasksSection({
   const [editMemberSearch, setEditMemberSearch] = useState("");
   const [editTaskDraft, setEditTaskDraft] = useState({ title: "", description: "" });
   const [activeEditField, setActiveEditField] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   const datePickerRef = useRef(null);
   const editRowRef = useRef(null);
@@ -296,6 +296,7 @@ export default function TasksSection({
 
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
+
   useEffect(() => {
     if (!editingTaskId) return undefined;
 
@@ -352,7 +353,6 @@ export default function TasksSection({
       effortInputRef.current.select?.();
     }
   }, [activeEditField]);
-
 
   useEffect(() => {
     let isMounted = true;
@@ -484,7 +484,7 @@ export default function TasksSection({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, sortConfig]);
 
   const syncDraftWithAppliedRange = () => {
     setDraftRange({
@@ -676,12 +676,59 @@ export default function TasksSection({
     });
   }, [tasksWithUsers, activeTab]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+  const sortedTasks = useMemo(() => {
+    if (!sortConfig.key) return filteredTasks;
+
+    const priorityRank = { low: 1, medium: 2, high: 3, critical: 4 };
+    const complexityRank = { simple: 1, medium: 2, complex: 3 };
+
+    const getSortableValue = (task, key) => {
+      switch (key) {
+        case "title":
+          return String(task.title || "").toLowerCase();
+        case "assignedUserName":
+          return String(task.assignedUserName || "").toLowerCase();
+        case "priority":
+          return priorityRank[String(task.priority || "").toLowerCase()] ?? 0;
+        case "complexity":
+          return complexityRank[String(task.complexity || "").toLowerCase()] ?? 0;
+        case "estimatedEffortHours":
+          return Number(task.estimatedEffortHours ?? 0);
+        case "weight":
+          return Number(task.weight ?? 0);
+        case "effectiveStatus":
+          return String(task.effectiveStatus || "").toLowerCase();
+        case "dueDate": {
+          const time = new Date(task.dueDate || "").getTime();
+          return Number.isNaN(time) ? 0 : time;
+        }
+        default:
+          return String(task[key] ?? "").toLowerCase();
+      }
+    };
+
+    return [...filteredTasks].sort((a, b) => {
+      const aValue = getSortableValue(a, sortConfig.key);
+      const bValue = getSortableValue(b, sortConfig.key);
+
+      if (aValue < bValue) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+
+      if (aValue > bValue) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
+
+      return 0;
+    });
+  }, [filteredTasks, sortConfig]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / pageSize));
 
   const paginatedTasks = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
-    return filteredTasks.slice(startIndex, startIndex + pageSize);
-  }, [filteredTasks, currentPage, pageSize]);
+    return sortedTasks.slice(startIndex, startIndex + pageSize);
+  }, [sortedTasks, currentPage, pageSize]);
 
   const pageNumbers = useMemo(() => {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -879,6 +926,19 @@ export default function TasksSection({
     }));
   };
 
+  const handleSort = (key) => {
+    setSortConfig((previous) => {
+      if (previous.key === key) {
+        return {
+          key,
+          direction: previous.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return { key, direction: "asc" };
+    });
+  };
+
   const openEditMode = (task) => {
     setEditingTaskId(task.id);
     setEditMemberSearch("");
@@ -934,10 +994,6 @@ export default function TasksSection({
     setActiveEditField(null);
   };
 
-  const activateInlineField = (field) => {
-    setActiveEditField(field);
-  };
-
   const saveTaskChanges = () => {
     if (!editingTaskId || !editFormState) return;
 
@@ -974,10 +1030,20 @@ export default function TasksSection({
     cancelEditMode();
   };
 
-  const startIndex = filteredTasks.length
+  const getSortIconClassName = (key) => {
+    return `tasks-section__sort-icon ${
+      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+    } ${
+      sortConfig.key === key && sortConfig.direction === "desc"
+        ? "tasks-section__sort-icon--desc"
+        : ""
+    }`;
+  };
+
+  const startIndex = sortedTasks.length
     ? (currentPage - 1) * pageSize + 1
     : 0;
-  const endIndex = Math.min(currentPage * pageSize, filteredTasks.length);
+  const endIndex = Math.min(currentPage * pageSize, sortedTasks.length);
 
   return (
     <section className="tasks-section">
@@ -1041,9 +1107,6 @@ export default function TasksSection({
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="tasks-section__state-card">
-          <div className="tasks-section__state-icon">
-            <FiClipboard />
-          </div>
           <h3>No tasks found</h3>
           <p>Try changing the selected tab or create a new task to get started.</p>
         </div>
@@ -1053,14 +1116,86 @@ export default function TasksSection({
             <table className="tasks-section__table">
               <thead>
                 <tr>
-                  <th>Task</th>
-                  <th>Assigned To</th>
-                  <th>Priority</th>
-                  <th>Complexity</th>
-                  <th>Effort</th>
-                  <th>Weight</th>
-                  <th>Status</th>
-                  <th>Due Date</th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("title")}
+                    >
+                      <span>Task</span>
+                      <FiChevronDown className={getSortIconClassName("title")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("assignedUserName")}
+                    >
+                      <span>Assigned To</span>
+                      <FiChevronDown className={getSortIconClassName("assignedUserName")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("priority")}
+                    >
+                      <span>Priority</span>
+                      <FiChevronDown className={getSortIconClassName("priority")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("complexity")}
+                    >
+                      <span>Complexity</span>
+                      <FiChevronDown className={getSortIconClassName("complexity")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("estimatedEffortHours")}
+                    >
+                      <span>Effort</span>
+                      <FiChevronDown className={getSortIconClassName("estimatedEffortHours")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("weight")}
+                    >
+                      <span>Weight</span>
+                      <FiChevronDown className={getSortIconClassName("weight")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("effectiveStatus")}
+                    >
+                      <span>Status</span>
+                      <FiChevronDown className={getSortIconClassName("effectiveStatus")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("dueDate")}
+                    >
+                      <span>Due Date</span>
+                      <FiChevronDown className={getSortIconClassName("dueDate")} />
+                    </button>
+                  </th>
                   <th className="tasks-section__col-actions">Actions</th>
                 </tr>
               </thead>
@@ -1071,252 +1206,252 @@ export default function TasksSection({
                   const previewUser = isEditing ? editingSelectedUser : null;
 
                   return (
-                  <tr
-                    key={task.id}
-                    ref={isEditing ? editRowRef : null}
-                    className={
-                      index % 2 === 0
-                        ? "tasks-section__row--odd"
-                        : "tasks-section__row--even"
-                    }
-                  >
-                    <td>
-                      {isEditing ? (
-                        <button
-                          type="button"
-                          className="tasks-section__inline-link"
-                          onClick={openEditTaskInfoModal}
-                        >
-                          <div className="tasks-section__task-cell">
-                            <strong>
-                              <span className="tasks-section__text-ellipsis">{editFormState.title || "Add task name"}</span>
-                              <span className="tasks-section__editable-indicator" aria-hidden="true">
-                                <FiEdit2 />
-                              </span>
-                            </strong>
-                            <small>{editFormState.description || "Add task description"}</small>
-                          </div>
-                        </button>
-                      ) : (
-                        <div className="tasks-section__task-cell">
-                          <strong>{task.title}</strong>
-                          <small>{task.description || "No description"}</small>
-                        </div>
-                      )}
-                    </td>
-
-                    <td>
-                      {isEditing ? (
-                        <button
-                          type="button"
-                          className="tasks-section__inline-link"
-                          onClick={() => {
-                                                    setActiveEditField("assignee");
-                            setIsEditAssigneeOpen(true);
-                          }}
-                        >
-                          <div className="tasks-section__user-cell">
-                            <div className="tasks-section__avatar">
-                              {previewUser && getProfileImage(previewUser) ? (
-                                <img
-                                  src={getProfileImage(previewUser)}
-                                  alt={previewUser.fullName ?? previewUser.name ?? "User"}
-                                  className="tasks-section__avatar-image"
-                                />
-                              ) : (
-                                getInitials(
-                                  previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName
-                                )
-                              )}
-                            </div>
-
-                            <div className="tasks-section__user-details">
+                    <tr
+                      key={task.id}
+                      ref={isEditing ? editRowRef : null}
+                      className={
+                        index % 2 === 0
+                          ? "tasks-section__row--odd"
+                          : "tasks-section__row--even"
+                      }
+                    >
+                      <td>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-link"
+                            onClick={openEditTaskInfoModal}
+                          >
+                            <div className="tasks-section__task-cell">
                               <strong>
-                                <span className="tasks-section__text-ellipsis">{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</span>
+                                <span className="tasks-section__text-ellipsis">{editFormState.title || "Add task name"}</span>
                                 <span className="tasks-section__editable-indicator" aria-hidden="true">
                                   <FiEdit2 />
                                 </span>
                               </strong>
-                              <small>{previewUser?.email ?? task.assignedUserEmail ?? "—"}</small>
+                              <small>{editFormState.description || "Add task description"}</small>
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="tasks-section__task-cell">
+                            <strong>{task.title}</strong>
+                            <small>{task.description || "No description"}</small>
+                          </div>
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-link"
+                            onClick={() => {
+                              setActiveEditField("assignee");
+                              setIsEditAssigneeOpen(true);
+                            }}
+                          >
+                            <div className="tasks-section__user-cell">
+                              <div className="tasks-section__avatar">
+                                {previewUser && getProfileImage(previewUser) ? (
+                                  <img
+                                    src={getProfileImage(previewUser)}
+                                    alt={previewUser.fullName ?? previewUser.name ?? "User"}
+                                    className="tasks-section__avatar-image"
+                                  />
+                                ) : (
+                                  getInitials(
+                                    previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName
+                                  )
+                                )}
+                              </div>
+
+                              <div className="tasks-section__user-details">
+                                <strong>
+                                  <span className="tasks-section__text-ellipsis">{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</span>
+                                  <span className="tasks-section__editable-indicator" aria-hidden="true">
+                                    <FiEdit2 />
+                                  </span>
+                                </strong>
+                                <small>{previewUser?.email ?? task.assignedUserEmail ?? "—"}</small>
+                              </div>
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="tasks-section__user-cell">
+                            <div className="tasks-section__avatar">
+                              {task.assignedUserAvatar ? (
+                                <img
+                                  src={task.assignedUserAvatar}
+                                  alt={task.assignedUserName}
+                                  className="tasks-section__avatar-image"
+                                />
+                              ) : (
+                                getInitials(task.assignedUserName)
+                              )}
+                            </div>
+
+                            <div className="tasks-section__user-details">
+                              <strong>{task.assignedUserName}</strong>
+                              <small>{task.assignedUserEmail || "—"}</small>
                             </div>
                           </div>
-                        </button>
-                      ) : (
-                        <div className="tasks-section__user-cell">
-                          <div className="tasks-section__avatar">
-                            {task.assignedUserAvatar ? (
-                              <img
-                                src={task.assignedUserAvatar}
-                                alt={task.assignedUserName}
-                                className="tasks-section__avatar-image"
-                              />
-                            ) : (
-                              getInitials(task.assignedUserName)
-                            )}
-                          </div>
-
-                          <div className="tasks-section__user-details">
-                            <strong>{task.assignedUserName}</strong>
-                            <small>{task.assignedUserEmail || "—"}</small>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-
-                    <td>
-                      {isEditing ? (
-                        <div className="tasks-section__inline-select-wrap">
-                          <select
-                            ref={prioritySelectRef}
-                            value={editFormState.priority}
-                            onChange={(event) =>
-                              handleEditFormChange("priority", event.target.value)
-                            }
-                            className="tasks-section__inline-select"
-                          >
-                            {priorityOptions.map((priority) => (
-                              <option key={priority} value={priority}>
-                                {priority}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
-                      ) : (
-                        <span
-                          className={`tasks-section__badge ${getPriorityClass(
-                            task.priority
-                          )}`}
-                        >
-                          {task.priority}
-                        </span>
-                      )}
-                    </td>
-
-                    <td>
-                      {isEditing ? (
-                        <div className="tasks-section__inline-select-wrap">
-                          <select
-                            ref={complexitySelectRef}
-                            value={editFormState.complexity}
-                            onChange={(event) =>
-                              handleEditFormChange("complexity", event.target.value)
-                            }
-                            className="tasks-section__inline-select"
-                          >
-                            {complexityOptions.map((complexity) => (
-                              <option key={complexity} value={complexity}>
-                                {complexity}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
-                      ) : (
-                        <span
-                          className={`tasks-section__badge ${getComplexityClass(
-                            task.complexity
-                          )}`}
-                        >
-                          {task.complexity}
-                        </span>
-                      )}
-                    </td>
-
-                    <td>
-                      {isEditing ? (
-                        <input
-                          ref={effortInputRef}
-                          type="number"
-                          min="1"
-                          step="1"
-                          className="tasks-section__inline-effort-input"
-                          value={editFormState.estimatedEffortHours}
-                          onChange={(event) =>
-                            handleEditFormChange("estimatedEffortHours", event.target.value)
-                          }
-                        />
-                      ) : (
-                        formatHours(task.estimatedEffortHours)
-                      )}
-                    </td>
-                    <td>{isEditing ? (computedEditTaskWeight || task.weight) : task.weight}</td>
-
-                    <td className="tasks-section__cell-status">
-                      <span
-                        className={`tasks-section__status-badge ${getStatusClass(
-                          task.effectiveStatus
-                        )}`}
-                      >
-                        {prettifyLabel(task.effectiveStatus)}
-                      </span>
-                    </td>
-
-                    <td>{formatDate(task.dueDate)}</td>
-
-                    <td className="tasks-section__cell-actions">
-                      <div className="tasks-section__actions">
-                        {isEditing ? (
-                          <>
-                            <button
-                              type="button"
-                              className="tasks-section__action-btn tasks-section__action-btn--edit"
-                              title="Save changes"
-                              onClick={saveTaskChanges}
-                              disabled={
-                                !editFormState.title?.trim() ||
-                                !editFormState.description?.trim() ||
-                                !editFormState.assignedUserId ||
-                                !editFormState.priority ||
-                                !editFormState.complexity ||
-                                !editFormState.estimatedEffortHours ||
-                                !computedEditTaskWeight
-                              }
-                            >
-                              <FiCheck />
-                            </button>
-
-                            <button
-                              type="button"
-                              className="tasks-section__action-btn tasks-section__action-btn--danger"
-                              title="Cancel"
-                              onClick={cancelEditMode}
-                            >
-                              <FiX />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="tasks-section__action-btn tasks-section__action-btn--view"
-                              title="View task"
-                            >
-                              <FiEye />
-                            </button>
-
-                            <button
-                              type="button"
-                              className="tasks-section__action-btn tasks-section__action-btn--edit"
-                              title="Edit task"
-                              onClick={() => openEditMode(task)}
-                            >
-                              <FiEdit2 />
-                            </button>
-
-                            <button
-                              type="button"
-                              className="tasks-section__action-btn tasks-section__action-btn--danger"
-                              title="Delete task"
-                              onClick={() => setDeleteTaskId(task.id)}
-                            >
-                              <FiTrash2 />
-                            </button>
-                          </>
                         )}
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <div className="tasks-section__inline-select-wrap">
+                            <select
+                              ref={prioritySelectRef}
+                              value={editFormState.priority}
+                              onChange={(event) =>
+                                handleEditFormChange("priority", event.target.value)
+                              }
+                              className="tasks-section__inline-select"
+                            >
+                              {priorityOptions.map((priority) => (
+                                <option key={priority} value={priority}>
+                                  {priority}
+                                </option>
+                              ))}
+                            </select>
+                            <FiChevronDown />
+                          </div>
+                        ) : (
+                          <span
+                            className={`tasks-section__badge ${getPriorityClass(
+                              task.priority
+                            )}`}
+                          >
+                            {task.priority}
+                          </span>
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <div className="tasks-section__inline-select-wrap">
+                            <select
+                              ref={complexitySelectRef}
+                              value={editFormState.complexity}
+                              onChange={(event) =>
+                                handleEditFormChange("complexity", event.target.value)
+                              }
+                              className="tasks-section__inline-select"
+                            >
+                              {complexityOptions.map((complexity) => (
+                                <option key={complexity} value={complexity}>
+                                  {complexity}
+                                </option>
+                              ))}
+                            </select>
+                            <FiChevronDown />
+                          </div>
+                        ) : (
+                          <span
+                            className={`tasks-section__badge ${getComplexityClass(
+                              task.complexity
+                            )}`}
+                          >
+                            {task.complexity}
+                          </span>
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <input
+                            ref={effortInputRef}
+                            type="number"
+                            min="1"
+                            step="1"
+                            className="tasks-section__inline-effort-input"
+                            value={editFormState.estimatedEffortHours}
+                            onChange={(event) =>
+                              handleEditFormChange("estimatedEffortHours", event.target.value)
+                            }
+                          />
+                        ) : (
+                          formatHours(task.estimatedEffortHours)
+                        )}
+                      </td>
+                      <td>{isEditing ? (computedEditTaskWeight || task.weight) : task.weight}</td>
+
+                      <td className="tasks-section__cell-status">
+                        <span
+                          className={`tasks-section__status-badge ${getStatusClass(
+                            task.effectiveStatus
+                          )}`}
+                        >
+                          {prettifyLabel(task.effectiveStatus)}
+                        </span>
+                      </td>
+
+                      <td>{formatDate(task.dueDate)}</td>
+
+                      <td className="tasks-section__cell-actions">
+                        <div className="tasks-section__actions">
+                          {isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                title="Save changes"
+                                onClick={saveTaskChanges}
+                                disabled={
+                                  !editFormState.title?.trim() ||
+                                  !editFormState.description?.trim() ||
+                                  !editFormState.assignedUserId ||
+                                  !editFormState.priority ||
+                                  !editFormState.complexity ||
+                                  !editFormState.estimatedEffortHours ||
+                                  !computedEditTaskWeight
+                                }
+                              >
+                                <FiCheck />
+                              </button>
+
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--danger"
+                                title="Cancel"
+                                onClick={cancelEditMode}
+                              >
+                                <FiX />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--view"
+                                title="View task"
+                              >
+                                <FiEye />
+                              </button>
+
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                title="Edit task"
+                                onClick={() => openEditMode(task)}
+                              >
+                                <FiEdit2 />
+                              </button>
+
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--danger"
+                                title="Delete task"
+                                onClick={() => setDeleteTaskId(task.id)}
+                              >
+                                <FiTrash2 />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -1325,7 +1460,7 @@ export default function TasksSection({
 
           <div className="tasks-section__pagination">
             <div className="tasks-section__pagination-info">
-              Showing {startIndex}-{endIndex} of {filteredTasks.length} tasks
+              Showing {startIndex}-{endIndex} of {sortedTasks.length} tasks
             </div>
 
             <div className="tasks-section__pagination-controls">

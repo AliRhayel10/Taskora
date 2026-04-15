@@ -1708,3 +1708,34 @@
     min-width: 0;
     text-align: center;
 }
+
+.tasks-section__sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.tasks-section__sort-icon {
+    font-size: 0.92rem;
+    color: #64748b;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.tasks-section__sort-icon--active {
+    color: #1e293b;
+}
+
+.tasks-section__sort-icon--desc {
+    transform: rotate(180deg);
+}
+
+.tasks-section__sort-btn:hover .tasks-section__sort-icon {
+    color: #1e293b;
+}
