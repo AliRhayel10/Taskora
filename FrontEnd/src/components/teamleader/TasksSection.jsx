@@ -1065,9 +1065,6 @@ export default function TasksSection({
                 {paginatedTasks.map((task, index) => {
                   const isEditing = editingTaskId === task.id && editFormState;
                   const previewUser = isEditing ? editingSelectedUser : null;
-                  const isPriorityEditing = isEditing && activeEditField === "priority";
-                  const isComplexityEditing = isEditing && activeEditField === "complexity";
-                  const isEffortEditing = isEditing && activeEditField === "effort";
 
                   return (
                   <tr
@@ -1164,37 +1161,23 @@ export default function TasksSection({
 
                     <td>
                       {isEditing ? (
-                        isPriorityEditing ? (
-                          <div className="tasks-section__inline-select-wrap">
-                            <select
-                              ref={prioritySelectRef}
-                              value={editFormState.priority}
-                              onChange={(event) =>
-                                handleEditFormChange("priority", event.target.value)
-                              }
-                              onBlur={() => setActiveEditField((current) => current === "priority" ? null : current)}
-                              className="tasks-section__inline-select"
-                            >
-                              {priorityOptions.map((priority) => (
-                                <option key={priority} value={priority}>
-                                  {priority}
-                                </option>
-                              ))}
-                            </select>
-                            <FiChevronDown />
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-badge-trigger"
-                            onClick={() => activateInlineField("priority")}
+                        <div className="tasks-section__inline-select-wrap">
+                          <select
+                            ref={prioritySelectRef}
+                            value={editFormState.priority}
+                            onChange={(event) =>
+                              handleEditFormChange("priority", event.target.value)
+                            }
+                            className="tasks-section__inline-select"
                           >
-                            <span className={`tasks-section__badge ${getPriorityClass(editFormState.priority)}`}>
-                              {editFormState.priority}
-                            </span>
-                            <FiChevronDown />
-                          </button>
-                        )
+                            {priorityOptions.map((priority) => (
+                              <option key={priority} value={priority}>
+                                {priority}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
                       ) : (
                         <span
                           className={`tasks-section__badge ${getPriorityClass(
@@ -1208,37 +1191,23 @@ export default function TasksSection({
 
                     <td>
                       {isEditing ? (
-                        isComplexityEditing ? (
-                          <div className="tasks-section__inline-select-wrap">
-                            <select
-                              ref={complexitySelectRef}
-                              value={editFormState.complexity}
-                              onChange={(event) =>
-                                handleEditFormChange("complexity", event.target.value)
-                              }
-                              onBlur={() => setActiveEditField((current) => current === "complexity" ? null : current)}
-                              className="tasks-section__inline-select"
-                            >
-                              {complexityOptions.map((complexity) => (
-                                <option key={complexity} value={complexity}>
-                                  {complexity}
-                                </option>
-                              ))}
-                            </select>
-                            <FiChevronDown />
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-badge-trigger"
-                            onClick={() => activateInlineField("complexity")}
+                        <div className="tasks-section__inline-select-wrap">
+                          <select
+                            ref={complexitySelectRef}
+                            value={editFormState.complexity}
+                            onChange={(event) =>
+                              handleEditFormChange("complexity", event.target.value)
+                            }
+                            className="tasks-section__inline-select"
                           >
-                            <span className={`tasks-section__badge ${getComplexityClass(editFormState.complexity)}`}>
-                              {editFormState.complexity}
-                            </span>
-                            <FiChevronDown />
-                          </button>
-                        )
+                            {complexityOptions.map((complexity) => (
+                              <option key={complexity} value={complexity}>
+                                {complexity}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
                       ) : (
                         <span
                           className={`tasks-section__badge ${getComplexityClass(
@@ -1252,28 +1221,17 @@ export default function TasksSection({
 
                     <td>
                       {isEditing ? (
-                        isEffortEditing ? (
-                          <input
-                            ref={effortInputRef}
-                            type="number"
-                            min="1"
-                            step="1"
-                            className="tasks-section__inline-effort-input"
-                            value={editFormState.estimatedEffortHours}
-                            onChange={(event) =>
-                              handleEditFormChange("estimatedEffortHours", event.target.value)
-                            }
-                            onBlur={() => setActiveEditField((current) => current === "effort" ? null : current)}
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-edit-trigger"
-                            onClick={() => activateInlineField("effort")}
-                          >
-                            {formatHours(editFormState.estimatedEffortHours) || "—"}
-                          </button>
-                        )
+                        <input
+                          ref={effortInputRef}
+                          type="number"
+                          min="1"
+                          step="1"
+                          className="tasks-section__inline-effort-input"
+                          value={editFormState.estimatedEffortHours}
+                          onChange={(event) =>
+                            handleEditFormChange("estimatedEffortHours", event.target.value)
+                          }
+                        />
                       ) : (
                         formatHours(task.estimatedEffortHours)
                       )}
