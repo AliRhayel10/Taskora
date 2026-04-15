@@ -280,6 +280,20 @@
     border-color: #f0caca;
     background: #fff9f9;
 }
+.tasks-section__state-icon {
+    width: 66px;
+    height: 66px;
+    border-radius: 999px;
+    background: #eef4ff;
+    color: #2f6fcc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tasks-section__state-icon svg {
+    font-size: 1.75rem;
+}
 
 .tasks-section__table-card {
     background: #f8fafc;

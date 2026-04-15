@@ -6,6 +6,7 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+  FiClipboard,
   FiEdit2,
   FiEye,
   FiPlus,
@@ -1040,6 +1041,9 @@ export default function TasksSection({
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="tasks-section__state-card">
+          <div className="tasks-section__state-icon">
+            <FiClipboard />
+          </div>
           <h3>No tasks found</h3>
           <p>Try changing the selected tab or create a new task to get started.</p>
         </div>
