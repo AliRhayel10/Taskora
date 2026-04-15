@@ -228,6 +228,71 @@ const getEffectiveTaskStatus = (task) => {
   return rawStatus || "Unknown";
 };
 
+const buildTaskUpdatePayload = ({
+  task,
+  editFormState,
+  computedEditTaskWeight,
+  resolvedCompanyId,
+}) => ({
+  taskId: Number(task.id),
+  id: Number(task.id),
+  companyId: Number(resolvedCompanyId),
+  teamId: Number(task.teamId || 0),
+  title: editFormState.title.trim(),
+  description: editFormState.description.trim(),
+  assignedToUserId: Number(editFormState.assignedUserId),
+  assignedUserId: Number(editFormState.assignedUserId),
+  priority: editFormState.priority,
+  complexity: editFormState.complexity,
+  estimatedEffortHours: Number(editFormState.estimatedEffortHours),
+  weight: Number(computedEditTaskWeight || task.weight || 0),
+  taskStatusId: task.taskStatusId ? Number(task.taskStatusId) : undefined,
+  startDate: task.startDate || null,
+  dueDate: task.dueDate || null,
+});
+
+const buildDeletePayload = (taskId) => ({
+  taskId: Number(taskId),
+  id: Number(taskId),
+});
+
+async function tryRequestCandidates(candidates) {
+  let lastErrorMessage = "Request failed.";
+
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(candidate.url, candidate.options);
+
+      if (response.ok) {
+        let payload = null;
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+
+        return { ok: true, payload };
+      }
+
+      let errorPayload = null;
+      try {
+        errorPayload = await response.json();
+      } catch {
+        errorPayload = null;
+      }
+
+      lastErrorMessage =
+        errorPayload?.message ||
+        errorPayload?.title ||
+        `${candidate.options.method} ${candidate.url} failed`;
+    } catch (error) {
+      lastErrorMessage = error?.message || "Network request failed.";
+    }
+  }
+
+  return { ok: false, message: lastErrorMessage };
+}
+
 export default function TasksSection({
   companyId,
   tasksEndpoint,
@@ -236,6 +301,8 @@ export default function TasksSection({
   setupRulesEndpoint,
   statusesEndpoint,
   membersEndpoint,
+  updateTaskEndpoint,
+  deleteTaskEndpoint,
   pageSize = 5,
 }) {
   const storedUser = getStoredUser();
@@ -251,6 +318,12 @@ export default function TasksSection({
 
   const resolvedUpdateTaskStatusEndpoint =
     updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/update-status`;
+
+  const resolvedUpdateTaskEndpoint =
+    updateTaskEndpoint ?? `${API_BASE}/api/tasks/update`;
+
+  const resolvedDeleteTaskEndpoint =
+    deleteTaskEndpoint ?? `${API_BASE}/api/tasks/delete`;
 
   const resolvedSetupRulesEndpoint =
     setupRulesEndpoint ??
@@ -281,6 +354,8 @@ export default function TasksSection({
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [feedback, setFeedback] = useState(null);
 
@@ -313,6 +388,26 @@ export default function TasksSection({
 
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const loadTasks = async () => {
+    const response = await fetch(resolvedTasksEndpoint);
+    if (!response.ok) {
+      throw new Error("Failed to refresh tasks.");
+    }
+
+    const refreshPayload = await response.json();
+    const refreshData = getResponseData(refreshPayload);
+
+    const refreshedTasks = Array.isArray(refreshData)
+      ? refreshData.map(mapTaskFromApi)
+      : Array.isArray(refreshData?.tasks)
+      ? refreshData.tasks.map(mapTaskFromApi)
+      : Array.isArray(refreshData?.items)
+      ? refreshData.items.map(mapTaskFromApi)
+      : [];
+
+    setTasks(refreshedTasks);
+  };
 
   const newStatusId = useMemo(() => {
     const newStatus = backendStatuses.find(
@@ -894,24 +989,7 @@ export default function TasksSection({
       }
 
       await response.json().catch(() => null);
-
-      const refreshResponse = await fetch(resolvedTasksEndpoint);
-      if (!refreshResponse.ok) {
-        throw new Error("Failed to refresh tasks.");
-      }
-
-      const refreshPayload = await refreshResponse.json();
-      const refreshData = getResponseData(refreshPayload);
-
-      const refreshedTasks = Array.isArray(refreshData)
-        ? refreshData.map(mapTaskFromApi)
-        : Array.isArray(refreshData?.tasks)
-        ? refreshData.tasks.map(mapTaskFromApi)
-        : Array.isArray(refreshData?.items)
-        ? refreshData.items.map(mapTaskFromApi)
-        : [];
-
-      setTasks(refreshedTasks);
+      await loadTasks();
 
       closeCreateModal();
       setFeedback({
@@ -933,15 +1011,60 @@ export default function TasksSection({
     }
   };
 
-  const confirmDeleteTask = () => {
-    if (!deleteTaskId) return;
+  const confirmDeleteTask = async () => {
+    if (!deleteTaskId || isDeletingTask) return;
 
-    setTasks((current) => current.filter((task) => task.id !== deleteTaskId));
-    setDeleteTaskId(null);
-    setFeedback({
-      type: "success",
-      message: "Task removed from the list.",
-    });
+    setIsDeletingTask(true);
+    setFeedback(null);
+
+    try {
+      const payload = buildDeletePayload(deleteTaskId);
+
+      const deleteAttempt = await tryRequestCandidates([
+        {
+          url: `${resolvedDeleteTaskEndpoint}/${deleteTaskId}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${API_BASE}/api/tasks/${deleteTaskId}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${API_BASE}/api/tasks/delete/${deleteTaskId}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${resolvedDeleteTaskEndpoint}`,
+          options: {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+      ]);
+
+      if (!deleteAttempt.ok) {
+        throw new Error(
+          deleteAttempt.message ||
+            "Unable to delete task because no backend delete endpoint responded successfully."
+        );
+      }
+
+      await loadTasks();
+      setDeleteTaskId(null);
+      setFeedback({
+        type: "success",
+        message: "Task deleted successfully.",
+      });
+      setCurrentPage(1);
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to delete task.",
+      });
+    } finally {
+      setIsDeletingTask(false);
+    }
   };
 
   const handleFormChange = (field, value) => {
@@ -1026,40 +1149,79 @@ export default function TasksSection({
     setActiveEditField(null);
   };
 
-  const saveTaskChanges = () => {
-    if (!editingTaskId || !editFormState) return;
+  const saveTaskChanges = async () => {
+    if (!editingTaskId || !editFormState || isSavingEdit) return;
 
-    setTasks((current) =>
-      current.map((task) => {
-        if (task.id !== editingTaskId) return task;
+    const taskToEdit = tasks.find((task) => String(task.id) === String(editingTaskId));
+    if (!taskToEdit) return;
 
-        const matchedUser = users.find(
-          (user) =>
-            String(user.userId ?? user.id) === String(editFormState.assignedUserId)
+    setIsSavingEdit(true);
+    setFeedback(null);
+
+    try {
+      const payload = buildTaskUpdatePayload({
+        task: taskToEdit,
+        editFormState,
+        computedEditTaskWeight,
+        resolvedCompanyId,
+      });
+
+      const updateAttempt = await tryRequestCandidates([
+        {
+          url: resolvedUpdateTaskEndpoint,
+          options: {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+        {
+          url: `${resolvedUpdateTaskEndpoint}/${editingTaskId}`,
+          options: {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+        {
+          url: `${API_BASE}/api/tasks/${editingTaskId}`,
+          options: {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+        {
+          url: `${API_BASE}/api/tasks/edit/${editingTaskId}`,
+          options: {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+      ]);
+
+      if (!updateAttempt.ok) {
+        throw new Error(
+          updateAttempt.message ||
+            "Unable to save task because no backend update endpoint responded successfully."
         );
+      }
 
-        return {
-          ...task,
-          title: editFormState.title.trim(),
-          description: editFormState.description.trim(),
-          assignedUserId: editFormState.assignedUserId,
-          assignedUserName: matchedUser?.fullName ?? matchedUser?.name ?? task.assignedUserName,
-          assignedUserEmail: matchedUser?.email ?? task.assignedUserEmail,
-          assignedUserAvatar: getProfileImage(matchedUser || {}) || task.assignedUserAvatar,
-          priority: editFormState.priority,
-          complexity: editFormState.complexity,
-          estimatedEffortHours: Number(editFormState.estimatedEffortHours),
-          weight: computedEditTaskWeight || task.weight,
-        };
-      })
-    );
-
-    setFeedback({
-      type: "success",
-      message: "Task updated successfully.",
-    });
-
-    cancelEditMode();
+      await loadTasks();
+      setFeedback({
+        type: "success",
+        message: "Task updated successfully.",
+      });
+      cancelEditMode();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to update task.",
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const getSortIconClassName = (key) => {
@@ -1148,86 +1310,14 @@ export default function TasksSection({
             <table className="tasks-section__table">
               <thead>
                 <tr>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("title")}
-                    >
-                      <span>Task</span>
-                      <FiChevronDown className={getSortIconClassName("title")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("assignedUserName")}
-                    >
-                      <span>Assigned To</span>
-                      <FiChevronDown className={getSortIconClassName("assignedUserName")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("priority")}
-                    >
-                      <span>Priority</span>
-                      <FiChevronDown className={getSortIconClassName("priority")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("complexity")}
-                    >
-                      <span>Complexity</span>
-                      <FiChevronDown className={getSortIconClassName("complexity")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("estimatedEffortHours")}
-                    >
-                      <span>Effort</span>
-                      <FiChevronDown className={getSortIconClassName("estimatedEffortHours")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("weight")}
-                    >
-                      <span>Weight</span>
-                      <FiChevronDown className={getSortIconClassName("weight")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("effectiveStatus")}
-                    >
-                      <span>Status</span>
-                      <FiChevronDown className={getSortIconClassName("effectiveStatus")} />
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      className="tasks-section__sort-btn"
-                      onClick={() => handleSort("dueDate")}
-                    >
-                      <span>Due Date</span>
-                      <FiChevronDown className={getSortIconClassName("dueDate")} />
-                    </button>
-                  </th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("title")}><span>Task</span><FiChevronDown className={getSortIconClassName("title")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("assignedUserName")}><span>Assigned To</span><FiChevronDown className={getSortIconClassName("assignedUserName")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("priority")}><span>Priority</span><FiChevronDown className={getSortIconClassName("priority")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("complexity")}><span>Complexity</span><FiChevronDown className={getSortIconClassName("complexity")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("estimatedEffortHours")}><span>Effort</span><FiChevronDown className={getSortIconClassName("estimatedEffortHours")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("weight")}><span>Weight</span><FiChevronDown className={getSortIconClassName("weight")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("effectiveStatus")}><span>Status</span><FiChevronDown className={getSortIconClassName("effectiveStatus")} /></button></th>
+                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("dueDate")}><span>Due Date</span><FiChevronDown className={getSortIconClassName("dueDate")} /></button></th>
                   <th className="tasks-section__col-actions">Actions</th>
                 </tr>
               </thead>
@@ -1241,25 +1331,15 @@ export default function TasksSection({
                     <tr
                       key={task.id}
                       ref={isEditing ? editRowRef : null}
-                      className={
-                        index % 2 === 0
-                          ? "tasks-section__row--odd"
-                          : "tasks-section__row--even"
-                      }
+                      className={index % 2 === 0 ? "tasks-section__row--odd" : "tasks-section__row--even"}
                     >
                       <td>
                         {isEditing ? (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-link"
-                            onClick={openEditTaskInfoModal}
-                          >
+                          <button type="button" className="tasks-section__inline-link" onClick={openEditTaskInfoModal}>
                             <div className="tasks-section__task-cell">
                               <strong>
                                 <span className="tasks-section__text-ellipsis">{editFormState.title || "Add task name"}</span>
-                                <span className="tasks-section__editable-indicator" aria-hidden="true">
-                                  <FiEdit2 />
-                                </span>
+                                <span className="tasks-section__editable-indicator" aria-hidden="true"><FiEdit2 /></span>
                               </strong>
                               <small>{editFormState.description || "Add task description"}</small>
                             </div>
@@ -1291,18 +1371,14 @@ export default function TasksSection({
                                     className="tasks-section__avatar-image"
                                   />
                                 ) : (
-                                  getInitials(
-                                    previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName
-                                  )
+                                  getInitials(previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName)
                                 )}
                               </div>
 
                               <div className="tasks-section__user-details">
                                 <strong>
                                   <span className="tasks-section__text-ellipsis">{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</span>
-                                  <span className="tasks-section__editable-indicator" aria-hidden="true">
-                                    <FiEdit2 />
-                                  </span>
+                                  <span className="tasks-section__editable-indicator" aria-hidden="true"><FiEdit2 /></span>
                                 </strong>
                                 <small>{previewUser?.email ?? task.assignedUserEmail ?? "—"}</small>
                               </div>
@@ -1312,11 +1388,7 @@ export default function TasksSection({
                           <div className="tasks-section__user-cell">
                             <div className="tasks-section__avatar">
                               {task.assignedUserAvatar ? (
-                                <img
-                                  src={task.assignedUserAvatar}
-                                  alt={task.assignedUserName}
-                                  className="tasks-section__avatar-image"
-                                />
+                                <img src={task.assignedUserAvatar} alt={task.assignedUserName} className="tasks-section__avatar-image" />
                               ) : (
                                 getInitials(task.assignedUserName)
                               )}
@@ -1336,27 +1408,17 @@ export default function TasksSection({
                             <select
                               ref={prioritySelectRef}
                               value={editFormState.priority}
-                              onChange={(event) =>
-                                handleEditFormChange("priority", event.target.value)
-                              }
+                              onChange={(event) => handleEditFormChange("priority", event.target.value)}
                               className="tasks-section__inline-select"
                             >
                               {priorityOptions.map((priority) => (
-                                <option key={priority} value={priority}>
-                                  {priority}
-                                </option>
+                                <option key={priority} value={priority}>{priority}</option>
                               ))}
                             </select>
                             <FiChevronDown />
                           </div>
                         ) : (
-                          <span
-                            className={`tasks-section__badge ${getPriorityClass(
-                              task.priority
-                            )}`}
-                          >
-                            {task.priority}
-                          </span>
+                          <span className={`tasks-section__badge ${getPriorityClass(task.priority)}`}>{task.priority}</span>
                         )}
                       </td>
 
@@ -1366,27 +1428,17 @@ export default function TasksSection({
                             <select
                               ref={complexitySelectRef}
                               value={editFormState.complexity}
-                              onChange={(event) =>
-                                handleEditFormChange("complexity", event.target.value)
-                              }
+                              onChange={(event) => handleEditFormChange("complexity", event.target.value)}
                               className="tasks-section__inline-select"
                             >
                               {complexityOptions.map((complexity) => (
-                                <option key={complexity} value={complexity}>
-                                  {complexity}
-                                </option>
+                                <option key={complexity} value={complexity}>{complexity}</option>
                               ))}
                             </select>
                             <FiChevronDown />
                           </div>
                         ) : (
-                          <span
-                            className={`tasks-section__badge ${getComplexityClass(
-                              task.complexity
-                            )}`}
-                          >
-                            {task.complexity}
-                          </span>
+                          <span className={`tasks-section__badge ${getComplexityClass(task.complexity)}`}>{task.complexity}</span>
                         )}
                       </td>
 
@@ -1399,9 +1451,7 @@ export default function TasksSection({
                             step="1"
                             className="tasks-section__inline-effort-input"
                             value={editFormState.estimatedEffortHours}
-                            onChange={(event) =>
-                              handleEditFormChange("estimatedEffortHours", event.target.value)
-                            }
+                            onChange={(event) => handleEditFormChange("estimatedEffortHours", event.target.value)}
                           />
                         ) : (
                           formatHours(task.estimatedEffortHours)
@@ -1410,11 +1460,7 @@ export default function TasksSection({
                       <td>{isEditing ? (computedEditTaskWeight || task.weight) : task.weight}</td>
 
                       <td className="tasks-section__cell-status">
-                        <span
-                          className={`tasks-section__status-badge ${getStatusClass(
-                            task.effectiveStatus
-                          )}`}
-                        >
+                        <span className={`tasks-section__status-badge ${getStatusClass(task.effectiveStatus)}`}>
                           {prettifyLabel(task.effectiveStatus)}
                         </span>
                       </td>
@@ -1431,6 +1477,7 @@ export default function TasksSection({
                                 title="Save changes"
                                 onClick={saveTaskChanges}
                                 disabled={
+                                  isSavingEdit ||
                                   !editFormState.title?.trim() ||
                                   !editFormState.description?.trim() ||
                                   !editFormState.assignedUserId ||
@@ -1448,17 +1495,14 @@ export default function TasksSection({
                                 className="tasks-section__action-btn tasks-section__action-btn--danger"
                                 title="Cancel"
                                 onClick={cancelEditMode}
+                                disabled={isSavingEdit}
                               >
                                 <FiX />
                               </button>
                             </>
                           ) : (
                             <>
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--view"
-                                title="View task"
-                              >
+                              <button type="button" className="tasks-section__action-btn tasks-section__action-btn--view" title="View task">
                                 <FiEye />
                               </button>
 
@@ -1476,6 +1520,7 @@ export default function TasksSection({
                                 className="tasks-section__action-btn tasks-section__action-btn--danger"
                                 title="Delete task"
                                 onClick={() => setDeleteTaskId(task.id)}
+                                disabled={isDeletingTask}
                               >
                                 <FiTrash2 />
                               </button>
@@ -1496,12 +1541,7 @@ export default function TasksSection({
             </div>
 
             <div className="tasks-section__pagination-controls">
-              <button
-                type="button"
-                className="tasks-section__page-btn"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-              >
+              <button type="button" className="tasks-section__page-btn" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1}>
                 <FiChevronLeft />
               </button>
 
@@ -1509,25 +1549,14 @@ export default function TasksSection({
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
-                    currentPage === pageNumber
-                      ? "tasks-section__page-btn--active"
-                      : ""
-                  }`}
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber ? "tasks-section__page-btn--active" : ""}`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
                 </button>
               ))}
 
-              <button
-                type="button"
-                className="tasks-section__page-btn"
-                onClick={() =>
-                  setCurrentPage((page) => Math.min(totalPages, page + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
+              <button type="button" className="tasks-section__page-btn" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages}>
                 <FiChevronRight />
               </button>
             </div>
@@ -1536,14 +1565,8 @@ export default function TasksSection({
       )}
 
       {isCreateOpen && (
-        <div
-          className="tasks-section__modal-overlay"
-          onClick={closeCreateModal}
-        >
-          <div
-            className="tasks-section__modal tasks-section__modal--wide"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="tasks-section__modal-overlay" onClick={closeCreateModal}>
+          <div className="tasks-section__modal tasks-section__modal--wide" onClick={(event) => event.stopPropagation()}>
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
                 <h3>Create Task</h3>
@@ -1554,30 +1577,18 @@ export default function TasksSection({
                 </p>
               </div>
 
-              <button
-                type="button"
-                className="tasks-section__modal-close"
-                onClick={closeCreateModal}
-              >
+              <button type="button" className="tasks-section__modal-close" onClick={closeCreateModal}>
                 <FiX />
               </button>
             </div>
 
             <div className="tasks-section__stepper">
-              <div
-                className={`tasks-section__step ${
-                  createStep === 1 ? "tasks-section__step--active" : ""
-                }`}
-              >
+              <div className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""}`}>
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
-              <div
-                className={`tasks-section__step ${
-                  createStep === 2 ? "tasks-section__step--active" : ""
-                }`}
-              >
+              <div className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""}`}>
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
               </div>
@@ -1594,9 +1605,7 @@ export default function TasksSection({
                       id="task-title"
                       type="text"
                       value={formState.title}
-                      onChange={(event) =>
-                        handleFormChange("title", capitalizeWords(event.target.value))
-                      }
+                      onChange={(event) => handleFormChange("title", capitalizeWords(event.target.value))}
                       required
                     />
                   </div>
@@ -1608,12 +1617,7 @@ export default function TasksSection({
                     <textarea
                       id="task-description"
                       value={formState.description}
-                      onChange={(event) =>
-                        handleFormChange(
-                          "description",
-                          capitalizeWords(event.target.value)
-                        )
-                      }
+                      onChange={(event) => handleFormChange("description", capitalizeWords(event.target.value))}
                       rows={4}
                       required
                     />
@@ -1640,36 +1644,21 @@ export default function TasksSection({
 
                       <div className="tasks-section__member-table">
                         {assignableUsers.length === 0 ? (
-                          <p className="tasks-section__members-empty">
-                            No members found.
-                          </p>
+                          <p className="tasks-section__members-empty">No members found.</p>
                         ) : (
                           assignableUsers.map((user) => {
                             const userId = user.userId ?? user.id;
-                            const isSelected =
-                              String(formState.assignedUserId) === String(userId);
+                            const isSelected = String(formState.assignedUserId) === String(userId);
                             const imageUrl = getProfileImage(user);
 
                             return (
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${
-                                  isSelected
-                                    ? "tasks-section__member-row--selected"
-                                    : ""
-                                }`}
-                                onClick={() =>
-                                  handleFormChange("assignedUserId", String(userId))
-                                }
+                                className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""}`}
+                                onClick={() => handleFormChange("assignedUserId", String(userId))}
                               >
-                                <span
-                                  className={`tasks-section__member-check ${
-                                    isSelected
-                                      ? "tasks-section__member-check--selected"
-                                      : ""
-                                  }`}
-                                >
+                                <span className={`tasks-section__member-check ${isSelected ? "tasks-section__member-check--selected" : ""}`}>
                                   {isSelected ? "✓" : ""}
                                 </span>
 
@@ -1706,19 +1695,10 @@ export default function TasksSection({
                       Priority <span className="tasks-section__required">*</span>
                     </label>
                     <div className="tasks-section__select-wrapper">
-                      <select
-                        id="task-priority"
-                        value={formState.priority}
-                        onChange={(event) =>
-                          handleFormChange("priority", event.target.value)
-                        }
-                        required
-                      >
+                      <select id="task-priority" value={formState.priority} onChange={(event) => handleFormChange("priority", event.target.value)} required>
                         <option value="">Select priority</option>
                         {priorityOptions.map((priority) => (
-                          <option key={priority} value={priority}>
-                            {priority}
-                          </option>
+                          <option key={priority} value={priority}>{priority}</option>
                         ))}
                       </select>
                       <FiChevronDown />
@@ -1730,19 +1710,10 @@ export default function TasksSection({
                       Complexity <span className="tasks-section__required">*</span>
                     </label>
                     <div className="tasks-section__select-wrapper">
-                      <select
-                        id="task-complexity"
-                        value={formState.complexity}
-                        onChange={(event) =>
-                          handleFormChange("complexity", event.target.value)
-                        }
-                        required
-                      >
+                      <select id="task-complexity" value={formState.complexity} onChange={(event) => handleFormChange("complexity", event.target.value)} required>
                         <option value="">Select complexity</option>
                         {complexityOptions.map((complexity) => (
-                          <option key={complexity} value={complexity}>
-                            {complexity}
-                          </option>
+                          <option key={complexity} value={complexity}>{complexity}</option>
                         ))}
                       </select>
                       <FiChevronDown />
@@ -1759,22 +1730,14 @@ export default function TasksSection({
                       min="1"
                       step="1"
                       value={formState.estimatedEffortHours}
-                      onChange={(event) =>
-                        handleFormChange("estimatedEffortHours", event.target.value)
-                      }
+                      onChange={(event) => handleFormChange("estimatedEffortHours", event.target.value)}
                       required
                     />
                   </div>
 
                   <div className="tasks-section__form-group">
                     <label htmlFor="task-weight">Task weight</label>
-                    <input
-                      id="task-weight"
-                      type="text"
-                      value={computedTaskWeight}
-                      readOnly
-                      placeholder="Calculated automatically"
-                    />
+                    <input id="task-weight" type="text" value={computedTaskWeight} readOnly placeholder="Calculated automatically" />
                   </div>
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
@@ -1832,30 +1795,16 @@ export default function TasksSection({
               )}
 
               <div className="tasks-section__form-actions">
-                <button
-                  type="button"
-                  className="tasks-section__secondary-btn"
-                  onClick={createStep === 1 ? closeCreateModal : () => setCreateStep(1)}
-                  disabled={isSubmitting}
-                >
+                <button type="button" className="tasks-section__secondary-btn" onClick={createStep === 1 ? closeCreateModal : () => setCreateStep(1)} disabled={isSubmitting}>
                   {createStep === 1 ? "Cancel" : "Back"}
                 </button>
 
                 {createStep === 1 ? (
-                  <button
-                    type="button"
-                    className="tasks-section__submit-btn"
-                    onClick={() => setCreateStep(2)}
-                    disabled={!isStepOneValid}
-                  >
+                  <button type="button" className="tasks-section__submit-btn" onClick={() => setCreateStep(2)} disabled={!isStepOneValid}>
                     Next
                   </button>
                 ) : (
-                  <button
-                    type="submit"
-                    className="tasks-section__submit-btn"
-                    disabled={isCreateDisabled}
-                  >
+                  <button type="submit" className="tasks-section__submit-btn" disabled={isCreateDisabled}>
                     {isSubmitting ? "Creating..." : "Create Task"}
                   </button>
                 )}
@@ -1874,11 +1823,7 @@ export default function TasksSection({
                 <p>Update the task name and description.</p>
               </div>
 
-              <button
-                type="button"
-                className="tasks-section__modal-close"
-                onClick={closeEditTaskInfoModal}
-              >
+              <button type="button" className="tasks-section__modal-close" onClick={closeEditTaskInfoModal}>
                 <FiX />
               </button>
             </div>
@@ -1915,18 +1860,10 @@ export default function TasksSection({
               </div>
 
               <div className="tasks-section__form-actions">
-                <button
-                  type="button"
-                  className="tasks-section__secondary-btn"
-                  onClick={closeEditTaskInfoModal}
-                >
+                <button type="button" className="tasks-section__secondary-btn" onClick={closeEditTaskInfoModal}>
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  className="tasks-section__submit-btn"
-                  onClick={applyEditTaskInfo}
-                >
+                <button type="button" className="tasks-section__submit-btn" onClick={applyEditTaskInfo}>
                   Apply
                 </button>
               </div>
@@ -1944,11 +1881,7 @@ export default function TasksSection({
                 <p>Search and choose a different employee.</p>
               </div>
 
-              <button
-                type="button"
-                className="tasks-section__modal-close"
-                onClick={closeEditAssigneeModal}
-              >
+              <button type="button" className="tasks-section__modal-close" onClick={closeEditAssigneeModal}>
                 <FiX />
               </button>
             </div>
@@ -1970,27 +1903,20 @@ export default function TasksSection({
                 ) : (
                   filteredEditAssignableUsers.map((user) => {
                     const userId = user.userId ?? user.id;
-                    const isSelected =
-                      String(editFormState.assignedUserId) === String(userId);
+                    const isSelected = String(editFormState.assignedUserId) === String(userId);
                     const imageUrl = getProfileImage(user);
 
                     return (
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${
-                          isSelected ? "tasks-section__member-row--selected" : ""
-                        }`}
+                        className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""}`}
                         onClick={() => {
                           handleEditFormChange("assignedUserId", String(userId));
                           closeEditAssigneeModal();
                         }}
                       >
-                        <span
-                          className={`tasks-section__member-check ${
-                            isSelected ? "tasks-section__member-check--selected" : ""
-                          }`}
-                        >
+                        <span className={`tasks-section__member-check ${isSelected ? "tasks-section__member-check--selected" : ""}`}>
                           {isSelected ? "✓" : ""}
                         </span>
 
@@ -2020,18 +1946,10 @@ export default function TasksSection({
             </div>
 
             <div className="tasks-section__form-actions">
-              <button
-                type="button"
-                className="tasks-section__secondary-btn"
-                onClick={closeEditAssigneeModal}
-              >
+              <button type="button" className="tasks-section__secondary-btn" onClick={closeEditAssigneeModal}>
                 Cancel
               </button>
-              <button
-                type="button"
-                className="tasks-section__submit-btn"
-                onClick={closeEditAssigneeModal}
-              >
+              <button type="button" className="tasks-section__submit-btn" onClick={closeEditAssigneeModal}>
                 Apply
               </button>
             </div>
@@ -2040,34 +1958,20 @@ export default function TasksSection({
       )}
 
       {deleteTaskId && (
-        <div
-          className="tasks-section__modal-overlay"
-          onClick={() => setDeleteTaskId(null)}
-        >
-          <div
-            className="tasks-section__confirm-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="tasks-section__modal-overlay" onClick={() => setDeleteTaskId(null)}>
+          <div className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
             <div className="tasks-section__confirm-copy">
               <h3>Delete Task</h3>
               <p>Are you sure you want to delete this task?</p>
             </div>
 
             <div className="tasks-section__confirm-actions">
-              <button
-                type="button"
-                className="tasks-section__secondary-btn"
-                onClick={() => setDeleteTaskId(null)}
-              >
+              <button type="button" className="tasks-section__secondary-btn" onClick={() => setDeleteTaskId(null)} disabled={isDeletingTask}>
                 Cancel
               </button>
 
-              <button
-                type="button"
-                className="tasks-section__danger-btn"
-                onClick={confirmDeleteTask}
-              >
-                Confirm
+              <button type="button" className="tasks-section__danger-btn" onClick={confirmDeleteTask} disabled={isDeletingTask}>
+                {isDeletingTask ? "Deleting..." : "Confirm"}
               </button>
             </div>
           </div>
