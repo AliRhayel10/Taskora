@@ -64,6 +64,14 @@ function normalizeTasksResponse(data) {
   return [];
 }
 
+function normalizeStatusesResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.statuses)) return data.statuses;
+  if (Array.isArray(data?.data?.statuses)) return data.data.statuses;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+
 function getUserStatus(user) {
   if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
   if (typeof user?.IsActive === "boolean") return user.IsActive ? "Active" : "Inactive";
@@ -75,9 +83,32 @@ function getUserStatus(user) {
 }
 
 function getTaskStatus(task) {
-  const rawStatus = task?.taskStatusName || task?.taskStatus || task?.status || task?.Status;
+  const rawStatus =
+    task?.taskStatusName ||
+    task?.TaskStatusName ||
+    task?.taskStatus?.statusName ||
+    task?.taskStatus?.StatusName ||
+    task?.taskStatus ||
+    task?.status ||
+    task?.Status;
+
   const cleaned = String(rawStatus || "").trim();
   return cleaned || "Unknown";
+}
+
+function getStatusName(status) {
+  return String(
+    status?.statusName ||
+      status?.StatusName ||
+      status?.name ||
+      status?.Name ||
+      ""
+  ).trim();
+}
+
+function getStatusOrder(status, fallbackIndex) {
+  const rawOrder = status?.displayOrder ?? status?.DisplayOrder;
+  return Number.isFinite(Number(rawOrder)) ? Number(rawOrder) : fallbackIndex;
 }
 
 function normalizeStatus(value) {
@@ -143,6 +174,7 @@ export default function DashboardSection({ searchValue = "" }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [taskStatuses, setTaskStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const currentUser = useMemo(() => getStoredUser(), []);
@@ -155,6 +187,7 @@ export default function DashboardSection({ searchValue = "" }) {
         setUsers([]);
         setTeams([]);
         setTasks([]);
+        setTaskStatuses([]);
         setLoading(false);
         return;
       }
@@ -168,7 +201,7 @@ export default function DashboardSection({ searchValue = "" }) {
           pageNumber: "1",
         });
 
-        const [usersResult, teamsResult, tasksResult] = await Promise.all([
+        const [usersResult, teamsResult, tasksResult, statusesResult] = await Promise.all([
           fetchFirstSuccessful([
             `${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}/members`,
             `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${usersParams.toString()}`,
@@ -178,16 +211,19 @@ export default function DashboardSection({ searchValue = "" }) {
           ]),
           fetchFirstSuccessful([`${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}`]),
           fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/company/${encodeURIComponent(companyId)}`]),
+          fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/statuses/${encodeURIComponent(companyId)}`]),
         ]);
 
         setUsers(normalizeUsersResponse(usersResult.data));
         setTeams(normalizeTeamsResponse(teamsResult.data));
         setTasks(normalizeTasksResponse(tasksResult.data));
+        setTaskStatuses(normalizeStatusesResponse(statusesResult.data));
       } catch (error) {
         console.error("Failed to load dashboard:", error);
         setUsers([]);
         setTeams([]);
         setTasks([]);
+        setTaskStatuses([]);
       } finally {
         setLoading(false);
       }
@@ -200,21 +236,43 @@ export default function DashboardSection({ searchValue = "" }) {
     const activeUsers = users.filter((user) => getUserStatus(user) === "Active");
     const completedTasks = tasks.filter((task) => isCompletedStatus(getTaskStatus(task)));
 
-    const statusCounts = tasks.reduce((accumulator, task) => {
-      const status = getTaskStatus(task);
-      accumulator[status] = (accumulator[status] || 0) + 1;
+    const orderedStatuses = taskStatuses
+      .map((status, index) => ({
+        name: getStatusName(status),
+        order: getStatusOrder(status, index),
+      }))
+      .filter((status) => status.name)
+      .sort((a, b) => a.order - b.order);
+
+    const countByNormalizedStatus = tasks.reduce((accumulator, task) => {
+      const taskStatus = getTaskStatus(task);
+      const key = normalizeStatus(taskStatus);
+      accumulator[key] = (accumulator[key] || 0) + 1;
       return accumulator;
     }, {});
 
-    const taskSummary = Object.entries(statusCounts)
-      .map(([label, value], index) => ({
-        key: `${normalizeStatus(label) || "unknown"}-${index}`,
-        label,
+    const summarySource =
+      orderedStatuses.length > 0
+        ? orderedStatuses.map((status) => status.name)
+        : Array.from(
+            new Set(
+              tasks
+                .map((task) => getTaskStatus(task))
+                .filter(Boolean)
+            )
+          );
+
+    const taskSummary = summarySource.map((statusName, index) => {
+      const value = countByNormalizedStatus[normalizeStatus(statusName)] || 0;
+
+      return {
+        key: `${normalizeStatus(statusName) || "unknown"}-${index}`,
+        label: statusName,
         value,
         percentage: tasks.length > 0 ? Math.round((value / tasks.length) * 100) : 0,
         color: STATUS_COLORS[index % STATUS_COLORS.length],
-      }))
-      .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
+      };
+    });
 
     const searchableContent = [
       "dashboard",
@@ -242,11 +300,12 @@ export default function DashboardSection({ searchValue = "" }) {
         teams: teams.length,
         tasks: tasks.length,
         completedTasks: completedTasks.length,
-        completionRate: tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0,
+        completionRate:
+          tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0,
       },
       taskSummary,
     };
-  }, [users, teams, tasks, normalizedSearch]);
+  }, [users, teams, tasks, taskStatuses, normalizedSearch]);
 
   const statCards = [
     {
@@ -277,7 +336,10 @@ export default function DashboardSection({ searchValue = "" }) {
       key: "completion",
       label: "Completion",
       value: `${dashboardData.stats.completionRate}%`,
-      meta: `${Math.max(dashboardData.stats.tasks - dashboardData.stats.completedTasks, 0)} in progress`,
+      meta: `${Math.max(
+        dashboardData.stats.tasks - dashboardData.stats.completedTasks,
+        0
+      )} active`,
       icon: <FiTrendingUp />,
       tone: "amber",
     },
@@ -338,7 +400,7 @@ export default function DashboardSection({ searchValue = "" }) {
                 <div className="dashboard-section__panel-header">
                   <div>
                     <h3>Task Summary</h3>
-                    <p>Live distribution of this company&apos;s real task statuses</p>
+                    <p>Live distribution of this company&apos;s backend task statuses</p>
                   </div>
                   <button
                     type="button"
