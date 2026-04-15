@@ -11,15 +11,23 @@ import {
 import "../../assets/styles/admin/dashboard-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
-const STATUS_COLORS = [
-  "#7dd3fc",
-  "#bae6d4",
-  "#f6d365",
-  "#c4b5fd",
-  "#f9a8d4",
-  "#fdba74",
-  "#93c5fd",
-  "#86efac",
+
+const STATUS_COLOR_MAP = {
+  new: "#3b82f6",
+  pending: "#f59e0b",
+  acknowledged: "#8b5cf6",
+  done: "#22c55e",
+};
+
+const FALLBACK_STATUS_COLORS = [
+  "#3b82f6",
+  "#f59e0b",
+  "#8b5cf6",
+  "#22c55e",
+  "#14b8a6",
+  "#ec4899",
+  "#f97316",
+  "#6366f1",
 ];
 
 function getStoredUser() {
@@ -82,6 +90,14 @@ function getUserStatus(user) {
   return rawStatus === "active" ? "Active" : "Inactive";
 }
 
+function normalizeStatus(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
 function getTaskStatus(task) {
   const rawStatus =
     task?.taskStatusName ||
@@ -96,6 +112,17 @@ function getTaskStatus(task) {
   return cleaned || "Unknown";
 }
 
+function getTaskStatusId(task) {
+  const rawId =
+    task?.taskStatusId ??
+    task?.TaskStatusId ??
+    task?.taskStatus?.taskStatusId ??
+    task?.taskStatus?.TaskStatusId ??
+    null;
+
+  return rawId === null || rawId === undefined || rawId === "" ? null : String(rawId);
+}
+
 function getStatusName(status) {
   return String(
     status?.statusName ||
@@ -106,17 +133,20 @@ function getStatusName(status) {
   ).trim();
 }
 
+function getStatusId(status) {
+  const rawId =
+    status?.taskStatusId ??
+    status?.TaskStatusId ??
+    status?.id ??
+    status?.Id ??
+    null;
+
+  return rawId === null || rawId === undefined || rawId === "" ? null : String(rawId);
+}
+
 function getStatusOrder(status, fallbackIndex) {
   const rawOrder = status?.displayOrder ?? status?.DisplayOrder;
   return Number.isFinite(Number(rawOrder)) ? Number(rawOrder) : fallbackIndex;
-}
-
-function normalizeStatus(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ");
 }
 
 function isCompletedStatus(status) {
@@ -124,6 +154,11 @@ function isCompletedStatus(status) {
   return ["done", "completed", "complete", "closed", "finished", "resolved"].includes(
     normalized
   );
+}
+
+function getStatusColor(statusName, index) {
+  const normalized = normalizeStatus(statusName);
+  return STATUS_COLOR_MAP[normalized] || FALLBACK_STATUS_COLORS[index % FALLBACK_STATUS_COLORS.length];
 }
 
 async function fetchFirstSuccessful(urls) {
@@ -238,41 +273,64 @@ export default function DashboardSection({ searchValue = "" }) {
 
     const orderedStatuses = taskStatuses
       .map((status, index) => ({
+        id: getStatusId(status),
         name: getStatusName(status),
         order: getStatusOrder(status, index),
       }))
       .filter((status) => status.name)
       .sort((a, b) => a.order - b.order);
 
-    const countByNormalizedStatus = tasks.reduce((accumulator, task) => {
-      const taskStatus = getTaskStatus(task);
-      const key = normalizeStatus(taskStatus);
-      accumulator[key] = (accumulator[key] || 0) + 1;
+    const countByStatusId = tasks.reduce((accumulator, task) => {
+      const taskStatusId = getTaskStatusId(task);
+      if (!taskStatusId) return accumulator;
+      accumulator[taskStatusId] = (accumulator[taskStatusId] || 0) + 1;
       return accumulator;
     }, {});
 
-    const summarySource =
-      orderedStatuses.length > 0
-        ? orderedStatuses.map((status) => status.name)
-        : Array.from(
-            new Set(
-              tasks
-                .map((task) => getTaskStatus(task))
-                .filter(Boolean)
-            )
-          );
+    const statusNameToId = orderedStatuses.reduce((accumulator, status) => {
+      accumulator[normalizeStatus(status.name)] = status.id;
+      return accumulator;
+    }, {});
 
-    const taskSummary = summarySource.map((statusName, index) => {
-      const value = countByNormalizedStatus[normalizeStatus(statusName)] || 0;
+    const fallbackNameCounts = tasks.reduce((accumulator, task) => {
+      const normalizedName = normalizeStatus(getTaskStatus(task));
+      if (!normalizedName) return accumulator;
+      accumulator[normalizedName] = (accumulator[normalizedName] || 0) + 1;
+      return accumulator;
+    }, {});
 
-      return {
-        key: `${normalizeStatus(statusName) || "unknown"}-${index}`,
-        label: statusName,
-        value,
-        percentage: tasks.length > 0 ? Math.round((value / tasks.length) * 100) : 0,
-        color: STATUS_COLORS[index % STATUS_COLORS.length],
-      };
-    });
+    const taskSummary = orderedStatuses.length > 0
+      ? orderedStatuses.map((status, index) => {
+          const normalizedName = normalizeStatus(status.name);
+          const valueFromId = status.id ? countByStatusId[status.id] || 0 : 0;
+          const valueFromName = fallbackNameCounts[normalizedName] || 0;
+          const value = valueFromId || valueFromName;
+
+          return {
+            key: `${status.id || normalizedName || "unknown"}-${index}`,
+            label: status.name,
+            value,
+            percentage: tasks.length > 0 ? Math.round((value / tasks.length) * 100) : 0,
+            color: getStatusColor(status.name, index),
+          };
+        })
+      : Array.from(new Set(tasks.map((task) => getTaskStatus(task)).filter(Boolean))).map(
+          (statusName, index) => {
+            const normalizedName = normalizeStatus(statusName);
+            const linkedStatusId = statusNameToId[normalizedName];
+            const value = linkedStatusId
+              ? countByStatusId[linkedStatusId] || 0
+              : fallbackNameCounts[normalizedName] || 0;
+
+            return {
+              key: `${normalizedName || "unknown"}-${index}`,
+              label: statusName,
+              value,
+              percentage: tasks.length > 0 ? Math.round((value / tasks.length) * 100) : 0,
+              color: getStatusColor(statusName, index),
+            };
+          }
+        );
 
     const searchableContent = [
       "dashboard",

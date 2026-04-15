@@ -4,6 +4,8 @@ import {
   FiClipboard,
   FiClock,
   FiBarChart2,
+  FiCheckCircle,
+  FiAlertTriangle,
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
@@ -160,6 +162,20 @@ function getStatusClass(status) {
   }
 
   return "teamleader-dashboard-section__status--overloaded";
+}
+
+function getStatusIcon(status) {
+  const normalized = String(status || "").toLowerCase();
+
+  if (normalized === "available") {
+    return <FiCheckCircle />;
+  }
+
+  if (normalized === "moderate") {
+    return <FiClock />;
+  }
+
+  return <FiAlertTriangle />;
 }
 
 function getWorkloadStatus(weight) {
@@ -565,21 +581,25 @@ export default function TeamLeaderDashboardSection({
         title: "Team Members",
         value: members.length,
         icon: <FiUsers />,
+        iconClass: "teamleader-dashboard-section__card-icon--members",
       },
       {
         title: "Tasks",
         value: totalTasks,
         icon: <FiClipboard />,
+        iconClass: "teamleader-dashboard-section__card-icon--tasks",
       },
       {
         title: "Total Effort",
         value: `${totalEffort}h`,
         icon: <FiClock />,
+        iconClass: "teamleader-dashboard-section__card-icon--effort",
       },
       {
         title: "Total Weight",
         value: Number(totalWeight.toFixed(2)),
         icon: <FiBarChart2 />,
+        iconClass: "teamleader-dashboard-section__card-icon--weight",
       },
     ];
   }, [members.length, tasks]);
@@ -780,7 +800,7 @@ export default function TeamLeaderDashboardSection({
                 key={card.title}
                 className="teamleader-dashboard-section__card"
               >
-                <div className="teamleader-dashboard-section__card-icon">
+                <div className={`teamleader-dashboard-section__card-icon ${card.iconClass || ""}`}>
                   {card.icon}
                 </div>
 
@@ -908,7 +928,7 @@ export default function TeamLeaderDashboardSection({
                         className="teamleader-dashboard-section__sort-btn"
                         onClick={() => handleSort("status")}
                       >
-                        <span>Status</span>
+                        <span>Workload Status</span>
                         <FiChevronDown
                           className={`teamleader-dashboard-section__sort-icon ${
                             sortConfig.key === "status"
@@ -981,6 +1001,9 @@ export default function TeamLeaderDashboardSection({
                               row.status
                             )}`}
                           >
+                            <span className="teamleader-dashboard-section__status-icon">
+                              {getStatusIcon(row.status)}
+                            </span>
                             {row.status}
                           </span>
                         </td>

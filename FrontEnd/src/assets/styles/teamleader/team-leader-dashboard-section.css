@@ -321,6 +321,26 @@
   flex-shrink: 0;
 }
 
+.teamleader-dashboard-section__card-icon--members {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.teamleader-dashboard-section__card-icon--tasks {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.teamleader-dashboard-section__card-icon--effort {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.teamleader-dashboard-section__card-icon--weight {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .teamleader-dashboard-section__card-content {
   display: flex;
   flex-direction: column;
@@ -382,6 +402,7 @@
   width: 100%;
   border-collapse: collapse;
   min-width: 760px;
+  table-layout: fixed;
 }
 
 .teamleader-dashboard-section__table thead th {
@@ -394,6 +415,35 @@
   text-align: left;
   white-space: nowrap;
 }
+
+.teamleader-dashboard-section__table thead th:nth-child(1),
+.teamleader-dashboard-section__table tbody td:nth-child(1) {
+  width: 34%;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(2),
+.teamleader-dashboard-section__table tbody td:nth-child(2) {
+  width: 12%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(3),
+.teamleader-dashboard-section__table tbody td:nth-child(3) {
+  width: 14%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(4),
+.teamleader-dashboard-section__table tbody td:nth-child(4) {
+  width: 14%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(5),
+.teamleader-dashboard-section__table tbody td:nth-child(5) {
+  width: 26%;
+  text-align: center;
+}
 .teamleader-dashboard-section__sort-btn {
   display: inline-flex;
   align-items: center;
@@ -405,6 +455,11 @@
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(n + 2) .teamleader-dashboard-section__sort-btn {
+  justify-content: center;
+  width: 100%;
 }
 
 .teamleader-dashboard-section__sort-icon {
@@ -505,49 +560,42 @@
 .teamleader-dashboard-section__status {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 8px;
-  min-width: 102px;
-  min-height: 28px;
-  border-radius: 10px;
-  padding: 0 12px;
-  font-size: 0.8rem;
-  font-weight: 700;
+  min-width: 128px;
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 
-.teamleader-dashboard-section__status::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
+.teamleader-dashboard-section__status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
   flex-shrink: 0;
 }
 
 .teamleader-dashboard-section__status--available {
-  background: #ecfdf3;
+  background: #dcfce7;
   color: #166534;
-}
-
-.teamleader-dashboard-section__status--available::before {
-  background: #16a34a;
+  border-color: #86efac;
 }
 
 .teamleader-dashboard-section__status--moderate {
   background: #fef3c7;
   color: #92400e;
-}
-
-.teamleader-dashboard-section__status--moderate::before {
-  background: #f59e0b;
+  border-color: #fcd34d;
 }
 
 .teamleader-dashboard-section__status--overloaded {
-  background: #fef2f2;
+  background: #fee2e2;
   color: #b42318;
-}
-
-.teamleader-dashboard-section__status--overloaded::before {
-  background: #dc2626;
+  border-color: #fca5a5;
 }
 
 .teamleader-dashboard-section__state-card {
