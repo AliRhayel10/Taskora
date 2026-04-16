@@ -836,6 +836,53 @@
     font-size: 1.7rem;
 }
 
+.users-section__confirm-top {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.users-section__confirm-copy {
+    max-width: 420px;
+    margin: 0;
+    text-align: left;
+}
+
+.users-section__confirm-copy h3 {
+    margin: 0 0 14px;
+    color: #1e293b;
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-align: left;
+}
+
+.users-section__confirm-copy p {
+    margin: 0;
+    color: #334155;
+    font-size: 1rem;
+    line-height: 1.45;
+    font-weight: 500;
+    text-align: left;
+}
+
+.users-section__confirm-copy strong {
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.users-section__modal-close--confirm {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.users-section__secondary-btn--confirm {
+    background: #e2e8f0;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+
 .users-section__modal--confirm .users-section__modal-header h3 {
     margin: 0 0 14px;
     color: #1e293b;
