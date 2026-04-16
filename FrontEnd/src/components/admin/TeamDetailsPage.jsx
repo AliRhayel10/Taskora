@@ -200,6 +200,146 @@ function compareStatusValues(firstStatus, secondStatus, direction = "asc") {
   return compareTextValues(normalizedFirst, normalizedSecond, direction);
 }
 
+function normalizeTasksResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.tasks)) return data.tasks;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+function getTaskId(task) {
+  return task?.taskId ?? task?.TaskId ?? task?.id ?? task?.Id ?? null;
+}
+
+function getTaskAssigneeId(task) {
+  return String(
+    task?.assignedToUserId ??
+      task?.AssignedToUserId ??
+      task?.assignedUserId ??
+      task?.AssignedUserId ??
+      task?.assigneeId ??
+      task?.AssigneeId ??
+      task?.employeeId ??
+      task?.EmployeeId ??
+      task?.memberId ??
+      task?.MemberId ??
+      task?.userId ??
+      task?.UserId ??
+      task?.assignedTo?.userId ??
+      task?.assignedUser?.userId ??
+      ""
+  );
+}
+
+async function attemptTaskWriteRequests(requests, fallbackMessage) {
+  let lastError = new Error(fallbackMessage);
+
+  for (const request of requests) {
+    try {
+      const response = await fetch(request.url, {
+        method: request.method,
+        headers:
+          request.body !== undefined
+            ? { "Content-Type": "application/json" }
+            : undefined,
+        body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
+      });
+
+      const data = await parseJsonResponse(response);
+
+      if (response.ok) {
+        return data;
+      }
+
+      lastError = new Error(data.message || fallbackMessage);
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(fallbackMessage);
+    }
+  }
+
+  throw lastError;
+}
+
+async function updateTaskAssignmentOnBackend(task, nextAssigneeId) {
+  const taskId = getTaskId(task);
+
+  if (!taskId) {
+    throw new Error("Failed to identify one of the assigned tasks.");
+  }
+
+  const commonPayload = {
+    ...task,
+    assignedToUserId: nextAssigneeId,
+    AssignedToUserId: nextAssigneeId,
+    assignedUserId: nextAssigneeId,
+    AssignedUserId: nextAssigneeId,
+    assigneeId: nextAssigneeId,
+    AssigneeId: nextAssigneeId,
+    employeeId: nextAssigneeId,
+    EmployeeId: nextAssigneeId,
+    memberId: nextAssigneeId,
+    MemberId: nextAssigneeId,
+    userId: nextAssigneeId,
+    UserId: nextAssigneeId,
+  };
+
+  return attemptTaskWriteRequests(
+    [
+      {
+        method: "PATCH",
+        url: `${API_BASE_URL}/api/tasks/${taskId}/assign`,
+        body: { assignedToUserId: nextAssigneeId },
+      },
+      {
+        method: "PUT",
+        url: `${API_BASE_URL}/api/tasks/${taskId}/assign`,
+        body: { assignedToUserId: nextAssigneeId },
+      },
+      {
+        method: "PATCH",
+        url: `${API_BASE_URL}/api/tasks/${taskId}/reassign`,
+        body: { assignedToUserId: nextAssigneeId },
+      },
+      {
+        method: "PUT",
+        url: `${API_BASE_URL}/api/tasks/${taskId}/reassign`,
+        body: { assignedToUserId: nextAssigneeId },
+      },
+      {
+        method: "PATCH",
+        url: `${API_BASE_URL}/api/tasks/${taskId}`,
+        body: commonPayload,
+      },
+      {
+        method: "PUT",
+        url: `${API_BASE_URL}/api/tasks/${taskId}`,
+        body: commonPayload,
+      },
+    ],
+    "Failed to update member tasks."
+  );
+}
+
+async function deleteTaskOnBackend(task) {
+  const taskId = getTaskId(task);
+
+  if (!taskId) {
+    throw new Error("Failed to identify one of the assigned tasks.");
+  }
+
+  return attemptTaskWriteRequests(
+    [
+      {
+        method: "DELETE",
+        url: `${API_BASE_URL}/api/tasks/${taskId}`,
+      },
+    ],
+    "Failed to delete assigned tasks."
+  );
+}
+
 export default function TeamDetailsPage({
   team,
   onBack,
@@ -211,6 +351,7 @@ export default function TeamDetailsPage({
 
   const [companyMembers, setCompanyMembers] = useState([]);
   const [allTeams, setAllTeams] = useState([]);
+  const [companyTasks, setCompanyTasks] = useState([]);
   const [members, setMembers] = useState([]);
   const [teamState, setTeamState] = useState(team || null);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
@@ -218,6 +359,8 @@ export default function TeamDetailsPage({
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackType, setFeedbackType] = useState("");
   const [memberToDelete, setMemberToDelete] = useState(null);
+  const [deleteTaskAction, setDeleteTaskAction] = useState("unassign");
+  const [isDeleteConfirmationStep, setIsDeleteConfirmationStep] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [memberImageErrors, setMemberImageErrors] = useState({});
@@ -317,6 +460,7 @@ export default function TeamDetailsPage({
       if (!companyId) {
         setCompanyMembers([]);
         setAllTeams([]);
+        setCompanyTasks([]);
         setIsLoadingMembers(false);
         return;
       }
@@ -324,14 +468,16 @@ export default function TeamDetailsPage({
       try {
         setIsLoadingMembers(true);
 
-        const [membersResponse, teamsResponse] = await Promise.all([
+        const [membersResponse, teamsResponse, tasksResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/api/teams/company/${companyId}/members`),
           fetch(`${API_BASE_URL}/api/teams/company/${companyId}`),
+          fetch(`${API_BASE_URL}/api/tasks/company/${companyId}`),
         ]);
 
-        const [membersData, teamsData] = await Promise.all([
+        const [membersData, teamsData, tasksData] = await Promise.all([
           parseJsonResponse(membersResponse),
           parseJsonResponse(teamsResponse),
+          parseJsonResponse(tasksResponse),
         ]);
 
         if (!membersResponse.ok) {
@@ -344,10 +490,12 @@ export default function TeamDetailsPage({
 
         setCompanyMembers(Array.isArray(membersData) ? membersData : []);
         setAllTeams(Array.isArray(teamsData) ? teamsData : []);
+        setCompanyTasks(tasksResponse.ok ? normalizeTasksResponse(tasksData) : []);
       } catch (error) {
         console.error("Failed to fetch team details data:", error);
         setCompanyMembers([]);
         setAllTeams([]);
+        setCompanyTasks([]);
       } finally {
         setIsLoadingMembers(false);
       }
@@ -764,15 +912,29 @@ export default function TeamDetailsPage({
     Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
   );
 
+  const memberAssignedTasks = useMemo(() => {
+    if (!memberToDelete) {
+      return [];
+    }
+
+    return companyTasks.filter(
+      (task) => String(getTaskAssigneeId(task)) === String(memberToDelete.userId)
+    );
+  }, [companyTasks, memberToDelete]);
+
   const closeDeleteModal = () => {
     if (isSaving) {
       return;
     }
     setMemberToDelete(null);
+    setDeleteTaskAction("unassign");
+    setIsDeleteConfirmationStep(false);
   };
 
   const openDeleteModal = (member) => {
     setMemberToDelete(member);
+    setDeleteTaskAction("unassign");
+    setIsDeleteConfirmationStep(false);
   };
 
   const openMembersModal = (mode = "members") => {
@@ -972,34 +1134,76 @@ export default function TeamDetailsPage({
     };
   };
 
-  const handleConfirmDeleteMember = async () => {
-    if (!memberToDelete) {
-      return;
+const handleConfirmDeleteMember = async () => {
+  if (!memberToDelete) {
+    return;
+  }
+
+  try {
+    setIsSaving(true);
+    setFeedbackMessage("");
+    setFeedbackType("");
+
+    if (memberAssignedTasks.length > 0) {
+      if (deleteTaskAction === "unassign") {
+        await Promise.all(
+          memberAssignedTasks.map((task) => updateTaskAssignmentOnBackend(task, null))
+        );
+
+        setCompanyTasks((prev) =>
+          prev.map((task) =>
+            String(getTaskAssigneeId(task)) === String(memberToDelete.userId)
+              ? {
+                  ...task,
+                  assignedToUserId: null,
+                  AssignedToUserId: null,
+                  assignedUserId: null,
+                  AssignedUserId: null,
+                  assigneeId: null,
+                  AssigneeId: null,
+                  employeeId: null,
+                  EmployeeId: null,
+                  memberId: null,
+                  MemberId: null,
+                  userId: null,
+                  UserId: null,
+                }
+              : task
+          )
+        );
+      } else if (deleteTaskAction === "delete") {
+        await Promise.all(memberAssignedTasks.map((task) => deleteTaskOnBackend(task)));
+
+        const taskIdsToDelete = new Set(
+          memberAssignedTasks.map((task) => String(getTaskId(task)))
+        );
+
+        setCompanyTasks((prev) =>
+          prev.filter((task) => !taskIdsToDelete.has(String(getTaskId(task))))
+        );
+      }
     }
 
-    try {
-      setIsSaving(true);
-      setFeedbackMessage("");
-      setFeedbackType("");
+    const nextMembers = members.filter(
+      (member) => String(member.userId) !== String(memberToDelete.userId)
+    );
 
-      const nextMembers = members.filter(
-        (member) => String(member.userId) !== String(memberToDelete.userId)
-      );
+    const persistedMembers = await saveTeamMembersToBackend(nextMembers);
+    setMembers(persistedMembers);
+    setMemberToDelete(null);
+    setDeleteTaskAction("unassign");
+    setIsDeleteConfirmationStep(false);
 
-      const persistedMembers = await saveTeamMembersToBackend(nextMembers);
-      setMembers(persistedMembers);
-      setMemberToDelete(null);
-
-      setFeedbackType("success");
-      setFeedbackMessage("Member removed from team successfully.");
-    } catch (error) {
-      console.error("Failed to delete member from team:", error);
-      setFeedbackType("error");
-      setFeedbackMessage(error.message || "Failed to remove member from team.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    setFeedbackType("success");
+    setFeedbackMessage("Member removed from team successfully.");
+  } catch (error) {
+    console.error("Failed to delete member from team:", error);
+    setFeedbackType("error");
+    setFeedbackMessage(error.message || "Failed to remove member from team.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   const handleToggleMemberStatus = async (memberId) => {
     try {
@@ -1296,6 +1500,11 @@ export default function TeamDetailsPage({
       ? "Search and add members to this team."
       : "Choose the team leader for this team.";
 
+  const deleteConfirmationText =
+    deleteTaskAction === "delete"
+      ? "Are you sure you want to delete this member and permanently delete all their assigned tasks?"
+      : "Are you sure you want to delete this member and set all their assigned tasks as unassigned?";
+
   return (
     <section className="team-details-page">
       <div className="team-details-page__title-row">
@@ -1534,96 +1743,96 @@ export default function TeamDetailsPage({
                     String(member.userId) === String(teamLeaderId || "");
 
                   return (
-                  <tr key={member.userId}>
-                    <td>
-                      <div className="users-section__user-cell">
-                        <span className="users-section__avatar">
-                          {getUserProfileImage(member) &&
-                          !memberImageErrors[member.userId] ? (
-                            <img
-                              src={getUserProfileImage(member)}
-                              alt={member.fullName || member.email}
-                              className="users-section__avatar-image"
-                              onError={() => handleMemberImageError(member.userId)}
-                            />
-                          ) : (
-                            getInitials(member.fullName || member.email)
-                          )}
-                        </span>
+                    <tr key={member.userId}>
+                      <td>
+                        <div className="users-section__user-cell">
+                          <span className="users-section__avatar">
+                            {getUserProfileImage(member) &&
+                            !memberImageErrors[member.userId] ? (
+                              <img
+                                src={getUserProfileImage(member)}
+                                alt={member.fullName || member.email}
+                                className="users-section__avatar-image"
+                                onError={() => handleMemberImageError(member.userId)}
+                              />
+                            ) : (
+                              getInitials(member.fullName || member.email)
+                            )}
+                          </span>
 
-                        <span className="users-section__user-details">
-                          <strong>{member.fullName}</strong>
-                          <small>{member.email}</small>
-                        </span>
-                      </div>
-                    </td>
+                          <span className="users-section__user-details">
+                            <strong>{member.fullName}</strong>
+                            <small>{member.email}</small>
+                          </span>
+                        </div>
+                      </td>
 
-                    <td>{member.jobType}</td>
+                      <td>{member.jobType}</td>
 
-                    <td>
-                      <span
-                        className={`team-details-page__role-badge ${
-                          isTeamLeaderRole(member.role)
-                            ? "team-details-page__role-badge--leader"
-                            : "team-details-page__role-badge--member"
-                        }`}
-                      >
-                        {member.role}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`team-details-page__status-pill ${
-                          member.isActive
-                            ? "team-details-page__status-pill--active"
-                            : "team-details-page__status-pill--inactive"
-                        }`}
-                      >
-                        {member.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-
-                    <td>
-                      <div className="team-details-page__row-actions">
-                        <button
-                          type="button"
-                          className={`teams-section__switch ${
-                            member.isActive ? "teams-section__switch--active" : ""
+                      <td>
+                        <span
+                          className={`team-details-page__role-badge ${
+                            isTeamLeaderRole(member.role)
+                              ? "team-details-page__role-badge--leader"
+                              : "team-details-page__role-badge--member"
                           }`}
-                          onClick={() => handleToggleMemberStatus(member.userId)}
-                          aria-pressed={member.isActive}
-                          title={member.isActive ? "Set inactive" : "Set active"}
-                          disabled={isSaving}
                         >
-                          <span className="teams-section__switch-thumb"></span>
-                        </button>
+                          {member.role}
+                        </span>
+                      </td>
 
-                        <button
-                          type="button"
-                          className={`team-details-page__delete-btn ${
-                            isCurrentTeamLeader
-                              ? "team-details-page__delete-btn--leader-action"
-                              : ""
+                      <td>
+                        <span
+                          className={`team-details-page__status-pill ${
+                            member.isActive
+                              ? "team-details-page__status-pill--active"
+                              : "team-details-page__status-pill--inactive"
                           }`}
-                          onClick={() =>
-                            isCurrentTeamLeader
-                              ? openMembersModal("leader")
-                              : openDeleteModal(member)
-                          }
-                          title={
-                            isCurrentTeamLeader ? "Edit leader" : "Delete member"
-                          }
-                          aria-label={
-                            isCurrentTeamLeader ? "Edit leader" : "Delete member"
-                          }
-                          disabled={isSaving}
                         >
-                          {isCurrentTeamLeader ? <FiEdit2 /> : <FiTrash2 />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          {member.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="team-details-page__row-actions">
+                          <button
+                            type="button"
+                            className={`teams-section__switch ${
+                              member.isActive ? "teams-section__switch--active" : ""
+                            }`}
+                            onClick={() => handleToggleMemberStatus(member.userId)}
+                            aria-pressed={member.isActive}
+                            title={member.isActive ? "Set inactive" : "Set active"}
+                            disabled={isSaving}
+                          >
+                            <span className="teams-section__switch-thumb"></span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`team-details-page__delete-btn ${
+                              isCurrentTeamLeader
+                                ? "team-details-page__delete-btn--leader-action"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              isCurrentTeamLeader
+                                ? openMembersModal("leader")
+                                : openDeleteModal(member)
+                            }
+                            title={
+                              isCurrentTeamLeader ? "Edit leader" : "Delete member"
+                            }
+                            aria-label={
+                              isCurrentTeamLeader ? "Edit leader" : "Delete member"
+                            }
+                            disabled={isSaving}
+                          >
+                            {isCurrentTeamLeader ? <FiEdit2 /> : <FiTrash2 />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })
               )}
@@ -1893,32 +2102,123 @@ export default function TeamDetailsPage({
         </div>
       )}
 
-      {memberToDelete && (
-        <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
-          <div
-            className="teams-section__modal teams-section__modal--small"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="teams-section__modal-header">
-              <div>
-                <h3>Delete Member</h3>
-                <p>
-                  This action will remove <strong>{memberToDelete.fullName}</strong> from
-                  this team.
-                </p>
-              </div>
+{memberToDelete && (
+  <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
+    <div
+      className="teams-section__modal teams-section__modal--small team-details-page__delete-modal"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="teams-section__modal-header team-details-page__delete-modal-header">
+        <div>
+          <h3>
+            {memberAssignedTasks.length > 0
+              ? isDeleteConfirmationStep
+                ? deleteTaskAction === "delete"
+                  ? "Confirm Delete Tasks"
+                  : "Confirm Unassign Tasks"
+                : "Delete Member"
+              : "Delete Member"}
+          </h3>
 
-              <button
-                type="button"
-                className="teams-section__modal-close"
-                onClick={closeDeleteModal}
-                aria-label="Close delete member dialog"
+          {!isDeleteConfirmationStep ? (
+            <p>
+              This action will remove <strong>{memberToDelete.fullName}</strong> from
+              this team.
+            </p>
+          ) : (
+            <p>
+              {deleteTaskAction === "delete" ? (
+                <>
+                  Are you sure you want to remove{" "}
+                  <strong>{memberToDelete.fullName}</strong> from this team and
+                  permanently delete all their assigned tasks?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to remove{" "}
+                  <strong>{memberToDelete.fullName}</strong> from this team and set
+                  all their assigned tasks as unassigned?
+                </>
+              )}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="teams-section__modal-close"
+          onClick={closeDeleteModal}
+          aria-label="Close delete member dialog"
+        >
+          <FiX />
+        </button>
+      </div>
+
+      <div className="team-details-page__delete-dialog">
+        {memberAssignedTasks.length > 0 && !isDeleteConfirmationStep && (
+          <>
+            <p className="team-details-page__delete-task-count">
+              {memberAssignedTasks.length}{" "}
+              {memberAssignedTasks.length === 1 ? "assigned task" : "assigned tasks"}
+            </p>
+
+            <div className="team-details-page__delete-task-options">
+              <label
+                className={`team-details-page__delete-option ${
+                  deleteTaskAction === "unassign"
+                    ? "team-details-page__delete-option--selected"
+                    : ""
+                }`}
               >
-                <FiX />
-              </button>
-            </div>
+                <span className="team-details-page__delete-option-row">
+                  <input
+                    type="radio"
+                    name="member-delete-task-action"
+                    checked={deleteTaskAction === "unassign"}
+                    onChange={() => setDeleteTaskAction("unassign")}
+                  />
+                  <span className="team-details-page__delete-option-copy">
+                    <span className="team-details-page__delete-option-label">
+                      Set tasks as unassigned
+                    </span>
+                    <span className="team-details-page__delete-option-help">
+                      Tasks will remain in the system without an assignee.
+                    </span>
+                  </span>
+                </span>
+              </label>
 
-            <div className="teams-section__form-actions">
+              <label
+                className={`team-details-page__delete-option team-details-page__delete-option--danger ${
+                  deleteTaskAction === "delete"
+                    ? "team-details-page__delete-option--selected-danger"
+                    : ""
+                }`}
+              >
+                <span className="team-details-page__delete-option-row">
+                  <input
+                    type="radio"
+                    name="member-delete-task-action"
+                    checked={deleteTaskAction === "delete"}
+                    onChange={() => setDeleteTaskAction("delete")}
+                  />
+                  <span className="team-details-page__delete-option-copy">
+                    <span className="team-details-page__delete-option-label">
+                      Delete tasks <span aria-hidden="true">⚠️</span>
+                    </span>
+                    <span className="team-details-page__delete-option-help">
+                      All tasks assigned to this member will be removed permanently.
+                    </span>
+                  </span>
+                </span>
+              </label>
+            </div>
+          </>
+        )}
+
+        <div className="teams-section__form-actions">
+          {!isDeleteConfirmationStep ? (
+            <>
               <button
                 type="button"
                 className="teams-section__secondary-btn"
@@ -1931,15 +2231,44 @@ export default function TeamDetailsPage({
               <button
                 type="button"
                 className="teams-section__delete-btn"
+                onClick={() => {
+                  if (memberAssignedTasks.length > 0) {
+                    setIsDeleteConfirmationStep(true);
+                  } else {
+                    handleConfirmDeleteMember();
+                  }
+                }}
+                disabled={isSaving}
+              >
+                {isSaving ? "Deleting..." : memberAssignedTasks.length > 0 ? "Continue" : "Delete Member"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="teams-section__secondary-btn"
+                onClick={() => setIsDeleteConfirmationStep(false)}
+                disabled={isSaving}
+              >
+                Back
+              </button>
+
+              <button
+                type="button"
+                className="teams-section__delete-btn"
                 onClick={handleConfirmDeleteMember}
                 disabled={isSaving}
               >
-                {isSaving ? "Deleting..." : "Delete Member"}
+                {isSaving ? "Deleting..." : "Confirm Delete"}
               </button>
-            </div>
-          </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
     </section>
   );
 }

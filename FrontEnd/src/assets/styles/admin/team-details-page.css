@@ -477,6 +477,115 @@
   color: #1d4ed8;
 }
 
+.team-details-page__delete-modal {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.team-details-page__delete-modal-header {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.team-details-page__delete-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.team-details-page__delete-task-count {
+  margin: 0;
+  color: #334155;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.team-details-page__delete-task-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.team-details-page__delete-option {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #ffffff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  cursor: pointer;
+}
+
+.team-details-page__delete-option:hover {
+  border-color: #bfd2f8;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.team-details-page__delete-option--selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+}
+
+.team-details-page__delete-option--danger {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.team-details-page__delete-option--selected-danger {
+  border-color: #dc2626;
+  background: #fef2f2;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.08);
+}
+
+.team-details-page__delete-option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.team-details-page__delete-option-row input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+
+.team-details-page__delete-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.team-details-page__delete-option-label {
+  color: #0f172a;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.team-details-page__delete-option-help {
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.team-details-page__delete-confirm-message {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .team-details-page__empty {
   min-height: 180px;
   display: flex;
@@ -624,5 +733,10 @@
   .team-details-page__leader-card-copy strong,
   .team-details-page__leader-card-copy small {
     white-space: normal;
+  }
+
+  .team-details-page__delete-option,
+  .team-details-page__delete-confirm-message {
+    padding: 12px 14px;
   }
 }
