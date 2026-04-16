@@ -1301,14 +1301,39 @@ const handleConfirmDeleteMember = async () => {
     const currentTeamId = String(teamState?.teamId || "");
     const selectedLeaderId = String(editForm.teamLeaderId || "");
 
-    const employees = companyMembers.filter((employee) => {
-      const employeeId = String(employee.userId || "");
+    const currentTeamMemberIds = new Set(
+      (Array.isArray(teamState?.memberIds) ? teamState.memberIds : []).map((id) =>
+        String(id)
+      )
+    );
 
-      if (!isSelectableMemberRole(employee.role) || isTeamLeaderRole(employee.role)) {
+    const employees = companyMembers.filter((employee) => {
+      const employeeId = String(
+        employee.userId || employee.UserId || employee.id || ""
+      );
+      const role = employee.role || employee.Role || "";
+      const isActiveUser =
+        employee.isActive !== false &&
+        employee.IsActive !== false &&
+        employee.active !== false;
+
+      if (!employeeId) {
+        return false;
+      }
+
+      if (!isEmployeeRole(role)) {
+        return false;
+      }
+
+      if (!isActiveUser) {
         return false;
       }
 
       if (employeeId === selectedLeaderId) {
+        return false;
+      }
+
+      if (currentTeamMemberIds.has(employeeId)) {
         return false;
       }
 
@@ -1339,13 +1364,15 @@ const handleConfirmDeleteMember = async () => {
     }
 
     return employees.filter((employee) => {
-      const fullName = (employee.fullName || "").toLowerCase();
-      const email = (employee.email || "").toLowerCase();
-      const role = (employee.role || "").toLowerCase();
-      const jobTitle = (
+      const fullName = String(employee.fullName || employee.FullName || "").toLowerCase();
+      const email = String(employee.email || employee.Email || "").toLowerCase();
+      const role = String(employee.role || employee.Role || "").toLowerCase();
+      const jobTitle = String(
         employee.jobTitle ||
-        employee.jobType ||
-        ""
+          employee.JobTitle ||
+          employee.jobType ||
+          employee.JobType ||
+          ""
       ).toLowerCase();
 
       return (
