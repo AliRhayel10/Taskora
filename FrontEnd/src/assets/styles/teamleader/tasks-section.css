@@ -1739,3 +1739,22 @@
 .tasks-section__sort-btn:hover .tasks-section__sort-icon {
     color: #1e293b;
 }
+
+.tasks-section__unassigned-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #c2410c;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.tasks-section__unassigned-pill svg {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}

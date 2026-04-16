@@ -19,7 +19,7 @@ namespace BackEnd.Models
 
         public string? Description { get; set; }
 
-       public int? AssignedToUserId { get; set; }
+        public int? AssignedToUserId { get; set; }
 
         public int CreatedByUserId { get; set; }
 
@@ -44,5 +44,11 @@ namespace BackEnd.Models
 
         [ForeignKey(nameof(TaskStatusId))]
         public TaskStatus? TaskStatus { get; set; }
+
+        [ForeignKey(nameof(AssignedToUserId))]
+        public User? AssignedToUser { get; set; }
+
+        [ForeignKey(nameof(CreatedByUserId))]
+        public User? CreatedByUser { get; set; }
     }
 }

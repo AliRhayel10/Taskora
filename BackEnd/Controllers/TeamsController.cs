@@ -209,6 +209,85 @@ namespace BackEnd.Controllers
             return Ok(result);
         }
 
+
+        [HttpGet("{teamId:int}/members")]
+        public async Task<IActionResult> GetMembersByTeam(
+            int teamId,
+            [FromQuery] string? search = null,
+            [FromQuery] bool includeLeader = false)
+        {
+            var normalizedSearch = search?.Trim().ToLower();
+
+            var team = await _context.Teams
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TeamId == teamId);
+
+            if (team == null)
+            {
+                return NotFound(new { success = false, message = "Team not found." });
+            }
+
+            var rawMembers = await (
+                from teamMember in _context.TeamMembers
+                join user in _context.Users on teamMember.UserId equals user.UserId
+                join userRole in _context.UserRoles on user.UserId equals userRole.UserId into userRoleJoin
+                from userRole in userRoleJoin.DefaultIfEmpty()
+                join role in _context.Roles on userRole.RoleId equals role.RoleId into roleJoin
+                from role in roleJoin.DefaultIfEmpty()
+                where teamMember.TeamId == teamId && teamMember.IsActive
+                select new
+                {
+                    userId = user.UserId,
+                    fullName = user.FullName,
+                    email = user.Email,
+                    role = role != null ? role.RoleName : "Employee",
+                    jobTitle = user.JobTitle,
+                    isActive = user.IsActive,
+                    status = user.IsActive ? "Active" : "Inactive",
+                    profileImageUrl = user.ProfileImageUrl,
+                    teamId = team.TeamId,
+                    teamIds = new List<int> { team.TeamId }
+                }
+            ).ToListAsync();
+
+            static string NormalizeRole(string? value)
+            {
+                return (value ?? string.Empty)
+                    .Trim()
+                    .ToLower()
+                    .Replace("_", " ")
+                    .Replace("-", " ");
+            }
+
+            static bool IsTeamLeader(string? value)
+            {
+                var normalizedRole = NormalizeRole(value);
+                return normalizedRole == "team leader" || normalizedRole == "teamleader";
+            }
+
+            var filteredMembers = includeLeader
+                ? rawMembers.AsEnumerable()
+                : rawMembers.Where(member => !IsTeamLeader(member.role));
+
+            if (!string.IsNullOrWhiteSpace(normalizedSearch))
+            {
+                filteredMembers = filteredMembers.Where(member =>
+                    (member.fullName ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (member.email ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (member.role ?? string.Empty).ToLower().Contains(normalizedSearch) ||
+                    (member.jobTitle ?? string.Empty).ToLower().Contains(normalizedSearch));
+            }
+
+            var result = filteredMembers
+                .GroupBy(member => member.userId)
+                .Select(group => group.First())
+                .OrderBy(member => member.fullName)
+                .ThenBy(member => member.email)
+                .ToList();
+
+            return Ok(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTeam([FromBody] CreateTeamRequest request)
         {

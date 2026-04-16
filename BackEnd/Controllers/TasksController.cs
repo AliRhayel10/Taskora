@@ -279,79 +279,94 @@ namespace BackEnd.Controllers
         }
 
         [HttpPut("{taskId:int}/assignee")]
-public async Task<IActionResult> UpdateTaskAssignee(int taskId, [FromBody] UpdateTaskAssigneeRequest request)
-{
-    if (request == null)
-    {
-        return BadRequest(new
+        public async Task<IActionResult> UpdateTaskAssignee(int taskId, [FromBody] UpdateTaskAssigneeRequest request)
         {
-            success = false,
-            message = "Invalid request."
-        });
-    }
-
-    var task = await _context.Tasks.FirstOrDefaultAsync(t => t.TaskId == taskId);
-
-    if (task == null)
-    {
-        return NotFound(new
-        {
-            success = false,
-            message = "Task not found."
-        });
-    }
-
-    if (request.AssignedToUserId.HasValue)
-    {
-        var assignedUser = await _context.Users.FirstOrDefaultAsync(u =>
-            u.UserId == request.AssignedToUserId.Value &&
-            u.CompanyId == task.CompanyId);
-
-        if (assignedUser == null)
-        {
-            return BadRequest(new
+            if (request == null)
             {
-                success = false,
-                message = "Assigned user not found."
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
+
+            var task = await _context.Tasks.FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+            if (task == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Task not found."
+                });
+            }
+
+            if (request.AssignedToUserId.HasValue)
+            {
+                var assignedUser = await _context.Users.FirstOrDefaultAsync(u =>
+                    u.UserId == request.AssignedToUserId.Value &&
+                    u.CompanyId == task.CompanyId);
+
+                if (assignedUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Assigned user not found."
+                    });
+                }
+            }
+
+            task.AssignedToUserId = request.AssignedToUserId;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = request.AssignedToUserId.HasValue
+                    ? "Task reassigned successfully."
+                    : "Task unassigned successfully."
             });
         }
-    }
 
-    task.AssignedToUserId = request.AssignedToUserId;
-    await _context.SaveChangesAsync();
-
-    return Ok(new
-    {
-        success = true,
-        message = request.AssignedToUserId.HasValue
-            ? "Task reassigned successfully."
-            : "Task unassigned successfully."
-    });
-}
-
-[HttpDelete("{taskId:int}")]
-public async Task<IActionResult> DeleteTask(int taskId)
-{
-    var task = await _context.Tasks.FirstOrDefaultAsync(t => t.TaskId == taskId);
-
-    if (task == null)
-    {
-        return NotFound(new
+        [HttpDelete("{taskId:int}")]
+        public async Task<IActionResult> DeleteTask(int taskId)
         {
-            success = false,
-            message = "Task not found."
-        });
-    }
+            var task = await _context.Tasks.FirstOrDefaultAsync(t => t.TaskId == taskId);
 
-    _context.Tasks.Remove(task);
-    await _context.SaveChangesAsync();
+            if (task == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Task not found."
+                });
+            }
 
-    return Ok(new
-    {
-        success = true,
-        message = "Task deleted successfully."
-    });
-}
+            var historyItems = await _context.TaskStatusHistories
+                .Where(h => h.TaskId == taskId)
+                .ToListAsync();
+
+            if (historyItems.Any())
+            {
+                _context.TaskStatusHistories.RemoveRange(historyItems);
+            }
+
+            _context.Tasks.Remove(task);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Task deleted successfully."
+            });
+        }
+
+        [HttpDelete("delete/{taskId:int}")]
+        public async Task<IActionResult> DeleteTaskByAlternateRoute(int taskId)
+        {
+            return await DeleteTask(taskId);
+        }
 
         [HttpPost("statuses/{companyId}")]
         public async Task<IActionResult> AddTaskStatus(int companyId, [FromBody] AddTaskStatusRequest request)
@@ -774,26 +789,29 @@ public async Task<IActionResult> DeleteTask(int taskId)
         {
             var tasks = await _context.Tasks
                 .Include(t => t.TaskStatus)
+                .Include(t => t.AssignedToUser)
                 .Where(t => t.CompanyId == companyId)
                 .OrderByDescending(t => t.TaskId)
-                .Select(t => new TaskResponse
-                {
-                    TaskId = t.TaskId,
-                    CompanyId = t.CompanyId,
-                    TeamId = t.TeamId,
-                    Title = t.Title,
-                    Description = t.Description,
-                    AssignedToUserId = t.AssignedToUserId,
-                    CreatedByUserId = t.CreatedByUserId,
-                    Priority = t.Priority,
-                    Complexity = t.Complexity,
-                    EstimatedEffortHours = t.EstimatedEffortHours,
-                    Weight = t.Weight,
-                    StartDate = t.StartDate ?? null,
-                    DueDate = t.DueDate ?? null,
-                    TaskStatusId = t.TaskStatusId,
-                    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : ""
-                })
+.Select(t => new TaskResponse
+{
+    TaskId = t.TaskId,
+    CompanyId = t.CompanyId,
+    TeamId = t.TeamId,
+    Title = t.Title,
+    Description = t.Description,
+    AssignedToUserId = t.AssignedToUserId,
+    CreatedByUserId = t.CreatedByUserId,
+    Priority = t.Priority,
+    Complexity = t.Complexity,
+    EstimatedEffortHours = t.EstimatedEffortHours,
+    Weight = t.Weight,
+    StartDate = t.StartDate,
+    DueDate = t.DueDate,
+    TaskStatusId = t.TaskStatusId,
+    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
+    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
+    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
+})
                 .ToListAsync();
 
             return Ok(new
@@ -808,25 +826,28 @@ public async Task<IActionResult> DeleteTask(int taskId)
         {
             var task = await _context.Tasks
                 .Include(t => t.TaskStatus)
+                .Include(t => t.AssignedToUser)
                 .Where(t => t.TaskId == taskId)
-                .Select(t => new TaskResponse
-                {
-                    TaskId = t.TaskId,
-                    CompanyId = t.CompanyId,
-                    TeamId = t.TeamId,
-                    Title = t.Title,
-                    Description = t.Description,
-                    AssignedToUserId = t.AssignedToUserId,
-                    CreatedByUserId = t.CreatedByUserId,
-                    Priority = t.Priority,
-                    Complexity = t.Complexity,
-                    EstimatedEffortHours = t.EstimatedEffortHours,
-                    Weight = t.Weight,
-                    StartDate = t.StartDate,
-                    DueDate = t.DueDate,
-                    TaskStatusId = t.TaskStatusId,
-                    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : ""
-                })
+.Select(t => new TaskResponse
+{
+    TaskId = t.TaskId,
+    CompanyId = t.CompanyId,
+    TeamId = t.TeamId,
+    Title = t.Title,
+    Description = t.Description,
+    AssignedToUserId = t.AssignedToUserId,
+    CreatedByUserId = t.CreatedByUserId,
+    Priority = t.Priority,
+    Complexity = t.Complexity,
+    EstimatedEffortHours = t.EstimatedEffortHours,
+    Weight = t.Weight,
+    StartDate = t.StartDate,
+    DueDate = t.DueDate,
+    TaskStatusId = t.TaskStatusId,
+    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
+    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
+    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
+})
                 .FirstOrDefaultAsync();
 
             if (task == null)
@@ -963,13 +984,16 @@ public async Task<IActionResult> DeleteTask(int taskId)
                 taskStatusId = defaultStatus.TaskStatusId;
             }
 
+            var normalizedPriority = request.Priority?.Trim() ?? "";
+            var normalizedComplexity = request.Complexity?.Trim() ?? "";
+
             var priorityMultiplier = await _context.PriorityMultipliers
-                .Where(p => p.CompanyId == request.CompanyId && p.PriorityName == request.Priority)
+                .Where(p => p.CompanyId == request.CompanyId && p.PriorityName == normalizedPriority)
                 .Select(p => p.Multiplier)
                 .FirstOrDefaultAsync();
 
             var complexityMultiplier = await _context.ComplexityMultipliers
-                .Where(c => c.CompanyId == request.CompanyId && c.ComplexityName == request.Complexity)
+                .Where(c => c.CompanyId == request.CompanyId && c.ComplexityName == normalizedComplexity)
                 .Select(c => c.Multiplier)
                 .FirstOrDefaultAsync();
 
@@ -1001,8 +1025,8 @@ public async Task<IActionResult> DeleteTask(int taskId)
                 Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
                 AssignedToUserId = request.AssignedToUserId,
                 CreatedByUserId = request.CreatedByUserId,
-                Priority = request.Priority.Trim(),
-                Complexity = request.Complexity.Trim(),
+                Priority = normalizedPriority,
+                Complexity = normalizedComplexity,
                 EstimatedEffortHours = request.EstimatedEffortHours,
                 Weight = calculatedWeight,
                 StartDate = request.StartDate,
@@ -1019,6 +1043,174 @@ public async Task<IActionResult> DeleteTask(int taskId)
                 message = "Task created successfully.",
                 taskId = task.TaskId
             });
+        }
+
+        [HttpPut("update")]
+        public async Task<IActionResult> UpdateTask([FromBody] UpdateTaskRequest request)
+        {
+            if (request == null || request.TaskId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
+
+            var task = await _context.Tasks.FirstOrDefaultAsync(t => t.TaskId == request.TaskId);
+
+            if (task == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Task not found."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Task title is required."
+                });
+            }
+
+            if (request.AssignedToUserId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Assigned user is required."
+                });
+            }
+
+            var assignedUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == request.AssignedToUserId && u.CompanyId == task.CompanyId);
+
+            if (assignedUser == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Assigned user not found."
+                });
+            }
+
+            var normalizedPriority = request.Priority?.Trim() ?? "";
+            var normalizedComplexity = request.Complexity?.Trim() ?? "";
+
+            var priorityMultiplier = await _context.PriorityMultipliers
+                .Where(p => p.CompanyId == task.CompanyId && p.PriorityName == normalizedPriority)
+                .Select(p => p.Multiplier)
+                .FirstOrDefaultAsync();
+
+            var complexityMultiplier = await _context.ComplexityMultipliers
+                .Where(c => c.CompanyId == task.CompanyId && c.ComplexityName == normalizedComplexity)
+                .Select(c => c.Multiplier)
+                .FirstOrDefaultAsync();
+
+            if (priorityMultiplier <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Priority multiplier is not configured for the selected priority."
+                });
+            }
+
+            if (complexityMultiplier <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Complexity multiplier is not configured for the selected complexity."
+                });
+            }
+
+            task.Title = request.Title.Trim();
+            task.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            task.AssignedToUserId = request.AssignedToUserId;
+            task.Priority = normalizedPriority;
+            task.Complexity = normalizedComplexity;
+            task.EstimatedEffortHours = request.EstimatedEffortHours;
+            task.Weight = request.EstimatedEffortHours * priorityMultiplier * complexityMultiplier;
+
+            if (request.TeamId > 0)
+            {
+                task.TeamId = request.TeamId;
+            }
+
+            if (request.StartDate.HasValue)
+            {
+                task.StartDate = request.StartDate.Value;
+            }
+
+            if (request.DueDate.HasValue)
+            {
+                task.DueDate = request.DueDate.Value;
+            }
+
+            if (request.TaskStatusId.HasValue && request.TaskStatusId.Value > 0)
+            {
+                var selectedStatus = await _context.TaskStatuses
+                    .FirstOrDefaultAsync(s =>
+                        s.TaskStatusId == request.TaskStatusId.Value &&
+                        s.CompanyId == task.CompanyId &&
+                        s.IsActive);
+
+                if (selectedStatus == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Selected task status is invalid."
+                    });
+                }
+
+                task.TaskStatusId = request.TaskStatusId.Value;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Task updated successfully."
+            });
+        }
+
+        [HttpPut("update/{taskId:int}")]
+        public async Task<IActionResult> UpdateTaskByRoute(int taskId, [FromBody] UpdateTaskRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
+
+            request.TaskId = taskId;
+            return await UpdateTask(request);
+        }
+
+        [HttpPut("{taskId:int}")]
+        public async Task<IActionResult> UpdateTaskByPlainRoute(int taskId, [FromBody] UpdateTaskRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request."
+                });
+            }
+
+            request.TaskId = taskId;
+            return await UpdateTask(request);
         }
 
         [HttpPut("update-status")]
