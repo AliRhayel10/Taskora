@@ -1838,37 +1838,37 @@ export default function TasksSection({
                         </span>
                       </td>
 
-<td>
-  {isEditing ? (
-    <button
-      type="button"
-      className="tasks-section__inline-link"
-      onClick={() => openEditDueDateModal(task)}
-    >
-      <span className="tasks-section__user-details">
-        <strong>
-          <span className="tasks-section__date-range-text">
-            {editFormState?.startDate && editFormState?.dueDate
-              ? `${formatDate(editFormState.startDate)} - ${formatDate(editFormState.dueDate)}`
-              : "Select date range"}
-          </span>
-          <span
-            className="tasks-section__editable-indicator"
-            aria-hidden="true"
-          >
-            <FiEdit2 />
-          </span>
-        </strong>
-      </span>
-    </button>
-  ) : (
-    <span className="tasks-section__date-range-text">
-      {task.startDate && task.dueDate
-        ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}`
-        : formatDate(task.dueDate)}
-    </span>
-  )}
-</td>
+                      <td>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-link"
+                            onClick={() => openEditDueDateModal(task)}
+                          >
+                            <span className="tasks-section__user-details">
+                              <strong>
+                                <span className="tasks-section__date-range-text">
+                                  {editFormState?.startDate && editFormState?.dueDate
+                                    ? `${formatDate(editFormState.startDate)} - ${formatDate(editFormState.dueDate)}`
+                                    : "Select date range"}
+                                </span>
+                                <span
+                                  className="tasks-section__editable-indicator"
+                                  aria-hidden="true"
+                                >
+                                  <FiEdit2 />
+                                </span>
+                              </strong>
+                            </span>
+                          </button>
+                        ) : (
+                          <span className="tasks-section__date-range-text">
+                            {task.startDate && task.dueDate
+                              ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}`
+                              : formatDate(task.dueDate)}
+                          </span>
+                        )}
+                      </td>
 
                       <td className="tasks-section__cell-actions">
                         <div className="tasks-section__actions">
