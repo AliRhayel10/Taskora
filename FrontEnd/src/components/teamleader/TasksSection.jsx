@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../assets/styles/teamleader/tasks-section.css";
 import {
+  FiAlertTriangle,
   FiCalendar,
   FiCheck,
   FiChevronDown,
@@ -1489,22 +1490,31 @@ export default function TasksSection({
                               </div>
                             </div>
                           </button>
-                        ) : (
-                          <div className="tasks-section__user-cell">
-                            <div className="tasks-section__avatar">
-                              {task.assignedUserAvatar ? (
-                                <img src={task.assignedUserAvatar} alt={task.assignedUserName} className="tasks-section__avatar-image" />
-                              ) : (
-                                getInitials(task.assignedUserName)
-                              )}
-                            </div>
+) : !task.assignedUserId || String(task.assignedUserName || "").trim().toLowerCase() === "unknown user" ? (
+  <span className="tasks-section__unassigned-pill">
+    <FiAlertTriangle />
+    Unassigned
+  </span>
+) : (
+  <div className="tasks-section__user-cell">
+    <div className="tasks-section__avatar">
+      {task.assignedUserAvatar ? (
+        <img
+          src={task.assignedUserAvatar}
+          alt={task.assignedUserName}
+          className="tasks-section__avatar-image"
+        />
+      ) : (
+        getInitials(task.assignedUserName)
+      )}
+    </div>
 
-                            <div className="tasks-section__user-details">
-                              <strong>{task.assignedUserName}</strong>
-                              <small>{task.assignedUserEmail || "—"}</small>
-                            </div>
-                          </div>
-                        )}
+    <div className="tasks-section__user-details">
+      <strong>{task.assignedUserName}</strong>
+      <small>{task.assignedUserEmail || "—"}</small>
+    </div>
+  </div>
+)}
                       </td>
 
                       <td>
