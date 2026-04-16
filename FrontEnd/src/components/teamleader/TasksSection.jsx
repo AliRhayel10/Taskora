@@ -1869,19 +1869,19 @@ export default function TasksSection({
                       {isDatePickerOpen && (
                         <div className="tasks-section__date-picker-popover">
                           <div className="tasks-section__date-picker-calendar">
-                            <DayPicker
-                              mode="range"
-                              selected={draftRange}
-                              onSelect={(range) =>
-                                setDraftRange({
-                                  from: range?.from || undefined,
-                                  to: range?.to || undefined,
-                                })
-                              }
-                              showOutsideDays
-                              numberOfMonths={1}
-                              className="tasks-section__day-picker"
-                            />
+<DayPicker
+  mode="range"
+  selected={draftRange}
+  onSelect={(range) =>
+    setDraftRange({
+      from: range?.from || undefined,
+      to: range?.to || undefined,
+    })
+  }
+  disabled={{ before: new Date() }}
+  showOutsideDays={false}
+  className="tasks-section__day-picker"
+/>
                           </div>
 
                           <button
