@@ -253,6 +253,7 @@ export default function TeamLeaderDashboardSection({
 
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [leaderTeamName, setLeaderTeamName] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -418,6 +419,16 @@ export default function TeamLeaderDashboardSection({
         const leaderTeams = teamsData.filter(
           (team) => Number(team.teamLeaderUserId) === userId
         );
+
+        const leaderTeamNameValue =
+          leaderTeams.length > 0
+            ? leaderTeams
+                .map((team) => String(team.teamName || "").trim())
+                .filter(Boolean)
+                .join(", ")
+            : "Team";
+
+        setLeaderTeamName(leaderTeamNameValue);
 
         const leaderTeamIds = leaderTeams.map((team) => Number(team.teamId));
 
@@ -756,15 +767,15 @@ export default function TeamLeaderDashboardSection({
                 </div>
 
                 <div className="teamleader-dashboard-section__calendar-shell">
-<DayPicker
-  mode="range"
-  selected={draftCustomRange}
-  onSelect={handleCustomRangeSelect}
-  showOutsideDays={false}
-  disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
-  numberOfMonths={1}
-  className="teamleader-dashboard-section__day-picker"
-/>
+                  <DayPicker
+                    mode="range"
+                    selected={draftCustomRange}
+                    onSelect={handleCustomRangeSelect}
+                    showOutsideDays={false}
+                    disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+                    numberOfMonths={1}
+                    className="teamleader-dashboard-section__day-picker"
+                  />
                 </div>
 
                 <button
@@ -818,7 +829,7 @@ export default function TeamLeaderDashboardSection({
           </div>
 
           <div className="teamleader-dashboard-section__workload-head">
-            <h3>Team Member Workload</h3>
+            <h3>{leaderTeamName} Team Member Workload</h3>
             <span className="teamleader-dashboard-section__workload-line"></span>
           </div>
 
