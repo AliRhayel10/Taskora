@@ -1842,7 +1842,14 @@ export default function TasksSection({
 
                   <div className="tasks-section__form-group">
                     <label htmlFor="task-weight">Task weight</label>
-                    <input id="task-weight" type="text" value={computedTaskWeight} readOnly placeholder="Calculated automatically" />
+                    <input
+  id="task-weight"
+  className="tasks-section__task-weight-input"
+  type="text"
+  value={computedTaskWeight}
+  readOnly
+  placeholder="Calculated automatically"
+/>
                   </div>
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
@@ -1878,7 +1885,7 @@ export default function TasksSection({
       to: range?.to || undefined,
     })
   }
-  disabled={{ before: new Date() }}
+  disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
   showOutsideDays={false}
   className="tasks-section__day-picker"
 />

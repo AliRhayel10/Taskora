@@ -814,6 +814,11 @@
     padding: 10px 12px;
     transition: border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
 }
+.tasks-section__task-weight-input {
+    background: #eef4ff !important;
+    color: #64748b;
+    font-weight: 600;
+}
 
 .tasks-section__form-group textarea {
     resize: vertical;
