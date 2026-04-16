@@ -172,9 +172,10 @@ namespace BackEnd.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne<User>()
-                    .WithMany()
-                    .HasForeignKey(t => t.AssignedToUserId)
-                    .OnDelete(DeleteBehavior.Restrict);
+    .WithMany()
+    .HasForeignKey(t => t.AssignedToUserId)
+    .IsRequired(false)
+    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne<User>()
                     .WithMany()

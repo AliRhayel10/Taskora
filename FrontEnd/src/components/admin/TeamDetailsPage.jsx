@@ -269,57 +269,23 @@ async function updateTaskAssignmentOnBackend(task, nextAssigneeId) {
     throw new Error("Failed to identify one of the assigned tasks.");
   }
 
-  const commonPayload = {
-    ...task,
-    assignedToUserId: nextAssigneeId,
-    AssignedToUserId: nextAssigneeId,
-    assignedUserId: nextAssigneeId,
-    AssignedUserId: nextAssigneeId,
-    assigneeId: nextAssigneeId,
-    AssigneeId: nextAssigneeId,
-    employeeId: nextAssigneeId,
-    EmployeeId: nextAssigneeId,
-    memberId: nextAssigneeId,
-    MemberId: nextAssigneeId,
-    userId: nextAssigneeId,
-    UserId: nextAssigneeId,
-  };
+  const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/assignee`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      assignedToUserId: nextAssigneeId,
+    }),
+  });
 
-  return attemptTaskWriteRequests(
-    [
-      {
-        method: "PATCH",
-        url: `${API_BASE_URL}/api/tasks/${taskId}/assign`,
-        body: { assignedToUserId: nextAssigneeId },
-      },
-      {
-        method: "PUT",
-        url: `${API_BASE_URL}/api/tasks/${taskId}/assign`,
-        body: { assignedToUserId: nextAssigneeId },
-      },
-      {
-        method: "PATCH",
-        url: `${API_BASE_URL}/api/tasks/${taskId}/reassign`,
-        body: { assignedToUserId: nextAssigneeId },
-      },
-      {
-        method: "PUT",
-        url: `${API_BASE_URL}/api/tasks/${taskId}/reassign`,
-        body: { assignedToUserId: nextAssigneeId },
-      },
-      {
-        method: "PATCH",
-        url: `${API_BASE_URL}/api/tasks/${taskId}`,
-        body: commonPayload,
-      },
-      {
-        method: "PUT",
-        url: `${API_BASE_URL}/api/tasks/${taskId}`,
-        body: commonPayload,
-      },
-    ],
-    "Failed to update member tasks."
-  );
+  const data = await parseJsonResponse(response);
+
+  if (!response.ok || data?.success === false) {
+    throw new Error(data.message || "Failed to update member tasks.");
+  }
+
+  return data;
 }
 
 async function deleteTaskOnBackend(task) {
@@ -329,15 +295,17 @@ async function deleteTaskOnBackend(task) {
     throw new Error("Failed to identify one of the assigned tasks.");
   }
 
-  return attemptTaskWriteRequests(
-    [
-      {
-        method: "DELETE",
-        url: `${API_BASE_URL}/api/tasks/${taskId}`,
-      },
-    ],
-    "Failed to delete assigned tasks."
-  );
+  const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+    method: "DELETE",
+  });
+
+  const data = await parseJsonResponse(response);
+
+  if (!response.ok || data?.success === false) {
+    throw new Error(data.message || "Failed to delete assigned tasks.");
+  }
+
+  return data;
 }
 
 export default function TeamDetailsPage({
@@ -1147,7 +1115,9 @@ const handleConfirmDeleteMember = async () => {
     if (memberAssignedTasks.length > 0) {
       if (deleteTaskAction === "unassign") {
         await Promise.all(
-          memberAssignedTasks.map((task) => updateTaskAssignmentOnBackend(task, null))
+          memberAssignedTasks.map((task) =>
+            updateTaskAssignmentOnBackend(task, null)
+          )
         );
 
         setCompanyTasks((prev) =>
@@ -1172,7 +1142,9 @@ const handleConfirmDeleteMember = async () => {
           )
         );
       } else if (deleteTaskAction === "delete") {
-        await Promise.all(memberAssignedTasks.map((task) => deleteTaskOnBackend(task)));
+        await Promise.all(
+          memberAssignedTasks.map((task) => deleteTaskOnBackend(task))
+        );
 
         const taskIdsToDelete = new Set(
           memberAssignedTasks.map((task) => String(getTaskId(task)))

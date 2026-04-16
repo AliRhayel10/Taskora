@@ -555,88 +555,74 @@ namespace BackEnd.Controllers
             });
         }
 
-private async Task SyncTeamMembersAsync(Team team, IEnumerable<int> requestedMemberIds, int? requestedLeaderId)
-{
-    var nextMemberIds = requestedMemberIds
-        .Where(id => id > 0)
-        .Distinct()
-        .ToList();
-
-    if (requestedLeaderId.HasValue && !nextMemberIds.Contains(requestedLeaderId.Value))
-    {
-        nextMemberIds.Add(requestedLeaderId.Value);
-    }
-
-    if (nextMemberIds.Count > 0)
-    {
-        var validUserIds = await _context.Users
-            .Where(user => user.CompanyId == team.CompanyId && nextMemberIds.Contains(user.UserId))
-            .Select(user => user.UserId)
-            .ToListAsync();
-
-        if (validUserIds.Count != nextMemberIds.Count)
+        private async Task SyncTeamMembersAsync(Team team, IEnumerable<int> requestedMemberIds, int? requestedLeaderId)
         {
-            throw new InvalidOperationException("One or more selected members do not belong to this company.");
-        }
-    }
+            var nextMemberIds = requestedMemberIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
 
-    var currentRows = await _context.TeamMembers
-        .Where(teamMember => teamMember.TeamId == team.TeamId)
-        .ToListAsync();
-
-    var rowsToRemove = currentRows
-        .Where(row => !nextMemberIds.Contains(row.UserId))
-        .ToList();
-
-    if (rowsToRemove.Count > 0)
-    {
-        var removedUserIds = rowsToRemove
-            .Select(row => row.UserId)
-            .Distinct()
-            .ToList();
-
-        var tasksToRemove = await _context.Tasks
-            .Where(task => task.TeamId == team.TeamId && removedUserIds.Contains(task.AssignedToUserId))
-            .ToListAsync();
-
-        if (tasksToRemove.Count > 0)
-        {
-            _context.Tasks.RemoveRange(tasksToRemove);
-        }
-
-        _context.TeamMembers.RemoveRange(rowsToRemove);
-    }
-
-    var remainingRows = currentRows
-        .Where(row => nextMemberIds.Contains(row.UserId))
-        .ToList();
-
-    var remainingRowsByUserId = remainingRows.ToDictionary(row => row.UserId, row => row);
-
-    foreach (var row in remainingRows)
-    {
-        row.IsActive = team.IsActive;
-    }
-
-    var missingUserIds = nextMemberIds
-        .Where(userId => !remainingRowsByUserId.ContainsKey(userId))
-        .ToList();
-
-    if (missingUserIds.Count > 0)
-    {
-        var rowsToAdd = missingUserIds
-            .Select(userId => new TeamMember
+            if (requestedLeaderId.HasValue && !nextMemberIds.Contains(requestedLeaderId.Value))
             {
-                CompanyId = team.CompanyId,
-                TeamId = team.TeamId,
-                UserId = userId,
-                JoinedAt = DateTime.UtcNow,
-                IsActive = team.IsActive
-            })
-            .ToList();
+                nextMemberIds.Add(requestedLeaderId.Value);
+            }
 
-        _context.TeamMembers.AddRange(rowsToAdd);
-    }
+            if (nextMemberIds.Count > 0)
+            {
+                var validUserIds = await _context.Users
+                    .Where(user => user.CompanyId == team.CompanyId && nextMemberIds.Contains(user.UserId))
+                    .Select(user => user.UserId)
+                    .ToListAsync();
+
+                if (validUserIds.Count != nextMemberIds.Count)
+                {
+                    throw new InvalidOperationException("One or more selected members do not belong to this company.");
+                }
+            }
+
+            var currentRows = await _context.TeamMembers
+                .Where(teamMember => teamMember.TeamId == team.TeamId)
+                .ToListAsync();
+
+            var rowsToRemove = currentRows
+                .Where(row => !nextMemberIds.Contains(row.UserId))
+                .ToList();
+
+if (rowsToRemove.Count > 0)
+{
+    _context.TeamMembers.RemoveRange(rowsToRemove);
 }
+
+            var remainingRows = currentRows
+                .Where(row => nextMemberIds.Contains(row.UserId))
+                .ToList();
+
+            var remainingRowsByUserId = remainingRows.ToDictionary(row => row.UserId, row => row);
+
+            foreach (var row in remainingRows)
+            {
+                row.IsActive = team.IsActive;
+            }
+
+            var missingUserIds = nextMemberIds
+                .Where(userId => !remainingRowsByUserId.ContainsKey(userId))
+                .ToList();
+
+            if (missingUserIds.Count > 0)
+            {
+                var rowsToAdd = missingUserIds
+                    .Select(userId => new TeamMember
+                    {
+                        CompanyId = team.CompanyId,
+                        TeamId = team.TeamId,
+                        UserId = userId,
+                        JoinedAt = DateTime.UtcNow,
+                        IsActive = team.IsActive
+                    })
+                    .ToList();
+
+                _context.TeamMembers.AddRange(rowsToAdd);
+            }
+        }
     }
 }
