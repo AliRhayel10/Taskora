@@ -419,6 +419,16 @@ export default function TasksSection({
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
 
+  useEffect(() => {
+    if (!feedback) return undefined;
+
+    const timer = setTimeout(() => {
+      setFeedback(null);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [feedback]);
+
   const resolveTeamIdForUser = useMemo(() => {
     return (userId) => {
       const numericUserId = Number(userId);
@@ -427,7 +437,9 @@ export default function TasksSection({
       const matchedTeam = teams.find((team) => {
         const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
         const hasUserAsMember = memberIds.some((id) => Number(id) === numericUserId);
-        const isLeader = Number(team?.teamLeaderUserId ?? team?.teamLeaderId) === numericUserId;
+        const isLeader =
+          Number(team?.teamLeaderUserId ?? team?.teamLeaderId) === numericUserId;
+
         return hasUserAsMember || isLeader;
       });
 
@@ -550,14 +562,19 @@ export default function TasksSection({
       setErrorMessage("");
 
       try {
-        const [tasksPayload, setupRulesPayload, statusesPayload, membersPayload, teamsPayload] =
-          await Promise.all([
-            fetchJson(resolvedTasksEndpoint).catch(() => []),
-            fetchJson(resolvedSetupRulesEndpoint).catch(() => null),
-            fetchJson(resolvedStatusesEndpoint).catch(() => null),
-            fetchJson(resolvedMembersEndpoint).catch(() => []),
-            fetchJson(resolvedTeamsEndpoint).catch(() => []),
-          ]);
+        const [
+          tasksPayload,
+          setupRulesPayload,
+          statusesPayload,
+          membersPayload,
+          teamsPayload,
+        ] = await Promise.all([
+          fetchJson(resolvedTasksEndpoint).catch(() => []),
+          fetchJson(resolvedSetupRulesEndpoint).catch(() => null),
+          fetchJson(resolvedStatusesEndpoint).catch(() => null),
+          fetchJson(resolvedMembersEndpoint).catch(() => []),
+          fetchJson(resolvedTeamsEndpoint).catch(() => []),
+        ]);
 
         if (!isMounted) return;
 
@@ -787,7 +804,8 @@ export default function TasksSection({
     () =>
       users.find(
         (user) =>
-          String(user.userId ?? user.id) === String(editFormState?.assignedUserId ?? "")
+          String(user.userId ?? user.id) ===
+          String(editFormState?.assignedUserId ?? "")
       ) || null,
     [users, editFormState]
   );
@@ -808,7 +826,9 @@ export default function TasksSection({
       return Number(teamIds[0]);
     }
 
-    return resolveTeamIdForUser(editingSelectedUser.userId ?? editingSelectedUser.id);
+    return resolveTeamIdForUser(
+      editingSelectedUser.userId ?? editingSelectedUser.id
+    );
   }, [editingSelectedUser, resolveTeamIdForUser, storedUserTeamId]);
 
   const filteredEditAssignableUsers = useMemo(() => {
@@ -850,11 +870,7 @@ export default function TasksSection({
           String(user.userId ?? user.id) === String(task.assignedUserId)
       );
 
-      const fallbackName =
-        matchedUser?.fullName ??
-        matchedUser?.name ??
-        "Unknown User";
-
+      const fallbackName = matchedUser?.fullName ?? matchedUser?.name ?? "Unknown User";
       const fallbackEmail = matchedUser?.email ?? "";
       const fallbackAvatar = getProfileImage(matchedUser || {});
 
@@ -1019,11 +1035,7 @@ export default function TasksSection({
     }
 
     return (baseEffort * priorityMultiplier * complexityMultiplier).toFixed(2);
-  }, [
-    editFormState,
-    priorityMultipliers,
-    complexityMultipliers,
-  ]);
+  }, [editFormState, priorityMultipliers, complexityMultipliers]);
 
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
@@ -1138,9 +1150,7 @@ export default function TasksSection({
     } catch (error) {
       setFeedback({
         type: "error",
-        message:
-          error?.message ||
-          "Unable to create task.",
+        message: error?.message || "Unable to create task.",
       });
     } finally {
       setIsSubmitting(false);
@@ -1182,7 +1192,7 @@ export default function TasksSection({
       if (!deleteAttempt.ok) {
         throw new Error(
           deleteAttempt.message ||
-          "Unable to delete task because no backend delete endpoint responded successfully."
+            "Unable to delete task because no backend delete endpoint responded successfully."
         );
       }
 
@@ -1270,7 +1280,10 @@ export default function TasksSection({
 
   const applyEditTaskInfo = () => {
     handleEditFormChange("title", capitalizeWords(editTaskDraft.title));
-    handleEditFormChange("description", capitalizeWords(editTaskDraft.description));
+    handleEditFormChange(
+      "description",
+      capitalizeWords(editTaskDraft.description)
+    );
     closeEditTaskInfoModal();
   };
 
@@ -1288,7 +1301,9 @@ export default function TasksSection({
   const saveTaskChanges = async () => {
     if (!editingTaskId || !editFormState || isSavingEdit) return;
 
-    const taskToEdit = tasks.find((task) => String(task.id) === String(editingTaskId));
+    const taskToEdit = tasks.find(
+      (task) => String(task.id) === String(editingTaskId)
+    );
     if (!taskToEdit) return;
 
     setIsSavingEdit(true);
@@ -1341,7 +1356,7 @@ export default function TasksSection({
       if (!updateAttempt.ok) {
         throw new Error(
           updateAttempt.message ||
-          "Unable to save task because no backend update endpoint responded successfully."
+            "Unable to save task because no backend update endpoint responded successfully."
         );
       }
 
@@ -1371,9 +1386,7 @@ export default function TasksSection({
     }`;
   };
 
-  const startIndex = sortedTasks.length
-    ? (currentPage - 1) * pageSize + 1
-    : 0;
+  const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(currentPage * pageSize, sortedTasks.length);
 
   return (
@@ -1399,7 +1412,8 @@ export default function TasksSection({
         <div className="tasks-section__unassigned-warning">
           <FiAlertTriangle />
           <span>
-            You have {unassignedTasksCount} unassigned task{unassignedTasksCount > 1 ? "s" : ""}.
+            You have {unassignedTasksCount} unassigned task
+            {unassignedTasksCount > 1 ? "s" : ""}.
           </span>
           <button
             type="button"
@@ -1466,14 +1480,94 @@ export default function TasksSection({
             <table className="tasks-section__table">
               <thead>
                 <tr>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("title")}><span>Task</span><FiChevronDown className={getSortIconClassName("title")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("assignedUserName")}><span>Assigned To</span><FiChevronDown className={getSortIconClassName("assignedUserName")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("priority")}><span>Priority</span><FiChevronDown className={getSortIconClassName("priority")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("complexity")}><span>Complexity</span><FiChevronDown className={getSortIconClassName("complexity")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("estimatedEffortHours")}><span>Effort</span><FiChevronDown className={getSortIconClassName("estimatedEffortHours")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("weight")}><span>Weight</span><FiChevronDown className={getSortIconClassName("weight")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("effectiveStatus")}><span>Status</span><FiChevronDown className={getSortIconClassName("effectiveStatus")} /></button></th>
-                  <th><button type="button" className="tasks-section__sort-btn" onClick={() => handleSort("dueDate")}><span>Due Date</span><FiChevronDown className={getSortIconClassName("dueDate")} /></button></th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("title")}
+                    >
+                      <span>Task</span>
+                      <FiChevronDown className={getSortIconClassName("title")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("assignedUserName")}
+                    >
+                      <span>Assigned To</span>
+                      <FiChevronDown
+                        className={getSortIconClassName("assignedUserName")}
+                      />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("priority")}
+                    >
+                      <span>Priority</span>
+                      <FiChevronDown className={getSortIconClassName("priority")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("complexity")}
+                    >
+                      <span>Complexity</span>
+                      <FiChevronDown
+                        className={getSortIconClassName("complexity")}
+                      />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("estimatedEffortHours")}
+                    >
+                      <span>Effort</span>
+                      <FiChevronDown
+                        className={getSortIconClassName("estimatedEffortHours")}
+                      />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("weight")}
+                    >
+                      <span>Weight</span>
+                      <FiChevronDown className={getSortIconClassName("weight")} />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("effectiveStatus")}
+                    >
+                      <span>Status</span>
+                      <FiChevronDown
+                        className={getSortIconClassName("effectiveStatus")}
+                      />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="tasks-section__sort-btn"
+                      onClick={() => handleSort("dueDate")}
+                    >
+                      <span>Due Date</span>
+                      <FiChevronDown className={getSortIconClassName("dueDate")} />
+                    </button>
+                  </th>
                   <th className="tasks-section__col-actions">Actions</th>
                 </tr>
               </thead>
@@ -1487,17 +1581,34 @@ export default function TasksSection({
                     <tr
                       key={task.id}
                       ref={isEditing ? editRowRef : null}
-                      className={index % 2 === 0 ? "tasks-section__row--odd" : "tasks-section__row--even"}
+                      className={
+                        index % 2 === 0
+                          ? "tasks-section__row--odd"
+                          : "tasks-section__row--even"
+                      }
                     >
                       <td>
                         {isEditing ? (
-                          <button type="button" className="tasks-section__inline-link" onClick={openEditTaskInfoModal}>
+                          <button
+                            type="button"
+                            className="tasks-section__inline-link"
+                            onClick={openEditTaskInfoModal}
+                          >
                             <div className="tasks-section__task-cell">
                               <strong>
-                                <span className="tasks-section__text-ellipsis">{editFormState.title || "Add task name"}</span>
-                                <span className="tasks-section__editable-indicator" aria-hidden="true"><FiEdit2 /></span>
+                                <span className="tasks-section__text-ellipsis">
+                                  {editFormState.title || "Add task name"}
+                                </span>
+                                <span
+                                  className="tasks-section__editable-indicator"
+                                  aria-hidden="true"
+                                >
+                                  <FiEdit2 />
+                                </span>
                               </strong>
-                              <small>{editFormState.description || "Add task description"}</small>
+                              <small>
+                                {editFormState.description || "Add task description"}
+                              </small>
                             </div>
                           </button>
                         ) : (
@@ -1527,16 +1638,31 @@ export default function TasksSection({
                                     className="tasks-section__avatar-image"
                                   />
                                 ) : (
-                                  getInitials(previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName)
+                                  getInitials(
+                                    previewUser?.fullName ??
+                                      previewUser?.name ??
+                                      task.assignedUserName
+                                  )
                                 )}
                               </div>
 
                               <div className="tasks-section__user-details">
                                 <strong>
-                                  <span className="tasks-section__text-ellipsis">{previewUser?.fullName ?? previewUser?.name ?? task.assignedUserName}</span>
-                                  <span className="tasks-section__editable-indicator" aria-hidden="true"><FiEdit2 /></span>
+                                  <span className="tasks-section__text-ellipsis">
+                                    {previewUser?.fullName ??
+                                      previewUser?.name ??
+                                      task.assignedUserName}
+                                  </span>
+                                  <span
+                                    className="tasks-section__editable-indicator"
+                                    aria-hidden="true"
+                                  >
+                                    <FiEdit2 />
+                                  </span>
                                 </strong>
-                                <small>{previewUser?.email ?? task.assignedUserEmail ?? "—"}</small>
+                                <small>
+                                  {previewUser?.email ?? task.assignedUserEmail ?? "—"}
+                                </small>
                               </div>
                             </div>
                           </button>
@@ -1549,7 +1675,11 @@ export default function TasksSection({
                           <div className="tasks-section__user-cell">
                             <div className="tasks-section__avatar">
                               {task.assignedUserAvatar ? (
-                                <img src={task.assignedUserAvatar} alt={task.assignedUserName} className="tasks-section__avatar-image" />
+                                <img
+                                  src={task.assignedUserAvatar}
+                                  alt={task.assignedUserName}
+                                  className="tasks-section__avatar-image"
+                                />
                               ) : (
                                 getInitials(task.assignedUserName)
                               )}
@@ -1569,17 +1699,27 @@ export default function TasksSection({
                             <select
                               ref={prioritySelectRef}
                               value={editFormState.priority}
-                              onChange={(event) => handleEditFormChange("priority", event.target.value)}
+                              onChange={(event) =>
+                                handleEditFormChange("priority", event.target.value)
+                              }
                               className="tasks-section__inline-select"
                             >
                               {priorityOptions.map((priority) => (
-                                <option key={priority} value={priority}>{priority}</option>
+                                <option key={priority} value={priority}>
+                                  {priority}
+                                </option>
                               ))}
                             </select>
                             <FiChevronDown />
                           </div>
                         ) : (
-                          <span className={`tasks-section__badge ${getPriorityClass(task.priority)}`}>{task.priority}</span>
+                          <span
+                            className={`tasks-section__badge ${getPriorityClass(
+                              task.priority
+                            )}`}
+                          >
+                            {task.priority}
+                          </span>
                         )}
                       </td>
 
@@ -1589,17 +1729,30 @@ export default function TasksSection({
                             <select
                               ref={complexitySelectRef}
                               value={editFormState.complexity}
-                              onChange={(event) => handleEditFormChange("complexity", event.target.value)}
+                              onChange={(event) =>
+                                handleEditFormChange(
+                                  "complexity",
+                                  event.target.value
+                                )
+                              }
                               className="tasks-section__inline-select"
                             >
                               {complexityOptions.map((complexity) => (
-                                <option key={complexity} value={complexity}>{complexity}</option>
+                                <option key={complexity} value={complexity}>
+                                  {complexity}
+                                </option>
                               ))}
                             </select>
                             <FiChevronDown />
                           </div>
                         ) : (
-                          <span className={`tasks-section__badge ${getComplexityClass(task.complexity)}`}>{task.complexity}</span>
+                          <span
+                            className={`tasks-section__badge ${getComplexityClass(
+                              task.complexity
+                            )}`}
+                          >
+                            {task.complexity}
+                          </span>
                         )}
                       </td>
 
@@ -1612,16 +1765,30 @@ export default function TasksSection({
                             step="1"
                             className="tasks-section__inline-effort-input"
                             value={editFormState.estimatedEffortHours}
-                            onChange={(event) => handleEditFormChange("estimatedEffortHours", event.target.value)}
+                            onChange={(event) =>
+                              handleEditFormChange(
+                                "estimatedEffortHours",
+                                event.target.value
+                              )
+                            }
                           />
                         ) : (
                           formatHours(task.estimatedEffortHours)
                         )}
                       </td>
-                      <td>{isEditing ? (computedEditTaskWeight || task.weight) : task.weight}</td>
+
+                      <td>
+                        {isEditing
+                          ? computedEditTaskWeight || task.weight
+                          : task.weight}
+                      </td>
 
                       <td className="tasks-section__cell-status">
-                        <span className={`tasks-section__status-badge ${getStatusClass(task.effectiveStatus)}`}>
+                        <span
+                          className={`tasks-section__status-badge ${getStatusClass(
+                            task.effectiveStatus
+                          )}`}
+                        >
                           {prettifyLabel(task.effectiveStatus)}
                         </span>
                       </td>
@@ -1663,7 +1830,11 @@ export default function TasksSection({
                             </>
                           ) : (
                             <>
-                              <button type="button" className="tasks-section__action-btn tasks-section__action-btn--view" title="View task">
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--view"
+                                title="View task"
+                              >
                                 <FiEye />
                               </button>
 
@@ -1702,7 +1873,12 @@ export default function TasksSection({
             </div>
 
             <div className="tasks-section__pagination-controls">
-              <button type="button" className="tasks-section__page-btn" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1}>
+              <button
+                type="button"
+                className="tasks-section__page-btn"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
                 <FiChevronLeft />
               </button>
 
@@ -1710,14 +1886,25 @@ export default function TasksSection({
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber ? "tasks-section__page-btn--active" : ""}`}
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
+                    currentPage === pageNumber
+                      ? "tasks-section__page-btn--active"
+                      : ""
+                  }`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
                 </button>
               ))}
 
-              <button type="button" className="tasks-section__page-btn" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages}>
+              <button
+                type="button"
+                className="tasks-section__page-btn"
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(totalPages, page + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
                 <FiChevronRight />
               </button>
             </div>
@@ -1727,7 +1914,10 @@ export default function TasksSection({
 
       {isCreateOpen && (
         <div className="tasks-section__modal-overlay" onClick={closeCreateModal}>
-          <div className="tasks-section__modal tasks-section__modal--wide" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="tasks-section__modal tasks-section__modal--wide"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
                 <h3>Create Task</h3>
@@ -1738,18 +1928,30 @@ export default function TasksSection({
                 </p>
               </div>
 
-              <button type="button" className="tasks-section__modal-close" onClick={closeCreateModal}>
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={closeCreateModal}
+              >
                 <FiX />
               </button>
             </div>
 
             <div className="tasks-section__stepper">
-              <div className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""}`}>
+              <div
+                className={`tasks-section__step ${
+                  createStep === 1 ? "tasks-section__step--active" : ""
+                }`}
+              >
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
-              <div className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""}`}>
+              <div
+                className={`tasks-section__step ${
+                  createStep === 2 ? "tasks-section__step--active" : ""
+                }`}
+              >
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
               </div>
@@ -1766,7 +1968,9 @@ export default function TasksSection({
                       id="task-title"
                       type="text"
                       value={formState.title}
-                      onChange={(event) => handleFormChange("title", capitalizeWords(event.target.value))}
+                      onChange={(event) =>
+                        handleFormChange("title", capitalizeWords(event.target.value))
+                      }
                       required
                     />
                   </div>
@@ -1778,7 +1982,12 @@ export default function TasksSection({
                     <textarea
                       id="task-description"
                       value={formState.description}
-                      onChange={(event) => handleFormChange("description", capitalizeWords(event.target.value))}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "description",
+                          capitalizeWords(event.target.value)
+                        )
+                      }
                       rows={4}
                       required
                     />
@@ -1809,17 +2018,30 @@ export default function TasksSection({
                         ) : (
                           assignableUsers.map((user) => {
                             const userId = user.userId ?? user.id;
-                            const isSelected = String(formState.assignedUserId) === String(userId);
+                            const isSelected =
+                              String(formState.assignedUserId) === String(userId);
                             const imageUrl = getProfileImage(user);
 
                             return (
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""}`}
-                                onClick={() => handleFormChange("assignedUserId", String(userId))}
+                                className={`tasks-section__member-row ${
+                                  isSelected
+                                    ? "tasks-section__member-row--selected"
+                                    : ""
+                                }`}
+                                onClick={() =>
+                                  handleFormChange("assignedUserId", String(userId))
+                                }
                               >
-                                <span className={`tasks-section__member-check ${isSelected ? "tasks-section__member-check--selected" : ""}`}>
+                                <span
+                                  className={`tasks-section__member-check ${
+                                    isSelected
+                                      ? "tasks-section__member-check--selected"
+                                      : ""
+                                  }`}
+                                >
                                   {isSelected ? "✓" : ""}
                                 </span>
 
@@ -1838,7 +2060,9 @@ export default function TasksSection({
                                 </span>
 
                                 <span className="tasks-section__member-copy">
-                                  <strong>{user.fullName ?? user.name ?? "Unknown User"}</strong>
+                                  <strong>
+                                    {user.fullName ?? user.name ?? "Unknown User"}
+                                  </strong>
                                   <small>{user.email || "—"}</small>
                                 </span>
                               </button>
@@ -1856,10 +2080,19 @@ export default function TasksSection({
                       Priority <span className="tasks-section__required">*</span>
                     </label>
                     <div className="tasks-section__select-wrapper">
-                      <select id="task-priority" value={formState.priority} onChange={(event) => handleFormChange("priority", event.target.value)} required>
+                      <select
+                        id="task-priority"
+                        value={formState.priority}
+                        onChange={(event) =>
+                          handleFormChange("priority", event.target.value)
+                        }
+                        required
+                      >
                         <option value="">Select priority</option>
                         {priorityOptions.map((priority) => (
-                          <option key={priority} value={priority}>{priority}</option>
+                          <option key={priority} value={priority}>
+                            {priority}
+                          </option>
                         ))}
                       </select>
                       <FiChevronDown />
@@ -1871,10 +2104,19 @@ export default function TasksSection({
                       Complexity <span className="tasks-section__required">*</span>
                     </label>
                     <div className="tasks-section__select-wrapper">
-                      <select id="task-complexity" value={formState.complexity} onChange={(event) => handleFormChange("complexity", event.target.value)} required>
+                      <select
+                        id="task-complexity"
+                        value={formState.complexity}
+                        onChange={(event) =>
+                          handleFormChange("complexity", event.target.value)
+                        }
+                        required
+                      >
                         <option value="">Select complexity</option>
                         {complexityOptions.map((complexity) => (
-                          <option key={complexity} value={complexity}>{complexity}</option>
+                          <option key={complexity} value={complexity}>
+                            {complexity}
+                          </option>
                         ))}
                       </select>
                       <FiChevronDown />
@@ -1891,7 +2133,9 @@ export default function TasksSection({
                       min="1"
                       step="1"
                       value={formState.estimatedEffortHours}
-                      onChange={(event) => handleFormChange("estimatedEffortHours", event.target.value)}
+                      onChange={(event) =>
+                        handleFormChange("estimatedEffortHours", event.target.value)
+                      }
                       required
                     />
                   </div>
@@ -1913,7 +2157,10 @@ export default function TasksSection({
                       Date range <span className="tasks-section__required">*</span>
                     </label>
 
-                    <div className="tasks-section__date-picker-shell" ref={datePickerRef}>
+                    <div
+                      className="tasks-section__date-picker-shell"
+                      ref={datePickerRef}
+                    >
                       <button
                         type="button"
                         className="tasks-section__date-picker-trigger"
@@ -1941,7 +2188,11 @@ export default function TasksSection({
                                   to: range?.to || undefined,
                                 })
                               }
-                              disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+                              disabled={{
+                                before: new Date(
+                                  new Date().setHours(0, 0, 0, 0)
+                                ),
+                              }}
                               showOutsideDays={false}
                               className="tasks-section__day-picker"
                             />
@@ -1963,16 +2214,32 @@ export default function TasksSection({
               )}
 
               <div className="tasks-section__form-actions">
-                <button type="button" className="tasks-section__secondary-btn" onClick={createStep === 1 ? closeCreateModal : () => setCreateStep(1)} disabled={isSubmitting}>
+                <button
+                  type="button"
+                  className="tasks-section__secondary-btn"
+                  onClick={
+                    createStep === 1 ? closeCreateModal : () => setCreateStep(1)
+                  }
+                  disabled={isSubmitting}
+                >
                   {createStep === 1 ? "Cancel" : "Back"}
                 </button>
 
                 {createStep === 1 ? (
-                  <button type="button" className="tasks-section__submit-btn" onClick={() => setCreateStep(2)} disabled={!isStepOneValid}>
+                  <button
+                    type="button"
+                    className="tasks-section__submit-btn"
+                    onClick={() => setCreateStep(2)}
+                    disabled={!isStepOneValid}
+                  >
                     Next
                   </button>
                 ) : (
-                  <button type="submit" className="tasks-section__submit-btn" disabled={isCreateDisabled}>
+                  <button
+                    type="submit"
+                    className="tasks-section__submit-btn"
+                    disabled={isCreateDisabled}
+                  >
                     {isSubmitting ? "Creating..." : "Create Task"}
                   </button>
                 )}
@@ -1983,15 +2250,26 @@ export default function TasksSection({
       )}
 
       {isEditTaskInfoOpen && editFormState && (
-        <div className="tasks-section__modal-overlay" onClick={closeEditTaskInfoModal}>
-          <div ref={editTaskInfoModalRef} className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={closeEditTaskInfoModal}
+        >
+          <div
+            ref={editTaskInfoModalRef}
+            className="tasks-section__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
                 <h3>Edit Task Info</h3>
                 <p>Update the task name and description.</p>
               </div>
 
-              <button type="button" className="tasks-section__modal-close" onClick={closeEditTaskInfoModal}>
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={closeEditTaskInfoModal}
+              >
                 <FiX />
               </button>
             </div>
@@ -2028,10 +2306,18 @@ export default function TasksSection({
               </div>
 
               <div className="tasks-section__form-actions">
-                <button type="button" className="tasks-section__secondary-btn" onClick={closeEditTaskInfoModal}>
+                <button
+                  type="button"
+                  className="tasks-section__secondary-btn"
+                  onClick={closeEditTaskInfoModal}
+                >
                   Cancel
                 </button>
-                <button type="button" className="tasks-section__submit-btn" onClick={applyEditTaskInfo}>
+                <button
+                  type="button"
+                  className="tasks-section__submit-btn"
+                  onClick={applyEditTaskInfo}
+                >
                   Apply
                 </button>
               </div>
@@ -2041,15 +2327,26 @@ export default function TasksSection({
       )}
 
       {isEditAssigneeOpen && editFormState && (
-        <div className="tasks-section__modal-overlay" onClick={closeEditAssigneeModal}>
-          <div ref={editAssigneeModalRef} className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={closeEditAssigneeModal}
+        >
+          <div
+            ref={editAssigneeModalRef}
+            className="tasks-section__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
                 <h3>Edit Assignee</h3>
                 <p>Search and choose a different employee.</p>
               </div>
 
-              <button type="button" className="tasks-section__modal-close" onClick={closeEditAssigneeModal}>
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={closeEditAssigneeModal}
+              >
                 <FiX />
               </button>
             </div>
@@ -2071,20 +2368,29 @@ export default function TasksSection({
                 ) : (
                   filteredEditAssignableUsers.map((user) => {
                     const userId = user.userId ?? user.id;
-                    const isSelected = String(editFormState.assignedUserId) === String(userId);
+                    const isSelected =
+                      String(editFormState.assignedUserId) === String(userId);
                     const imageUrl = getProfileImage(user);
 
                     return (
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""}`}
+                        className={`tasks-section__member-row ${
+                          isSelected ? "tasks-section__member-row--selected" : ""
+                        }`}
                         onClick={() => {
                           handleEditFormChange("assignedUserId", String(userId));
                           closeEditAssigneeModal();
                         }}
                       >
-                        <span className={`tasks-section__member-check ${isSelected ? "tasks-section__member-check--selected" : ""}`}>
+                        <span
+                          className={`tasks-section__member-check ${
+                            isSelected
+                              ? "tasks-section__member-check--selected"
+                              : ""
+                          }`}
+                        >
                           {isSelected ? "✓" : ""}
                         </span>
 
@@ -2114,10 +2420,18 @@ export default function TasksSection({
             </div>
 
             <div className="tasks-section__form-actions">
-              <button type="button" className="tasks-section__secondary-btn" onClick={closeEditAssigneeModal}>
+              <button
+                type="button"
+                className="tasks-section__secondary-btn"
+                onClick={closeEditAssigneeModal}
+              >
                 Cancel
               </button>
-              <button type="button" className="tasks-section__submit-btn" onClick={closeEditAssigneeModal}>
+              <button
+                type="button"
+                className="tasks-section__submit-btn"
+                onClick={closeEditAssigneeModal}
+              >
                 Apply
               </button>
             </div>
@@ -2126,19 +2440,35 @@ export default function TasksSection({
       )}
 
       {deleteTaskId && (
-        <div className="tasks-section__modal-overlay" onClick={() => setDeleteTaskId(null)}>
-          <div className="tasks-section__confirm-modal" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={() => setDeleteTaskId(null)}
+        >
+          <div
+            className="tasks-section__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="tasks-section__confirm-copy">
               <h3>Delete Task</h3>
               <p>Are you sure you want to delete this task?</p>
             </div>
 
             <div className="tasks-section__confirm-actions">
-              <button type="button" className="tasks-section__secondary-btn" onClick={() => setDeleteTaskId(null)} disabled={isDeletingTask}>
+              <button
+                type="button"
+                className="tasks-section__secondary-btn"
+                onClick={() => setDeleteTaskId(null)}
+                disabled={isDeletingTask}
+              >
                 Cancel
               </button>
 
-              <button type="button" className="tasks-section__danger-btn" onClick={confirmDeleteTask} disabled={isDeletingTask}>
+              <button
+                type="button"
+                className="tasks-section__danger-btn"
+                onClick={confirmDeleteTask}
+                disabled={isDeletingTask}
+              >
                 {isDeletingTask ? "Deleting..." : "Confirm"}
               </button>
             </div>
