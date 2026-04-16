@@ -705,31 +705,37 @@ export default function TasksSection({
     setSelectedRange(DEFAULT_RANGE);
   }, [formState.startDate, formState.dueDate]);
 
-  const assignableUsers = useMemo(() => {
-    const filteredByRole = users.filter((user) => {
-      const role = String(user.role || "").trim().toLowerCase();
-      return role !== "team leader";
+const assignableUsers = useMemo(() => {
+  const query = memberSearch.trim().toLowerCase();
+
+  const teamMembers = users.filter((user) => {
+    const role = String(user.role || "").toLowerCase();
+    if (role === "team leader") return false; // <-- FIX
+
+    const userId = Number(user.userId ?? user.id);
+
+    return teams.some((team) => {
+      const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
+      return memberIds.some((id) => Number(id) === userId);
     });
+  });
 
-    const source = filteredByRole.length ? filteredByRole : users;
-    const query = memberSearch.trim().toLowerCase();
+  if (!query) return teamMembers;
 
-    if (!query) return source;
+  return teamMembers.filter((user) => {
+    const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
+    const email = String(user.email ?? "").toLowerCase();
+    const role = String(user.role ?? "").toLowerCase();
+    const jobTitle = String(user.jobTitle ?? "").toLowerCase();
 
-    return source.filter((user) => {
-      const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
-      const email = String(user.email ?? "").toLowerCase();
-      const role = String(user.role ?? "").toLowerCase();
-      const jobTitle = String(user.jobTitle ?? "").toLowerCase();
-
-      return (
-        fullName.includes(query) ||
-        email.includes(query) ||
-        role.includes(query) ||
-        jobTitle.includes(query)
-      );
-    });
-  }, [users, memberSearch]);
+    return (
+      fullName.includes(query) ||
+      email.includes(query) ||
+      role.includes(query) ||
+      jobTitle.includes(query)
+    );
+  });
+}, [users, teams, memberSearch]);
 
   const selectedUser = useMemo(
     () =>
@@ -789,31 +795,37 @@ export default function TasksSection({
     return resolveTeamIdForUser(editingSelectedUser.userId ?? editingSelectedUser.id);
   }, [editingSelectedUser, resolveTeamIdForUser, storedUserTeamId]);
 
-  const filteredEditAssignableUsers = useMemo(() => {
-    const filteredByRole = users.filter((user) => {
-      const role = String(user.role || "").trim().toLowerCase();
-      return role !== "team leader";
+const filteredEditAssignableUsers = useMemo(() => {
+  const query = editMemberSearch.trim().toLowerCase();
+
+  const teamMembers = users.filter((user) => {
+    const role = String(user.role || "").toLowerCase();
+    if (role === "team leader") return false; // <-- FIX
+
+    const userId = Number(user.userId ?? user.id);
+
+    return teams.some((team) => {
+      const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
+      return memberIds.some((id) => Number(id) === userId);
     });
+  });
 
-    const source = filteredByRole.length ? filteredByRole : users;
-    const query = editMemberSearch.trim().toLowerCase();
+  if (!query) return teamMembers;
 
-    if (!query) return source;
+  return teamMembers.filter((user) => {
+    const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
+    const email = String(user.email ?? "").toLowerCase();
+    const role = String(user.role ?? "").toLowerCase();
+    const jobTitle = String(user.jobTitle ?? "").toLowerCase();
 
-    return source.filter((user) => {
-      const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
-      const email = String(user.email ?? "").toLowerCase();
-      const role = String(user.role ?? "").toLowerCase();
-      const jobTitle = String(user.jobTitle ?? "").toLowerCase();
-
-      return (
-        fullName.includes(query) ||
-        email.includes(query) ||
-        role.includes(query) ||
-        jobTitle.includes(query)
-      );
-    });
-  }, [users, editMemberSearch]);
+    return (
+      fullName.includes(query) ||
+      email.includes(query) ||
+      role.includes(query) ||
+      jobTitle.includes(query)
+    );
+  });
+}, [users, teams, editMemberSearch]);
 
   const tasksWithUsers = useMemo(() => {
     return tasks.map((task) => {
