@@ -184,6 +184,13 @@ const getErrorMessageFromPayload = (payload, fallbackMessage) => {
   );
 };
 
+const isTaskUnassigned = (task) => {
+  const assignedId = String(task?.assignedUserId ?? "").trim();
+  const assignedName = String(task?.assignedUserName ?? "").trim().toLowerCase();
+
+  return !assignedId || !assignedName || assignedName === "unknown user";
+};
+
 const mapTaskFromApi = (task) => ({
   id: task.id ?? task.taskId ?? task.TaskId ?? crypto.randomUUID(),
   taskStatusId: getTaskStatusId(task),
@@ -370,7 +377,10 @@ export default function TasksSection({
   const [complexityOptions, setComplexityOptions] = useState([]);
   const [priorityMultipliers, setPriorityMultipliers] = useState({});
   const [complexityMultipliers, setComplexityMultipliers] = useState({});
-  const [statusTabs, setStatusTabs] = useState([{ key: "all", label: "All" }]);
+  const [statusTabs, setStatusTabs] = useState([
+    { key: "all", label: "All" },
+    { key: "unassigned", label: "Unassigned" },
+  ]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -439,12 +449,12 @@ export default function TasksSection({
     const refreshedTasks = Array.isArray(refreshData)
       ? refreshData.map(mapTaskFromApi)
       : Array.isArray(refreshData?.tasks)
-        ? refreshData.tasks.map(mapTaskFromApi)
-        : Array.isArray(refreshPayload?.tasks)
-          ? refreshPayload.tasks.map(mapTaskFromApi)
-          : Array.isArray(refreshData?.items)
-            ? refreshData.items.map(mapTaskFromApi)
-            : [];
+      ? refreshData.tasks.map(mapTaskFromApi)
+      : Array.isArray(refreshPayload?.tasks)
+      ? refreshPayload.tasks.map(mapTaskFromApi)
+      : Array.isArray(refreshData?.items)
+      ? refreshData.items.map(mapTaskFromApi)
+      : [];
 
     setTasks(refreshedTasks);
   };
@@ -560,24 +570,24 @@ export default function TasksSection({
         const normalizedTasks = Array.isArray(tasksData)
           ? tasksData.map(mapTaskFromApi)
           : Array.isArray(tasksPayload?.tasks)
-            ? tasksPayload.tasks.map(mapTaskFromApi)
-            : Array.isArray(tasksData?.tasks)
-              ? tasksData.tasks.map(mapTaskFromApi)
-              : Array.isArray(tasksData?.items)
-                ? tasksData.items.map(mapTaskFromApi)
-                : [];
+          ? tasksPayload.tasks.map(mapTaskFromApi)
+          : Array.isArray(tasksData?.tasks)
+          ? tasksData.tasks.map(mapTaskFromApi)
+          : Array.isArray(tasksData?.items)
+          ? tasksData.items.map(mapTaskFromApi)
+          : [];
 
         setTasks(normalizedTasks);
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-            typeof setupRulesData.priorityMultipliers === "object"
+          typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-            typeof setupRulesData.complexityMultipliers === "object"
+          typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -589,28 +599,28 @@ export default function TasksSection({
         const members = Array.isArray(membersData)
           ? membersData
           : Array.isArray(membersData?.items)
-            ? membersData.items
-            : [];
+          ? membersData.items
+          : [];
 
         setUsers(members);
 
         const teamsList = Array.isArray(teamsData)
           ? teamsData
           : Array.isArray(teamsData?.items)
-            ? teamsData.items
-            : [];
+          ? teamsData.items
+          : [];
 
         setTeams(teamsList);
 
         const resolvedStatuses = Array.isArray(statusesData?.statuses)
           ? statusesData.statuses
           : Array.isArray(statusesPayload?.statuses)
-            ? statusesPayload.statuses
-            : Array.isArray(statusesData)
-              ? statusesData
-              : Array.isArray(setupRulesData?.statuses)
-                ? setupRulesData.statuses
-                : [];
+          ? statusesPayload.statuses
+          : Array.isArray(statusesData)
+          ? statusesData
+          : Array.isArray(setupRulesData?.statuses)
+          ? setupRulesData.statuses
+          : [];
 
         setBackendStatuses(resolvedStatuses);
 
@@ -632,7 +642,11 @@ export default function TasksSection({
               array.findIndex((entry) => entry.key === tab.key) === index
           );
 
-        setStatusTabs([{ key: "all", label: "All" }, ...tabs]);
+        setStatusTabs([
+          { key: "all", label: "All" },
+          { key: "unassigned", label: "Unassigned" },
+          ...tabs,
+        ]);
       } catch {
         if (!isMounted) return;
         setErrorMessage("Unable to load tasks right now.");
@@ -712,7 +726,7 @@ export default function TasksSection({
 
     const teamMembers = users.filter((user) => {
       const role = String(user.role || "").toLowerCase();
-      if (role === "team leader") return false; // <-- FIX
+      if (role === "team leader") return false;
 
       const userId = Number(user.userId ?? user.id);
 
@@ -802,7 +816,7 @@ export default function TasksSection({
 
     const teamMembers = users.filter((user) => {
       const role = String(user.role || "").toLowerCase();
-      if (role === "team leader") return false; // <-- FIX
+      if (role === "team leader") return false;
 
       const userId = Number(user.userId ?? user.id);
 
@@ -862,10 +876,21 @@ export default function TasksSection({
     });
   }, [tasks, users]);
 
+  const unassignedTasksCount = useMemo(() => {
+    return tasksWithUsers.filter((task) => isTaskUnassigned(task)).length;
+  }, [tasksWithUsers]);
+
   const taskCounts = useMemo(() => {
-    const counts = { all: tasksWithUsers.length };
+    const counts = {
+      all: tasksWithUsers.length,
+      unassigned: 0,
+    };
 
     tasksWithUsers.forEach((task) => {
+      if (isTaskUnassigned(task)) {
+        counts.unassigned += 1;
+      }
+
       const key = normalizeStatus(task.effectiveStatus);
       counts[key] = (counts[key] ?? 0) + 1;
     });
@@ -875,8 +900,11 @@ export default function TasksSection({
 
   const filteredTasks = useMemo(() => {
     return tasksWithUsers.filter((task) => {
+      if (activeTab === "all") return true;
+      if (activeTab === "unassigned") return isTaskUnassigned(task);
+
       const statusKey = normalizeStatus(task.effectiveStatus);
-      return activeTab === "all" ? true : statusKey === activeTab;
+      return statusKey === activeTab;
     });
   }, [tasksWithUsers, activeTab]);
 
@@ -891,7 +919,9 @@ export default function TasksSection({
         case "title":
           return String(task.title || "").toLowerCase();
         case "assignedUserName":
-          return String(task.assignedUserName || "").toLowerCase();
+          return isTaskUnassigned(task)
+            ? "zzzzzz_unassigned"
+            : String(task.assignedUserName || "").toLowerCase();
         case "priority":
           return priorityRank[String(task.priority || "").toLowerCase()] ?? 0;
         case "complexity":
@@ -998,9 +1028,9 @@ export default function TasksSection({
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-        selectedRange.to,
-        "dd/MM/yyyy"
-      )}`
+          selectedRange.to,
+          "dd/MM/yyyy"
+        )}`
       : "Select date range";
 
   const openCreateModal = () => {
@@ -1332,11 +1362,13 @@ export default function TasksSection({
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-      } ${sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${
+      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+    } ${
+      sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-      }`;
+    }`;
   };
 
   const startIndex = sortedTasks.length
@@ -1353,12 +1385,29 @@ export default function TasksSection({
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${feedback.type === "success"
+          className={`tasks-section__feedback ${
+            feedback.type === "success"
               ? "tasks-section__feedback--success"
               : "tasks-section__feedback--error"
-            }`}
+          }`}
         >
           {feedback.message}
+        </div>
+      )}
+
+      {unassignedTasksCount > 0 && (
+        <div className="tasks-section__unassigned-warning">
+          <FiAlertTriangle />
+          <span>
+            You have {unassignedTasksCount} unassigned task{unassignedTasksCount > 1 ? "s" : ""}.
+          </span>
+          <button
+            type="button"
+            className="tasks-section__unassigned-warning-link"
+            onClick={() => setActiveTab("unassigned")}
+          >
+            View unassigned
+          </button>
         </div>
       )}
 
@@ -1368,8 +1417,9 @@ export default function TasksSection({
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
-                  }`}
+                className={`tasks-section__tab ${
+                  activeTab === tab.key ? "tasks-section__tab--active" : ""
+                }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -1490,31 +1540,27 @@ export default function TasksSection({
                               </div>
                             </div>
                           </button>
-) : !task.assignedUserId || String(task.assignedUserName || "").trim().toLowerCase() === "unknown user" ? (
-  <span className="tasks-section__unassigned-pill">
-    <FiAlertTriangle />
-    Unassigned
-  </span>
-) : (
-  <div className="tasks-section__user-cell">
-    <div className="tasks-section__avatar">
-      {task.assignedUserAvatar ? (
-        <img
-          src={task.assignedUserAvatar}
-          alt={task.assignedUserName}
-          className="tasks-section__avatar-image"
-        />
-      ) : (
-        getInitials(task.assignedUserName)
-      )}
-    </div>
+                        ) : isTaskUnassigned(task) ? (
+                          <span className="tasks-section__unassigned-pill">
+                            <FiAlertTriangle />
+                            Unassigned
+                          </span>
+                        ) : (
+                          <div className="tasks-section__user-cell">
+                            <div className="tasks-section__avatar">
+                              {task.assignedUserAvatar ? (
+                                <img src={task.assignedUserAvatar} alt={task.assignedUserName} className="tasks-section__avatar-image" />
+                              ) : (
+                                getInitials(task.assignedUserName)
+                              )}
+                            </div>
 
-    <div className="tasks-section__user-details">
-      <strong>{task.assignedUserName}</strong>
-      <small>{task.assignedUserEmail || "—"}</small>
-    </div>
-  </div>
-)}
+                            <div className="tasks-section__user-details">
+                              <strong>{task.assignedUserName}</strong>
+                              <small>{task.assignedUserEmail || "—"}</small>
+                            </div>
+                          </div>
+                        )}
                       </td>
 
                       <td>
@@ -1853,13 +1899,13 @@ export default function TasksSection({
                   <div className="tasks-section__form-group">
                     <label htmlFor="task-weight">Task weight</label>
                     <input
-  id="task-weight"
-  className="tasks-section__task-weight-input"
-  type="text"
-  value={computedTaskWeight}
-  readOnly
-  placeholder="Calculated automatically"
-/>
+                      id="task-weight"
+                      className="tasks-section__task-weight-input"
+                      type="text"
+                      value={computedTaskWeight}
+                      readOnly
+                      placeholder="Calculated automatically"
+                    />
                   </div>
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
@@ -1886,19 +1932,19 @@ export default function TasksSection({
                       {isDatePickerOpen && (
                         <div className="tasks-section__date-picker-popover">
                           <div className="tasks-section__date-picker-calendar">
-<DayPicker
-  mode="range"
-  selected={draftRange}
-  onSelect={(range) =>
-    setDraftRange({
-      from: range?.from || undefined,
-      to: range?.to || undefined,
-    })
-  }
-  disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
-  showOutsideDays={false}
-  className="tasks-section__day-picker"
-/>
+                            <DayPicker
+                              mode="range"
+                              selected={draftRange}
+                              onSelect={(range) =>
+                                setDraftRange({
+                                  from: range?.from || undefined,
+                                  to: range?.to || undefined,
+                                })
+                              }
+                              disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+                              showOutsideDays={false}
+                              className="tasks-section__day-picker"
+                            />
                           </div>
 
                           <button
