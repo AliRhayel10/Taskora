@@ -12,6 +12,7 @@ import {
   FiSearch,
   FiTrash2,
   FiX,
+  FiClipboard,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
 import { format } from "date-fns";
@@ -1404,12 +1405,15 @@ const filteredEditAssignableUsers = useMemo(() => {
           <h3>Something went wrong</h3>
           <p>{errorMessage}</p>
         </div>
-      ) : filteredTasks.length === 0 ? (
-        <div className="tasks-section__state-card">
-          <h3>No tasks found</h3>
-          <p>Try changing the selected tab or create a new task to get started.</p>
-        </div>
-      ) : (
+) : filteredTasks.length === 0 ? (
+  <div className="tasks-section__state-card">
+    <div className="tasks-section__state-icon">
+      <FiClipboard />
+    </div>
+    <h3>No tasks found</h3>
+    <p>Try changing the selected tab or create a new task to get started.</p>
+  </div>
+) : (
         <div className="tasks-section__table-card">
           <div className="tasks-section__table-wrap">
             <table className="tasks-section__table">
