@@ -166,6 +166,22 @@ const getBackendStatusName = (status) =>
   status?.value ??
   "";
 
+const getErrorMessageFromPayload = (payload, fallbackMessage) => {
+  if (!payload) return fallbackMessage;
+
+  if (typeof payload === "string" && payload.trim()) {
+    return payload.trim();
+  }
+
+  return (
+    payload?.message ||
+    payload?.title ||
+    payload?.error ||
+    payload?.errors?.[0] ||
+    fallbackMessage
+  );
+};
+
 const mapTaskFromApi = (task) => ({
   id: task.id ?? task.taskId ?? task.TaskId ?? crypto.randomUUID(),
   taskStatusId: getTaskStatusId(task),
@@ -233,15 +249,14 @@ const buildTaskUpdatePayload = ({
   editFormState,
   computedEditTaskWeight,
   resolvedCompanyId,
+  teamId,
 }) => ({
   taskId: Number(task.id),
-  id: Number(task.id),
   companyId: Number(resolvedCompanyId),
-  teamId: Number(task.teamId || 0),
+  teamId: Number(teamId || task.teamId || 0),
   title: editFormState.title.trim(),
   description: editFormState.description.trim(),
   assignedToUserId: Number(editFormState.assignedUserId),
-  assignedUserId: Number(editFormState.assignedUserId),
   priority: editFormState.priority,
   complexity: editFormState.complexity,
   estimatedEffortHours: Number(editFormState.estimatedEffortHours),
@@ -253,8 +268,15 @@ const buildTaskUpdatePayload = ({
 
 const buildDeletePayload = (taskId) => ({
   taskId: Number(taskId),
-  id: Number(taskId),
 });
+
+async function parseJsonSafe(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
 
 async function tryRequestCandidates(candidates) {
   let lastErrorMessage = "Request failed.";
@@ -262,29 +284,16 @@ async function tryRequestCandidates(candidates) {
   for (const candidate of candidates) {
     try {
       const response = await fetch(candidate.url, candidate.options);
+      const payload = await parseJsonSafe(response);
 
       if (response.ok) {
-        let payload = null;
-        try {
-          payload = await response.json();
-        } catch {
-          payload = null;
-        }
-
         return { ok: true, payload };
       }
 
-      let errorPayload = null;
-      try {
-        errorPayload = await response.json();
-      } catch {
-        errorPayload = null;
-      }
-
-      lastErrorMessage =
-        errorPayload?.message ||
-        errorPayload?.title ||
-        `${candidate.options.method} ${candidate.url} failed`;
+      lastErrorMessage = getErrorMessageFromPayload(
+        payload,
+        `${candidate.options.method} ${candidate.url} failed`
+      );
     } catch (error) {
       lastErrorMessage = error?.message || "Network request failed.";
     }
@@ -307,8 +316,12 @@ export default function TasksSection({
 }) {
   const storedUser = getStoredUser();
 
-  const resolvedCompanyId = companyId ?? storedUser?.companyId ?? null;
-  const resolvedCurrentUserId = storedUser?.userId ?? null;
+  const resolvedCompanyId =
+    companyId ?? storedUser?.companyId ?? storedUser?.CompanyId ?? null;
+  const resolvedCurrentUserId =
+    storedUser?.userId ?? storedUser?.UserId ?? storedUser?.id ?? storedUser?.Id ?? null;
+  const storedUserTeamId =
+    storedUser?.teamId ?? storedUser?.TeamId ?? storedUser?.team?.teamId ?? storedUser?.team?.TeamId ?? null;
 
   const resolvedTasksEndpoint =
     tasksEndpoint ?? `${API_BASE}/api/tasks/company/${resolvedCompanyId}`;
@@ -343,8 +356,13 @@ export default function TasksSection({
       ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}/members`
       : "");
 
+  const resolvedTeamsEndpoint = resolvedCompanyId
+    ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}`
+    : "";
+
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [backendStatuses, setBackendStatuses] = useState([]);
   const [priorityOptions, setPriorityOptions] = useState([]);
   const [complexityOptions, setComplexityOptions] = useState([]);
@@ -389,19 +407,39 @@ export default function TasksSection({
   const capitalizeWords = (value = "") =>
     value.replace(/\b\w/g, (char) => char.toUpperCase());
 
+  const resolveTeamIdForUser = useMemo(() => {
+    return (userId) => {
+      const numericUserId = Number(userId);
+      if (!numericUserId) return Number(storedUserTeamId || 0);
+
+      const matchedTeam = teams.find((team) => {
+        const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
+        const hasUserAsMember = memberIds.some((id) => Number(id) === numericUserId);
+        const isLeader = Number(team?.teamLeaderUserId ?? team?.teamLeaderId) === numericUserId;
+        return hasUserAsMember || isLeader;
+      });
+
+      if (matchedTeam?.teamId) return Number(matchedTeam.teamId);
+
+      return Number(storedUserTeamId || 0);
+    };
+  }, [teams, storedUserTeamId]);
+
   const loadTasks = async () => {
     const response = await fetch(resolvedTasksEndpoint);
     if (!response.ok) {
       throw new Error("Failed to refresh tasks.");
     }
 
-    const refreshPayload = await response.json();
+    const refreshPayload = await parseJsonSafe(response);
     const refreshData = getResponseData(refreshPayload);
 
     const refreshedTasks = Array.isArray(refreshData)
       ? refreshData.map(mapTaskFromApi)
       : Array.isArray(refreshData?.tasks)
       ? refreshData.tasks.map(mapTaskFromApi)
+      : Array.isArray(refreshPayload?.tasks)
+      ? refreshPayload.tasks.map(mapTaskFromApi)
       : Array.isArray(refreshData?.items)
       ? refreshData.items.map(mapTaskFromApi)
       : [];
@@ -486,7 +524,7 @@ export default function TasksSection({
         throw new Error(`Request failed for ${url}`);
       }
 
-      return response.json();
+      return parseJsonSafe(response);
     };
 
     const loadData = async () => {
@@ -500,12 +538,13 @@ export default function TasksSection({
       setErrorMessage("");
 
       try {
-        const [tasksPayload, setupRulesPayload, statusesPayload, membersPayload] =
+        const [tasksPayload, setupRulesPayload, statusesPayload, membersPayload, teamsPayload] =
           await Promise.all([
             fetchJson(resolvedTasksEndpoint).catch(() => []),
             fetchJson(resolvedSetupRulesEndpoint).catch(() => null),
             fetchJson(resolvedStatusesEndpoint).catch(() => null),
             fetchJson(resolvedMembersEndpoint).catch(() => []),
+            fetchJson(resolvedTeamsEndpoint).catch(() => []),
           ]);
 
         if (!isMounted) return;
@@ -514,9 +553,12 @@ export default function TasksSection({
         const setupRulesData = getResponseData(setupRulesPayload);
         const statusesData = getResponseData(statusesPayload);
         const membersData = getResponseData(membersPayload);
+        const teamsData = getResponseData(teamsPayload);
 
         const normalizedTasks = Array.isArray(tasksData)
           ? tasksData.map(mapTaskFromApi)
+          : Array.isArray(tasksPayload?.tasks)
+          ? tasksPayload.tasks.map(mapTaskFromApi)
           : Array.isArray(tasksData?.tasks)
           ? tasksData.tasks.map(mapTaskFromApi)
           : Array.isArray(tasksData?.items)
@@ -550,8 +592,18 @@ export default function TasksSection({
 
         setUsers(members);
 
+        const teamsList = Array.isArray(teamsData)
+          ? teamsData
+          : Array.isArray(teamsData?.items)
+          ? teamsData.items
+          : [];
+
+        setTeams(teamsList);
+
         const resolvedStatuses = Array.isArray(statusesData?.statuses)
           ? statusesData.statuses
+          : Array.isArray(statusesPayload?.statuses)
+          ? statusesPayload.statuses
           : Array.isArray(statusesData)
           ? statusesData
           : Array.isArray(setupRulesData?.statuses)
@@ -598,6 +650,7 @@ export default function TasksSection({
     resolvedSetupRulesEndpoint,
     resolvedStatusesEndpoint,
     resolvedMembersEndpoint,
+    resolvedTeamsEndpoint,
   ]);
 
   useEffect(() => {
@@ -688,7 +741,7 @@ export default function TasksSection({
   );
 
   const selectedUserTeamId = useMemo(() => {
-    if (!selectedUser) return 0;
+    if (!selectedUser) return Number(storedUserTeamId || 0);
 
     const directTeamId =
       selectedUser.teamId ??
@@ -705,8 +758,8 @@ export default function TasksSection({
       return Number(teamIds[0]);
     }
 
-    return 76;
-  }, [selectedUser]);
+    return resolveTeamIdForUser(selectedUser.userId ?? selectedUser.id);
+  }, [selectedUser, resolveTeamIdForUser, storedUserTeamId]);
 
   const editingSelectedUser = useMemo(
     () =>
@@ -716,6 +769,25 @@ export default function TasksSection({
       ) || null,
     [users, editFormState]
   );
+
+  const editingSelectedUserTeamId = useMemo(() => {
+    if (!editingSelectedUser) return Number(storedUserTeamId || 0);
+
+    const directTeamId =
+      editingSelectedUser.teamId ??
+      editingSelectedUser.TeamId ??
+      editingSelectedUser.team?.teamId ??
+      editingSelectedUser.team?.TeamId;
+
+    if (directTeamId) return Number(directTeamId);
+
+    const teamIds = editingSelectedUser.teamIds ?? editingSelectedUser.TeamIds;
+    if (Array.isArray(teamIds) && teamIds.length > 0) {
+      return Number(teamIds[0]);
+    }
+
+    return resolveTeamIdForUser(editingSelectedUser.userId ?? editingSelectedUser.id);
+  }, [editingSelectedUser, resolveTeamIdForUser, storedUserTeamId]);
 
   const filteredEditAssignableUsers = useMemo(() => {
     const filteredByRole = users.filter((user) => {
@@ -886,7 +958,8 @@ export default function TasksSection({
     !formState.startDate ||
     !formState.dueDate ||
     !computedTaskWeight ||
-    !newStatusId;
+    !selectedUserTeamId ||
+    !resolvedCurrentUserId;
 
   const computedEditTaskWeight = useMemo(() => {
     const baseEffort = Number(editFormState?.estimatedEffortHours);
@@ -959,13 +1032,21 @@ export default function TasksSection({
     setFeedback(null);
 
     try {
-      if (!newStatusId) {
-        throw new Error("New task status is not configured.");
+      if (!resolvedCurrentUserId) {
+        throw new Error("Creator user is missing.");
+      }
+
+      if (!selectedUserTeamId) {
+        throw new Error("Assigned user's team could not be resolved.");
+      }
+
+      if (new Date(formState.dueDate) < new Date(formState.startDate)) {
+        throw new Error("Due date must be after or equal to start date.");
       }
 
       const payload = {
         companyId: Number(resolvedCompanyId),
-        teamId: selectedUserTeamId,
+        teamId: Number(selectedUserTeamId),
         title: formState.title.trim(),
         description: formState.description.trim(),
         assignedToUserId: Number(formState.assignedUserId),
@@ -975,20 +1056,32 @@ export default function TasksSection({
         estimatedEffortHours: Number(formState.estimatedEffortHours),
         startDate: formState.startDate,
         dueDate: formState.dueDate,
-        taskStatusId: Number(newStatusId),
+        ...(newStatusId ? { taskStatusId: Number(newStatusId) } : {}),
       };
 
-      const response = await fetch(resolvedCreateTaskEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const createAttempt = await tryRequestCandidates([
+        {
+          url: resolvedCreateTaskEndpoint,
+          options: {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+        {
+          url: `${API_BASE}/api/tasks/create`,
+          options: {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        },
+      ]);
 
-      if (!response.ok) {
-        throw new Error("Failed to create task.");
+      if (!createAttempt.ok) {
+        throw new Error(createAttempt.message || "Failed to create task.");
       }
 
-      await response.json().catch(() => null);
       await loadTasks();
 
       closeCreateModal();
@@ -1002,9 +1095,8 @@ export default function TasksSection({
       setFeedback({
         type: "error",
         message:
-          error?.message === "New task status is not configured."
-            ? 'Unable to create task because the "New" status was not found in backend statuses.'
-            : "Unable to create task.",
+          error?.message ||
+          "Unable to create task.",
       });
     } finally {
       setIsSubmitting(false);
@@ -1022,15 +1114,15 @@ export default function TasksSection({
 
       const deleteAttempt = await tryRequestCandidates([
         {
-          url: `${resolvedDeleteTaskEndpoint}/${deleteTaskId}`,
-          options: { method: "DELETE" },
-        },
-        {
           url: `${API_BASE}/api/tasks/${deleteTaskId}`,
           options: { method: "DELETE" },
         },
         {
           url: `${API_BASE}/api/tasks/delete/${deleteTaskId}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${resolvedDeleteTaskEndpoint}/${deleteTaskId}`,
           options: { method: "DELETE" },
         },
         {
@@ -1164,6 +1256,7 @@ export default function TasksSection({
         editFormState,
         computedEditTaskWeight,
         resolvedCompanyId,
+        teamId: editingSelectedUserTeamId || taskToEdit.teamId,
       });
 
       const updateAttempt = await tryRequestCandidates([
@@ -1192,7 +1285,7 @@ export default function TasksSection({
           },
         },
         {
-          url: `${API_BASE}/api/tasks/edit/${editingTaskId}`,
+          url: `${API_BASE}/api/tasks/update/${editingTaskId}`,
           options: {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
