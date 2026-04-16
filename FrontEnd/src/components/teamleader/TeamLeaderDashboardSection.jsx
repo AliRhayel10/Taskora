@@ -756,14 +756,15 @@ export default function TeamLeaderDashboardSection({
                 </div>
 
                 <div className="teamleader-dashboard-section__calendar-shell">
-                  <DayPicker
-                    mode="range"
-                    selected={draftCustomRange}
-                    onSelect={handleCustomRangeSelect}
-                    showOutsideDays
-                    numberOfMonths={1}
-                    className="teamleader-dashboard-section__day-picker"
-                  />
+<DayPicker
+  mode="range"
+  selected={draftCustomRange}
+  onSelect={handleCustomRangeSelect}
+  showOutsideDays={false}
+  disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+  numberOfMonths={1}
+  className="teamleader-dashboard-section__day-picker"
+/>
                 </div>
 
                 <button

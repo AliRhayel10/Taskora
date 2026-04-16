@@ -234,6 +234,12 @@
 .teamleader-dashboard-section__day-picker .rdp-nav_button:hover {
   background: #eff6ff;
 }
+.teamleader-dashboard-section__day-picker .rdp-day_disabled .rdp-day_button {
+    opacity: 0.35;
+    color: #94a3b8 !important;
+    cursor: not-allowed;
+    background: transparent !important;
+}
 
 .teamleader-dashboard-section__apply-btn {
   width: 100%;
