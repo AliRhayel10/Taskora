@@ -1601,7 +1601,7 @@
 
 .tasks-section__table thead th:nth-child(8),
 .tasks-section__table tbody td:nth-child(8) {
-    width: 11%;
+    width: 15%;
 }
 
 .tasks-section__table thead th:nth-child(9),
@@ -1611,7 +1611,14 @@
 }
 
 .tasks-section__table tbody td:nth-child(8) {
-    white-space: nowrap;
+    white-space: normal;
+}
+.tasks-section__date-range-text {
+    display: inline-block;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .tasks-section__table thead th:nth-child(3),

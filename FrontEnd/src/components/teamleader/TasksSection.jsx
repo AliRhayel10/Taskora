@@ -464,12 +464,12 @@ export default function TasksSection({
     const refreshedTasks = Array.isArray(refreshData)
       ? refreshData.map(mapTaskFromApi)
       : Array.isArray(refreshData?.tasks)
-      ? refreshData.tasks.map(mapTaskFromApi)
-      : Array.isArray(refreshPayload?.tasks)
-      ? refreshPayload.tasks.map(mapTaskFromApi)
-      : Array.isArray(refreshData?.items)
-      ? refreshData.items.map(mapTaskFromApi)
-      : [];
+        ? refreshData.tasks.map(mapTaskFromApi)
+        : Array.isArray(refreshPayload?.tasks)
+          ? refreshPayload.tasks.map(mapTaskFromApi)
+          : Array.isArray(refreshData?.items)
+            ? refreshData.items.map(mapTaskFromApi)
+            : [];
 
     setTasks(refreshedTasks);
   };
@@ -604,24 +604,24 @@ export default function TasksSection({
         const normalizedTasks = Array.isArray(tasksData)
           ? tasksData.map(mapTaskFromApi)
           : Array.isArray(tasksPayload?.tasks)
-          ? tasksPayload.tasks.map(mapTaskFromApi)
-          : Array.isArray(tasksData?.tasks)
-          ? tasksData.tasks.map(mapTaskFromApi)
-          : Array.isArray(tasksData?.items)
-          ? tasksData.items.map(mapTaskFromApi)
-          : [];
+            ? tasksPayload.tasks.map(mapTaskFromApi)
+            : Array.isArray(tasksData?.tasks)
+              ? tasksData.tasks.map(mapTaskFromApi)
+              : Array.isArray(tasksData?.items)
+                ? tasksData.items.map(mapTaskFromApi)
+                : [];
 
         setTasks(normalizedTasks);
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-          typeof setupRulesData.priorityMultipliers === "object"
+            typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-          typeof setupRulesData.complexityMultipliers === "object"
+            typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -633,28 +633,28 @@ export default function TasksSection({
         const members = Array.isArray(membersData)
           ? membersData
           : Array.isArray(membersData?.items)
-          ? membersData.items
-          : [];
+            ? membersData.items
+            : [];
 
         setUsers(members);
 
         const teamsList = Array.isArray(teamsData)
           ? teamsData
           : Array.isArray(teamsData?.items)
-          ? teamsData.items
-          : [];
+            ? teamsData.items
+            : [];
 
         setTeams(teamsList);
 
         const resolvedStatuses = Array.isArray(statusesData?.statuses)
           ? statusesData.statuses
           : Array.isArray(statusesPayload?.statuses)
-          ? statusesPayload.statuses
-          : Array.isArray(statusesData)
-          ? statusesData
-          : Array.isArray(setupRulesData?.statuses)
-          ? setupRulesData.statuses
-          : [];
+            ? statusesPayload.statuses
+            : Array.isArray(statusesData)
+              ? statusesData
+              : Array.isArray(setupRulesData?.statuses)
+                ? setupRulesData.statuses
+                : [];
 
         setBackendStatuses(resolvedStatuses);
 
@@ -1057,9 +1057,9 @@ export default function TasksSection({
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-          selectedRange.to,
-          "dd/MM/yyyy"
-        )}`
+        selectedRange.to,
+        "dd/MM/yyyy"
+      )}`
       : "Select date range";
 
   const openCreateModal = () => {
@@ -1209,7 +1209,7 @@ export default function TasksSection({
       if (!deleteAttempt.ok) {
         throw new Error(
           deleteAttempt.message ||
-            "Unable to delete task because no backend delete endpoint responded successfully."
+          "Unable to delete task because no backend delete endpoint responded successfully."
         );
       }
 
@@ -1263,9 +1263,9 @@ export default function TasksSection({
     setActiveEditField(null);
     setIsEditDueDateOpen(false);
     setEditDueDateDraft({
-  from: task.startDate ? new Date(task.startDate) : undefined,
-  to: task.dueDate ? new Date(task.dueDate) : undefined,
-});
+      from: task.startDate ? new Date(task.startDate) : undefined,
+      to: task.dueDate ? new Date(task.dueDate) : undefined,
+    });
     setEditFormState({
       id: task.id,
       title: task.title || "",
@@ -1324,14 +1324,14 @@ export default function TasksSection({
     setActiveEditField(null);
   };
 
-const openEditDueDateModal = (task) => {
-  setActiveEditField("dueDate");
-  setEditDueDateDraft({
-    from: task?.startDate ? new Date(task.startDate) : undefined,
-    to: task?.dueDate ? new Date(task.dueDate) : undefined,
-  });
-  setIsEditDueDateOpen(true);
-};
+  const openEditDueDateModal = (task) => {
+    setActiveEditField("dueDate");
+    setEditDueDateDraft({
+      from: task?.startDate ? new Date(task.startDate) : undefined,
+      to: task?.dueDate ? new Date(task.dueDate) : undefined,
+    });
+    setIsEditDueDateOpen(true);
+  };
 
   const closeEditDueDateModal = () => {
     setIsEditDueDateOpen(false);
@@ -1339,13 +1339,13 @@ const openEditDueDateModal = (task) => {
     setActiveEditField(null);
   };
 
-const applyEditDueDate = () => {
-  if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
+  const applyEditDueDate = () => {
+    if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
 
-  handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
-  handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
-  closeEditDueDateModal();
-};
+    handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
+    handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
+    closeEditDueDateModal();
+  };
 
   const saveTaskChanges = async () => {
     if (!editingTaskId || !editFormState || isSavingEdit) return;
@@ -1405,7 +1405,7 @@ const applyEditDueDate = () => {
       if (!updateAttempt.ok) {
         throw new Error(
           updateAttempt.message ||
-            "Unable to save task because no backend update endpoint responded successfully."
+          "Unable to save task because no backend update endpoint responded successfully."
         );
       }
 
@@ -1426,13 +1426,11 @@ const applyEditDueDate = () => {
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${
-      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-    } ${
-      sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+      } ${sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-    }`;
+      }`;
   };
 
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
@@ -1447,11 +1445,10 @@ const applyEditDueDate = () => {
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${
-            feedback.type === "success"
-              ? "tasks-section__feedback--success"
-              : "tasks-section__feedback--error"
-          }`}
+          className={`tasks-section__feedback ${feedback.type === "success"
+            ? "tasks-section__feedback--success"
+            : "tasks-section__feedback--error"
+            }`}
         >
           {feedback.message}
         </div>
@@ -1480,9 +1477,8 @@ const applyEditDueDate = () => {
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${
-                  activeTab === tab.key ? "tasks-section__tab--active" : ""
-                }`}
+                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
+                  }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -1689,8 +1685,8 @@ const applyEditDueDate = () => {
                                 ) : (
                                   getInitials(
                                     previewUser?.fullName ??
-                                      previewUser?.name ??
-                                      task.assignedUserName
+                                    previewUser?.name ??
+                                    task.assignedUserName
                                   )
                                 )}
                               </div>
@@ -1842,35 +1838,37 @@ const applyEditDueDate = () => {
                         </span>
                       </td>
 
-                      <td>
-                        {isEditing ? (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-link"
-                            onClick={() => openEditDueDateModal(task)}
-                          >
-                            <span className="tasks-section__user-details">
-                              <strong>
-                                <span className="tasks-section__text-ellipsis">
-                                  {editFormState?.startDate && editFormState?.dueDate
-  ? `${formatDate(editFormState.startDate)} - ${formatDate(editFormState.dueDate)}`
-  : "Select date range"}
-                                </span>
-                                <span
-                                  className="tasks-section__editable-indicator"
-                                  aria-hidden="true"
-                                >
-                                  <FiEdit2 />
-                                </span>
-                              </strong>
-                            </span>
-                          </button>
-                        ) : (
-                         task.startDate && task.dueDate
-  ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}`
-  : formatDate(task.dueDate)
-                        )}
-                      </td>
+<td>
+  {isEditing ? (
+    <button
+      type="button"
+      className="tasks-section__inline-link"
+      onClick={() => openEditDueDateModal(task)}
+    >
+      <span className="tasks-section__user-details">
+        <strong>
+          <span className="tasks-section__date-range-text">
+            {editFormState?.startDate && editFormState?.dueDate
+              ? `${formatDate(editFormState.startDate)} - ${formatDate(editFormState.dueDate)}`
+              : "Select date range"}
+          </span>
+          <span
+            className="tasks-section__editable-indicator"
+            aria-hidden="true"
+          >
+            <FiEdit2 />
+          </span>
+        </strong>
+      </span>
+    </button>
+  ) : (
+    <span className="tasks-section__date-range-text">
+      {task.startDate && task.dueDate
+        ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}`
+        : formatDate(task.dueDate)}
+    </span>
+  )}
+</td>
 
                       <td className="tasks-section__cell-actions">
                         <div className="tasks-section__actions">
@@ -1964,11 +1962,10 @@ const applyEditDueDate = () => {
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
-                    currentPage === pageNumber
-                      ? "tasks-section__page-btn--active"
-                      : ""
-                  }`}
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber
+                    ? "tasks-section__page-btn--active"
+                    : ""
+                    }`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
@@ -2017,18 +2014,16 @@ const applyEditDueDate = () => {
 
             <div className="tasks-section__stepper">
               <div
-                className={`tasks-section__step ${
-                  createStep === 1 ? "tasks-section__step--active" : ""
-                }`}
+                className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""
+                  }`}
               >
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
               <div
-                className={`tasks-section__step ${
-                  createStep === 2 ? "tasks-section__step--active" : ""
-                }`}
+                className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""
+                  }`}
               >
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
@@ -2104,21 +2099,19 @@ const applyEditDueDate = () => {
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${
-                                  isSelected
-                                    ? "tasks-section__member-row--selected"
-                                    : ""
-                                }`}
+                                className={`tasks-section__member-row ${isSelected
+                                  ? "tasks-section__member-row--selected"
+                                  : ""
+                                  }`}
                                 onClick={() =>
                                   handleFormChange("assignedUserId", String(userId))
                                 }
                               >
                                 <span
-                                  className={`tasks-section__member-check ${
-                                    isSelected
-                                      ? "tasks-section__member-check--selected"
-                                      : ""
-                                  }`}
+                                  className={`tasks-section__member-check ${isSelected
+                                    ? "tasks-section__member-check--selected"
+                                    : ""
+                                    }`}
                                 >
                                   {isSelected ? "✓" : ""}
                                 </span>
@@ -2454,20 +2447,18 @@ const applyEditDueDate = () => {
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${
-                          isSelected ? "tasks-section__member-row--selected" : ""
-                        }`}
+                        className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""
+                          }`}
                         onClick={() => {
                           handleEditFormChange("assignedUserId", String(userId));
                           closeEditAssigneeModal();
                         }}
                       >
                         <span
-                          className={`tasks-section__member-check ${
-                            isSelected
-                              ? "tasks-section__member-check--selected"
-                              : ""
-                          }`}
+                          className={`tasks-section__member-check ${isSelected
+                            ? "tasks-section__member-check--selected"
+                            : ""
+                            }`}
                         >
                           {isSelected ? "✓" : ""}
                         </span>
@@ -2543,22 +2534,22 @@ const applyEditDueDate = () => {
             </div>
 
             <div className="tasks-section__date-picker-calendar">
-<DayPicker
-  mode="range"
-  selected={editDueDateDraft}
-  onSelect={(range) =>
-    setEditDueDateDraft({
-      from: range?.from || undefined,
-      to: range?.to || undefined,
-    })
-  }
-  showOutsideDays={false}
-  disabled={{
-    before: new Date(new Date().setHours(0, 0, 0, 0)),
-  }}
-  numberOfMonths={1}
-  className="tasks-section__day-picker"
-/>
+              <DayPicker
+                mode="range"
+                selected={editDueDateDraft}
+                onSelect={(range) =>
+                  setEditDueDateDraft({
+                    from: range?.from || undefined,
+                    to: range?.to || undefined,
+                  })
+                }
+                showOutsideDays={false}
+                disabled={{
+                  before: new Date(new Date().setHours(0, 0, 0, 0)),
+                }}
+                numberOfMonths={1}
+                className="tasks-section__day-picker"
+              />
             </div>
 
             <div className="tasks-section__form-actions" style={{ marginTop: "16px" }}>
