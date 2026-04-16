@@ -272,7 +272,7 @@ const buildTaskUpdatePayload = ({
   weight: Number(computedEditTaskWeight || task.weight || 0),
   taskStatusId: task.taskStatusId ? Number(task.taskStatusId) : undefined,
   startDate: task.startDate || null,
-  dueDate: task.dueDate || null,
+  dueDate: editFormState.dueDate || null,
 });
 
 const buildDeletePayload = (taskId) => ({
@@ -403,6 +403,8 @@ export default function TasksSection({
   const [editFormState, setEditFormState] = useState(null);
   const [isEditAssigneeOpen, setIsEditAssigneeOpen] = useState(false);
   const [isEditTaskInfoOpen, setIsEditTaskInfoOpen] = useState(false);
+  const [isEditDueDateOpen, setIsEditDueDateOpen] = useState(false);
+  const [editDueDateDraft, setEditDueDateDraft] = useState(DEFAULT_RANGE);
   const [editMemberSearch, setEditMemberSearch] = useState("");
   const [editTaskDraft, setEditTaskDraft] = useState({ title: "", description: "" });
   const [activeEditField, setActiveEditField] = useState(null);
@@ -412,6 +414,7 @@ export default function TasksSection({
   const editRowRef = useRef(null);
   const editTaskInfoModalRef = useRef(null);
   const editAssigneeModalRef = useRef(null);
+  const editDueDateModalRef = useRef(null);
   const prioritySelectRef = useRef(null);
   const complexitySelectRef = useRef(null);
   const effortInputRef = useRef(null);
@@ -487,6 +490,7 @@ export default function TasksSection({
 
       if (editTaskInfoModalRef.current?.contains(target)) return;
       if (editAssigneeModalRef.current?.contains(target)) return;
+      if (editDueDateModalRef.current?.contains(target)) return;
       if (editRowRef.current?.contains(target)) return;
 
       if (isEditTaskInfoOpen) {
@@ -498,6 +502,13 @@ export default function TasksSection({
       if (isEditAssigneeOpen) {
         setIsEditAssigneeOpen(false);
         setEditMemberSearch("");
+        setActiveEditField(null);
+        return;
+      }
+
+      if (isEditDueDateOpen) {
+        setIsEditDueDateOpen(false);
+        setEditDueDateDraft(undefined);
         setActiveEditField(null);
         return;
       }
@@ -517,7 +528,13 @@ export default function TasksSection({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
     };
-  }, [editingTaskId, activeEditField, isEditTaskInfoOpen, isEditAssigneeOpen]);
+  }, [
+    editingTaskId,
+    activeEditField,
+    isEditTaskInfoOpen,
+    isEditAssigneeOpen,
+    isEditDueDateOpen,
+  ]);
 
   useEffect(() => {
     if (activeEditField === "priority" && prioritySelectRef.current) {
@@ -1244,6 +1261,11 @@ export default function TasksSection({
     setEditingTaskId(task.id);
     setEditMemberSearch("");
     setActiveEditField(null);
+    setIsEditDueDateOpen(false);
+    setEditDueDateDraft({
+  from: task.startDate ? new Date(task.startDate) : undefined,
+  to: task.dueDate ? new Date(task.dueDate) : undefined,
+});
     setEditFormState({
       id: task.id,
       title: task.title || "",
@@ -1255,6 +1277,8 @@ export default function TasksSection({
         task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
           ? ""
           : String(task.estimatedEffortHours),
+      dueDate: task.dueDate || "",
+      startDate: task.startDate || "",
     });
   };
 
@@ -1263,6 +1287,8 @@ export default function TasksSection({
     setEditFormState(null);
     setIsEditAssigneeOpen(false);
     setIsEditTaskInfoOpen(false);
+    setIsEditDueDateOpen(false);
+    setEditDueDateDraft(DEFAULT_RANGE);
     setEditMemberSearch("");
     setEditTaskDraft({ title: "", description: "" });
     setActiveEditField(null);
@@ -1297,6 +1323,29 @@ export default function TasksSection({
     setEditMemberSearch("");
     setActiveEditField(null);
   };
+
+const openEditDueDateModal = (task) => {
+  setActiveEditField("dueDate");
+  setEditDueDateDraft({
+    from: task?.startDate ? new Date(task.startDate) : undefined,
+    to: task?.dueDate ? new Date(task.dueDate) : undefined,
+  });
+  setIsEditDueDateOpen(true);
+};
+
+  const closeEditDueDateModal = () => {
+    setIsEditDueDateOpen(false);
+    setEditDueDateDraft(DEFAULT_RANGE);
+    setActiveEditField(null);
+  };
+
+const applyEditDueDate = () => {
+  if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
+
+  handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
+  handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
+  closeEditDueDateModal();
+};
 
   const saveTaskChanges = async () => {
     if (!editingTaskId || !editFormState || isSavingEdit) return;
@@ -1793,7 +1842,35 @@ export default function TasksSection({
                         </span>
                       </td>
 
-                      <td>{formatDate(task.dueDate)}</td>
+                      <td>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-link"
+                            onClick={() => openEditDueDateModal(task)}
+                          >
+                            <span className="tasks-section__user-details">
+                              <strong>
+                                <span className="tasks-section__text-ellipsis">
+                                  {editFormState?.startDate && editFormState?.dueDate
+  ? `${formatDate(editFormState.startDate)} - ${formatDate(editFormState.dueDate)}`
+  : "Select date range"}
+                                </span>
+                                <span
+                                  className="tasks-section__editable-indicator"
+                                  aria-hidden="true"
+                                >
+                                  <FiEdit2 />
+                                </span>
+                              </strong>
+                            </span>
+                          </button>
+                        ) : (
+                         task.startDate && task.dueDate
+  ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}`
+  : formatDate(task.dueDate)
+                        )}
+                      </td>
 
                       <td className="tasks-section__cell-actions">
                         <div className="tasks-section__actions">
@@ -1812,6 +1889,7 @@ export default function TasksSection({
                                   !editFormState.priority ||
                                   !editFormState.complexity ||
                                   !editFormState.estimatedEffortHours ||
+                                  !editFormState.dueDate ||
                                   !computedEditTaskWeight
                                 }
                               >
@@ -2431,6 +2509,71 @@ export default function TasksSection({
                 type="button"
                 className="tasks-section__submit-btn"
                 onClick={closeEditAssigneeModal}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditDueDateOpen && editFormState && (
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={closeEditDueDateModal}
+        >
+          <div
+            ref={editDueDateModalRef}
+            className="tasks-section__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="tasks-section__modal-header tasks-section__modal-header--lined">
+              <div>
+                <h3>Edit Due Date</h3>
+                <p>Choose a new due date for this task.</p>
+              </div>
+
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={closeEditDueDateModal}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="tasks-section__date-picker-calendar">
+<DayPicker
+  mode="range"
+  selected={editDueDateDraft}
+  onSelect={(range) =>
+    setEditDueDateDraft({
+      from: range?.from || undefined,
+      to: range?.to || undefined,
+    })
+  }
+  showOutsideDays={false}
+  disabled={{
+    before: new Date(new Date().setHours(0, 0, 0, 0)),
+  }}
+  numberOfMonths={1}
+  className="tasks-section__day-picker"
+/>
+            </div>
+
+            <div className="tasks-section__form-actions" style={{ marginTop: "16px" }}>
+              <button
+                type="button"
+                className="tasks-section__secondary-btn"
+                onClick={closeEditDueDateModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tasks-section__submit-btn"
+                onClick={applyEditDueDate}
+                disabled={!editDueDateDraft?.from || !editDueDateDraft?.to}
               >
                 Apply
               </button>

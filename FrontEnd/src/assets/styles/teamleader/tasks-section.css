@@ -1024,6 +1024,7 @@
 .tasks-section__member-table {
     max-height: 280px;
     overflow-y: auto;
+    padding-bottom: 10px;
 }
 
 .tasks-section__members-empty {
@@ -1190,14 +1191,17 @@
 .tasks-section__date-picker-calendar {
     display: flex;
     justify-content: center;
+    align-items: center;
+    width: fit-content;
+    margin: 0 auto;
     border: 1px solid #dbe7f5;
     border-radius: 14px;
     background: #ffffff;
-    padding: 10px;
+    padding: 10px 12px;
 }
 
 .tasks-section__day-picker {
-    width: 100%;
+    width: auto;
 }
 
 .tasks-section__day-picker .rdp {
@@ -1212,7 +1216,7 @@
 }
 
 .tasks-section__day-picker .rdp-month {
-    width: 100%;
+    width: auto;
 }
 
 .tasks-section__day-picker .rdp-caption {
@@ -1313,9 +1317,10 @@
 .tasks-section__day-picker .rdp-day_selected .rdp-day_button:hover,
 .tasks-section__day-picker .rdp-day_range_start .rdp-day_button:hover,
 .tasks-section__day-picker .rdp-day_range_end .rdp-day_button:hover {
-    background: #1d4ed8 !important;
+    background: #1e40af !important;
     color: #ffffff !important;
-    transform: scale(1.03);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    transform: none;
 }
 
 .tasks-section__day-picker .rdp-range_middle .rdp-day_button:hover,
