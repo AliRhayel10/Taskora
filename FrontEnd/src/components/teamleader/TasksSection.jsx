@@ -438,12 +438,12 @@ export default function TasksSection({
     const refreshedTasks = Array.isArray(refreshData)
       ? refreshData.map(mapTaskFromApi)
       : Array.isArray(refreshData?.tasks)
-      ? refreshData.tasks.map(mapTaskFromApi)
-      : Array.isArray(refreshPayload?.tasks)
-      ? refreshPayload.tasks.map(mapTaskFromApi)
-      : Array.isArray(refreshData?.items)
-      ? refreshData.items.map(mapTaskFromApi)
-      : [];
+        ? refreshData.tasks.map(mapTaskFromApi)
+        : Array.isArray(refreshPayload?.tasks)
+          ? refreshPayload.tasks.map(mapTaskFromApi)
+          : Array.isArray(refreshData?.items)
+            ? refreshData.items.map(mapTaskFromApi)
+            : [];
 
     setTasks(refreshedTasks);
   };
@@ -559,24 +559,24 @@ export default function TasksSection({
         const normalizedTasks = Array.isArray(tasksData)
           ? tasksData.map(mapTaskFromApi)
           : Array.isArray(tasksPayload?.tasks)
-          ? tasksPayload.tasks.map(mapTaskFromApi)
-          : Array.isArray(tasksData?.tasks)
-          ? tasksData.tasks.map(mapTaskFromApi)
-          : Array.isArray(tasksData?.items)
-          ? tasksData.items.map(mapTaskFromApi)
-          : [];
+            ? tasksPayload.tasks.map(mapTaskFromApi)
+            : Array.isArray(tasksData?.tasks)
+              ? tasksData.tasks.map(mapTaskFromApi)
+              : Array.isArray(tasksData?.items)
+                ? tasksData.items.map(mapTaskFromApi)
+                : [];
 
         setTasks(normalizedTasks);
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-          typeof setupRulesData.priorityMultipliers === "object"
+            typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-          typeof setupRulesData.complexityMultipliers === "object"
+            typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -588,28 +588,28 @@ export default function TasksSection({
         const members = Array.isArray(membersData)
           ? membersData
           : Array.isArray(membersData?.items)
-          ? membersData.items
-          : [];
+            ? membersData.items
+            : [];
 
         setUsers(members);
 
         const teamsList = Array.isArray(teamsData)
           ? teamsData
           : Array.isArray(teamsData?.items)
-          ? teamsData.items
-          : [];
+            ? teamsData.items
+            : [];
 
         setTeams(teamsList);
 
         const resolvedStatuses = Array.isArray(statusesData?.statuses)
           ? statusesData.statuses
           : Array.isArray(statusesPayload?.statuses)
-          ? statusesPayload.statuses
-          : Array.isArray(statusesData)
-          ? statusesData
-          : Array.isArray(setupRulesData?.statuses)
-          ? setupRulesData.statuses
-          : [];
+            ? statusesPayload.statuses
+            : Array.isArray(statusesData)
+              ? statusesData
+              : Array.isArray(setupRulesData?.statuses)
+                ? setupRulesData.statuses
+                : [];
 
         setBackendStatuses(resolvedStatuses);
 
@@ -706,37 +706,37 @@ export default function TasksSection({
     setSelectedRange(DEFAULT_RANGE);
   }, [formState.startDate, formState.dueDate]);
 
-const assignableUsers = useMemo(() => {
-  const query = memberSearch.trim().toLowerCase();
+  const assignableUsers = useMemo(() => {
+    const query = memberSearch.trim().toLowerCase();
 
-  const teamMembers = users.filter((user) => {
-    const role = String(user.role || "").toLowerCase();
-    if (role === "team leader") return false; // <-- FIX
+    const teamMembers = users.filter((user) => {
+      const role = String(user.role || "").toLowerCase();
+      if (role === "team leader") return false; // <-- FIX
 
-    const userId = Number(user.userId ?? user.id);
+      const userId = Number(user.userId ?? user.id);
 
-    return teams.some((team) => {
-      const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
-      return memberIds.some((id) => Number(id) === userId);
+      return teams.some((team) => {
+        const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
+        return memberIds.some((id) => Number(id) === userId);
+      });
     });
-  });
 
-  if (!query) return teamMembers;
+    if (!query) return teamMembers;
 
-  return teamMembers.filter((user) => {
-    const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
-    const email = String(user.email ?? "").toLowerCase();
-    const role = String(user.role ?? "").toLowerCase();
-    const jobTitle = String(user.jobTitle ?? "").toLowerCase();
+    return teamMembers.filter((user) => {
+      const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
+      const email = String(user.email ?? "").toLowerCase();
+      const role = String(user.role ?? "").toLowerCase();
+      const jobTitle = String(user.jobTitle ?? "").toLowerCase();
 
-    return (
-      fullName.includes(query) ||
-      email.includes(query) ||
-      role.includes(query) ||
-      jobTitle.includes(query)
-    );
-  });
-}, [users, teams, memberSearch]);
+      return (
+        fullName.includes(query) ||
+        email.includes(query) ||
+        role.includes(query) ||
+        jobTitle.includes(query)
+      );
+    });
+  }, [users, teams, memberSearch]);
 
   const selectedUser = useMemo(
     () =>
@@ -796,37 +796,37 @@ const assignableUsers = useMemo(() => {
     return resolveTeamIdForUser(editingSelectedUser.userId ?? editingSelectedUser.id);
   }, [editingSelectedUser, resolveTeamIdForUser, storedUserTeamId]);
 
-const filteredEditAssignableUsers = useMemo(() => {
-  const query = editMemberSearch.trim().toLowerCase();
+  const filteredEditAssignableUsers = useMemo(() => {
+    const query = editMemberSearch.trim().toLowerCase();
 
-  const teamMembers = users.filter((user) => {
-    const role = String(user.role || "").toLowerCase();
-    if (role === "team leader") return false; // <-- FIX
+    const teamMembers = users.filter((user) => {
+      const role = String(user.role || "").toLowerCase();
+      if (role === "team leader") return false; // <-- FIX
 
-    const userId = Number(user.userId ?? user.id);
+      const userId = Number(user.userId ?? user.id);
 
-    return teams.some((team) => {
-      const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
-      return memberIds.some((id) => Number(id) === userId);
+      return teams.some((team) => {
+        const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
+        return memberIds.some((id) => Number(id) === userId);
+      });
     });
-  });
 
-  if (!query) return teamMembers;
+    if (!query) return teamMembers;
 
-  return teamMembers.filter((user) => {
-    const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
-    const email = String(user.email ?? "").toLowerCase();
-    const role = String(user.role ?? "").toLowerCase();
-    const jobTitle = String(user.jobTitle ?? "").toLowerCase();
+    return teamMembers.filter((user) => {
+      const fullName = String(user.fullName ?? user.name ?? "").toLowerCase();
+      const email = String(user.email ?? "").toLowerCase();
+      const role = String(user.role ?? "").toLowerCase();
+      const jobTitle = String(user.jobTitle ?? "").toLowerCase();
 
-    return (
-      fullName.includes(query) ||
-      email.includes(query) ||
-      role.includes(query) ||
-      jobTitle.includes(query)
-    );
-  });
-}, [users, teams, editMemberSearch]);
+      return (
+        fullName.includes(query) ||
+        email.includes(query) ||
+        role.includes(query) ||
+        jobTitle.includes(query)
+      );
+    });
+  }, [users, teams, editMemberSearch]);
 
   const tasksWithUsers = useMemo(() => {
     return tasks.map((task) => {
@@ -997,9 +997,9 @@ const filteredEditAssignableUsers = useMemo(() => {
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-          selectedRange.to,
-          "dd/MM/yyyy"
-        )}`
+        selectedRange.to,
+        "dd/MM/yyyy"
+      )}`
       : "Select date range";
 
   const openCreateModal = () => {
@@ -1151,7 +1151,7 @@ const filteredEditAssignableUsers = useMemo(() => {
       if (!deleteAttempt.ok) {
         throw new Error(
           deleteAttempt.message ||
-            "Unable to delete task because no backend delete endpoint responded successfully."
+          "Unable to delete task because no backend delete endpoint responded successfully."
         );
       }
 
@@ -1310,7 +1310,7 @@ const filteredEditAssignableUsers = useMemo(() => {
       if (!updateAttempt.ok) {
         throw new Error(
           updateAttempt.message ||
-            "Unable to save task because no backend update endpoint responded successfully."
+          "Unable to save task because no backend update endpoint responded successfully."
         );
       }
 
@@ -1331,13 +1331,11 @@ const filteredEditAssignableUsers = useMemo(() => {
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${
-      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-    } ${
-      sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+      } ${sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-    }`;
+      }`;
   };
 
   const startIndex = sortedTasks.length
@@ -1354,11 +1352,10 @@ const filteredEditAssignableUsers = useMemo(() => {
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${
-            feedback.type === "success"
+          className={`tasks-section__feedback ${feedback.type === "success"
               ? "tasks-section__feedback--success"
               : "tasks-section__feedback--error"
-          }`}
+            }`}
         >
           {feedback.message}
         </div>
@@ -1370,9 +1367,8 @@ const filteredEditAssignableUsers = useMemo(() => {
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${
-                  activeTab === tab.key ? "tasks-section__tab--active" : ""
-                }`}
+                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
+                  }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -1405,15 +1401,15 @@ const filteredEditAssignableUsers = useMemo(() => {
           <h3>Something went wrong</h3>
           <p>{errorMessage}</p>
         </div>
-) : filteredTasks.length === 0 ? (
-  <div className="tasks-section__state-card">
-    <div className="tasks-section__state-icon">
-      <FiClipboard />
-    </div>
-    <h3>No tasks found</h3>
-    <p>Try changing the selected tab or create a new task to get started.</p>
-  </div>
-) : (
+      ) : filteredTasks.length === 0 ? (
+        <div className="tasks-section__state-card">
+          <div className="tasks-section__state-icon">
+            <FiClipboard />
+          </div>
+          <h3>No tasks found</h3>
+          <p>Try changing the selected tab or create a new task to get started.</p>
+        </div>
+      ) : (
         <div className="tasks-section__table-card">
           <div className="tasks-section__table-wrap">
             <table className="tasks-section__table">
