@@ -538,6 +538,10 @@
     background: #ecfdf5;
     color: #166534;
 }
+.tasks-section__status--approved {
+    background: #ecfdf3;
+    color: #15803d;
+}
 
 .tasks-section__col-actions,
 .tasks-section__cell-actions {
