@@ -27,7 +27,7 @@
 
 .tasks-section__toolbar {
     display: flex;
-    align-items: flex-start;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 18px;
     flex-wrap: wrap;
@@ -204,10 +204,13 @@
 
 .tasks-section__tabs {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
+    justify-content: flex-start;
     gap: 20px;
     flex-wrap: wrap;
-    padding-top: 2px;
+    margin-left: 18px;
+    align-self: flex-end;
+    transform: translateY(8px);
 }
 
 .tasks-section__tab-wrap {
