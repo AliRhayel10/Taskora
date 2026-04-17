@@ -362,116 +362,104 @@ export default function UsersSection({
         }
     };
 
-    const fetchUsers = async (page = 1, search = "", abortSignal) => {
-        if (!companyId) {
-            setUsers([]);
-            setTotalUsers(0);
-            setTotalPages(1);
-            setErrorMessage("");
-            setIsLoading(false);
-            return;
+const fetchUsers = async (page = 1, search = "", abortSignal) => {
+    if (!companyId) {
+        setUsers([]);
+        setTotalUsers(0);
+        setTotalPages(1);
+        setErrorMessage("");
+        setIsLoading(false);
+        return;
+    }
+
+    try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const trimmedSearch = search.trim();
+        const params = new URLSearchParams({
+            page: "1",
+            pageSize: String(SEARCH_FETCH_SIZE),
+        });
+
+        if (trimmedSearch) {
+            params.set("search", trimmedSearch);
         }
 
-        try {
-            setIsLoading(true);
-            setErrorMessage("");
+        const candidateUrls = [
+            `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${params.toString()}`,
+            `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+            `${API_BASE_URL}/api/user/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+            `${API_BASE_URL}/api/employees/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+        ];
 
-            const isSearching = search.trim().length > 0;
+        let resolvedPayload = null;
 
-            const params = new URLSearchParams({
-                page: String(isSearching ? 1 : page),
-                pageSize: String(isSearching ? SEARCH_FETCH_SIZE : PAGE_SIZE),
-            });
+        for (const url of candidateUrls) {
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    signal: abortSignal,
+                });
 
-            if (isSearching) {
-                params.set("search", search.trim());
+                const data = await readJsonSafe(response);
+
+                if (!response.ok) continue;
+
+                resolvedPayload = data;
+                break;
+            } catch (error) {
+                if (error.name === "AbortError") throw error;
             }
+        }
 
-            const candidateUrls = [
-                `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${params.toString()}`,
-                `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}?${params.toString()}`,
-                `${API_BASE_URL}/api/user/company/${encodeURIComponent(companyId)}?${params.toString()}`,
-                `${API_BASE_URL}/api/employees/company/${encodeURIComponent(companyId)}?${params.toString()}`,
-            ];
-
-            let resolvedPayload = null;
-
-            for (const url of candidateUrls) {
-                try {
-                    const response = await fetch(url, {
-                        method: "GET",
-                        signal: abortSignal,
-                    });
-
-                    const data = await readJsonSafe(response);
-
-                    if (!response.ok) continue;
-
-                    resolvedPayload = data;
-                    break;
-                } catch (error) {
-                    if (error.name === "AbortError") throw error;
-                }
-            }
-
-            if (!resolvedPayload) {
-                setUsers([]);
-                setTotalUsers(0);
-                setTotalPages(1);
-                setErrorMessage("Failed to load users.");
-                return;
-            }
-
-            const normalizedUsers = normalizeUsersResponse(resolvedPayload);
-            const safeUsers = Array.isArray(normalizedUsers) ? normalizedUsers : [];
-            const visibleUsers = safeUsers.filter((user) => !isAdminRole(getUserRole(user)));
-
-            if (isSearching) {
-                const locallyFilteredUsers = visibleUsers.filter((user) =>
-                    matchesNameSearch(user, search)
-                );
-                const calculatedPages = Math.max(1, Math.ceil(locallyFilteredUsers.length / PAGE_SIZE));
-                const paginatedUsers = locallyFilteredUsers.slice(
-                    (page - 1) * PAGE_SIZE,
-                    page * PAGE_SIZE
-                );
-
-                setUsers(paginatedUsers);
-                setTotalUsers(locallyFilteredUsers.length);
-                setTotalPages(calculatedPages);
-                setCurrentPage(Math.min(page, calculatedPages));
-                return;
-            }
-
-            const pagination = resolvedPayload?.pagination || {};
-            const backendPage = Number(pagination?.page ?? resolvedPayload?.page ?? page) || page;
-
-            const backendTotal = Number(
-                pagination?.totalCount ??
-                pagination?.totalUsers ??
-                pagination?.total ??
-                resolvedPayload?.totalCount ??
-                resolvedPayload?.totalUsers ??
-                resolvedPayload?.total
-            ) || visibleUsers.length;
-
-            const calculatedTotalPages = Math.max(1, Math.ceil(backendTotal / PAGE_SIZE));
-
-            setUsers(visibleUsers);
-            setCurrentPage(Math.min(backendPage, calculatedTotalPages));
-            setTotalUsers(backendTotal);
-            setTotalPages(calculatedTotalPages);
-        } catch (error) {
-            if (error.name === "AbortError") return;
-            console.error("Failed to fetch users:", error);
+        if (!resolvedPayload) {
             setUsers([]);
             setTotalUsers(0);
             setTotalPages(1);
             setErrorMessage("Failed to load users.");
-        } finally {
-            setIsLoading(false);
+            return;
         }
-    };
+
+        const normalizedUsers = normalizeUsersResponse(resolvedPayload);
+        const safeUsers = Array.isArray(normalizedUsers) ? normalizedUsers : [];
+
+        const visibleUsers = safeUsers.filter(
+            (user) => !isAdminRole(getUserRole(user))
+        );
+
+        const searchedUsers = trimmedSearch
+            ? visibleUsers.filter((user) => matchesNameSearch(user, trimmedSearch))
+            : visibleUsers;
+
+        const calculatedTotalUsers = searchedUsers.length;
+        const calculatedTotalPages = Math.max(
+            1,
+            Math.ceil(calculatedTotalUsers / PAGE_SIZE)
+        );
+
+        const safePage = Math.min(Math.max(1, page), calculatedTotalPages);
+
+        const paginatedUsers = searchedUsers.slice(
+            (safePage - 1) * PAGE_SIZE,
+            safePage * PAGE_SIZE
+        );
+
+        setUsers(paginatedUsers);
+        setCurrentPage(safePage);
+        setTotalUsers(calculatedTotalUsers);
+        setTotalPages(calculatedTotalPages);
+    } catch (error) {
+        if (error.name === "AbortError") return;
+        console.error("Failed to fetch users:", error);
+        setUsers([]);
+        setTotalUsers(0);
+        setTotalPages(1);
+        setErrorMessage("Failed to load users.");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     useEffect(() => {
         const delay = setTimeout(() => {
