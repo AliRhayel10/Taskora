@@ -343,6 +343,7 @@ export default function TasksSection({
   updateTaskEndpoint,
   deleteTaskEndpoint,
   pageSize = 5,
+  searchValue = "",
 }) {
   const storedUser = getStoredUser();
 
@@ -952,15 +953,44 @@ export default function TasksSection({
     return counts;
   }, [tasksWithUsers]);
 
-  const filteredTasks = useMemo(() => {
-    return tasksWithUsers.filter((task) => {
-      if (activeTab === "all") return true;
-      if (activeTab === "unassigned") return isTaskUnassigned(task);
+const filteredTasks = useMemo(() => {
+  const normalizedSearch = String(searchValue || "").trim().toLowerCase();
 
-      const statusKey = normalizeStatus(task.effectiveStatus);
-      return statusKey === activeTab;
-    });
-  }, [tasksWithUsers, activeTab]);
+  return tasksWithUsers.filter((task) => {
+    const matchesTab =
+      activeTab === "all"
+        ? true
+        : activeTab === "unassigned"
+          ? isTaskUnassigned(task)
+          : normalizeStatus(task.effectiveStatus) === activeTab;
+
+    if (!matchesTab) {
+      return false;
+    }
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const title = String(task.title || "").toLowerCase();
+    const description = String(task.description || "").toLowerCase();
+    const assignedUserName = String(task.assignedUserName || "").toLowerCase();
+    const assignedUserEmail = String(task.assignedUserEmail || "").toLowerCase();
+    const priority = String(task.priority || "").toLowerCase();
+    const complexity = String(task.complexity || "").toLowerCase();
+    const status = String(task.effectiveStatus || "").toLowerCase();
+
+    return (
+      title.includes(normalizedSearch) ||
+      description.includes(normalizedSearch) ||
+      assignedUserName.includes(normalizedSearch) ||
+      assignedUserEmail.includes(normalizedSearch) ||
+      priority.includes(normalizedSearch) ||
+      complexity.includes(normalizedSearch) ||
+      status.includes(normalizedSearch)
+    );
+  });
+}, [tasksWithUsers, activeTab, searchValue]);
 
   const sortedTasks = useMemo(() => {
     if (!sortConfig.key) return filteredTasks;
