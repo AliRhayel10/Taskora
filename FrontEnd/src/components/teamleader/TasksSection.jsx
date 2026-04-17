@@ -64,6 +64,25 @@ const formatDate = (value) => {
   return date.toLocaleDateString("en-GB");
 };
 
+const formatDateRange = (startValue, endValue) => {
+  if (!startValue && !endValue) return "—";
+  if (!startValue) return formatDate(endValue);
+  if (!endValue) return formatDate(startValue);
+
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "—";
+  }
+
+  if (start.toDateString() === end.toDateString()) {
+    return formatDate(startValue);
+  }
+
+  return `${formatDate(startValue)} - ${formatDate(endValue)}`;
+};
+
 const formatHours = (value) => {
   if (value === null || value === undefined || value === "") return "—";
   return `${value}h`;
@@ -615,13 +634,13 @@ export default function TasksSection({
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-            typeof setupRulesData.priorityMultipliers === "object"
+          typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-            typeof setupRulesData.complexityMultipliers === "object"
+          typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -1840,32 +1859,31 @@ export default function TasksSection({
 
                       <td>
                         {isEditing ? (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-link"
-                            onClick={() => openEditDueDateModal(task)}
-                          >
-                            <span className="tasks-section__user-details">
-                              <strong>
-                                <span className="tasks-section__date-range-text">
-                                  {editFormState?.startDate && editFormState?.dueDate
-                                    ? `${formatDate(editFormState.startDate)} - ${formatDate(editFormState.dueDate)}`
-                                    : "Select date range"}
-                                </span>
-                                <span
-                                  className="tasks-section__editable-indicator"
-                                  aria-hidden="true"
-                                >
-                                  <FiEdit2 />
-                                </span>
-                              </strong>
-                            </span>
-                          </button>
+<button
+  type="button"
+  className="tasks-section__inline-link"
+  onClick={() => openEditDueDateModal(task)}
+>
+  <strong>
+    <span className="tasks-section__date-range-text">
+      {editFormState?.startDate || editFormState?.dueDate
+        ? formatDateRange(
+            editFormState.startDate,
+            editFormState.dueDate
+          )
+        : "Select date range"}
+    </span>
+    <span
+      className="tasks-section__editable-indicator"
+      aria-hidden="true"
+    >
+      <FiEdit2 />
+    </span>
+  </strong>
+</button>
                         ) : (
                           <span className="tasks-section__date-range-text">
-                            {task.startDate && task.dueDate
-                              ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}`
-                              : formatDate(task.dueDate)}
+                            {formatDateRange(task.startDate, task.dueDate)}
                           </span>
                         )}
                       </td>

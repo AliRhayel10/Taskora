@@ -339,7 +339,7 @@
 }
 
 .tasks-section__table tbody td {
-    padding: 12px 10px;
+    padding: 12px 14px;
     border-bottom: 1px solid #e2e8f0;
     color: #334155;
     font-size: 0.92rem;
@@ -438,11 +438,11 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
-    max-width: 180px;
+    max-width: 100%;
 }
 
 .tasks-section__user-details small {
@@ -1377,6 +1377,8 @@
     text-align: left;
     cursor: pointer;
     min-width: 0;
+    display: flex;
+    align-items: center;
 }
 
 .tasks-section__inline-badge-trigger,
@@ -1501,7 +1503,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-left: 6px;
+    margin-left: 2px;
     color: #2563eb;
     font-size: 0.78rem;
     flex-shrink: 0;
@@ -1613,8 +1615,9 @@
 .tasks-section__table tbody td:nth-child(8) {
     white-space: normal;
 }
+
 .tasks-section__date-range-text {
-    display: inline-block;
+    display: inline;
     max-width: 100%;
     white-space: normal;
     word-break: break-word;
@@ -1634,6 +1637,31 @@
 .tasks-section__table tbody td:nth-child(7),
 .tasks-section__table tbody td:nth-child(8) {
     text-align: center;
+}
+
+.tasks-section__table tbody td:nth-child(3) .tasks-section__inline-select-wrap,
+.tasks-section__table tbody td:nth-child(4) .tasks-section__inline-select-wrap,
+.tasks-section__table tbody td:nth-child(5) .tasks-section__inline-effort-input {
+    margin: 0 auto;
+}
+
+.tasks-section__table tbody td:nth-child(5) .tasks-section__inline-effort-input {
+    display: block;
+}
+
+.tasks-section__table tbody td:nth-child(8) .tasks-section__inline-link {
+    justify-content: center;
+}
+
+.tasks-section__table tbody td:nth-child(8) strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
 }
 
 .tasks-section__unassigned-warning {
