@@ -733,37 +733,37 @@ export default function TeamLeaderDashboardSection({
     [totalPages, currentPage]
   );
 
-  const handleSelectPreset = (preset) => {
-    if (preset === "custom") {
-      setDraftPreset("custom");
-      setDraftCustomRange({
-        from: customRange?.from || null,
-        to: customRange?.to || null,
-      });
-      return;
-    }
-
-    let nextRange = customRange;
-
-    if (preset === "today") {
-      nextRange = getTodayRange();
-    } else if (preset === "thisWeek") {
-      nextRange = getWeekRange(0);
-    }
-
-    setDraftPreset(preset);
+const handleSelectPreset = (preset) => {
+  if (preset === "custom") {
+    setDraftPreset("custom");
     setDraftCustomRange({
       from: null,
       to: null,
     });
+    return;
+  }
 
-    setSelectedPreset(preset);
-    setCustomRange({
-      from: nextRange.start,
-      to: nextRange.end,
-    });
-    setIsRangeMenuOpen(false);
-  };
+  let nextRange = customRange;
+
+  if (preset === "today") {
+    nextRange = getTodayRange();
+  } else if (preset === "thisWeek") {
+    nextRange = getWeekRange(0);
+  }
+
+  setDraftPreset(preset);
+  setDraftCustomRange({
+    from: null,
+    to: null,
+  });
+
+  setSelectedPreset(preset);
+  setCustomRange({
+    from: nextRange.start,
+    to: nextRange.end,
+  });
+  setIsRangeMenuOpen(false);
+};
 
   const handleCustomRangeSelect = (range) => {
     setDraftPreset("custom");
