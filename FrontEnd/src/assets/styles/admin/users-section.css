@@ -186,6 +186,7 @@
     width: 100%;
     border-collapse: collapse;
     min-width: 820px;
+    table-layout: fixed;
 }
 
 .users-section__table thead th {
@@ -231,6 +232,10 @@
     vertical-align: middle;
     line-height: 1.35;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 72px;
+    box-sizing: border-box;
 }
 
 .users-section__col-status,
@@ -279,6 +284,7 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
+    min-height: 48px;
 }
 
 .users-section__avatar {
@@ -306,8 +312,10 @@
 .users-section__user-details {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 2px;
     min-width: 0;
+    min-height: 34px;
 }
 
 .users-section__user-details strong {
@@ -343,6 +351,7 @@
     padding: 0 12px;
     font-size: 0.8rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .users-section__status::before {
@@ -705,6 +714,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
+    min-height: 32px;
 }
 
 .users-section__action-btn {
@@ -956,10 +966,12 @@
         font-size: 0.72rem;
     }
 
-    .users-section__user-details strong,
-    .users-section__user-details small {
-        max-width: 140px;
-    }
+.users-section__user-details strong,
+.users-section__user-details small {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 }
 
 @media (max-width: 560px) {
