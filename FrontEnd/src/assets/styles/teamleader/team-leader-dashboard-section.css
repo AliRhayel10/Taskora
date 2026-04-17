@@ -236,12 +236,10 @@
   background: #eff6ff;
 }
 
-/* Past days, selectable but muted like the screenshot */
+/* Past days, selectable but muted only when NOT selected */
 .teamleader-dashboard-section__day-picker
   .teamleader-dashboard-section__day--past
   .rdp-day_button {
-  color: #9ca3af !important;
-  background: transparent !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -269,6 +267,65 @@
   outline: none !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+/* Selected past days should look exactly like normal selected days */
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-selected
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-range_start
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-range_end
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_selected
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_range_start
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_range_end
+  .rdp-day_button {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-range_middle
+  .rdp-day_button,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_range_middle
+  .rdp-day_button {
+  background: #e0e7ff !important;
+  color: #334155 !important;
+}
+
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-selected
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-range_start
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-range_end
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_selected
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_range_start
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past.rdp-day_range_end
+  .rdp-day_button:hover {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  transform: scale(1.03);
 }
 
 .teamleader-dashboard-section__day-picker .rdp-day_disabled .rdp-day_button {
