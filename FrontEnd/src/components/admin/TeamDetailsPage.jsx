@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   FiArrowLeft,
   FiChevronLeft,
@@ -303,6 +303,7 @@ export default function TeamDetailsPage({
     direction: "desc",
   });
   const [membersPerPage, setMembersPerPage] = useState(5);
+  const [tableMaxHeight, setTableMaxHeight] = useState(0);
 
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [memberManagementMode, setMemberManagementMode] = useState("members");
@@ -796,56 +797,74 @@ export default function TeamDetailsPage({
     return sortableMembers.map(({ member }) => member);
   }, [filteredMembersWithOriginalOrder, sortConfig]);
 
-const calculateMembersPerPage = () => {
-  if (!tableCardRef.current || !tableHeadRef.current) {
-    return;
-  }
+  const calculateMembersPerPage = useCallback(() => {
+    if (!tableCardRef.current || !tableHeadRef.current) {
+      return;
+    }
 
-  const cardRect = tableCardRef.current.getBoundingClientRect();
-  const headRect = tableHeadRef.current.getBoundingClientRect();
-  const paginationHeight = paginationRef.current
-    ? paginationRef.current.getBoundingClientRect().height
-    : 0;
+    const cardElement = tableCardRef.current;
+    const cardRect = cardElement.getBoundingClientRect();
+    const headRect = tableHeadRef.current.getBoundingClientRect();
+    const paginationHeight = paginationRef.current
+      ? paginationRef.current.getBoundingClientRect().height
+      : 58;
 
-  const firstBodyRow = tableCardRef.current.querySelector("tbody tr");
-  const rowHeight = firstBodyRow
-    ? firstBodyRow.getBoundingClientRect().height
-    : 84;
+    const firstBodyRow = cardElement.querySelector("tbody tr");
+    const rowHeight = firstBodyRow
+      ? firstBodyRow.getBoundingClientRect().height
+      : 84;
 
-  const cardStyle = window.getComputedStyle(tableCardRef.current);
-  const borderTop = parseFloat(cardStyle.borderTopWidth || "0");
-  const borderBottom = parseFloat(cardStyle.borderBottomWidth || "0");
+    const cardStyle = window.getComputedStyle(cardElement);
+    const borderTop = parseFloat(cardStyle.borderTopWidth || "0");
+    const borderBottom = parseFloat(cardStyle.borderBottomWidth || "0");
 
-  const viewportHeight = window.innerHeight;
-  const bottomSpacing = 24;
+    const viewportHeight = window.innerHeight;
+    const bottomSpacing = 24;
+    const availableCardHeight = Math.max(
+      320,
+      Math.floor(viewportHeight - cardRect.top - bottomSpacing)
+    );
 
-  const availableRowsHeight =
-    viewportHeight -
-    cardRect.top -
-    headRect.height -
-    paginationHeight -
-    borderTop -
-    borderBottom -
-    bottomSpacing;
+    setTableMaxHeight(availableCardHeight);
 
-  const fittedRows = Math.floor(availableRowsHeight / rowHeight);
+    const availableRowsHeight =
+      availableCardHeight -
+      headRect.height -
+      paginationHeight -
+      borderTop -
+      borderBottom;
 
-  setMembersPerPage(Math.max(1, fittedRows));
-};
+    const fittedRows = Math.max(
+      MIN_MEMBERS_PER_PAGE,
+      Math.floor((availableRowsHeight + rowHeight * 0.35) / rowHeight)
+    );
+
+    setMembersPerPage(fittedRows);
+  }, []);
 
   useLayoutEffect(() => {
-    calculateMembersPerPage();
+    let frameId = 0;
+
+    const runCalculation = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        calculateMembersPerPage();
+      });
+    };
+
+    runCalculation();
 
     const handleResize = () => {
-      calculateMembersPerPage();
+      runCalculation();
     };
 
     window.addEventListener("resize", handleResize);
 
     return () => {
+      window.cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
     };
-  }, [sortedMembers.length, isLoadingMembers]);
+  }, [calculateMembersPerPage, sortedMembers.length, isLoadingMembers]);
 
   useEffect(() => {
     const totalPagesCount = Math.max(
@@ -1641,6 +1660,10 @@ const calculateMembersPerPage = () => {
       <div
         ref={tableCardRef}
         className="users-section__table-card team-details-page__table-card"
+        style={{
+          maxHeight: tableMaxHeight ? `${tableMaxHeight}px` : undefined,
+          height: tableMaxHeight ? `${tableMaxHeight}px` : undefined,
+        }}
       >
         <div className="users-section__table-wrap team-details-page__table-wrap">
           <table className="users-section__table team-details-page__table">

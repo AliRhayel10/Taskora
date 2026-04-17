@@ -740,3 +740,87 @@
     padding: 12px 14px;
   }
 }
+
+.team-details-page__table-card {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.team-details-page__table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.team-details-page__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eef4ff;
+}
+
+.users-section__pagination {
+  flex-shrink: 0;
+}
+
+/* Fixed5: reduce row height a bit more so the last member fits without inner scroll */
+.team-details-page__table tbody td {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+}
+
+.team-details-page__table .users-section__user-cell {
+  gap: 9px;
+  min-height: 52px;
+}
+
+.team-details-page__table .users-section__avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.team-details-page__table .users-section__user-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+.team-details-page__table .users-section__user-details strong {
+  line-height: 1.1;
+  font-size: 0.96rem;
+}
+
+.team-details-page__table .users-section__user-details small {
+  line-height: 1.1;
+  font-size: 0.8rem;
+}
+
+.team-details-page__table td {
+  font-size: 0.96rem;
+}
+
+.team-details-page__role-badge,
+.team-details-page__status-pill {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+
+.team-details-page__row-actions {
+  gap: 8px;
+}
+
+.team-details-page__delete-btn,
+.team-details-page__delete-btn--leader-action {
+  width: 35px;
+  height: 35px;
+}
+
+.team-details-page__table-wrap {
+  scrollbar-gutter: stable both-edges;
+}
