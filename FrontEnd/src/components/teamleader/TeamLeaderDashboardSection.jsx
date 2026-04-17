@@ -70,9 +70,10 @@ function loadRangeState() {
 
     const parsed = JSON.parse(saved);
 
-    const selectedPreset = parsed?.selectedPreset === "nextWeek"
-      ? "thisWeek"
-      : parsed?.selectedPreset || "thisWeek";
+    const selectedPreset =
+      parsed?.selectedPreset === "nextWeek"
+        ? "thisWeek"
+        : parsed?.selectedPreset || "thisWeek";
 
     return {
       selectedPreset,
@@ -133,8 +134,6 @@ function getRangeLabel(preset) {
   switch (preset) {
     case "today":
       return "Today";
-    case "custom":
-      return "Custom";
     case "custom":
       return "Custom";
     case "thisWeek":
@@ -812,12 +811,6 @@ export default function TeamLeaderDashboardSection({
                 className="teamleader-dashboard-section__range-tabs"
                 role="tablist"
                 aria-label="Date range presets"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  flexWrap: "wrap",
-                }}
               >
                 <button
                   type="button"
@@ -829,7 +822,6 @@ export default function TeamLeaderDashboardSection({
                       : ""
                   }`}
                   onClick={() => handleSelectPreset("today")}
-                  style={{ flex: 1 }}
                 >
                   Today
                 </button>
@@ -844,7 +836,6 @@ export default function TeamLeaderDashboardSection({
                       : ""
                   }`}
                   onClick={() => handleSelectPreset("thisWeek")}
-                  style={{ flex: 1 }}
                 >
                   This Week
                 </button>
@@ -859,7 +850,6 @@ export default function TeamLeaderDashboardSection({
                       : ""
                   }`}
                   onClick={() => handleSelectPreset("custom")}
-                  style={{ flex: 1 }}
                 >
                   Custom
                 </button>
@@ -870,47 +860,47 @@ export default function TeamLeaderDashboardSection({
                   <div className="teamleader-dashboard-section__range-divider"></div>
 
                   <div className="teamleader-dashboard-section__custom-range">
-                <div className="teamleader-dashboard-section__custom-range-header">
-                  <FiCalendar />
-                  <span>Pick a custom range</span>
-                </div>
+                    <div className="teamleader-dashboard-section__custom-range-header">
+                      <FiCalendar />
+                      <span>Pick a custom range</span>
+                    </div>
 
-                <div className="teamleader-dashboard-section__custom-range-preview">
-                  {draftCustomRange?.from
-                    ? formatDateText(draftCustomRange.from)
-                    : "Start"}{" "}
-                  <span>to</span>{" "}
-                  {draftCustomRange?.to
-                    ? formatDateText(draftCustomRange.to)
-                    : "End"}
-                </div>
+                    <div className="teamleader-dashboard-section__custom-range-preview">
+                      {draftCustomRange?.from
+                        ? formatDateText(draftCustomRange.from)
+                        : "Start"}{" "}
+                      <span>to</span>{" "}
+                      {draftCustomRange?.to
+                        ? formatDateText(draftCustomRange.to)
+                        : "End"}
+                    </div>
 
-                <div className="teamleader-dashboard-section__calendar-shell">
-                  <DayPicker
-                    mode="range"
-                    selected={draftCustomRange}
-                    onSelect={handleCustomRangeSelect}
-                    showOutsideDays={false}
-                    numberOfMonths={1}
-                    className="teamleader-dashboard-section__day-picker"
-                    modifiers={{
-                      past: (date) => startOfDay(date) < startOfDay(new Date()),
-                    }}
-                    modifiersClassNames={{
-                      past: "teamleader-dashboard-section__day--past",
-                    }}
-                  />
-                </div>
+                    <div className="teamleader-dashboard-section__calendar-shell">
+                      <DayPicker
+                        mode="range"
+                        selected={draftCustomRange}
+                        onSelect={handleCustomRangeSelect}
+                        showOutsideDays={false}
+                        numberOfMonths={1}
+                        className="teamleader-dashboard-section__day-picker"
+                        modifiers={{
+                          past: (date) => startOfDay(date) < startOfDay(new Date()),
+                        }}
+                        modifiersClassNames={{
+                          past: "teamleader-dashboard-section__day--past",
+                        }}
+                      />
+                    </div>
 
-                <button
-                  type="button"
-                  className="teamleader-dashboard-section__apply-btn"
-                  onClick={handleApplyCustomRange}
-                  disabled={!draftCustomRange?.from || !draftCustomRange?.to}
-                >
-                  Apply Range
-                </button>
-              </div>
+                    <button
+                      type="button"
+                      className="teamleader-dashboard-section__apply-btn"
+                      onClick={handleApplyCustomRange}
+                      disabled={!draftCustomRange?.from || !draftCustomRange?.to}
+                    >
+                      Apply Range
+                    </button>
+                  </div>
                 </>
               )}
             </div>
