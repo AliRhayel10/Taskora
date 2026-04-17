@@ -74,6 +74,15 @@ export default function TeamLeaderDashboard() {
     navigate("/login", { replace: true });
   };
 
+  const searchPlaceholder =
+    activeItem === "Dashboard"
+      ? "Search"
+      : activeItem === "Tasks"
+        ? "Search tasks"
+        : activeItem === "Teams"
+          ? "Search"
+          : "Search";
+
   if (!user) {
     return null;
   }
@@ -93,7 +102,7 @@ export default function TeamLeaderDashboard() {
           onSearchChange={setSearchValue}
           notificationCount={0}
           showSearch={true}
-          searchPlaceholder="Search tasks, team members..."
+          searchPlaceholder={searchPlaceholder}
           onOpenProfile={() => setActiveItem("Profile")}
           onOpenSettings={() => {}}
           onLogout={handleLogout}
