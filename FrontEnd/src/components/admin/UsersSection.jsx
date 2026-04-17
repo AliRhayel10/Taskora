@@ -443,15 +443,24 @@ export default function UsersSection({
                 return;
             }
 
-            const pagination = resolvedPayload?.pagination || {};
-            const backendPage = Number(pagination?.page ?? resolvedPayload?.page ?? page) || page;
-            const filteredTotal = visibleUsers.length;
-            const calculatedTotalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
+const pagination = resolvedPayload?.pagination || {};
+const backendPage = Number(pagination?.page ?? resolvedPayload?.page ?? page) || page;
 
-            setUsers(visibleUsers);
-            setCurrentPage(Math.min(backendPage, calculatedTotalPages));
-            setTotalUsers(filteredTotal);
-            setTotalPages(calculatedTotalPages);
+const backendTotal = Number(
+    pagination?.totalCount ??
+    pagination?.totalUsers ??
+    pagination?.total ??
+    resolvedPayload?.totalCount ??
+    resolvedPayload?.totalUsers ??
+    resolvedPayload?.total
+) || visibleUsers.length;
+
+const calculatedTotalPages = Math.max(1, Math.ceil(backendTotal / PAGE_SIZE));
+
+setUsers(visibleUsers);
+setCurrentPage(Math.min(backendPage, calculatedTotalPages));
+setTotalUsers(backendTotal);
+setTotalPages(calculatedTotalPages);
         } catch (error) {
             if (error.name === "AbortError") return;
             console.error("Failed to fetch users:", error);
