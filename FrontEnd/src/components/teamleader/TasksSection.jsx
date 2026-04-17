@@ -953,44 +953,44 @@ export default function TasksSection({
     return counts;
   }, [tasksWithUsers]);
 
-const filteredTasks = useMemo(() => {
-  const normalizedSearch = String(searchValue || "").trim().toLowerCase();
+  const filteredTasks = useMemo(() => {
+    const normalizedSearch = String(searchValue || "").trim().toLowerCase();
 
-  return tasksWithUsers.filter((task) => {
-    const matchesTab =
-      activeTab === "all"
-        ? true
-        : activeTab === "unassigned"
-          ? isTaskUnassigned(task)
-          : normalizeStatus(task.effectiveStatus) === activeTab;
+    return tasksWithUsers.filter((task) => {
+      const matchesTab =
+        activeTab === "all"
+          ? true
+          : activeTab === "unassigned"
+            ? isTaskUnassigned(task)
+            : normalizeStatus(task.effectiveStatus) === activeTab;
 
-    if (!matchesTab) {
-      return false;
-    }
+      if (!matchesTab) {
+        return false;
+      }
 
-    if (!normalizedSearch) {
-      return true;
-    }
+      if (!normalizedSearch) {
+        return true;
+      }
 
-    const title = String(task.title || "").toLowerCase();
-    const description = String(task.description || "").toLowerCase();
-    const assignedUserName = String(task.assignedUserName || "").toLowerCase();
-    const assignedUserEmail = String(task.assignedUserEmail || "").toLowerCase();
-    const priority = String(task.priority || "").toLowerCase();
-    const complexity = String(task.complexity || "").toLowerCase();
-    const status = String(task.effectiveStatus || "").toLowerCase();
+      const title = String(task.title || "").toLowerCase();
+      const description = String(task.description || "").toLowerCase();
+      const assignedUserName = String(task.assignedUserName || "").toLowerCase();
+      const assignedUserEmail = String(task.assignedUserEmail || "").toLowerCase();
+      const priority = String(task.priority || "").toLowerCase();
+      const complexity = String(task.complexity || "").toLowerCase();
+      const status = String(task.effectiveStatus || "").toLowerCase();
 
-    return (
-      title.includes(normalizedSearch) ||
-      description.includes(normalizedSearch) ||
-      assignedUserName.includes(normalizedSearch) ||
-      assignedUserEmail.includes(normalizedSearch) ||
-      priority.includes(normalizedSearch) ||
-      complexity.includes(normalizedSearch) ||
-      status.includes(normalizedSearch)
-    );
-  });
-}, [tasksWithUsers, activeTab, searchValue]);
+      return (
+        title.includes(normalizedSearch) ||
+        description.includes(normalizedSearch) ||
+        assignedUserName.includes(normalizedSearch) ||
+        assignedUserEmail.includes(normalizedSearch) ||
+        priority.includes(normalizedSearch) ||
+        complexity.includes(normalizedSearch) ||
+        status.includes(normalizedSearch)
+      );
+    });
+  }, [tasksWithUsers, activeTab, searchValue]);
 
   const sortedTasks = useMemo(() => {
     if (!sortConfig.key) return filteredTasks;
@@ -1308,30 +1308,30 @@ const filteredTasks = useMemo(() => {
     });
   };
 
-const openEditMode = (task) => {
-  setEditingTaskId(task.id);
-  setEditMemberSearch("");
-  setActiveEditField(null);
-  setIsEditDueDateOpen(false);
-  setEditDueDateDraft({
-    from: task.startDate ? new Date(task.startDate) : undefined,
-    to: task.dueDate ? new Date(task.dueDate) : undefined,
-  });
-  setEditFormState({
-    id: task.id,
-    title: task.title || "",
-    description: task.description || "",
-    assignedUserId: String(task.assignedUserId ?? ""),
-    priority: task.priority || "",
-    complexity: task.complexity || "",
-    estimatedEffortHours:
-      task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
-        ? ""
-        : String(task.estimatedEffortHours),
-    dueDate: task.dueDate || "",
-    startDate: task.startDate || "",
-  });
-};
+  const openEditMode = (task) => {
+    setEditingTaskId(task.id);
+    setEditMemberSearch("");
+    setActiveEditField(null);
+    setIsEditDueDateOpen(false);
+    setEditDueDateDraft({
+      from: task.startDate ? new Date(task.startDate) : undefined,
+      to: task.dueDate ? new Date(task.dueDate) : undefined,
+    });
+    setEditFormState({
+      id: task.id,
+      title: task.title || "",
+      description: task.description || "",
+      assignedUserId: String(task.assignedUserId ?? ""),
+      priority: task.priority || "",
+      complexity: task.complexity || "",
+      estimatedEffortHours:
+        task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
+          ? ""
+          : String(task.estimatedEffortHours),
+      dueDate: task.dueDate || "",
+      startDate: task.startDate || "",
+    });
+  };
 
   const cancelEditMode = () => {
     setEditingTaskId(null);
@@ -1390,13 +1390,13 @@ const openEditMode = (task) => {
     setActiveEditField(null);
   };
 
-const applyEditDueDate = () => {
-  if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
+  const applyEditDueDate = () => {
+    if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
 
-  handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
-  handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
-  closeEditDueDateModal();
-};
+    handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
+    handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
+    closeEditDueDateModal();
+  };
 
   const saveTaskChanges = async () => {
     if (!editingTaskId || !editFormState || isSavingEdit) return;
@@ -1889,59 +1889,38 @@ const applyEditDueDate = () => {
                         </span>
                       </td>
 
-<td>
-  {isEditing ? (
-    <button
-      type="button"
-      className="tasks-section__inline-link"
-      onClick={() => openEditDueDateModal(task)}
-    >
-      <strong>
-        <span className="tasks-section__date-range-text">
-          {editFormState?.startDate || editFormState?.dueDate
-            ? formatDateRange(editFormState.startDate, editFormState.dueDate)
-            : "Select date range"}
-        </span>
-        <span
-          className="tasks-section__editable-indicator"
-          aria-hidden="true"
-        >
-          <FiEdit2 />
-        </span>
-      </strong>
-    </button>
-  ) : (
-    <span className="tasks-section__date-range-text">
-      {formatDateRange(task.startDate, task.dueDate)}
-    </span>
-  )}
-</td>
+                      <td>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="tasks-section__inline-link"
+                            onClick={() => openEditDueDateModal(task)}
+                          >
+                            <strong>
+                              <span className="tasks-section__date-range-text">
+                                {editFormState?.startDate || editFormState?.dueDate
+                                  ? formatDateRange(editFormState.startDate, editFormState.dueDate)
+                                  : "Select date range"}
+                              </span>
+                              <span
+                                className="tasks-section__editable-indicator"
+                                aria-hidden="true"
+                              >
+                                <FiEdit2 />
+                              </span>
+                            </strong>
+                          </button>
+                        ) : (
+                          <span className="tasks-section__date-range-text">
+                            {formatDateRange(task.startDate, task.dueDate)}
+                          </span>
+                        )}
+                      </td>
 
                       <td className="tasks-section__cell-actions">
                         <div className="tasks-section__actions">
                           {isEditing ? (
                             <>
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--edit"
-                                title="Save changes"
-                                onClick={saveTaskChanges}
-disabled={
-  isSavingEdit ||
-  !editFormState.title?.trim() ||
-  !editFormState.description?.trim() ||
-  !editFormState.assignedUserId ||
-  !editFormState.priority ||
-  !editFormState.complexity ||
-  !editFormState.estimatedEffortHours ||
-  !editFormState.startDate ||
-  !editFormState.dueDate ||
-  !computedEditTaskWeight
-}
-                              >
-                                <FiCheck />
-                              </button>
-
                               <button
                                 type="button"
                                 className="tasks-section__action-btn tasks-section__action-btn--danger"
@@ -1950,6 +1929,27 @@ disabled={
                                 disabled={isSavingEdit}
                               >
                                 <FiX />
+                              </button>
+
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                title="Save changes"
+                                onClick={saveTaskChanges}
+                                disabled={
+                                  isSavingEdit ||
+                                  !editFormState.title?.trim() ||
+                                  !editFormState.description?.trim() ||
+                                  !editFormState.assignedUserId ||
+                                  !editFormState.priority ||
+                                  !editFormState.complexity ||
+                                  !editFormState.estimatedEffortHours ||
+                                  !editFormState.startDate ||
+                                  !editFormState.dueDate ||
+                                  !computedEditTaskWeight
+                                }
+                              >
+                                <FiCheck />
                               </button>
                             </>
                           ) : (
