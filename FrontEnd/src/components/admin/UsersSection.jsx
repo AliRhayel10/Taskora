@@ -1010,7 +1010,6 @@ export default function UsersSection({
                                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                             >
                                 <FiChevronLeft />
-                                <span>Previous</span>
                             </button>
 
                             {pageNumbers.map((pageNumber) => (
@@ -1030,7 +1029,6 @@ export default function UsersSection({
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                             >
-                                <span>Next</span>
                                 <FiChevronRight />
                             </button>
                         </div>
