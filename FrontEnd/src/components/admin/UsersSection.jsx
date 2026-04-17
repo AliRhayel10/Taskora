@@ -13,7 +13,7 @@ import {
 import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
-const PAGE_SIZE = 6;
+const MIN_PAGE_SIZE = 6;
 const SEARCH_FETCH_SIZE = 1000;
 
 const initialCreateForm = {
@@ -270,6 +270,19 @@ function compareStatusValues(firstStatus, secondStatus, direction = "asc") {
     return compareTextValues(normalizedFirst, normalizedSecond, direction);
 }
 
+function getResponsivePageSize() {
+    if (typeof window === "undefined") return MIN_PAGE_SIZE;
+
+    const viewportHeight = window.innerHeight;
+    const estimatedReservedHeight = 430;
+    const estimatedRowHeight = 64;
+
+    const availableHeight = Math.max(0, viewportHeight - estimatedReservedHeight);
+    const fittedRows = Math.floor(availableHeight / estimatedRowHeight);
+
+    return Math.max(MIN_PAGE_SIZE, fittedRows);
+}
+
 export default function UsersSection({
     onOpenUser,
     searchValue,
@@ -284,6 +297,7 @@ export default function UsersSection({
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
+    const [pageSize, setPageSize] = useState(getResponsivePageSize);
     const [sortConfig, setSortConfig] = useState({
         key: "",
         direction: "asc",
@@ -332,6 +346,17 @@ export default function UsersSection({
         }));
     };
 
+    useEffect(() => {
+        const handleResize = () => {
+            setPageSize(getResponsivePageSize());
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
     const fetchTeams = async (abortSignal) => {
         if (!companyId) {
             setTeams([]);
@@ -362,104 +387,104 @@ export default function UsersSection({
         }
     };
 
-const fetchUsers = async (page = 1, search = "", abortSignal) => {
-    if (!companyId) {
-        setUsers([]);
-        setTotalUsers(0);
-        setTotalPages(1);
-        setErrorMessage("");
-        setIsLoading(false);
-        return;
-    }
-
-    try {
-        setIsLoading(true);
-        setErrorMessage("");
-
-        const trimmedSearch = search.trim();
-        const params = new URLSearchParams({
-            page: "1",
-            pageSize: String(SEARCH_FETCH_SIZE),
-        });
-
-        if (trimmedSearch) {
-            params.set("search", trimmedSearch);
+    const fetchUsers = async (page = 1, search = "", abortSignal) => {
+        if (!companyId) {
+            setUsers([]);
+            setTotalUsers(0);
+            setTotalPages(1);
+            setErrorMessage("");
+            setIsLoading(false);
+            return;
         }
 
-        const candidateUrls = [
-            `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${params.toString()}`,
-            `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}?${params.toString()}`,
-            `${API_BASE_URL}/api/user/company/${encodeURIComponent(companyId)}?${params.toString()}`,
-            `${API_BASE_URL}/api/employees/company/${encodeURIComponent(companyId)}?${params.toString()}`,
-        ];
+        try {
+            setIsLoading(true);
+            setErrorMessage("");
 
-        let resolvedPayload = null;
+            const trimmedSearch = search.trim();
+            const params = new URLSearchParams({
+                page: "1",
+                pageSize: String(SEARCH_FETCH_SIZE),
+            });
 
-        for (const url of candidateUrls) {
-            try {
-                const response = await fetch(url, {
-                    method: "GET",
-                    signal: abortSignal,
-                });
-
-                const data = await readJsonSafe(response);
-
-                if (!response.ok) continue;
-
-                resolvedPayload = data;
-                break;
-            } catch (error) {
-                if (error.name === "AbortError") throw error;
+            if (trimmedSearch) {
+                params.set("search", trimmedSearch);
             }
-        }
 
-        if (!resolvedPayload) {
+            const candidateUrls = [
+                `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${params.toString()}`,
+                `${API_BASE_URL}/api/users/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+                `${API_BASE_URL}/api/user/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+                `${API_BASE_URL}/api/employees/company/${encodeURIComponent(companyId)}?${params.toString()}`,
+            ];
+
+            let resolvedPayload = null;
+
+            for (const url of candidateUrls) {
+                try {
+                    const response = await fetch(url, {
+                        method: "GET",
+                        signal: abortSignal,
+                    });
+
+                    const data = await readJsonSafe(response);
+
+                    if (!response.ok) continue;
+
+                    resolvedPayload = data;
+                    break;
+                } catch (error) {
+                    if (error.name === "AbortError") throw error;
+                }
+            }
+
+            if (!resolvedPayload) {
+                setUsers([]);
+                setTotalUsers(0);
+                setTotalPages(1);
+                setErrorMessage("Failed to load users.");
+                return;
+            }
+
+            const normalizedUsers = normalizeUsersResponse(resolvedPayload);
+            const safeUsers = Array.isArray(normalizedUsers) ? normalizedUsers : [];
+
+            const visibleUsers = safeUsers.filter(
+                (user) => !isAdminRole(getUserRole(user))
+            );
+
+            const searchedUsers = trimmedSearch
+                ? visibleUsers.filter((user) => matchesNameSearch(user, trimmedSearch))
+                : visibleUsers;
+
+            const calculatedTotalUsers = searchedUsers.length;
+            const calculatedTotalPages = Math.max(
+                1,
+                Math.ceil(calculatedTotalUsers / pageSize)
+            );
+
+            const safePage = Math.min(Math.max(1, page), calculatedTotalPages);
+
+            const paginatedUsers = searchedUsers.slice(
+                (safePage - 1) * pageSize,
+                safePage * pageSize
+            );
+
+            setUsers(paginatedUsers);
+            setCurrentPage(safePage);
+            setTotalUsers(calculatedTotalUsers);
+            setTotalPages(calculatedTotalPages);
+        } catch (error) {
+            if (error.name === "AbortError") return;
+            console.error("Failed to fetch users:", error);
             setUsers([]);
             setTotalUsers(0);
             setTotalPages(1);
             setErrorMessage("Failed to load users.");
-            return;
+        } finally {
+            setIsLoading(false);
         }
-
-        const normalizedUsers = normalizeUsersResponse(resolvedPayload);
-        const safeUsers = Array.isArray(normalizedUsers) ? normalizedUsers : [];
-
-        const visibleUsers = safeUsers.filter(
-            (user) => !isAdminRole(getUserRole(user))
-        );
-
-        const searchedUsers = trimmedSearch
-            ? visibleUsers.filter((user) => matchesNameSearch(user, trimmedSearch))
-            : visibleUsers;
-
-        const calculatedTotalUsers = searchedUsers.length;
-        const calculatedTotalPages = Math.max(
-            1,
-            Math.ceil(calculatedTotalUsers / PAGE_SIZE)
-        );
-
-        const safePage = Math.min(Math.max(1, page), calculatedTotalPages);
-
-        const paginatedUsers = searchedUsers.slice(
-            (safePage - 1) * PAGE_SIZE,
-            safePage * PAGE_SIZE
-        );
-
-        setUsers(paginatedUsers);
-        setCurrentPage(safePage);
-        setTotalUsers(calculatedTotalUsers);
-        setTotalPages(calculatedTotalPages);
-    } catch (error) {
-        if (error.name === "AbortError") return;
-        console.error("Failed to fetch users:", error);
-        setUsers([]);
-        setTotalUsers(0);
-        setTotalPages(1);
-        setErrorMessage("Failed to load users.");
-    } finally {
-        setIsLoading(false);
-    }
-};
+    };
 
     useEffect(() => {
         const delay = setTimeout(() => {
@@ -471,7 +496,7 @@ const fetchUsers = async (page = 1, search = "", abortSignal) => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearchTerm]);
+    }, [debouncedSearchTerm, pageSize]);
 
     useEffect(() => {
         const abortController = new AbortController();
@@ -483,7 +508,7 @@ const fetchUsers = async (page = 1, search = "", abortSignal) => {
         const abortController = new AbortController();
         fetchUsers(currentPage, debouncedSearchTerm, abortController.signal);
         return () => abortController.abort();
-    }, [companyId, currentPage, debouncedSearchTerm]);
+    }, [companyId, currentPage, debouncedSearchTerm, pageSize]);
 
     const pageNumbers = useMemo(
         () => buildPageNumbers(currentPage, totalPages),
@@ -974,7 +999,7 @@ const fetchUsers = async (page = 1, search = "", abortSignal) => {
                         <div className="users-section__pagination-info">
                             {totalUsers === 0
                                 ? "0 users"
-                                : `${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(currentPage * PAGE_SIZE, totalUsers)} of ${totalUsers} users`}
+                                : `${(currentPage - 1) * pageSize + 1} - ${Math.min(currentPage * pageSize, totalUsers)} of ${totalUsers} users`}
                         </div>
 
                         <div className="users-section__pagination-controls">
