@@ -290,8 +290,8 @@ const buildTaskUpdatePayload = ({
   estimatedEffortHours: Number(editFormState.estimatedEffortHours),
   weight: Number(computedEditTaskWeight || task.weight || 0),
   taskStatusId: task.taskStatusId ? Number(task.taskStatusId) : undefined,
-  startDate: task.startDate || null,
-  dueDate: editFormState.dueDate || null,
+  startDate: editFormState.startDate || task.startDate || null,
+  dueDate: editFormState.dueDate || task.dueDate || null,
 });
 
 const buildDeletePayload = (taskId) => ({
@@ -527,7 +527,7 @@ export default function TasksSection({
 
       if (isEditDueDateOpen) {
         setIsEditDueDateOpen(false);
-        setEditDueDateDraft(undefined);
+        setEditDueDateDraft(DEFAULT_RANGE);
         setActiveEditField(null);
         return;
       }
@@ -1276,30 +1276,30 @@ export default function TasksSection({
     });
   };
 
-  const openEditMode = (task) => {
-    setEditingTaskId(task.id);
-    setEditMemberSearch("");
-    setActiveEditField(null);
-    setIsEditDueDateOpen(false);
-    setEditDueDateDraft({
-      from: task.startDate ? new Date(task.startDate) : undefined,
-      to: task.dueDate ? new Date(task.dueDate) : undefined,
-    });
-    setEditFormState({
-      id: task.id,
-      title: task.title || "",
-      description: task.description || "",
-      assignedUserId: String(task.assignedUserId ?? ""),
-      priority: task.priority || "",
-      complexity: task.complexity || "",
-      estimatedEffortHours:
-        task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
-          ? ""
-          : String(task.estimatedEffortHours),
-      dueDate: task.dueDate || "",
-      startDate: task.startDate || "",
-    });
-  };
+const openEditMode = (task) => {
+  setEditingTaskId(task.id);
+  setEditMemberSearch("");
+  setActiveEditField(null);
+  setIsEditDueDateOpen(false);
+  setEditDueDateDraft({
+    from: task.startDate ? new Date(task.startDate) : undefined,
+    to: task.dueDate ? new Date(task.dueDate) : undefined,
+  });
+  setEditFormState({
+    id: task.id,
+    title: task.title || "",
+    description: task.description || "",
+    assignedUserId: String(task.assignedUserId ?? ""),
+    priority: task.priority || "",
+    complexity: task.complexity || "",
+    estimatedEffortHours:
+      task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
+        ? ""
+        : String(task.estimatedEffortHours),
+    dueDate: task.dueDate || "",
+    startDate: task.startDate || "",
+  });
+};
 
   const cancelEditMode = () => {
     setEditingTaskId(null);
@@ -1358,13 +1358,13 @@ export default function TasksSection({
     setActiveEditField(null);
   };
 
-  const applyEditDueDate = () => {
-    if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
+const applyEditDueDate = () => {
+  if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
 
-    handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
-    handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
-    closeEditDueDateModal();
-  };
+  handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
+  handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
+  closeEditDueDateModal();
+};
 
   const saveTaskChanges = async () => {
     if (!editingTaskId || !editFormState || isSavingEdit) return;
@@ -1857,36 +1857,33 @@ export default function TasksSection({
                         </span>
                       </td>
 
-                      <td>
-                        {isEditing ? (
-                          <button
-                            type="button"
-                            className="tasks-section__inline-link"
-                            onClick={() => openEditDueDateModal(task)}
-                          >
-                            <strong>
-                              <span className="tasks-section__date-range-text">
-                                {editFormState?.startDate || editFormState?.dueDate
-                                  ? formatDateRange(
-                                    editFormState.startDate,
-                                    editFormState.dueDate
-                                  )
-                                  : "Select date range"}
-                              </span>
-                              <span
-                                className="tasks-section__editable-indicator"
-                                aria-hidden="true"
-                              >
-                                <FiEdit2 />
-                              </span>
-                            </strong>
-                          </button>
-                        ) : (
-                          <span className="tasks-section__date-range-text">
-                            {formatDateRange(task.startDate, task.dueDate)}
-                          </span>
-                        )}
-                      </td>
+<td>
+  {isEditing ? (
+    <button
+      type="button"
+      className="tasks-section__inline-link"
+      onClick={() => openEditDueDateModal(task)}
+    >
+      <strong>
+        <span className="tasks-section__date-range-text">
+          {editFormState?.startDate || editFormState?.dueDate
+            ? formatDateRange(editFormState.startDate, editFormState.dueDate)
+            : "Select date range"}
+        </span>
+        <span
+          className="tasks-section__editable-indicator"
+          aria-hidden="true"
+        >
+          <FiEdit2 />
+        </span>
+      </strong>
+    </button>
+  ) : (
+    <span className="tasks-section__date-range-text">
+      {formatDateRange(task.startDate, task.dueDate)}
+    </span>
+  )}
+</td>
 
                       <td className="tasks-section__cell-actions">
                         <div className="tasks-section__actions">
@@ -1897,17 +1894,18 @@ export default function TasksSection({
                                 className="tasks-section__action-btn tasks-section__action-btn--edit"
                                 title="Save changes"
                                 onClick={saveTaskChanges}
-                                disabled={
-                                  isSavingEdit ||
-                                  !editFormState.title?.trim() ||
-                                  !editFormState.description?.trim() ||
-                                  !editFormState.assignedUserId ||
-                                  !editFormState.priority ||
-                                  !editFormState.complexity ||
-                                  !editFormState.estimatedEffortHours ||
-                                  !editFormState.dueDate ||
-                                  !computedEditTaskWeight
-                                }
+disabled={
+  isSavingEdit ||
+  !editFormState.title?.trim() ||
+  !editFormState.description?.trim() ||
+  !editFormState.assignedUserId ||
+  !editFormState.priority ||
+  !editFormState.complexity ||
+  !editFormState.estimatedEffortHours ||
+  !editFormState.startDate ||
+  !editFormState.dueDate ||
+  !computedEditTaskWeight
+}
                               >
                                 <FiCheck />
                               </button>
