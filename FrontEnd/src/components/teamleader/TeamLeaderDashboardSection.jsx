@@ -19,14 +19,24 @@ import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 const PAGE_SIZE = 6;
 const RANGE_STORAGE_KEY = "teamleader_dashboard_range";
 
+function startOfDay(date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function endOfDay(date) {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+}
+
 function getTodayRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
+  const today = new Date();
+  return {
+    start: startOfDay(today),
+    end: endOfDay(today),
+  };
 }
 
 function getWeekRange(offsetWeeks = 0) {
@@ -36,13 +46,15 @@ function getWeekRange(offsetWeeks = 0) {
 
   const start = new Date(now);
   start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
-  start.setHours(0, 0, 0, 0);
 
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
+  const weekStart = startOfDay(start);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
 
-  return { start, end };
+  return {
+    start: weekStart,
+    end: endOfDay(weekEnd),
+  };
 }
 
 function loadRangeState() {
@@ -52,10 +64,7 @@ function loadRangeState() {
     if (!saved) {
       return {
         selectedPreset: "thisWeek",
-        customRange: {
-          from: null,
-          to: null,
-        },
+        customRange: { from: null, to: null },
       };
     }
 
@@ -71,10 +80,7 @@ function loadRangeState() {
   } catch {
     return {
       selectedPreset: "thisWeek",
-      customRange: {
-        from: null,
-        to: null,
-      },
+      customRange: { from: null, to: null },
     };
   }
 }
@@ -105,11 +111,8 @@ function getPresetRange(preset, customRange) {
         customRange?.to instanceof Date &&
         !Number.isNaN(customRange.to.getTime())
       ) {
-        const start = new Date(customRange.from);
-        start.setHours(0, 0, 0, 0);
-
-        const end = new Date(customRange.to);
-        end.setHours(23, 59, 59, 999);
+        const start = startOfDay(customRange.from);
+        const end = endOfDay(customRange.to);
 
         if (start <= end) {
           return { start, end };
@@ -138,20 +141,45 @@ function getRangeLabel(preset) {
   }
 }
 
+function parseApiDate(dateValue) {
+  if (!dateValue) return null;
+
+  const raw = String(dateValue).trim();
+  if (!raw) return null;
+
+  const dateOnly = raw.includes("T") ? raw.split("T")[0] : raw;
+  const parsed = new Date(`${dateOnly}T00:00:00`);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function doesTaskOverlapRange(task, start, end) {
-  const taskStart = task.startDate ? new Date(task.startDate) : null;
-  const taskDue = task.dueDate ? new Date(task.dueDate) : null;
+  const taskStart = parseApiDate(task?.startDate);
+  const taskDue = parseApiDate(task?.dueDate);
+  const rangeStart = startOfDay(start);
+  const rangeEnd = endOfDay(end);
 
   if (!taskStart && !taskDue) return true;
-  if (taskStart && taskDue) return taskStart <= end && taskDue >= start;
-  if (taskDue) return taskDue >= start && taskDue <= end;
-  if (taskStart) return taskStart >= start && taskStart <= end;
+
+  if (taskStart && taskDue) {
+    return startOfDay(taskStart) <= rangeEnd && endOfDay(taskDue) >= rangeStart;
+  }
+
+  if (taskStart) {
+    const value = startOfDay(taskStart);
+    return value >= rangeStart && value <= rangeEnd;
+  }
+
+  if (taskDue) {
+    const value = startOfDay(taskDue);
+    return value >= rangeStart && value <= rangeEnd;
+  }
 
   return true;
 }
 
 function getStatusClass(status) {
-  const normalized = status.toLowerCase();
+  const normalized = String(status || "").toLowerCase();
 
   if (normalized === "available") {
     return "teamleader-dashboard-section__status--available";
@@ -243,6 +271,64 @@ function buildPageNumbers(totalPages, currentPage) {
 
 function formatDateText(date) {
   return format(date, "dd/MM/yyyy");
+}
+
+function getMemberId(member) {
+  return Number(member?.userId ?? 0);
+}
+
+function getTaskAssigneeId(task) {
+  return Number(task?.assignedToUserId ?? 0);
+}
+
+function getTeamId(team) {
+  return Number(team?.teamId ?? 0);
+}
+
+function getTeamName(team) {
+  return String(team?.teamName || "").trim();
+}
+
+function isEmployeeMember(member) {
+  return normalizeRole(member?.role) === "employee";
+}
+
+function resolveLeaderTeams(teamsData, user) {
+  const userId = Number(user?.userId ?? 0);
+  const userEmail = String(user?.email || "").trim().toLowerCase();
+  const userName = String(
+    user?.fullName || user?.name || user?.userName || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  let matched = teamsData.filter(
+    (team) =>
+      Number(team?.teamLeaderUserId) === userId ||
+      Number(team?.teamLeaderId) === userId
+  );
+
+  if (matched.length > 0) return matched;
+
+  if (userName) {
+    matched = teamsData.filter(
+      (team) => String(team?.teamLeaderName || "").trim().toLowerCase() === userName
+    );
+    if (matched.length > 0) return matched;
+  }
+
+  if (userEmail) {
+    matched = teamsData.filter(
+      (team) => String(team?.teamLeaderEmail || "").trim().toLowerCase() === userEmail
+    );
+    if (matched.length > 0) return matched;
+  }
+
+  if (teamsData.length === 1) {
+    return teamsData;
+  }
+
+  return [];
 }
 
 export default function TeamLeaderDashboardSection({
@@ -351,9 +437,8 @@ export default function TeamLeaderDashboardSection({
   useEffect(() => {
     const fetchDashboardData = async () => {
       const companyId = parseInt(user?.companyId, 10);
-      const userId = parseInt(user?.userId, 10);
 
-      if (!companyId || !userId) {
+      if (!companyId) {
         setErrorMessage("Missing user information.");
         setLoading(false);
         return;
@@ -373,28 +458,21 @@ export default function TeamLeaderDashboardSection({
           companyId
         )}`;
 
-        const [teamsResponse, membersResponse, tasksResponse] =
-          await Promise.all([
-            fetch(teamsUrl),
-            fetch(membersUrl),
-            fetch(tasksUrl),
-          ]);
+        const [teamsResponse, membersResponse, tasksResponse] = await Promise.all([
+          fetch(teamsUrl),
+          fetch(membersUrl),
+          fetch(tasksUrl),
+        ]);
 
         if (!teamsResponse.ok) {
-          const rawError = await teamsResponse.text();
-          console.error("Teams endpoint raw error:", rawError);
           throw new Error(`Failed to load teams. (${teamsResponse.status})`);
         }
 
         if (!membersResponse.ok) {
-          const rawError = await membersResponse.text();
-          console.error("Members endpoint raw error:", rawError);
           throw new Error(`Failed to load members. (${membersResponse.status})`);
         }
 
         if (!tasksResponse.ok) {
-          const rawError = await tasksResponse.text();
-          console.error("Tasks endpoint raw error:", rawError);
           throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
         }
 
@@ -416,47 +494,48 @@ export default function TeamLeaderDashboardSection({
           );
         }
 
-        const leaderTeams = teamsData.filter(
-          (team) => Number(team.teamLeaderUserId) === userId
-        );
+        const leaderTeams = resolveLeaderTeams(teamsData, user);
 
-        const leaderTeamNameValue =
-          leaderTeams.length > 0
-            ? leaderTeams
-                .map((team) => String(team.teamName || "").trim())
-                .filter(Boolean)
-                .join(", ")
-            : "Team";
+        if (leaderTeams.length === 0) {
+          throw new Error("No team found for this team leader.");
+        }
 
-        setLeaderTeamName(leaderTeamNameValue);
+        const leaderTeamIds = leaderTeams
+          .map((team) => getTeamId(team))
+          .filter((id) => id > 0);
 
-        const leaderTeamIds = leaderTeams.map((team) => Number(team.teamId));
+        const teamName =
+          leaderTeams.map((team) => getTeamName(team)).filter(Boolean).join(", ") ||
+          "Team";
+
+        setLeaderTeamName(teamName);
 
         const leaderMemberIds = [
           ...new Set(
             leaderTeams.flatMap((team) =>
-              Array.isArray(team.memberIds)
-                ? team.memberIds.map((id) => Number(id))
+              Array.isArray(team?.memberIds)
+                ? team.memberIds.map((id) => Number(id)).filter((id) => id > 0)
                 : []
             )
           ),
         ];
 
         const filteredMembers = membersData.filter((member) => {
-          const memberId = Number(member.userId);
-          const role = normalizeRole(member.role);
-          const isEmployee = role === "employee";
+          const memberId = getMemberId(member);
+          const isEmployee = isEmployeeMember(member);
+          const belongsToLeaderTeam = leaderMemberIds.includes(memberId);
 
-          return leaderMemberIds.includes(memberId) && isEmployee;
+          return isEmployee && belongsToLeaderTeam;
         });
 
         const filteredTasks = (tasksData.tasks || []).filter((task) => {
-          const belongsToLeaderTeam = leaderTeamIds.includes(Number(task.teamId));
+          const belongsToLeaderTeam = leaderTeamIds.includes(Number(task?.teamId));
           const isInRange = doesTaskOverlapRange(
             task,
             activeRange.start,
             activeRange.end
           );
+
           return belongsToLeaderTeam && isInRange;
         });
 
@@ -464,6 +543,9 @@ export default function TeamLeaderDashboardSection({
         setTasks(filteredTasks);
       } catch (error) {
         console.error("Dashboard fetch error:", error);
+        setMembers([]);
+        setTasks([]);
+        setLeaderTeamName("");
         setErrorMessage(error.message || "Failed to load dashboard data.");
       } finally {
         setLoading(false);
@@ -493,26 +575,28 @@ export default function TeamLeaderDashboardSection({
     const search = searchValue.trim().toLowerCase();
 
     let rows = members.map((member) => {
+      const memberId = getMemberId(member);
+
       const memberTasks = tasks.filter(
-        (task) => Number(task.assignedToUserId) === Number(member.userId)
+        (task) => getTaskAssigneeId(task) === memberId
       );
 
       const totalTasks = memberTasks.length;
       const totalEffort = memberTasks.reduce(
-        (sum, task) => sum + Number(task.estimatedEffortHours || 0),
+        (sum, task) => sum + Number(task?.estimatedEffortHours || 0),
         0
       );
       const totalWeight = memberTasks.reduce(
-        (sum, task) => sum + Number(task.weight || 0),
+        (sum, task) => sum + Number(task?.weight || 0),
         0
       );
 
       return {
         userId: member.userId,
-        employee: member.fullName,
+        employee: member.fullName || "Unknown Employee",
         email: member.email || "",
         tasks: totalTasks,
-        effort: `${totalEffort}h`,
+        effort: `${Number(totalEffort.toFixed(2))}h`,
         effortValue: totalEffort,
         weight: Number(totalWeight.toFixed(2)),
         status: getWorkloadStatus(totalWeight),
@@ -579,11 +663,11 @@ export default function TeamLeaderDashboardSection({
   const summaryCards = useMemo(() => {
     const totalTasks = tasks.length;
     const totalEffort = tasks.reduce(
-      (sum, task) => sum + Number(task.estimatedEffortHours || 0),
+      (sum, task) => sum + Number(task?.estimatedEffortHours || 0),
       0
     );
     const totalWeight = tasks.reduce(
-      (sum, task) => sum + Number(task.weight || 0),
+      (sum, task) => sum + Number(task?.weight || 0),
       0
     );
 
@@ -602,7 +686,7 @@ export default function TeamLeaderDashboardSection({
       },
       {
         title: "Total Effort",
-        value: `${totalEffort}h`,
+        value: `${Number(totalEffort.toFixed(2))}h`,
         icon: <FiClock />,
         iconClass: "teamleader-dashboard-section__card-icon--effort",
       },
@@ -685,7 +769,10 @@ export default function TeamLeaderDashboardSection({
     if (!draftCustomRange?.from || !draftCustomRange?.to) return;
 
     setSelectedPreset("custom");
-    setCustomRange(draftCustomRange);
+    setCustomRange({
+      from: startOfDay(draftCustomRange.from),
+      to: endOfDay(draftCustomRange.to),
+    });
     setIsRangeMenuOpen(false);
 
     setDraftCustomRange({
@@ -772,7 +859,6 @@ export default function TeamLeaderDashboardSection({
                     selected={draftCustomRange}
                     onSelect={handleCustomRangeSelect}
                     showOutsideDays={false}
-                    disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
                     numberOfMonths={1}
                     className="teamleader-dashboard-section__day-picker"
                   />
@@ -829,7 +915,7 @@ export default function TeamLeaderDashboardSection({
           </div>
 
           <div className="teamleader-dashboard-section__workload-head">
-            <h3>{leaderTeamName} Team Member Workload</h3>
+            <h3>{leaderTeamName} Member Workload</h3>
             <span className="teamleader-dashboard-section__workload-line"></span>
           </div>
 
