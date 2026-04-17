@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   FiArrowLeft,
   FiChevronLeft,
@@ -20,7 +20,7 @@ import "../../assets/styles/admin/team-details-page.css";
 import "../../assets/styles/admin/users-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
-const MEMBERS_PER_PAGE = 5;
+const MIN_MEMBERS_PER_PAGE = 1;
 
 function getStoredUser() {
   try {
@@ -142,10 +142,6 @@ function isEmployeeRole(value) {
   return normalizeRole(value) === "employee";
 }
 
-function isSelectableMemberRole(value) {
-  return isEmployeeRole(value) || isTeamLeaderRole(value);
-}
-
 function getCompanyMemberId(member) {
   return String(member?.userId || member?.id || member?.UserId || "");
 }
@@ -232,36 +228,6 @@ function getTaskAssigneeId(task) {
   );
 }
 
-async function attemptTaskWriteRequests(requests, fallbackMessage) {
-  let lastError = new Error(fallbackMessage);
-
-  for (const request of requests) {
-    try {
-      const response = await fetch(request.url, {
-        method: request.method,
-        headers:
-          request.body !== undefined
-            ? { "Content-Type": "application/json" }
-            : undefined,
-        body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
-      });
-
-      const data = await parseJsonResponse(response);
-
-      if (response.ok) {
-        return data;
-      }
-
-      lastError = new Error(data.message || fallbackMessage);
-    } catch (error) {
-      lastError =
-        error instanceof Error ? error : new Error(fallbackMessage);
-    }
-  }
-
-  throw lastError;
-}
-
 async function updateTaskAssignmentOnBackend(task, nextAssigneeId) {
   const taskId = getTaskId(task);
 
@@ -336,6 +302,7 @@ export default function TeamDetailsPage({
     key: "",
     direction: "desc",
   });
+  const [membersPerPage, setMembersPerPage] = useState(5);
 
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [memberManagementMode, setMemberManagementMode] = useState("members");
@@ -345,6 +312,10 @@ export default function TeamDetailsPage({
     teamLeaderId: "",
     memberIds: [],
   });
+
+  const tableCardRef = useRef(null);
+  const tableHeadRef = useRef(null);
+  const paginationRef = useRef(null);
 
   const isTopbarSearchControlled = typeof searchValue === "string";
   const effectiveSearchTerm = isTopbarSearchControlled ? searchValue : searchTerm;
@@ -825,16 +796,67 @@ export default function TeamDetailsPage({
     return sortableMembers.map(({ member }) => member);
   }, [filteredMembersWithOriginalOrder, sortConfig]);
 
+const calculateMembersPerPage = () => {
+  if (!tableCardRef.current || !tableHeadRef.current) {
+    return;
+  }
+
+  const cardRect = tableCardRef.current.getBoundingClientRect();
+  const headRect = tableHeadRef.current.getBoundingClientRect();
+  const paginationHeight = paginationRef.current
+    ? paginationRef.current.getBoundingClientRect().height
+    : 0;
+
+  const firstBodyRow = tableCardRef.current.querySelector("tbody tr");
+  const rowHeight = firstBodyRow
+    ? firstBodyRow.getBoundingClientRect().height
+    : 84;
+
+  const cardStyle = window.getComputedStyle(tableCardRef.current);
+  const borderTop = parseFloat(cardStyle.borderTopWidth || "0");
+  const borderBottom = parseFloat(cardStyle.borderBottomWidth || "0");
+
+  const viewportHeight = window.innerHeight;
+  const bottomSpacing = 24;
+
+  const availableRowsHeight =
+    viewportHeight -
+    cardRect.top -
+    headRect.height -
+    paginationHeight -
+    borderTop -
+    borderBottom -
+    bottomSpacing;
+
+  const fittedRows = Math.floor(availableRowsHeight / rowHeight);
+
+  setMembersPerPage(Math.max(1, fittedRows));
+};
+
+  useLayoutEffect(() => {
+    calculateMembersPerPage();
+
+    const handleResize = () => {
+      calculateMembersPerPage();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [sortedMembers.length, isLoadingMembers]);
+
   useEffect(() => {
     const totalPagesCount = Math.max(
       1,
-      Math.ceil(sortedMembers.length / MEMBERS_PER_PAGE)
+      Math.ceil(sortedMembers.length / membersPerPage)
     );
 
     if (currentPage > totalPagesCount) {
       setCurrentPage(totalPagesCount);
     }
-  }, [currentPage, sortedMembers.length]);
+  }, [currentPage, sortedMembers.length, membersPerPage]);
 
   const title = teamState?.teamName || "Team";
 
@@ -869,10 +891,10 @@ export default function TeamDetailsPage({
   const inactiveMembersCount = members.filter((member) => !member.isActive).length;
 
   const totalFilteredMembers = sortedMembers.length;
-  const totalPages = Math.max(1, Math.ceil(totalFilteredMembers / MEMBERS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(totalFilteredMembers / membersPerPage));
   const startIndex =
-    totalFilteredMembers === 0 ? 0 : (currentPage - 1) * MEMBERS_PER_PAGE;
-  const endIndex = Math.min(startIndex + MEMBERS_PER_PAGE, totalFilteredMembers);
+    totalFilteredMembers === 0 ? 0 : (currentPage - 1) * membersPerPage;
+  const endIndex = Math.min(startIndex + membersPerPage, totalFilteredMembers);
   const paginatedMembers = sortedMembers.slice(startIndex, endIndex);
 
   const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
@@ -1102,80 +1124,80 @@ export default function TeamDetailsPage({
     };
   };
 
-const handleConfirmDeleteMember = async () => {
-  if (!memberToDelete) {
-    return;
-  }
-
-  try {
-    setIsSaving(true);
-    setFeedbackMessage("");
-    setFeedbackType("");
-
-    if (memberAssignedTasks.length > 0) {
-      if (deleteTaskAction === "unassign") {
-        await Promise.all(
-          memberAssignedTasks.map((task) =>
-            updateTaskAssignmentOnBackend(task, null)
-          )
-        );
-
-        setCompanyTasks((prev) =>
-          prev.map((task) =>
-            String(getTaskAssigneeId(task)) === String(memberToDelete.userId)
-              ? {
-                  ...task,
-                  assignedToUserId: null,
-                  AssignedToUserId: null,
-                  assignedUserId: null,
-                  AssignedUserId: null,
-                  assigneeId: null,
-                  AssigneeId: null,
-                  employeeId: null,
-                  EmployeeId: null,
-                  memberId: null,
-                  MemberId: null,
-                  userId: null,
-                  UserId: null,
-                }
-              : task
-          )
-        );
-      } else if (deleteTaskAction === "delete") {
-        await Promise.all(
-          memberAssignedTasks.map((task) => deleteTaskOnBackend(task))
-        );
-
-        const taskIdsToDelete = new Set(
-          memberAssignedTasks.map((task) => String(getTaskId(task)))
-        );
-
-        setCompanyTasks((prev) =>
-          prev.filter((task) => !taskIdsToDelete.has(String(getTaskId(task))))
-        );
-      }
+  const handleConfirmDeleteMember = async () => {
+    if (!memberToDelete) {
+      return;
     }
 
-    const nextMembers = members.filter(
-      (member) => String(member.userId) !== String(memberToDelete.userId)
-    );
+    try {
+      setIsSaving(true);
+      setFeedbackMessage("");
+      setFeedbackType("");
 
-    const persistedMembers = await saveTeamMembersToBackend(nextMembers);
-    setMembers(persistedMembers);
-    setMemberToDelete(null);
-    setDeleteTaskAction("unassign");
-    setIsDeleteConfirmationStep(false);
+      if (memberAssignedTasks.length > 0) {
+        if (deleteTaskAction === "unassign") {
+          await Promise.all(
+            memberAssignedTasks.map((task) =>
+              updateTaskAssignmentOnBackend(task, null)
+            )
+          );
 
-    setFeedbackType("success");
-    setFeedbackMessage("Member removed from team successfully.");
-  } catch (error) {
-    console.error("Failed to delete member from team:", error);
-    setFeedbackType("error");
-    setFeedbackMessage(error.message || "Failed to remove member from team.");
-  } finally {
-    setIsSaving(false);
-  }
-};
+          setCompanyTasks((prev) =>
+            prev.map((task) =>
+              String(getTaskAssigneeId(task)) === String(memberToDelete.userId)
+                ? {
+                    ...task,
+                    assignedToUserId: null,
+                    AssignedToUserId: null,
+                    assignedUserId: null,
+                    AssignedUserId: null,
+                    assigneeId: null,
+                    AssigneeId: null,
+                    employeeId: null,
+                    EmployeeId: null,
+                    memberId: null,
+                    MemberId: null,
+                    userId: null,
+                    UserId: null,
+                  }
+                : task
+            )
+          );
+        } else if (deleteTaskAction === "delete") {
+          await Promise.all(
+            memberAssignedTasks.map((task) => deleteTaskOnBackend(task))
+          );
+
+          const taskIdsToDelete = new Set(
+            memberAssignedTasks.map((task) => String(getTaskId(task)))
+          );
+
+          setCompanyTasks((prev) =>
+            prev.filter((task) => !taskIdsToDelete.has(String(getTaskId(task))))
+          );
+        }
+      }
+
+      const nextMembers = members.filter(
+        (member) => String(member.userId) !== String(memberToDelete.userId)
+      );
+
+      const persistedMembers = await saveTeamMembersToBackend(nextMembers);
+      setMembers(persistedMembers);
+      setMemberToDelete(null);
+      setDeleteTaskAction("unassign");
+      setIsDeleteConfirmationStep(false);
+
+      setFeedbackType("success");
+      setFeedbackMessage("Member removed from team successfully.");
+    } catch (error) {
+      console.error("Failed to delete member from team:", error);
+      setFeedbackType("error");
+      setFeedbackMessage(error.message || "Failed to remove member from team.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleToggleMemberStatus = async (memberId) => {
     try {
@@ -1499,11 +1521,6 @@ const handleConfirmDeleteMember = async () => {
       ? "Search and add members to this team."
       : "Choose the team leader for this team.";
 
-  const deleteConfirmationText =
-    deleteTaskAction === "delete"
-      ? "Are you sure you want to delete this member and permanently delete all their assigned tasks?"
-      : "Are you sure you want to delete this member and set all their assigned tasks as unassigned?";
-
   return (
     <section className="team-details-page">
       <div className="team-details-page__title-row">
@@ -1621,10 +1638,13 @@ const handleConfirmDeleteMember = async () => {
         </div>
       </div>
 
-      <div className="users-section__table-card team-details-page__table-card">
+      <div
+        ref={tableCardRef}
+        className="users-section__table-card team-details-page__table-card"
+      >
         <div className="users-section__table-wrap team-details-page__table-wrap">
           <table className="users-section__table team-details-page__table">
-            <thead>
+            <thead ref={tableHeadRef}>
               <tr>
                 <th>
                   <button
@@ -1840,7 +1860,7 @@ const handleConfirmDeleteMember = async () => {
         </div>
 
         {!isLoadingMembers && totalFilteredMembers > 0 && (
-          <div className="users-section__pagination">
+          <div ref={paginationRef} className="users-section__pagination">
             <div className="users-section__pagination-info">
               {startIndex + 1} - {endIndex} of {totalFilteredMembers} members
             </div>
@@ -2101,173 +2121,173 @@ const handleConfirmDeleteMember = async () => {
         </div>
       )}
 
-{memberToDelete && (
-  <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
-    <div
-      className="teams-section__modal teams-section__modal--small team-details-page__delete-modal"
-      onClick={(event) => event.stopPropagation()}
-    >
-      <div className="teams-section__modal-header team-details-page__delete-modal-header">
-        <div>
-          <h3>
-            {memberAssignedTasks.length > 0
-              ? isDeleteConfirmationStep
-                ? deleteTaskAction === "delete"
-                  ? "Confirm Delete Tasks"
-                  : "Confirm Unassign Tasks"
-                : "Delete Member"
-              : "Delete Member"}
-          </h3>
+      {memberToDelete && (
+        <div className="teams-section__modal-overlay" onClick={closeDeleteModal}>
+          <div
+            className="teams-section__modal teams-section__modal--small team-details-page__delete-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="teams-section__modal-header team-details-page__delete-modal-header">
+              <div>
+                <h3>
+                  {memberAssignedTasks.length > 0
+                    ? isDeleteConfirmationStep
+                      ? deleteTaskAction === "delete"
+                        ? "Confirm Delete Tasks"
+                        : "Confirm Unassign Tasks"
+                      : "Delete Member"
+                    : "Delete Member"}
+                </h3>
 
-          {!isDeleteConfirmationStep ? (
-            <p>
-              This action will remove <strong>{memberToDelete.fullName}</strong> from
-              this team.
-            </p>
-          ) : (
-            <p>
-              {deleteTaskAction === "delete" ? (
+                {!isDeleteConfirmationStep ? (
+                  <p>
+                    This action will remove <strong>{memberToDelete.fullName}</strong> from
+                    this team.
+                  </p>
+                ) : (
+                  <p>
+                    {deleteTaskAction === "delete" ? (
+                      <>
+                        Are you sure you want to remove{" "}
+                        <strong>{memberToDelete.fullName}</strong> from this team and
+                        permanently delete all their assigned tasks?
+                      </>
+                    ) : (
+                      <>
+                        Are you sure you want to remove{" "}
+                        <strong>{memberToDelete.fullName}</strong> from this team and set
+                        all their assigned tasks as unassigned?
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="teams-section__modal-close"
+                onClick={closeDeleteModal}
+                aria-label="Close delete member dialog"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="team-details-page__delete-dialog">
+              {memberAssignedTasks.length > 0 && !isDeleteConfirmationStep && (
                 <>
-                  Are you sure you want to remove{" "}
-                  <strong>{memberToDelete.fullName}</strong> from this team and
-                  permanently delete all their assigned tasks?
-                </>
-              ) : (
-                <>
-                  Are you sure you want to remove{" "}
-                  <strong>{memberToDelete.fullName}</strong> from this team and set
-                  all their assigned tasks as unassigned?
+                  <p className="team-details-page__delete-task-count">
+                    {memberAssignedTasks.length}{" "}
+                    {memberAssignedTasks.length === 1 ? "assigned task" : "assigned tasks"}
+                  </p>
+
+                  <div className="team-details-page__delete-task-options">
+                    <label
+                      className={`team-details-page__delete-option ${
+                        deleteTaskAction === "unassign"
+                          ? "team-details-page__delete-option--selected"
+                          : ""
+                      }`}
+                    >
+                      <span className="team-details-page__delete-option-row">
+                        <input
+                          type="radio"
+                          name="member-delete-task-action"
+                          checked={deleteTaskAction === "unassign"}
+                          onChange={() => setDeleteTaskAction("unassign")}
+                        />
+                        <span className="team-details-page__delete-option-copy">
+                          <span className="team-details-page__delete-option-label">
+                            Set tasks as unassigned
+                          </span>
+                          <span className="team-details-page__delete-option-help">
+                            Tasks will remain in the system without an assignee.
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+
+                    <label
+                      className={`team-details-page__delete-option team-details-page__delete-option--danger ${
+                        deleteTaskAction === "delete"
+                          ? "team-details-page__delete-option--selected-danger"
+                          : ""
+                      }`}
+                    >
+                      <span className="team-details-page__delete-option-row">
+                        <input
+                          type="radio"
+                          name="member-delete-task-action"
+                          checked={deleteTaskAction === "delete"}
+                          onChange={() => setDeleteTaskAction("delete")}
+                        />
+                        <span className="team-details-page__delete-option-copy">
+                          <span className="team-details-page__delete-option-label">
+                            Delete tasks <span aria-hidden="true">⚠️</span>
+                          </span>
+                          <span className="team-details-page__delete-option-help">
+                            All tasks assigned to this member will be removed permanently.
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                 </>
               )}
-            </p>
-          )}
-        </div>
 
-        <button
-          type="button"
-          className="teams-section__modal-close"
-          onClick={closeDeleteModal}
-          aria-label="Close delete member dialog"
-        >
-          <FiX />
-        </button>
-      </div>
+              <div className="teams-section__form-actions">
+                {!isDeleteConfirmationStep ? (
+                  <>
+                    <button
+                      type="button"
+                      className="teams-section__secondary-btn"
+                      onClick={closeDeleteModal}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </button>
 
-      <div className="team-details-page__delete-dialog">
-        {memberAssignedTasks.length > 0 && !isDeleteConfirmationStep && (
-          <>
-            <p className="team-details-page__delete-task-count">
-              {memberAssignedTasks.length}{" "}
-              {memberAssignedTasks.length === 1 ? "assigned task" : "assigned tasks"}
-            </p>
+                    <button
+                      type="button"
+                      className="teams-section__delete-btn"
+                      onClick={() => {
+                        if (memberAssignedTasks.length > 0) {
+                          setIsDeleteConfirmationStep(true);
+                        } else {
+                          handleConfirmDeleteMember();
+                        }
+                      }}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? "Deleting..." : memberAssignedTasks.length > 0 ? "Continue" : "Delete Member"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="teams-section__secondary-btn"
+                      onClick={() => setIsDeleteConfirmationStep(false)}
+                      disabled={isSaving}
+                    >
+                      Back
+                    </button>
 
-            <div className="team-details-page__delete-task-options">
-              <label
-                className={`team-details-page__delete-option ${
-                  deleteTaskAction === "unassign"
-                    ? "team-details-page__delete-option--selected"
-                    : ""
-                }`}
-              >
-                <span className="team-details-page__delete-option-row">
-                  <input
-                    type="radio"
-                    name="member-delete-task-action"
-                    checked={deleteTaskAction === "unassign"}
-                    onChange={() => setDeleteTaskAction("unassign")}
-                  />
-                  <span className="team-details-page__delete-option-copy">
-                    <span className="team-details-page__delete-option-label">
-                      Set tasks as unassigned
-                    </span>
-                    <span className="team-details-page__delete-option-help">
-                      Tasks will remain in the system without an assignee.
-                    </span>
-                  </span>
-                </span>
-              </label>
-
-              <label
-                className={`team-details-page__delete-option team-details-page__delete-option--danger ${
-                  deleteTaskAction === "delete"
-                    ? "team-details-page__delete-option--selected-danger"
-                    : ""
-                }`}
-              >
-                <span className="team-details-page__delete-option-row">
-                  <input
-                    type="radio"
-                    name="member-delete-task-action"
-                    checked={deleteTaskAction === "delete"}
-                    onChange={() => setDeleteTaskAction("delete")}
-                  />
-                  <span className="team-details-page__delete-option-copy">
-                    <span className="team-details-page__delete-option-label">
-                      Delete tasks <span aria-hidden="true">⚠️</span>
-                    </span>
-                    <span className="team-details-page__delete-option-help">
-                      All tasks assigned to this member will be removed permanently.
-                    </span>
-                  </span>
-                </span>
-              </label>
+                    <button
+                      type="button"
+                      className="teams-section__delete-btn"
+                      onClick={handleConfirmDeleteMember}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? "Deleting..." : "Confirm Delete"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </>
-        )}
-
-        <div className="teams-section__form-actions">
-          {!isDeleteConfirmationStep ? (
-            <>
-              <button
-                type="button"
-                className="teams-section__secondary-btn"
-                onClick={closeDeleteModal}
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className="teams-section__delete-btn"
-                onClick={() => {
-                  if (memberAssignedTasks.length > 0) {
-                    setIsDeleteConfirmationStep(true);
-                  } else {
-                    handleConfirmDeleteMember();
-                  }
-                }}
-                disabled={isSaving}
-              >
-                {isSaving ? "Deleting..." : memberAssignedTasks.length > 0 ? "Continue" : "Delete Member"}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="teams-section__secondary-btn"
-                onClick={() => setIsDeleteConfirmationStep(false)}
-                disabled={isSaving}
-              >
-                Back
-              </button>
-
-              <button
-                type="button"
-                className="teams-section__delete-btn"
-                onClick={handleConfirmDeleteMember}
-                disabled={isSaving}
-              >
-                {isSaving ? "Deleting..." : "Confirm Delete"}
-              </button>
-            </>
-          )}
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </section>
   );
 }
