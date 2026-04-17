@@ -70,8 +70,12 @@ function loadRangeState() {
 
     const parsed = JSON.parse(saved);
 
+    const selectedPreset = parsed?.selectedPreset === "nextWeek"
+      ? "thisWeek"
+      : parsed?.selectedPreset || "thisWeek";
+
     return {
-      selectedPreset: parsed?.selectedPreset || "thisWeek",
+      selectedPreset,
       customRange: {
         from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
         to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
@@ -102,8 +106,6 @@ function getPresetRange(preset, customRange) {
   switch (preset) {
     case "today":
       return getTodayRange();
-    case "nextWeek":
-      return getWeekRange(1);
     case "custom": {
       if (
         customRange?.from instanceof Date &&
@@ -131,10 +133,10 @@ function getRangeLabel(preset) {
   switch (preset) {
     case "today":
       return "Today";
-    case "nextWeek":
-      return "Next Week";
     case "custom":
-      return "Custom Range";
+      return "Custom";
+    case "custom":
+      return "Custom";
     case "thisWeek":
     default:
       return "This Week";
@@ -733,14 +735,21 @@ export default function TeamLeaderDashboardSection({
   );
 
   const handleSelectPreset = (preset) => {
+    if (preset === "custom") {
+      setDraftPreset("custom");
+      setDraftCustomRange({
+        from: customRange?.from || null,
+        to: customRange?.to || null,
+      });
+      return;
+    }
+
     let nextRange = customRange;
 
     if (preset === "today") {
       nextRange = getTodayRange();
     } else if (preset === "thisWeek") {
       nextRange = getWeekRange(0);
-    } else if (preset === "nextWeek") {
-      nextRange = getWeekRange(1);
     }
 
     setDraftPreset(preset);
@@ -799,45 +808,68 @@ export default function TeamLeaderDashboardSection({
 
           {isRangeMenuOpen && (
             <div className="teamleader-dashboard-section__range-dropdown">
-              <button
-                type="button"
-                className={`teamleader-dashboard-section__range-option ${
-                  draftPreset === "today"
-                    ? "teamleader-dashboard-section__range-option--active"
-                    : ""
-                }`}
-                onClick={() => handleSelectPreset("today")}
+              <div
+                className="teamleader-dashboard-section__range-tabs"
+                role="tablist"
+                aria-label="Date range presets"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flexWrap: "wrap",
+                }}
               >
-                Today
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === "today"}
+                  className={`teamleader-dashboard-section__range-option ${
+                    draftPreset === "today"
+                      ? "teamleader-dashboard-section__range-option--active"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectPreset("today")}
+                  style={{ flex: 1 }}
+                >
+                  Today
+                </button>
 
-              <button
-                type="button"
-                className={`teamleader-dashboard-section__range-option ${
-                  draftPreset === "thisWeek"
-                    ? "teamleader-dashboard-section__range-option--active"
-                    : ""
-                }`}
-                onClick={() => handleSelectPreset("thisWeek")}
-              >
-                This Week
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === "thisWeek"}
+                  className={`teamleader-dashboard-section__range-option ${
+                    draftPreset === "thisWeek"
+                      ? "teamleader-dashboard-section__range-option--active"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectPreset("thisWeek")}
+                  style={{ flex: 1 }}
+                >
+                  This Week
+                </button>
 
-              <button
-                type="button"
-                className={`teamleader-dashboard-section__range-option ${
-                  draftPreset === "nextWeek"
-                    ? "teamleader-dashboard-section__range-option--active"
-                    : ""
-                }`}
-                onClick={() => handleSelectPreset("nextWeek")}
-              >
-                Next Week
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === "custom"}
+                  className={`teamleader-dashboard-section__range-option ${
+                    draftPreset === "custom"
+                      ? "teamleader-dashboard-section__range-option--active"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectPreset("custom")}
+                  style={{ flex: 1 }}
+                >
+                  Custom
+                </button>
+              </div>
 
-              <div className="teamleader-dashboard-section__range-divider"></div>
+              {draftPreset === "custom" && (
+                <>
+                  <div className="teamleader-dashboard-section__range-divider"></div>
 
-              <div className="teamleader-dashboard-section__custom-range">
+                  <div className="teamleader-dashboard-section__custom-range">
                 <div className="teamleader-dashboard-section__custom-range-header">
                   <FiCalendar />
                   <span>Pick a custom range</span>
@@ -874,15 +906,13 @@ export default function TeamLeaderDashboardSection({
                   type="button"
                   className="teamleader-dashboard-section__apply-btn"
                   onClick={handleApplyCustomRange}
-                  disabled={
-                    !draftCustomRange?.from ||
-                    !draftCustomRange?.to ||
-                    draftPreset !== "custom"
-                  }
+                  disabled={!draftCustomRange?.from || !draftCustomRange?.to}
                 >
                   Apply Range
                 </button>
               </div>
+                </>
+              )}
             </div>
           )}
         </div>
