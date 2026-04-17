@@ -861,6 +861,12 @@ export default function TeamLeaderDashboardSection({
                     showOutsideDays={false}
                     numberOfMonths={1}
                     className="teamleader-dashboard-section__day-picker"
+                    modifiers={{
+                      past: (date) => startOfDay(date) < startOfDay(new Date()),
+                    }}
+                    modifiersClassNames={{
+                      past: "teamleader-dashboard-section__day--past",
+                    }}
                   />
                 </div>
 

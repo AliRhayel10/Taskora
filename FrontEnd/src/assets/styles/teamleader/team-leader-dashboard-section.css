@@ -154,6 +154,7 @@
   font-size: 0.9rem;
   font-weight: 700;
   border: none !important;
+  outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
   position: relative;
@@ -234,11 +235,47 @@
 .teamleader-dashboard-section__day-picker .rdp-nav_button:hover {
   background: #eff6ff;
 }
+
+/* Past days, selectable but muted like the screenshot */
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past
+  .rdp-day_button {
+  color: #9ca3af !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button {
+  color: #9ca3af !important;
+  background: transparent !important;
+}
+
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button:focus,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button:focus-visible {
+  color: #9ca3af !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 .teamleader-dashboard-section__day-picker .rdp-day_disabled .rdp-day_button {
-    opacity: 0.35;
-    color: #94a3b8 !important;
-    cursor: not-allowed;
-    background: transparent !important;
+  opacity: 0.35;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+  background: transparent !important;
 }
 
 .teamleader-dashboard-section__apply-btn {
@@ -450,6 +487,7 @@
   width: 26%;
   text-align: center;
 }
+
 .teamleader-dashboard-section__sort-btn {
   display: inline-flex;
   align-items: center;
