@@ -33,6 +33,14 @@
     flex-wrap: wrap;
 }
 
+.tasks-section__toolbar--tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: nowrap;
+}
+
 .tasks-section__filters {
     flex: 1;
     display: flex;
@@ -204,19 +212,28 @@
 
 .tasks-section__tabs {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: flex-start;
     gap: 20px;
-    flex-wrap: wrap;
-    margin-left: 18px;
-    align-self: flex-end;
-    transform: translateY(8px);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+    margin-left: 0;
+    align-self: auto;
+    transform: none;
+    scrollbar-width: none;
+}
+
+.tasks-section__tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .tasks-section__tab-wrap {
     display: inline-flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .tasks-section__tab {
@@ -232,6 +249,7 @@
     gap: 8px;
     cursor: pointer;
     transition: color 0.2s ease, border-color 0.2s ease;
+    white-space: nowrap;
 }
 
 .tasks-section__tab:hover {
@@ -457,7 +475,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
-    max-width: 180px;
+    max-width: 100%;
 }
 
 .tasks-section__badge {
@@ -475,7 +493,6 @@
     box-shadow: none;
 }
 
-/* Priority */
 .tasks-section__badge--low {
     background: transparent;
     color: #1d4ed8;
@@ -501,7 +518,6 @@
     box-shadow: none;
 }
 
-/* Complexity */
 .tasks-section__badge--simple {
     background: transparent;
     color: #1d4ed8;
@@ -523,18 +539,6 @@
 .tasks-section__cell-status {
     min-width: 150px;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 .tasks-section__col-actions,
 .tasks-section__cell-actions {
@@ -1583,7 +1587,7 @@
 
 .tasks-section__table thead th:nth-child(2),
 .tasks-section__table tbody td:nth-child(2) {
-    width: 15%;
+    width: 18%;
 }
 
 .tasks-section__table thead th:nth-child(3),
@@ -1614,13 +1618,17 @@
 
 .tasks-section__table thead th:nth-child(8),
 .tasks-section__table tbody td:nth-child(8) {
-    width: 15%;
+    width: 13%;
 }
 
 .tasks-section__table thead th:nth-child(9),
 .tasks-section__table tbody td:nth-child(9) {
     width: 10%;
     padding-right: 20px;
+}
+
+.tasks-section__table tbody td:nth-child(7) {
+    overflow: hidden;
 }
 
 .tasks-section__table tbody td:nth-child(8) {
@@ -1726,6 +1734,11 @@
         align-items: stretch;
     }
 
+    .tasks-section__toolbar--tabs-row {
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
     .tasks-section__filters {
         width: 100%;
     }
@@ -1735,6 +1748,10 @@
     }
 
     .tasks-section__create-btn {
+        width: 100%;
+    }
+
+    .tasks-section__tabs {
         width: 100%;
     }
 }
@@ -1824,7 +1841,6 @@
     }
 }
 
-
 .tasks-section__status-badge {
     display: inline-flex;
     align-items: center;
@@ -1845,14 +1861,16 @@
     justify-content: center;
     gap: 8px;
     min-height: 30px;
-    padding: 0 14px; 
+    padding: 0;
     border-radius: 12px;
     font-size: 0.82rem;
     font-weight: 700;
-    border: 1px solid transparent;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    border: none;
+    background: transparent;
+    box-shadow: none;
     white-space: nowrap;
-    width: max-content; 
+    width: auto;
+    max-width: 100%;
 }
 
 .tasks-section__status-inline-icon {
