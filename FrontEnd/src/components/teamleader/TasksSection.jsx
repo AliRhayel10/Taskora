@@ -14,6 +14,7 @@ import {
   FiTrash2,
   FiX,
   FiClipboard,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
 import { format } from "date-fns";
@@ -434,6 +435,11 @@ export default function TasksSection({
   const [activeEditField, setActiveEditField] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbackTask, setFeedbackTask] = useState(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
   const datePickerRef = useRef(null);
   const editRowRef = useRef(null);
   const editTaskInfoModalRef = useRef(null);
@@ -504,6 +510,30 @@ export default function TasksSection({
     );
 
     return getBackendStatusId(newStatus);
+  }, [backendStatuses]);
+
+  const approvedStatusId = useMemo(() => {
+    const approvedStatus = backendStatuses.find(
+      (status) => normalizeStatus(getBackendStatusName(status)) === "approved"
+    );
+
+    return getBackendStatusId(approvedStatus);
+  }, [backendStatuses]);
+
+  const rejectedStatusId = useMemo(() => {
+    const rejectedStatus = backendStatuses.find(
+      (status) => normalizeStatus(getBackendStatusName(status)) === "rejected"
+    );
+
+    return getBackendStatusId(rejectedStatus);
+  }, [backendStatuses]);
+
+  const pendingStatusId = useMemo(() => {
+    const pendingStatus = backendStatuses.find(
+      (status) => normalizeStatus(getBackendStatusName(status)) === "pending"
+    );
+
+    return getBackendStatusId(pendingStatus);
   }, [backendStatuses]);
 
   useEffect(() => {
@@ -639,13 +669,13 @@ export default function TasksSection({
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-            typeof setupRulesData.priorityMultipliers === "object"
+          typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-            typeof setupRulesData.complexityMultipliers === "object"
+          typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -1110,10 +1140,14 @@ export default function TasksSection({
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-        selectedRange.to,
-        "dd/MM/yyyy"
-      )}`
+          selectedRange.to,
+          "dd/MM/yyyy"
+        )}`
       : "Select date range";
+
+  const isDoneTask = (task) => normalizeStatus(task.effectiveStatus) === "done";
+  const isApprovedTask = (task) => normalizeStatus(task.effectiveStatus) === "approved";
+  const isRejectedTask = (task) => normalizeStatus(task.effectiveStatus) === "rejected";
 
   const openCreateModal = () => {
     setFormState(DEFAULT_FORM);
@@ -1150,6 +1184,106 @@ export default function TasksSection({
     }));
 
     setIsDatePickerOpen(false);
+  };
+
+  const updateTaskStatus = async (task, nextStatusId, successMessage) => {
+    if (!task?.id || !nextStatusId) return;
+
+    setFeedback(null);
+
+    try {
+      const payload = {
+        TaskId: Number(task.id),
+        TaskStatusId: Number(nextStatusId),
+      };
+
+      const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await parseJsonSafe(response);
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessageFromPayload(data, "Unable to update task status.")
+        );
+      }
+
+      await loadTasks();
+
+      setFeedback({
+        type: "success",
+        message: successMessage,
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to update task status.",
+      });
+    }
+  };
+
+  const openFeedbackModal = (task) => {
+    setFeedbackTask(task);
+    setFeedbackText("");
+    setIsFeedbackModalOpen(true);
+  };
+
+  const closeFeedbackModal = () => {
+    if (isSubmittingFeedback) return;
+    setIsFeedbackModalOpen(false);
+    setFeedbackTask(null);
+    setFeedbackText("");
+  };
+
+  const submitRejectedFeedback = async () => {
+    if (!feedbackTask?.id || !feedbackText.trim() || !pendingStatusId) return;
+
+    setIsSubmittingFeedback(true);
+    setFeedback(null);
+
+    try {
+      const payload = {
+        TaskId: Number(feedbackTask.id),
+        TaskStatusId: Number(pendingStatusId),
+        Feedback: feedbackText.trim(),
+      };
+
+      const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await parseJsonSafe(response);
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessageFromPayload(data, "Unable to send feedback.")
+        );
+      }
+
+      await loadTasks();
+
+      closeFeedbackModal();
+      setFeedback({
+        type: "success",
+        message: "Feedback added and task moved back to Pending.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to send feedback.",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
   };
 
   const createTask = async (event) => {
@@ -1964,24 +2098,74 @@ export default function TasksSection({
                                 <FiEye />
                               </button>
 
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--edit"
-                                title="Edit task"
-                                onClick={() => openEditMode(task)}
-                              >
-                                <FiEdit2 />
-                              </button>
+                              {isDoneTask(task) ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tasks-section__action-btn tasks-section__action-btn--approve"
+                                    title="Mark as approved"
+                                    onClick={() =>
+                                      updateTaskStatus(task, approvedStatusId, "Task marked as approved.")
+                                    }
+                                    disabled={!approvedStatusId}
+                                  >
+                                    <FiCheck />
+                                  </button>
 
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--danger"
-                                title="Delete task"
-                                onClick={() => setDeleteTaskId(task.id)}
-                                disabled={isDeletingTask}
-                              >
-                                <FiTrash2 />
-                              </button>
+                                  <button
+                                    type="button"
+                                    className="tasks-section__action-btn tasks-section__action-btn--danger"
+                                    title="Reject task"
+                                    onClick={() =>
+                                      updateTaskStatus(task, rejectedStatusId, "Task marked as rejected.")
+                                    }
+                                    disabled={!rejectedStatusId}
+                                  >
+                                    <FiX />
+                                  </button>
+                                </>
+                              ) : isApprovedTask(task) ? null : isRejectedTask(task) ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                    title="Edit task"
+                                    onClick={() => openEditMode(task)}
+                                  >
+                                    <FiEdit2 />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="tasks-section__action-btn tasks-section__action-btn--feedback"
+                                    title="Add feedback"
+                                    onClick={() => openFeedbackModal(task)}
+                                  >
+                                    <FiMessageSquare />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                    title="Edit task"
+                                    onClick={() => openEditMode(task)}
+                                  >
+                                    <FiEdit2 />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="tasks-section__action-btn tasks-section__action-btn--danger"
+                                    title="Delete task"
+                                    onClick={() => setDeleteTaskId(task.id)}
+                                    disabled={isDeletingTask}
+                                  >
+                                    <FiTrash2 />
+                                  </button>
+                                </>
+                              )}
                             </>
                           )}
                         </div>
@@ -2618,6 +2802,69 @@ export default function TasksSection({
               >
                 Apply
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isFeedbackModalOpen && feedbackTask && (
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={closeFeedbackModal}
+        >
+          <div
+            className="tasks-section__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="tasks-section__modal-header tasks-section__modal-header--lined">
+              <div>
+                <h3>Add Feedback</h3>
+                <p>
+                  Add feedback for <strong>{feedbackTask.title}</strong>. The task will
+                  be moved back to Pending.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={closeFeedbackModal}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="tasks-section__form">
+              <div className="tasks-section__form-group">
+                <label htmlFor="task-feedback">Feedback</label>
+                <textarea
+                  id="task-feedback"
+                  rows={5}
+                  value={feedbackText}
+                  onChange={(event) => setFeedbackText(event.target.value)}
+                  placeholder="Write feedback for the employee..."
+                />
+              </div>
+
+              <div className="tasks-section__form-actions">
+                <button
+                  type="button"
+                  className="tasks-section__secondary-btn"
+                  onClick={closeFeedbackModal}
+                  disabled={isSubmittingFeedback}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="tasks-section__submit-btn"
+                  onClick={submitRejectedFeedback}
+                  disabled={!feedbackText.trim() || isSubmittingFeedback}
+                >
+                  {isSubmittingFeedback ? "Sending..." : "Send Feedback"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

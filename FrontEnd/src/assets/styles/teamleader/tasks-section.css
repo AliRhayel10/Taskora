@@ -535,6 +535,30 @@
     margin: 0 auto;
 }
 
+.tasks-section__action-btn--approve {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tasks-section__action-btn--approve:hover {
+  background: #bbf7d0;
+}
+
+.tasks-section__action-btn--feedback {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.tasks-section__action-btn--feedback:hover {
+  background: #ddd6fe;
+}
+
+.tasks-section__status--rejected {
+  background: #fee2e2;
+  color: #b42318;
+  border: 1px solid #fca5a5;
+}
+
 .tasks-section__status--todo {
     background: #eef2ff;
     color: #3730a3;
