@@ -123,17 +123,39 @@ const prettifyLabel = (value = "") =>
 const getStatusClass = (status = "") => {
   const normalized = normalizeStatus(status);
 
-  if (normalized === "new") return "tasks-section__status--todo";
-  if (normalized === "pending") return "tasks-section__status--pending";
-  if (normalized === "acknowledged") return "tasks-section__status--progress";
-  if (normalized === "approved") return "tasks-section__status--approved";
-  if (normalized === "rejected") return "tasks-section__status--rejected";
-  if (normalized === "inprogress") return "tasks-section__status--progress";
-  if (normalized === "archived") return "tasks-section__status--archived";
-  if (normalized === "blocked") return "tasks-section__status--blocked";
-  if (normalized === "done") return "tasks-section__status--done";
+  if (normalized === "new" || normalized === "todo") {
+    return "tasks-section__status--new";
+  }
 
-  return "tasks-section__status--todo";
+  if (normalized === "pending") {
+    return "tasks-section__status--pending";
+  }
+
+  if (normalized === "acknowledged" || normalized === "inprogress") {
+    return "tasks-section__status--acknowledged";
+  }
+
+  if (normalized === "approved") {
+    return "tasks-section__status--approved";
+  }
+
+  if (normalized === "rejected") {
+    return "tasks-section__status--rejected";
+  }
+
+  if (normalized === "archived") {
+    return "tasks-section__status--archived";
+  }
+
+  if (normalized === "done") {
+    return "tasks-section__status--done";
+  }
+
+  if (normalized === "blocked") {
+    return "tasks-section__status--rejected";
+  }
+
+  return "tasks-section__status--new";
 };
 
 const getStatusIcon = (status = "") => {
