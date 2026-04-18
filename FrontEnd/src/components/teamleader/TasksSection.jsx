@@ -111,8 +111,37 @@ const MONTH_OPTIONS = [
   "December",
 ];
 
-const getYearOptions = (centerYear = new Date().getFullYear(), range = 10) =>
-  Array.from({ length: range * 2 + 1 }, (_, index) => centerYear - range + index);
+const getYearOptions = (startYear, endYear) => {
+  const resolvedEndYear = Math.max(Number(endYear) || new Date().getFullYear(), Number(startYear) || new Date().getFullYear());
+  const resolvedStartYear = Math.min(Number(startYear) || resolvedEndYear, resolvedEndYear);
+
+  return Array.from(
+    { length: resolvedEndYear - resolvedStartYear + 1 },
+    (_, index) => resolvedStartYear + index
+  );
+};
+
+const getDateYear = (value) => {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.getFullYear();
+};
+
+const getCompanyStartYearCandidate = (value) => {
+  const directYear = Number(value);
+
+  if (Number.isFinite(directYear) && directYear >= 1900 && directYear <= 3000) {
+    return directYear;
+  }
+
+  return getDateYear(value);
+};
 
 const loadDashboardRangeState = () => {
   try {
@@ -1132,10 +1161,40 @@ export default function TasksSection({
     return getRangeLabel(selectedDashboardPreset);
   }, [selectedDashboardPreset, dashboardCustomRange]);
 
-  const dashboardYearOptions = useMemo(
-    () => getYearOptions(dashboardCalendarMonth.getFullYear(), 10),
-    [dashboardCalendarMonth]
-  );
+  const dashboardYearOptions = useMemo(() => {
+    const candidateYears = [
+      getCompanyStartYearCandidate(storedUser?.companyStartYear),
+      getCompanyStartYearCandidate(storedUser?.companyRegistrationYear),
+      getCompanyStartYearCandidate(storedUser?.companyRegisteredYear),
+      getCompanyStartYearCandidate(storedUser?.registrationYear),
+      getCompanyStartYearCandidate(storedUser?.registeredAt),
+      getCompanyStartYearCandidate(storedUser?.createdAt),
+      getCompanyStartYearCandidate(storedUser?.company?.startYear),
+      getCompanyStartYearCandidate(storedUser?.company?.registrationYear),
+      getCompanyStartYearCandidate(storedUser?.company?.registeredAt),
+      getCompanyStartYearCandidate(storedUser?.company?.createdAt),
+      ...tasks.flatMap((task) => [
+        getDateYear(task?.createdAt),
+        getDateYear(task?.startDate),
+        getDateYear(task?.dueDate),
+      ]),
+      ...users.flatMap((member) => [
+        getDateYear(member?.createdAt),
+        getDateYear(member?.joinedAt),
+      ]),
+      ...teams.flatMap((team) => [
+        getDateYear(team?.createdAt),
+        getDateYear(team?.startDate),
+      ]),
+    ].filter(Boolean);
+
+    const currentYear = new Date().getFullYear();
+    const earliestKnownYear = candidateYears.length
+      ? Math.min(...candidateYears)
+      : currentYear - 5;
+
+    return getYearOptions(earliestKnownYear, currentYear + 5);
+  }, [storedUser, tasks, users, teams]);
 
   const handleSelectDashboardPreset = (preset) => {
     if (preset === "custom") {
