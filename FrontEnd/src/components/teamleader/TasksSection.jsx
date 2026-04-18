@@ -44,6 +44,129 @@ const DEFAULT_RANGE = {
   to: undefined,
 };
 
+const DASHBOARD_RANGE_STORAGE_KEY = "tasks_section_dashboard_range";
+
+const startOfDay = (date) => {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+};
+
+const endOfDay = (date) => {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+};
+
+const getTodayRange = () => {
+  const today = new Date();
+
+  return {
+    start: startOfDay(today),
+    end: endOfDay(today),
+  };
+};
+
+const getWeekRange = (offsetWeeks = 0) => {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const start = new Date(now);
+  start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
+
+  const weekStart = startOfDay(start);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  return {
+    start: weekStart,
+    end: endOfDay(weekEnd),
+  };
+};
+
+const loadDashboardRangeState = () => {
+  try {
+    const saved = localStorage.getItem(DASHBOARD_RANGE_STORAGE_KEY);
+
+    if (!saved) {
+      return {
+        selectedPreset: "thisWeek",
+        customRange: { from: null, to: null },
+      };
+    }
+
+    const parsed = JSON.parse(saved);
+
+    return {
+      selectedPreset: parsed?.selectedPreset || "thisWeek",
+      customRange: {
+        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
+        to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
+      },
+    };
+  } catch {
+    return {
+      selectedPreset: "thisWeek",
+      customRange: { from: null, to: null },
+    };
+  }
+};
+
+const saveDashboardRangeState = (selectedPreset, customRange) => {
+  localStorage.setItem(
+    DASHBOARD_RANGE_STORAGE_KEY,
+    JSON.stringify({
+      selectedPreset,
+      customRange: {
+        from: customRange?.from ? customRange.from.toISOString() : null,
+        to: customRange?.to ? customRange.to.toISOString() : null,
+      },
+    })
+  );
+};
+
+const getPresetRange = (preset, customRange) => {
+  switch (preset) {
+    case "today":
+      return getTodayRange();
+    case "custom": {
+      if (
+        customRange?.from instanceof Date &&
+        !Number.isNaN(customRange.from.getTime()) &&
+        customRange?.to instanceof Date &&
+        !Number.isNaN(customRange.to.getTime())
+      ) {
+        const start = startOfDay(customRange.from);
+        const end = endOfDay(customRange.to);
+
+        if (start <= end) {
+          return { start, end };
+        }
+      }
+
+      return getWeekRange(0);
+    }
+    case "thisWeek":
+    default:
+      return getWeekRange(0);
+  }
+};
+
+const getRangeLabel = (preset) => {
+  switch (preset) {
+    case "today":
+      return "Today";
+    case "custom":
+      return "Custom";
+    case "thisWeek":
+    default:
+      return "This Week";
+  }
+};
+
+const formatDateText = (value) => format(value, "dd/MM/yyyy");
+
 const getStoredUser = () => {
   try {
     return JSON.parse(localStorage.getItem("user") || "{}");
@@ -383,6 +506,43 @@ const mapTaskFromApi = (task) => ({
     false,
 });
 
+const parseTaskDate = (dateValue) => {
+  if (!dateValue) return null;
+
+  const raw = String(dateValue).trim();
+  if (!raw) return null;
+
+  const dateOnly = raw.includes("T") ? raw.split("T")[0] : raw;
+  const parsed = new Date(`${dateOnly}T00:00:00`);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const doesTaskOverlapRange = (task, start, end) => {
+  const taskStart = parseTaskDate(task?.startDate);
+  const taskDue = parseTaskDate(task?.dueDate);
+  const rangeStart = startOfDay(start);
+  const rangeEnd = endOfDay(end);
+
+  if (!taskStart && !taskDue) return true;
+
+  if (taskStart && taskDue) {
+    return startOfDay(taskStart) <= rangeEnd && endOfDay(taskDue) >= rangeStart;
+  }
+
+  if (taskStart) {
+    const value = startOfDay(taskStart);
+    return value >= rangeStart && value <= rangeEnd;
+  }
+
+  if (taskDue) {
+    const value = startOfDay(taskDue);
+    return value >= rangeStart && value <= rangeEnd;
+  }
+
+  return true;
+};
+
 const getEffectiveTaskStatus = (task) => {
   const rawStatus = String(task?.status || "").trim();
   return rawStatus || "Unknown";
@@ -509,6 +669,8 @@ export default function TasksSection({
     ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}`
     : "";
 
+  const initialDashboardRangeState = useMemo(() => loadDashboardRangeState(), []);
+
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -531,6 +693,20 @@ export default function TasksSection({
   const [feedback, setFeedback] = useState(null);
 
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedDashboardPreset, setSelectedDashboardPreset] = useState(
+    initialDashboardRangeState.selectedPreset
+  );
+  const [dashboardCustomRange, setDashboardCustomRange] = useState(
+    initialDashboardRangeState.customRange
+  );
+  const [draftDashboardPreset, setDraftDashboardPreset] = useState(
+    initialDashboardRangeState.selectedPreset
+  );
+  const [draftDashboardCustomRange, setDraftDashboardCustomRange] = useState({
+    from: null,
+    to: null,
+  });
+  const [isDashboardRangeMenuOpen, setIsDashboardRangeMenuOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [memberSearch, setMemberSearch] = useState("");
@@ -557,6 +733,7 @@ export default function TasksSection({
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const datePickerRef = useRef(null);
+  const dashboardRangeMenuRef = useRef(null);
   const editRowRef = useRef(null);
   const editTaskInfoModalRef = useRef(null);
   const editAssigneeModalRef = useRef(null);
@@ -850,7 +1027,122 @@ export default function TasksSection({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, sortConfig]);
+  }, [activeTab, sortConfig, selectedDashboardPreset, dashboardCustomRange]);
+
+  useEffect(() => {
+    saveDashboardRangeState(selectedDashboardPreset, dashboardCustomRange);
+  }, [selectedDashboardPreset, dashboardCustomRange]);
+
+  const syncDashboardDraftWithAppliedState = () => {
+    setDraftDashboardPreset(selectedDashboardPreset);
+
+    if (selectedDashboardPreset === "custom") {
+      setDraftDashboardCustomRange({
+        from: dashboardCustomRange?.from || null,
+        to: dashboardCustomRange?.to || null,
+      });
+    } else {
+      setDraftDashboardCustomRange({
+        from: null,
+        to: null,
+      });
+    }
+  };
+
+  const openDashboardRangeMenu = () => {
+    syncDashboardDraftWithAppliedState();
+    setIsDashboardRangeMenuOpen(true);
+  };
+
+  const closeDashboardRangeMenu = () => {
+    syncDashboardDraftWithAppliedState();
+    setIsDashboardRangeMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isDashboardRangeMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (
+        dashboardRangeMenuRef.current &&
+        !dashboardRangeMenuRef.current.contains(event.target)
+      ) {
+        closeDashboardRangeMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isDashboardRangeMenuOpen, selectedDashboardPreset, dashboardCustomRange]);
+
+  const activeDashboardRange = useMemo(
+    () => getPresetRange(selectedDashboardPreset, dashboardCustomRange),
+    [selectedDashboardPreset, dashboardCustomRange]
+  );
+
+  const dashboardRangeLabel = useMemo(() => {
+    if (
+      selectedDashboardPreset === "custom" &&
+      dashboardCustomRange?.from instanceof Date &&
+      dashboardCustomRange?.to instanceof Date
+    ) {
+      return `${formatDateText(dashboardCustomRange.from)} - ${formatDateText(
+        dashboardCustomRange.to
+      )}`;
+    }
+
+    return getRangeLabel(selectedDashboardPreset);
+  }, [selectedDashboardPreset, dashboardCustomRange]);
+
+  const handleSelectDashboardPreset = (preset) => {
+    if (preset === "custom") {
+      setDraftDashboardPreset("custom");
+      setDraftDashboardCustomRange({ from: null, to: null });
+      return;
+    }
+
+    let nextRange = dashboardCustomRange;
+
+    if (preset === "today") {
+      nextRange = getTodayRange();
+    } else if (preset === "thisWeek") {
+      nextRange = getWeekRange(0);
+    }
+
+    setDraftDashboardPreset(preset);
+    setDraftDashboardCustomRange({ from: null, to: null });
+    setSelectedDashboardPreset(preset);
+    setDashboardCustomRange({
+      from: nextRange.start,
+      to: nextRange.end,
+    });
+    setIsDashboardRangeMenuOpen(false);
+  };
+
+  const handleDashboardCustomRangeSelect = (range) => {
+    setDraftDashboardPreset("custom");
+    setDraftDashboardCustomRange({
+      from: range?.from || null,
+      to: range?.to || null,
+    });
+  };
+
+  const handleApplyDashboardCustomRange = () => {
+    if (!draftDashboardCustomRange?.from || !draftDashboardCustomRange?.to) return;
+
+    setSelectedDashboardPreset("custom");
+    setDashboardCustomRange({
+      from: startOfDay(draftDashboardCustomRange.from),
+      to: endOfDay(draftDashboardCustomRange.to),
+    });
+    setIsDashboardRangeMenuOpen(false);
+    setDraftDashboardCustomRange({ from: null, to: null });
+  };
 
   const syncDraftWithAppliedRange = () => {
     setDraftRange({
@@ -1091,6 +1383,16 @@ export default function TasksSection({
         return false;
       }
 
+      if (
+        !doesTaskOverlapRange(
+          task,
+          activeDashboardRange.start,
+          activeDashboardRange.end
+        )
+      ) {
+        return false;
+      }
+
       if (!normalizedSearch) {
         return true;
       }
@@ -1113,7 +1415,7 @@ export default function TasksSection({
         status.includes(normalizedSearch)
       );
     });
-  }, [tasksWithUsers, activeTab, searchValue]);
+  }, [tasksWithUsers, activeTab, searchValue, activeDashboardRange]);
 
   const sortedTasks = useMemo(() => {
     if (!sortConfig.key) return filteredTasks;
@@ -1853,6 +2155,124 @@ export default function TasksSection({
               </span>
             </div>
           ))}
+        </div>
+
+        <div
+          className="tasks-section__range-menu"
+          ref={dashboardRangeMenuRef}
+        >
+          <button
+            type="button"
+            className="tasks-section__range-btn"
+            onClick={openDashboardRangeMenu}
+          >
+            <span>{dashboardRangeLabel}</span>
+            <FiChevronDown />
+          </button>
+
+          {isDashboardRangeMenuOpen && (
+            <div className="tasks-section__range-dropdown">
+              <div
+                className="tasks-section__range-tabs"
+                role="tablist"
+                aria-label="Date range presets"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftDashboardPreset === "today"}
+                  className={`tasks-section__range-option ${
+                    draftDashboardPreset === "today"
+                      ? "tasks-section__range-option--active"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectDashboardPreset("today")}
+                >
+                  Today
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftDashboardPreset === "thisWeek"}
+                  className={`tasks-section__range-option ${
+                    draftDashboardPreset === "thisWeek"
+                      ? "tasks-section__range-option--active"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectDashboardPreset("thisWeek")}
+                >
+                  This Week
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftDashboardPreset === "custom"}
+                  className={`tasks-section__range-option ${
+                    draftDashboardPreset === "custom"
+                      ? "tasks-section__range-option--active"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectDashboardPreset("custom")}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {draftDashboardPreset === "custom" && (
+                <>
+                  <div className="tasks-section__range-divider"></div>
+
+                  <div className="tasks-section__custom-range">
+                    <div className="tasks-section__custom-range-header">
+                      <FiCalendar />
+                      <span>Pick a custom range</span>
+                    </div>
+
+                    <div className="tasks-section__custom-range-preview">
+                      {draftDashboardCustomRange?.from
+                        ? formatDateText(draftDashboardCustomRange.from)
+                        : "Start"}{" "}
+                      <span>to</span>{" "}
+                      {draftDashboardCustomRange?.to
+                        ? formatDateText(draftDashboardCustomRange.to)
+                        : "End"}
+                    </div>
+
+                    <div className="tasks-section__calendar-shell">
+                      <DayPicker
+                        mode="range"
+                        selected={draftDashboardCustomRange}
+                        onSelect={handleDashboardCustomRangeSelect}
+                        showOutsideDays={false}
+                        numberOfMonths={1}
+                        className="tasks-section__dashboard-day-picker"
+                        modifiers={{
+                          past: (date) => startOfDay(date) < startOfDay(new Date()),
+                        }}
+                        modifiersClassNames={{
+                          past: "tasks-section__dashboard-day--past",
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="tasks-section__apply-btn"
+                      onClick={handleApplyDashboardCustomRange}
+                      disabled={
+                        !draftDashboardCustomRange?.from ||
+                        !draftDashboardCustomRange?.to
+                      }
+                    >
+                      Apply Range
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <button
