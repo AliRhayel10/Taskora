@@ -68,14 +68,23 @@ function normalizeTeamsResponse(data) {
 function normalizeTasksResponse(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.tasks)) return data.tasks;
+  if (Array.isArray(data?.tasks?.result)) return data.tasks.result;
+  if (Array.isArray(data?.tasks?.items)) return data.tasks.items;
   if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.data?.tasks)) return data.data.tasks;
+  if (Array.isArray(data?.data?.result)) return data.data.result;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.items)) return data.items;
   return [];
 }
 
 function normalizeStatusesResponse(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.statuses)) return data.statuses;
+  if (Array.isArray(data?.statuses?.result)) return data.statuses.result;
   if (Array.isArray(data?.data?.statuses)) return data.data.statuses;
+  if (Array.isArray(data?.data?.result)) return data.data.result;
+  if (Array.isArray(data?.result)) return data.result;
   if (Array.isArray(data?.data)) return data.data;
   return [];
 }
