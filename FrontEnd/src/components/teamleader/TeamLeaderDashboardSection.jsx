@@ -18,6 +18,7 @@ import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
 const PAGE_SIZE = 6;
 const RANGE_STORAGE_KEY = "teamleader_dashboard_range";
+const API_BASE = "http://localhost:5000";
 
 function startOfDay(date) {
   const value = new Date(date);
@@ -279,7 +280,13 @@ function getMemberId(member) {
 }
 
 function getTaskAssigneeId(task) {
-  return Number(task?.assignedToUserId ?? 0);
+  return Number(
+    task?.assignedToUserId ??
+      task?.assignedUserId ??
+      task?.AssignedToUserId ??
+      task?.AssignedUserId ??
+      0
+  );
 }
 
 function getTeamId(team) {
@@ -330,6 +337,51 @@ function resolveLeaderTeams(teamsData, user) {
   }
 
   return [];
+}
+
+function extractTasksArray(tasksData) {
+  if (Array.isArray(tasksData)) return tasksData;
+
+  if (!tasksData || typeof tasksData !== "object") return [];
+
+  const candidates = [
+    tasksData.tasks,
+    tasksData.data,
+    tasksData.result,
+    tasksData.items,
+    tasksData.data?.tasks,
+    tasksData.data?.result,
+    tasksData.data?.items,
+    tasksData.tasks?.result,
+    tasksData.tasks?.items,
+    tasksData.tasks?.data,
+    tasksData.result?.tasks,
+    tasksData.result?.items,
+    tasksData.result?.data,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+function getProfileImageUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
+
+  if (raw.startsWith("/")) {
+    return `${API_BASE}${raw}`;
+  }
+
+  return `${API_BASE}/${raw}`;
 }
 
 export default function TeamLeaderDashboardSection({
@@ -435,143 +487,132 @@ export default function TeamLeaderDashboardSection({
     return getRangeLabel(selectedPreset);
   }, [selectedPreset, customRange]);
 
-useEffect(() => {
-  const fetchDashboardData = async () => {
-    const companyId = parseInt(user?.companyId, 10);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      const companyId = parseInt(user?.companyId, 10);
 
-    if (!companyId) {
-      setErrorMessage("Missing user information.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setErrorMessage("");
-
-      const teamsUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(companyId)}`;
-      const membersUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(companyId)}/members`;
-      const tasksUrl = `http://localhost:5000/api/tasks/company/${encodeURIComponent(companyId)}`;
-
-      const [teamsResponse, membersResponse, tasksResponse] = await Promise.all([
-        fetch(teamsUrl),
-        fetch(membersUrl),
-        fetch(tasksUrl),
-      ]);
-
-      if (!teamsResponse.ok) {
-        throw new Error(`Failed to load teams. (${teamsResponse.status})`);
+      if (!companyId) {
+        setErrorMessage("Missing user information.");
+        setLoading(false);
+        return;
       }
 
-      if (!membersResponse.ok) {
-        throw new Error(`Failed to load members. (${membersResponse.status})`);
+      try {
+        setLoading(true);
+        setErrorMessage("");
+
+        const teamsUrl = `${API_BASE}/api/Teams/company/${encodeURIComponent(companyId)}`;
+        const membersUrl = `${API_BASE}/api/Teams/company/${encodeURIComponent(companyId)}/members`;
+        const tasksUrl = `${API_BASE}/api/tasks/company/${encodeURIComponent(companyId)}`;
+
+        const [teamsResponse, membersResponse, tasksResponse] = await Promise.all([
+          fetch(teamsUrl),
+          fetch(membersUrl),
+          fetch(tasksUrl),
+        ]);
+
+        if (!teamsResponse.ok) {
+          throw new Error(`Failed to load teams. (${teamsResponse.status})`);
+        }
+
+        if (!membersResponse.ok) {
+          throw new Error(`Failed to load members. (${membersResponse.status})`);
+        }
+
+        if (!tasksResponse.ok) {
+          throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
+        }
+
+        const teamsData = await parseJsonSafely(teamsResponse);
+        const membersData = await parseJsonSafely(membersResponse);
+        const tasksData = await parseJsonSafely(tasksResponse);
+
+        if (!Array.isArray(teamsData)) {
+          throw new Error("Teams response format is invalid.");
+        }
+
+        if (!Array.isArray(membersData)) {
+          throw new Error("Members response format is invalid.");
+        }
+
+        const resolvedTasks = extractTasksArray(tasksData);
+
+        const tasksResponseLooksValid =
+          Array.isArray(resolvedTasks) ||
+          tasksData?.success === true;
+
+        if (!tasksResponseLooksValid) {
+          console.log("Invalid tasks response:", tasksData);
+          throw new Error(
+            tasksData?.message || "Tasks response format is invalid."
+          );
+        }
+
+        const leaderTeams = resolveLeaderTeams(teamsData, user);
+
+        if (leaderTeams.length === 0) {
+          throw new Error("No team found for this team leader.");
+        }
+
+        const leaderTeamIds = leaderTeams
+          .map((team) => getTeamId(team))
+          .filter((id) => id > 0);
+
+        const teamName =
+          leaderTeams.map((team) => getTeamName(team)).filter(Boolean).join(", ") ||
+          "Team";
+
+        setLeaderTeamName(teamName);
+
+        const leaderMemberIds = [
+          ...new Set(
+            leaderTeams.flatMap((team) =>
+              Array.isArray(team?.memberIds)
+                ? team.memberIds.map((id) => Number(id)).filter((id) => id > 0)
+                : []
+            )
+          ),
+        ];
+
+        const filteredMembers = membersData.filter((member) => {
+          const memberId = getMemberId(member);
+          const isEmployee = isEmployeeMember(member);
+          const belongsToLeaderTeam = leaderMemberIds.includes(memberId);
+
+          return isEmployee && belongsToLeaderTeam;
+        });
+
+        console.log("tasksData raw:", tasksData);
+        console.log("resolvedTasks:", resolvedTasks);
+
+        const filteredTasks = resolvedTasks.filter((task) => {
+          const belongsToLeaderTeam = leaderTeamIds.includes(
+            Number(task?.teamId ?? task?.TeamId ?? 0)
+          );
+          const isInRange = doesTaskOverlapRange(
+            task,
+            activeRange.start,
+            activeRange.end
+          );
+
+          return belongsToLeaderTeam && isInRange;
+        });
+
+        setMembers(filteredMembers);
+        setTasks(filteredTasks);
+      } catch (error) {
+        console.error("Dashboard fetch error:", error);
+        setMembers([]);
+        setTasks([]);
+        setLeaderTeamName("");
+        setErrorMessage(error.message || "Failed to load dashboard data.");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      if (!tasksResponse.ok) {
-        throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
-      }
-
-      const teamsData = await parseJsonSafely(teamsResponse);
-      const membersData = await parseJsonSafely(membersResponse);
-      const tasksData = await parseJsonSafely(tasksResponse);
-
-      if (!Array.isArray(teamsData)) {
-        throw new Error("Teams response format is invalid.");
-      }
-
-      if (!Array.isArray(membersData)) {
-        throw new Error("Members response format is invalid.");
-      }
-
-      // ✅ FIX 1: safer validation
-      const tasksResponseLooksValid =
-        Array.isArray(tasksData) ||
-        Array.isArray(tasksData?.tasks) ||
-        Array.isArray(tasksData?.data) ||
-        Array.isArray(tasksData?.data?.tasks) ||
-        tasksData?.success === true;
-
-      if (!tasksResponseLooksValid) {
-        console.log("Invalid tasks response:", tasksData);
-        throw new Error(
-          tasksData?.message || "Tasks response format is invalid."
-        );
-      }
-
-      const leaderTeams = resolveLeaderTeams(teamsData, user);
-
-      if (leaderTeams.length === 0) {
-        throw new Error("No team found for this team leader.");
-      }
-
-      const leaderTeamIds = leaderTeams
-        .map((team) => getTeamId(team))
-        .filter((id) => id > 0);
-
-      const teamName =
-        leaderTeams.map((team) => getTeamName(team)).filter(Boolean).join(", ") ||
-        "Team";
-
-      setLeaderTeamName(teamName);
-
-      const leaderMemberIds = [
-        ...new Set(
-          leaderTeams.flatMap((team) =>
-            Array.isArray(team?.memberIds)
-              ? team.memberIds.map((id) => Number(id)).filter((id) => id > 0)
-              : []
-          )
-        ),
-      ];
-
-      const filteredMembers = membersData.filter((member) => {
-        const memberId = getMemberId(member);
-        const isEmployee = isEmployeeMember(member);
-        const belongsToLeaderTeam = leaderMemberIds.includes(memberId);
-
-        return isEmployee && belongsToLeaderTeam;
-      });
-
-      // ✅ FIX 2: normalize tasks safely
-      const resolvedTasks = Array.isArray(tasksData)
-        ? tasksData
-        : Array.isArray(tasksData?.tasks)
-        ? tasksData.tasks
-        : Array.isArray(tasksData?.data)
-        ? tasksData.data
-        : Array.isArray(tasksData?.data?.tasks)
-        ? tasksData.data.tasks
-        : [];
-
-      console.log("tasksData raw:", tasksData);
-      console.log("resolvedTasks:", resolvedTasks);
-
-      const filteredTasks = resolvedTasks.filter((task) => {
-        const belongsToLeaderTeam = leaderTeamIds.includes(Number(task?.teamId));
-        const isInRange = doesTaskOverlapRange(
-          task,
-          activeRange.start,
-          activeRange.end
-        );
-
-        return belongsToLeaderTeam && isInRange;
-      });
-
-      setMembers(filteredMembers);
-      setTasks(filteredTasks);
-    } catch (error) {
-      console.error("Dashboard fetch error:", error);
-      setMembers([]);
-      setTasks([]);
-      setLeaderTeamName("");
-      setErrorMessage(error.message || "Failed to load dashboard data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchDashboardData();
-}, [user, activeRange.start, activeRange.end]);
+    fetchDashboardData();
+  }, [user, activeRange.start, activeRange.end]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -601,24 +642,24 @@ useEffect(() => {
 
       const totalTasks = memberTasks.length;
       const totalEffort = memberTasks.reduce(
-        (sum, task) => sum + Number(task?.estimatedEffortHours || 0),
+        (sum, task) => sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
         0
       );
       const totalWeight = memberTasks.reduce(
-        (sum, task) => sum + Number(task?.weight || 0),
+        (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
         0
       );
 
       return {
         userId: member.userId,
-        employee: member.fullName || "Unknown Employee",
+        employee: member.fullName || member.name || "Unknown Employee",
         email: member.email || "",
         tasks: totalTasks,
         effort: `${Number(totalEffort.toFixed(2))}h`,
         effortValue: totalEffort,
         weight: Number(totalWeight.toFixed(2)),
         status: getWorkloadStatus(totalWeight),
-        profileImageUrl: member.profileImageUrl || "",
+        profileImageUrl: member.profileImageUrl || member.ProfileImageUrl || "",
       };
     });
 
@@ -681,11 +722,11 @@ useEffect(() => {
   const summaryCards = useMemo(() => {
     const totalTasks = tasks.length;
     const totalEffort = tasks.reduce(
-      (sum, task) => sum + Number(task?.estimatedEffortHours || 0),
+      (sum, task) => sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
       0
     );
     const totalWeight = tasks.reduce(
-      (sum, task) => sum + Number(task?.weight || 0),
+      (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
       0
     );
 
@@ -750,37 +791,37 @@ useEffect(() => {
     [totalPages, currentPage]
   );
 
-const handleSelectPreset = (preset) => {
-  if (preset === "custom") {
-    setDraftPreset("custom");
+  const handleSelectPreset = (preset) => {
+    if (preset === "custom") {
+      setDraftPreset("custom");
+      setDraftCustomRange({
+        from: null,
+        to: null,
+      });
+      return;
+    }
+
+    let nextRange = customRange;
+
+    if (preset === "today") {
+      nextRange = getTodayRange();
+    } else if (preset === "thisWeek") {
+      nextRange = getWeekRange(0);
+    }
+
+    setDraftPreset(preset);
     setDraftCustomRange({
       from: null,
       to: null,
     });
-    return;
-  }
 
-  let nextRange = customRange;
-
-  if (preset === "today") {
-    nextRange = getTodayRange();
-  } else if (preset === "thisWeek") {
-    nextRange = getWeekRange(0);
-  }
-
-  setDraftPreset(preset);
-  setDraftCustomRange({
-    from: null,
-    to: null,
-  });
-
-  setSelectedPreset(preset);
-  setCustomRange({
-    from: nextRange.start,
-    to: nextRange.end,
-  });
-  setIsRangeMenuOpen(false);
-};
+    setSelectedPreset(preset);
+    setCustomRange({
+      from: nextRange.start,
+      to: nextRange.end,
+    });
+    setIsRangeMenuOpen(false);
+  };
 
   const handleCustomRangeSelect = (range) => {
     setDraftPreset("custom");
@@ -1114,11 +1155,7 @@ const handleSelectPreset = (preset) => {
                             <div className="teamleader-dashboard-section__avatar">
                               {row.profileImageUrl ? (
                                 <img
-                                  src={
-                                    row.profileImageUrl.startsWith("http")
-                                      ? row.profileImageUrl
-                                      : `http://localhost:5000${row.profileImageUrl}`
-                                  }
+                                  src={getProfileImageUrl(row.profileImageUrl)}
                                   alt={row.employee}
                                   className="teamleader-dashboard-section__avatar-image"
                                 />
