@@ -17,6 +17,11 @@ const STATUS_COLOR_MAP = {
   pending: "#f59e0b",
   acknowledged: "#8b5cf6",
   done: "#22c55e",
+  approved: "#16a34a",
+  rejected: "#ef4444",
+  blocked: "#64748b",
+  "in progress": "#f97316",
+  inprogress: "#f97316",
 };
 
 const FALLBACK_STATUS_COLORS = [
@@ -113,7 +118,8 @@ function getTaskStatus(task) {
     task?.TaskStatusName ||
     task?.taskStatus?.statusName ||
     task?.taskStatus?.StatusName ||
-    task?.taskStatus ||
+    task?.taskStatus?.name ||
+    task?.taskStatus?.Name ||
     task?.status ||
     task?.Status;
 
@@ -160,9 +166,15 @@ function getStatusOrder(status, fallbackIndex) {
 
 function isCompletedStatus(status) {
   const normalized = normalizeStatus(status);
-  return ["done", "completed", "complete", "closed", "finished", "resolved"].includes(
-    normalized
-  );
+  return [
+    "done",
+    "completed",
+    "complete",
+    "closed",
+    "finished",
+    "resolved",
+    "approved",
+  ].includes(normalized);
 }
 
 function getStatusColor(statusName, index) {
@@ -313,7 +325,7 @@ export default function DashboardSection({ searchValue = "" }) {
           const normalizedName = normalizeStatus(status.name);
           const valueFromId = status.id ? countByStatusId[status.id] || 0 : 0;
           const valueFromName = fallbackNameCounts[normalizedName] || 0;
-          const value = valueFromId || valueFromName;
+          const value = Math.max(valueFromId, valueFromName);
 
           return {
             key: `${status.id || normalizedName || "unknown"}-${index}`,
