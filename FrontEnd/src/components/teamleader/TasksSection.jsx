@@ -155,6 +155,69 @@ const getResponseData = (payload) => {
   return payload;
 };
 
+const extractArray = (...candidates) => {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+};
+
+const getTasksArrayFromPayload = (payload) => {
+  const responseData = getResponseData(payload);
+
+  return extractArray(
+    responseData,
+    responseData?.tasks,
+    responseData?.tasks?.result,
+    responseData?.items,
+    responseData?.data,
+    responseData?.data?.result,
+    payload?.tasks,
+    payload?.tasks?.result,
+    payload?.items,
+    payload?.data,
+    payload?.data?.result,
+  );
+};
+
+const getStatusesArrayFromPayload = (payload, setupRulesData = null) => {
+  const responseData = getResponseData(payload);
+
+  return extractArray(
+    responseData?.statuses,
+    payload?.statuses,
+    responseData,
+    setupRulesData?.statuses,
+  );
+};
+
+const getMembersArrayFromPayload = (payload) => {
+  const responseData = getResponseData(payload);
+
+  return extractArray(
+    responseData,
+    responseData?.items,
+    responseData?.result,
+    payload?.items,
+    payload?.result,
+  );
+};
+
+const getTeamsArrayFromPayload = (payload) => {
+  const responseData = getResponseData(payload);
+
+  return extractArray(
+    responseData,
+    responseData?.items,
+    responseData?.result,
+    payload?.items,
+    payload?.result,
+  );
+};
+
 const getProfileImage = (user = {}) => {
   const rawValue =
     user.profileImageUrl ||
@@ -490,17 +553,12 @@ export default function TasksSection({
     }
 
     const refreshPayload = await parseJsonSafe(response);
-    const refreshData = getResponseData(refreshPayload);
+    const rawTasksArray = getTasksArrayFromPayload(refreshPayload);
+    const refreshedTasks = rawTasksArray.map(mapTaskFromApi);
 
-    const refreshedTasks = Array.isArray(refreshData)
-      ? refreshData.map(mapTaskFromApi)
-      : Array.isArray(refreshData?.tasks)
-        ? refreshData.tasks.map(mapTaskFromApi)
-        : Array.isArray(refreshPayload?.tasks)
-          ? refreshPayload.tasks.map(mapTaskFromApi)
-          : Array.isArray(refreshData?.items)
-            ? refreshData.items.map(mapTaskFromApi)
-            : [];
+    console.log("loadTasks refreshPayload:", refreshPayload);
+    console.log("loadTasks rawTasksArray:", rawTasksArray);
+    console.log("loadTasks refreshedTasks:", refreshedTasks);
 
     setTasks(refreshedTasks);
   };
@@ -650,33 +708,26 @@ export default function TasksSection({
 
         if (!isMounted) return;
 
-        const tasksData = getResponseData(tasksPayload);
         const setupRulesData = getResponseData(setupRulesPayload);
-        const statusesData = getResponseData(statusesPayload);
-        const membersData = getResponseData(membersPayload);
-        const teamsData = getResponseData(teamsPayload);
 
-        const normalizedTasks = Array.isArray(tasksData)
-          ? tasksData.map(mapTaskFromApi)
-          : Array.isArray(tasksPayload?.tasks)
-            ? tasksPayload.tasks.map(mapTaskFromApi)
-            : Array.isArray(tasksData?.tasks)
-              ? tasksData.tasks.map(mapTaskFromApi)
-              : Array.isArray(tasksData?.items)
-                ? tasksData.items.map(mapTaskFromApi)
-                : [];
+        const rawTasksArray = getTasksArrayFromPayload(tasksPayload);
+        const normalizedTasks = rawTasksArray.map(mapTaskFromApi);
+
+        console.log("tasksPayload:", tasksPayload);
+        console.log("rawTasksArray:", rawTasksArray);
+        console.log("normalizedTasks:", normalizedTasks);
 
         setTasks(normalizedTasks);
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-            typeof setupRulesData.priorityMultipliers === "object"
+          typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-            typeof setupRulesData.complexityMultipliers === "object"
+          typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -685,32 +736,16 @@ export default function TasksSection({
         setPriorityOptions(Object.keys(mappedPriorityMultipliers));
         setComplexityOptions(Object.keys(mappedComplexityMultipliers));
 
-        const members = Array.isArray(membersData)
-          ? membersData
-          : Array.isArray(membersData?.items)
-            ? membersData.items
-            : [];
-
+        const members = getMembersArrayFromPayload(membersPayload);
         setUsers(members);
 
-        const teamsList = Array.isArray(teamsData)
-          ? teamsData
-          : Array.isArray(teamsData?.items)
-            ? teamsData.items
-            : [];
-
+        const teamsList = getTeamsArrayFromPayload(teamsPayload);
         setTeams(teamsList);
 
-        const resolvedStatuses = Array.isArray(statusesData?.statuses)
-          ? statusesData.statuses
-          : Array.isArray(statusesPayload?.statuses)
-            ? statusesPayload.statuses
-            : Array.isArray(statusesData)
-              ? statusesData
-              : Array.isArray(setupRulesData?.statuses)
-                ? setupRulesData.statuses
-                : [];
-
+        const resolvedStatuses = getStatusesArrayFromPayload(
+          statusesPayload,
+          setupRulesData
+        );
         setBackendStatuses(resolvedStatuses);
 
         const tabs = resolvedStatuses
@@ -736,7 +771,8 @@ export default function TasksSection({
           { key: "unassigned", label: "Unassigned" },
           ...tabs,
         ]);
-      } catch {
+      } catch (error) {
+        console.error("loadData error:", error);
         if (!isMounted) return;
         setErrorMessage("Unable to load tasks right now.");
       } finally {
@@ -1141,9 +1177,9 @@ export default function TasksSection({
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-        selectedRange.to,
-        "dd/MM/yyyy"
-      )}`
+          selectedRange.to,
+          "dd/MM/yyyy"
+        )}`
       : "Select date range";
 
   const isDoneTask = (task) => normalizeStatus(task.effectiveStatus) === "done";
@@ -1187,79 +1223,79 @@ export default function TasksSection({
     setIsDatePickerOpen(false);
   };
 
-const updateTaskStatus = async (task, nextStatusId, successMessage) => {
-  if (!task?.id || !nextStatusId) {
-    console.error("❌ Missing task id or status id", { task, nextStatusId });
-    return;
-  }
+  const updateTaskStatus = async (task, nextStatusId, successMessage) => {
+    if (!task?.id || !nextStatusId) {
+      console.error("❌ Missing task id or status id", { task, nextStatusId });
+      return;
+    }
 
-  if (!resolvedCurrentUserId) {
-    setFeedback({
-      type: "error",
-      message: "Current user id is missing.",
-    });
-    return;
-  }
+    if (!resolvedCurrentUserId) {
+      setFeedback({
+        type: "error",
+        message: "Current user id is missing.",
+      });
+      return;
+    }
 
-  setFeedback(null);
+    setFeedback(null);
 
-  try {
-    const payload = {
-      TaskId: Number(task.id),
-      NewTaskStatusId: Number(nextStatusId),
-      ChangedByUserId: Number(resolvedCurrentUserId),
-    };
-
-    console.log("📤 Sending updateTaskStatus request:");
-    console.log("➡️ URL:", resolvedUpdateTaskStatusEndpoint);
-    console.log("➡️ Payload:", payload);
-
-    const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    console.log("📥 Response status:", response.status);
-
-    const text = await response.text();
-    console.log("📥 Raw response text:", text);
-
-    let data = null;
     try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      console.warn("⚠️ Response is not JSON");
+      const payload = {
+        TaskId: Number(task.id),
+        NewTaskStatusId: Number(nextStatusId),
+        ChangedByUserId: Number(resolvedCurrentUserId),
+      };
+
+      console.log("📤 Sending updateTaskStatus request:");
+      console.log("➡️ URL:", resolvedUpdateTaskStatusEndpoint);
+      console.log("➡️ Payload:", payload);
+
+      const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("📥 Response status:", response.status);
+
+      const text = await response.text();
+      console.log("📥 Raw response text:", text);
+
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        console.warn("⚠️ Response is not JSON");
+      }
+
+      console.log("📥 Parsed response:", data);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+          data?.title ||
+          text ||
+          "Unable to update task status."
+        );
+      }
+
+      await loadTasks();
+
+      setFeedback({
+        type: "success",
+        message: successMessage,
+      });
+    } catch (error) {
+      console.error("❌ updateTaskStatus failed:", error);
+
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to update task status.",
+      });
     }
-
-    console.log("📥 Parsed response:", data);
-
-    if (!response.ok) {
-      throw new Error(
-        data?.message ||
-        data?.title ||
-        text ||
-        "Unable to update task status."
-      );
-    }
-
-    await loadTasks();
-
-    setFeedback({
-      type: "success",
-      message: successMessage,
-    });
-  } catch (error) {
-    console.error("❌ updateTaskStatus failed:", error);
-
-    setFeedback({
-      type: "error",
-      message: error?.message || "Unable to update task status.",
-    });
-  }
-};
+  };
 
   const openFeedbackModal = (task) => {
     setFeedbackTask(task);
@@ -1680,11 +1716,13 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-      } ${sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${
+      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+    } ${
+      sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-      }`;
+    }`;
   };
 
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
@@ -1699,10 +1737,11 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${feedback.type === "success"
+          className={`tasks-section__feedback ${
+            feedback.type === "success"
               ? "tasks-section__feedback--success"
               : "tasks-section__feedback--error"
-            }`}
+          }`}
         >
           {feedback.message}
         </div>
@@ -1731,8 +1770,9 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
-                  }`}
+                className={`tasks-section__tab ${
+                  activeTab === tab.key ? "tasks-section__tab--active" : ""
+                }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -1939,8 +1979,8 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
                                 ) : (
                                   getInitials(
                                     previewUser?.fullName ??
-                                    previewUser?.name ??
-                                    task.assignedUserName
+                                      previewUser?.name ??
+                                      task.assignedUserName
                                   )
                                 )}
                               </div>
@@ -2103,9 +2143,9 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
                               <span className="tasks-section__date-range-text">
                                 {editFormState?.startDate || editFormState?.dueDate
                                   ? formatDateRange(
-                                    editFormState.startDate,
-                                    editFormState.dueDate
-                                  )
+                                      editFormState.startDate,
+                                      editFormState.dueDate
+                                    )
                                   : "Select date range"}
                               </span>
                               <span
@@ -2274,10 +2314,11 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
+                    currentPage === pageNumber
                       ? "tasks-section__page-btn--active"
                       : ""
-                    }`}
+                  }`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
@@ -2326,16 +2367,18 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
 
             <div className="tasks-section__stepper">
               <div
-                className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""
-                  }`}
+                className={`tasks-section__step ${
+                  createStep === 1 ? "tasks-section__step--active" : ""
+                }`}
               >
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
               <div
-                className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""
-                  }`}
+                className={`tasks-section__step ${
+                  createStep === 2 ? "tasks-section__step--active" : ""
+                }`}
               >
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
@@ -2411,19 +2454,21 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${isSelected
+                                className={`tasks-section__member-row ${
+                                  isSelected
                                     ? "tasks-section__member-row--selected"
                                     : ""
-                                  }`}
+                                }`}
                                 onClick={() =>
                                   handleFormChange("assignedUserId", String(userId))
                                 }
                               >
                                 <span
-                                  className={`tasks-section__member-check ${isSelected
+                                  className={`tasks-section__member-check ${
+                                    isSelected
                                       ? "tasks-section__member-check--selected"
                                       : ""
-                                    }`}
+                                  }`}
                                 >
                                   {isSelected ? "✓" : ""}
                                 </span>
@@ -2759,18 +2804,20 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""
-                          }`}
+                        className={`tasks-section__member-row ${
+                          isSelected ? "tasks-section__member-row--selected" : ""
+                        }`}
                         onClick={() => {
                           handleEditFormChange("assignedUserId", String(userId));
                           closeEditAssigneeModal();
                         }}
                       >
                         <span
-                          className={`tasks-section__member-check ${isSelected
+                          className={`tasks-section__member-check ${
+                            isSelected
                               ? "tasks-section__member-check--selected"
                               : ""
-                            }`}
+                          }`}
                         >
                           {isSelected ? "✓" : ""}
                         </span>
