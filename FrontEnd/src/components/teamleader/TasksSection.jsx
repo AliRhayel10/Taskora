@@ -85,6 +85,35 @@ const getWeekRange = (offsetWeeks = 0) => {
   };
 };
 
+const getMonthRange = (offsetMonths = 0) => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth() + offsetMonths, 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + offsetMonths + 1, 0);
+
+  return {
+    start: startOfDay(monthStart),
+    end: endOfDay(monthEnd),
+  };
+};
+
+const MONTH_OPTIONS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const getYearOptions = (centerYear = new Date().getFullYear(), range = 10) =>
+  Array.from({ length: range * 2 + 1 }, (_, index) => centerYear - range + index);
+
 const loadDashboardRangeState = () => {
   try {
     const saved = localStorage.getItem(DASHBOARD_RANGE_STORAGE_KEY);
@@ -706,6 +735,7 @@ export default function TasksSection({
     from: null,
     to: null,
   });
+  const [dashboardCalendarMonth, setDashboardCalendarMonth] = useState(() => new Date());
   const [isDashboardRangeMenuOpen, setIsDashboardRangeMenuOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
@@ -1035,18 +1065,21 @@ export default function TasksSection({
 
   const syncDashboardDraftWithAppliedState = () => {
     setDraftDashboardPreset(selectedDashboardPreset);
+    setDraftDashboardCustomRange({
+      from: null,
+      to: null,
+    });
 
-    if (selectedDashboardPreset === "custom") {
-      setDraftDashboardCustomRange({
-        from: dashboardCustomRange?.from || null,
-        to: dashboardCustomRange?.to || null,
-      });
-    } else {
-      setDraftDashboardCustomRange({
-        from: null,
-        to: null,
-      });
-    }
+    const baseMonth =
+      selectedDashboardPreset === "custom" &&
+      dashboardCustomRange?.from instanceof Date &&
+      !Number.isNaN(dashboardCustomRange.from.getTime())
+        ? dashboardCustomRange.from
+        : new Date();
+
+    setDashboardCalendarMonth(
+      new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1)
+    );
   };
 
   const openDashboardRangeMenu = () => {
@@ -1099,10 +1132,23 @@ export default function TasksSection({
     return getRangeLabel(selectedDashboardPreset);
   }, [selectedDashboardPreset, dashboardCustomRange]);
 
+  const dashboardYearOptions = useMemo(
+    () => getYearOptions(dashboardCalendarMonth.getFullYear(), 10),
+    [dashboardCalendarMonth]
+  );
+
   const handleSelectDashboardPreset = (preset) => {
     if (preset === "custom") {
+      const nextMonth = new Date();
+
       setDraftDashboardPreset("custom");
-      setDraftDashboardCustomRange({ from: null, to: null });
+      setDraftDashboardCustomRange({
+        from: null,
+        to: null,
+      });
+      setDashboardCalendarMonth(
+        new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1)
+      );
       return;
     }
 
@@ -1125,10 +1171,50 @@ export default function TasksSection({
   };
 
   const handleDashboardCustomRangeSelect = (range) => {
+    const anchorDate = range?.from || range?.to || null;
+
     setDraftDashboardPreset("custom");
     setDraftDashboardCustomRange({
       from: range?.from || null,
       to: range?.to || null,
+    });
+
+    if (anchorDate instanceof Date && !Number.isNaN(anchorDate.getTime())) {
+      setDashboardCalendarMonth(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1));
+    }
+  };
+
+
+  const handleDashboardMonthChange = (nextMonthIndex) => {
+    setDashboardCalendarMonth(
+      (currentMonth) =>
+        new Date(currentMonth.getFullYear(), Number(nextMonthIndex), 1)
+    );
+  };
+
+  const handleDashboardYearChange = (nextYear) => {
+    setDashboardCalendarMonth(
+      (currentMonth) =>
+        new Date(Number(nextYear), currentMonth.getMonth(), 1)
+    );
+  };
+
+  const handleSelectVisibleDashboardMonth = () => {
+    const visibleMonthStart = new Date(
+      dashboardCalendarMonth.getFullYear(),
+      dashboardCalendarMonth.getMonth(),
+      1
+    );
+    const visibleMonthEnd = new Date(
+      dashboardCalendarMonth.getFullYear(),
+      dashboardCalendarMonth.getMonth() + 1,
+      0
+    );
+
+    setDraftDashboardPreset("custom");
+    setDraftDashboardCustomRange({
+      from: startOfDay(visibleMonthStart),
+      to: endOfDay(visibleMonthEnd),
     });
   };
 
@@ -2191,11 +2277,65 @@ export default function TasksSection({
                         : "End"}
                     </div>
 
+                    <div className="tasks-section__month-picker-row">
+                      <div className="tasks-section__month-picker-field">
+                        <label htmlFor="tasks-section-month-select">Month</label>
+                        <div className="tasks-section__month-picker-select-wrap">
+                          <select
+                            id="tasks-section-month-select"
+                            className="tasks-section__month-picker-select"
+                            value={dashboardCalendarMonth.getMonth()}
+                            onChange={(event) =>
+                              handleDashboardMonthChange(event.target.value)
+                            }
+                          >
+                            {MONTH_OPTIONS.map((monthLabel, monthIndex) => (
+                              <option key={monthLabel} value={monthIndex}>
+                                {monthLabel}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+
+                      <div className="tasks-section__month-picker-field tasks-section__month-picker-field--year">
+                        <label htmlFor="tasks-section-year-select">Year</label>
+                        <div className="tasks-section__month-picker-select-wrap">
+                          <select
+                            id="tasks-section-year-select"
+                            className="tasks-section__month-picker-select"
+                            value={dashboardCalendarMonth.getFullYear()}
+                            onChange={(event) =>
+                              handleDashboardYearChange(event.target.value)
+                            }
+                          >
+                            {dashboardYearOptions.map((yearValue) => (
+                              <option key={yearValue} value={yearValue}>
+                                {yearValue}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="tasks-section__month-select-btn"
+                      onClick={handleSelectVisibleDashboardMonth}
+                    >
+                      Select whole month
+                    </button>
+
                     <div className="tasks-section__calendar-shell">
                       <DayPicker
                         mode="range"
                         selected={draftDashboardCustomRange}
                         onSelect={handleDashboardCustomRangeSelect}
+                        month={dashboardCalendarMonth}
+                        onMonthChange={setDashboardCalendarMonth}
                         showOutsideDays={false}
                         numberOfMonths={1}
                         className="tasks-section__dashboard-day-picker"

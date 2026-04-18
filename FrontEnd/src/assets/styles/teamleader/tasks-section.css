@@ -178,6 +178,88 @@
     font-weight: 600;
 }
 
+.tasks-section__month-picker-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 0.7fr);
+    gap: 10px;
+}
+
+.tasks-section__month-picker-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tasks-section__month-picker-field label {
+    color: #475467;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.tasks-section__month-picker-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.tasks-section__month-picker-select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 0 38px 0 12px;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tasks-section__month-picker-select:hover {
+    background: #f8fbff;
+    border-color: #93c5fd;
+}
+
+.tasks-section__month-picker-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.tasks-section__month-picker-select-wrap svg {
+    position: absolute;
+    right: 12px;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.tasks-section__month-select-btn {
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #1d4ed8;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.tasks-section__month-select-btn:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+}
+
+.tasks-section__month-select-btn:focus-visible {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
 .tasks-section__calendar-shell {
     border: 1px solid #dbe7f5;
     border-radius: 14px;
@@ -2167,10 +2249,18 @@
         grid-template-columns: 1fr;
     }
 
+    .tasks-section__month-actions {
+        grid-template-columns: 1fr;
+    }
+
     .tasks-section__member-table {
         height: 180px;
         max-height: 180px;
         min-height: 180px;
+    }
+
+    .tasks-section__month-picker-row {
+        grid-template-columns: 1fr;
     }
 }
 
