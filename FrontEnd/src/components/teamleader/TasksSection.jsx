@@ -1298,7 +1298,29 @@ export default function TasksSection({
   };
 
   const archiveTask = async (task) => {
-    if (!archivedStatusId) {
+    let nextArchivedStatusId = archivedStatusId;
+
+    if (!nextArchivedStatusId) {
+      try {
+        const statusesResponse = await fetch(resolvedStatusesEndpoint);
+        if (statusesResponse.ok) {
+          const statusesPayload = await parseJsonSafe(statusesResponse);
+          const liveStatuses = getStatusesArrayFromPayload(statusesPayload);
+          setBackendStatuses(liveStatuses);
+
+          const archivedStatus = liveStatuses.find((status) => {
+            const normalizedName = normalizeStatus(getBackendStatusName(status));
+            return normalizedName === "archived" || normalizedName === "archive";
+          });
+
+          nextArchivedStatusId = getBackendStatusId(archivedStatus);
+        }
+      } catch (error) {
+        console.error("Unable to refresh statuses before archive:", error);
+      }
+    }
+
+    if (!nextArchivedStatusId) {
       setFeedback({
         type: "error",
         message: "Archived status is not configured in the backend.",
@@ -1306,7 +1328,11 @@ export default function TasksSection({
       return;
     }
 
-    await updateTaskStatus(task, archivedStatusId, "Task moved to archive.");
+    await updateTaskStatus(task, nextArchivedStatusId, "Task moved to archive.", {
+      nextStatusName: "Archived",
+      skipReload: true,
+      preserveIfMissing: true,
+    });
   };
 
   const openFeedbackModal = (task) => {
@@ -2248,7 +2274,7 @@ export default function TasksSection({
                                   className="tasks-section__action-btn tasks-section__action-btn--archive"
                                   title="Move to archive"
                                   onClick={() => archiveTask(task)}
-                                  disabled={!archivedStatusId}
+                                  
                                 >
                                   <FiArchive />
                                 </button>
