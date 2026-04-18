@@ -117,7 +117,7 @@ const getStatusClass = (status = "") => {
   const normalized = normalizeStatus(status);
 
   if (normalized === "new") return "tasks-section__status--todo";
-  if (normalized === "pending") return "tasks-section__status--todo";
+  if (normalized === "pending") return "tasks-section__status--pending";
   if (normalized === "acknowledged") return "tasks-section__status--progress";
   if (normalized === "approved") return "tasks-section__status--approved";
   if (normalized === "rejected") return "tasks-section__status--rejected";
