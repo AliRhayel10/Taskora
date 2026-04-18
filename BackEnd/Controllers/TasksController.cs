@@ -787,33 +787,32 @@ namespace BackEnd.Controllers
         [HttpGet("company/{companyId}")]
         public async Task<IActionResult> GetTasksByCompany(int companyId)
         {
-            var tasks = _context.Tasks
-    .Where(t => !t.IsArchived)
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskStatus)
                 .Include(t => t.AssignedToUser)
                 .Where(t => t.CompanyId == companyId)
                 .OrderByDescending(t => t.TaskId)
-.Select(t => new TaskResponse
-{
-    TaskId = t.TaskId,
-    CompanyId = t.CompanyId,
-    TeamId = t.TeamId,
-    Title = t.Title,
-    Description = t.Description,
-    Feedback = t.Feedback,
-    AssignedToUserId = t.AssignedToUserId,
-    CreatedByUserId = t.CreatedByUserId,
-    Priority = t.Priority,
-    Complexity = t.Complexity,
-    EstimatedEffortHours = t.EstimatedEffortHours,
-    Weight = t.Weight,
-    StartDate = t.StartDate,
-    DueDate = t.DueDate,
-    TaskStatusId = t.TaskStatusId,
-    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
-    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
-    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
-})
+                .Select(t => new TaskResponse
+                {
+                    TaskId = t.TaskId,
+                    CompanyId = t.CompanyId,
+                    TeamId = t.TeamId,
+                    Title = t.Title,
+                    Description = t.Description,
+                    Feedback = t.Feedback,
+                    AssignedToUserId = t.AssignedToUserId,
+                    CreatedByUserId = t.CreatedByUserId,
+                    Priority = t.Priority,
+                    Complexity = t.Complexity,
+                    EstimatedEffortHours = t.EstimatedEffortHours,
+                    Weight = t.Weight,
+                    StartDate = t.StartDate,
+                    DueDate = t.DueDate,
+                    TaskStatusId = t.TaskStatusId,
+                    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
+                    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
+                    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
+                })
                 .ToListAsync();
 
             return Ok(new
@@ -830,27 +829,27 @@ namespace BackEnd.Controllers
                 .Include(t => t.TaskStatus)
                 .Include(t => t.AssignedToUser)
                 .Where(t => t.TaskId == taskId)
-.Select(t => new TaskResponse
-{
-    TaskId = t.TaskId,
-    CompanyId = t.CompanyId,
-    TeamId = t.TeamId,
-    Title = t.Title,
-    Description = t.Description,
-    Feedback = t.Feedback,
-    AssignedToUserId = t.AssignedToUserId,
-    CreatedByUserId = t.CreatedByUserId,
-    Priority = t.Priority,
-    Complexity = t.Complexity,
-    EstimatedEffortHours = t.EstimatedEffortHours,
-    Weight = t.Weight,
-    StartDate = t.StartDate,
-    DueDate = t.DueDate,
-    TaskStatusId = t.TaskStatusId,
-    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
-    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
-    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
-})
+                .Select(t => new TaskResponse
+                {
+                    TaskId = t.TaskId,
+                    CompanyId = t.CompanyId,
+                    TeamId = t.TeamId,
+                    Title = t.Title,
+                    Description = t.Description,
+                    Feedback = t.Feedback,
+                    AssignedToUserId = t.AssignedToUserId,
+                    CreatedByUserId = t.CreatedByUserId,
+                    Priority = t.Priority,
+                    Complexity = t.Complexity,
+                    EstimatedEffortHours = t.EstimatedEffortHours,
+                    Weight = t.Weight,
+                    StartDate = t.StartDate,
+                    DueDate = t.DueDate,
+                    TaskStatusId = t.TaskStatusId,
+                    TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
+                    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
+                    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
+                })
                 .FirstOrDefaultAsync();
 
             if (task == null)
@@ -1034,7 +1033,9 @@ namespace BackEnd.Controllers
                 Weight = calculatedWeight,
                 StartDate = request.StartDate,
                 DueDate = request.DueDate,
-                TaskStatusId = taskStatusId
+                TaskStatusId = taskStatusId,
+                IsArchived = false,
+                ArchivedAt = null
             };
 
             _context.Tasks.Add(task);
@@ -1284,9 +1285,9 @@ namespace BackEnd.Controllers
                 task.Feedback = request.Feedback.Trim();
             }
 
-            var normalizedStatusName = (newStatus.StatusName ?? "").Trim().ToLower();
+            var normalizedStatusName = (newStatus.StatusName ?? "").Trim().ToLowerInvariant();
 
-            if (normalizedStatusName == "approved")
+            if (normalizedStatusName == "archived")
             {
                 task.IsArchived = true;
                 task.ArchivedAt = DateTime.Now;
