@@ -95,6 +95,7 @@ const normalizeStatus = (status = "") => {
   if (["pending"].includes(safe)) return "pending";
   if (["acknowledged"].includes(safe)) return "acknowledged";
   if (["approved"].includes(safe)) return "approved";
+  if (["rejected", "reject"].includes(safe)) return "rejected";
   if (["done", "completed", "complete"].includes(safe)) return "done";
   if (["todo", "to do"].includes(safe)) return "todo";
   if (["inprogress", "in progress"].includes(safe)) return "inprogress";
@@ -118,6 +119,7 @@ const getStatusClass = (status = "") => {
   if (normalized === "pending") return "tasks-section__status--todo";
   if (normalized === "acknowledged") return "tasks-section__status--progress";
   if (normalized === "approved") return "tasks-section__status--approved";
+  if (normalized === "rejected") return "tasks-section__status--rejected";
   if (normalized === "inprogress") return "tasks-section__status--progress";
   if (normalized === "blocked") return "tasks-section__status--blocked";
   if (normalized === "done") return "tasks-section__status--done";

@@ -225,6 +225,15 @@ namespace BackEnd.Services
                         IsDefault = false,
                         IsActive = true,
                         CreatedAt = DateTime.Now
+                    },
+                    new BackEnd.Models.TaskStatus
+                    {
+                        CompanyId = company.CompanyId,
+                        StatusName = "Rejected",
+                        DisplayOrder = 6,
+                        IsDefault = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
                     }
                 );
 
