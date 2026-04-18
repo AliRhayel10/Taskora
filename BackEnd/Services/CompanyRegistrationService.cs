@@ -234,6 +234,15 @@ namespace BackEnd.Services
                         IsDefault = false,
                         IsActive = true,
                         CreatedAt = DateTime.Now
+                    },
+                    new BackEnd.Models.TaskStatus
+                    {
+                        CompanyId = company.CompanyId,
+                        StatusName = "Archived",
+                        DisplayOrder = 7,
+                        IsDefault = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
                     }
                 );
 
