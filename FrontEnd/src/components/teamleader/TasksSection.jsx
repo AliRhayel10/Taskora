@@ -220,6 +220,7 @@ const mapTaskFromApi = (task) => ({
   taskStatusId: getTaskStatusId(task),
   title: task.title ?? task.Title ?? "",
   description: task.description ?? task.Description ?? "",
+  feedback: task.feedback ?? task.Feedback ?? null,
   assignedUserId:
     task.assignedUserId ??
     task.assignedToUserId ??
@@ -669,13 +670,13 @@ export default function TasksSection({
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-          typeof setupRulesData.priorityMultipliers === "object"
+            typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-          typeof setupRulesData.complexityMultipliers === "object"
+            typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -1140,9 +1141,9 @@ export default function TasksSection({
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-          selectedRange.to,
-          "dd/MM/yyyy"
-        )}`
+        selectedRange.to,
+        "dd/MM/yyyy"
+      )}`
       : "Select date range";
 
   const isDoneTask = (task) => normalizeStatus(task.effectiveStatus) === "done";
@@ -1192,20 +1193,28 @@ const updateTaskStatus = async (task, nextStatusId, successMessage) => {
     return;
   }
 
+  if (!resolvedCurrentUserId) {
+    setFeedback({
+      type: "error",
+      message: "Current user id is missing.",
+    });
+    return;
+  }
+
   setFeedback(null);
 
   try {
-const payload = {
-  TaskId: Number(task.id),
-  NewTaskStatusId: Number(nextStatusId),
-  ChangedByUserId: Number(resolvedCurrentUserId),
-};
+    const payload = {
+      TaskId: Number(task.id),
+      NewTaskStatusId: Number(nextStatusId),
+      ChangedByUserId: Number(resolvedCurrentUserId),
+    };
 
     console.log("📤 Sending updateTaskStatus request:");
-    console.log("➡️ URL:", `${API_BASE}/api/tasks/update-status`);
+    console.log("➡️ URL:", resolvedUpdateTaskStatusEndpoint);
     console.log("➡️ Payload:", payload);
 
-    const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
+    const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -1220,7 +1229,7 @@ const payload = {
 
     let data = null;
     try {
-      data = JSON.parse(text);
+      data = text ? JSON.parse(text) : null;
     } catch {
       console.warn("⚠️ Response is not JSON");
     }
@@ -1266,7 +1275,22 @@ const payload = {
   };
 
   const submitRejectedFeedback = async () => {
-    if (!feedbackTask?.id || !feedbackText.trim() || !pendingStatusId) return;
+    if (!feedbackTask?.id || !feedbackText.trim() || !pendingStatusId) {
+      console.error("❌ Missing feedbackTask.id, feedbackText, or pendingStatusId", {
+        feedbackTask,
+        feedbackText,
+        pendingStatusId,
+      });
+      return;
+    }
+
+    if (!resolvedCurrentUserId) {
+      setFeedback({
+        type: "error",
+        message: "Current user id is missing.",
+      });
+      return;
+    }
 
     setIsSubmittingFeedback(true);
     setFeedback(null);
@@ -1274,16 +1298,15 @@ const payload = {
     try {
       const payload = {
         TaskId: Number(feedbackTask.id),
-        TaskStatusId: Number(pendingStatusId),
+        NewTaskStatusId: Number(pendingStatusId),
+        ChangedByUserId: Number(resolvedCurrentUserId),
         Feedback: feedbackText.trim(),
       };
 
-      console.log("submitRejectedFeedback task", feedbackTask);
-      console.log("submitRejectedFeedback pendingStatusId", pendingStatusId);
-      console.log("submitRejectedFeedback payload", payload);
-      alert(`submitRejectedFeedback payload: ${JSON.stringify(payload)}`);
+      console.log("📤 submitRejectedFeedback payload:", payload);
+      console.log("📤 submitRejectedFeedback url:", resolvedUpdateTaskStatusEndpoint);
 
-      const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
+      const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1291,12 +1314,24 @@ const payload = {
         body: JSON.stringify(payload),
       });
 
-      const data = await parseJsonSafe(response);
-      console.log("feedback update-status response", response.status, data);
+      const text = await response.text();
+      console.log("📥 submitRejectedFeedback raw response:", text);
+
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        console.warn("⚠️ submitRejectedFeedback response is not JSON");
+      }
+
+      console.log("📥 submitRejectedFeedback parsed response:", data);
 
       if (!response.ok) {
         throw new Error(
-          getErrorMessageFromPayload(data, "Unable to send feedback.")
+          data?.message ||
+          data?.title ||
+          text ||
+          "Unable to send feedback."
         );
       }
 
@@ -1308,7 +1343,7 @@ const payload = {
         message: "Feedback added and task moved back to Pending.",
       });
     } catch (error) {
-      console.error("submitRejectedFeedback error", error);
+      console.error("❌ submitRejectedFeedback error:", error);
       setFeedback({
         type: "error",
         message: error?.message || "Unable to send feedback.",
@@ -1645,13 +1680,11 @@ const payload = {
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${
-      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-    } ${
-      sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+      } ${sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-    }`;
+      }`;
   };
 
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
@@ -1666,11 +1699,10 @@ const payload = {
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${
-            feedback.type === "success"
+          className={`tasks-section__feedback ${feedback.type === "success"
               ? "tasks-section__feedback--success"
               : "tasks-section__feedback--error"
-          }`}
+            }`}
         >
           {feedback.message}
         </div>
@@ -1699,9 +1731,8 @@ const payload = {
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${
-                  activeTab === tab.key ? "tasks-section__tab--active" : ""
-                }`}
+                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
+                  }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -1908,8 +1939,8 @@ const payload = {
                                 ) : (
                                   getInitials(
                                     previewUser?.fullName ??
-                                      previewUser?.name ??
-                                      task.assignedUserName
+                                    previewUser?.name ??
+                                    task.assignedUserName
                                   )
                                 )}
                               </div>
@@ -2072,9 +2103,9 @@ const payload = {
                               <span className="tasks-section__date-range-text">
                                 {editFormState?.startDate || editFormState?.dueDate
                                   ? formatDateRange(
-                                      editFormState.startDate,
-                                      editFormState.dueDate
-                                    )
+                                    editFormState.startDate,
+                                    editFormState.dueDate
+                                  )
                                   : "Select date range"}
                               </span>
                               <span
@@ -2243,11 +2274,10 @@ const payload = {
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
-                    currentPage === pageNumber
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber
                       ? "tasks-section__page-btn--active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
@@ -2296,18 +2326,16 @@ const payload = {
 
             <div className="tasks-section__stepper">
               <div
-                className={`tasks-section__step ${
-                  createStep === 1 ? "tasks-section__step--active" : ""
-                }`}
+                className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""
+                  }`}
               >
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
               <div
-                className={`tasks-section__step ${
-                  createStep === 2 ? "tasks-section__step--active" : ""
-                }`}
+                className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""
+                  }`}
               >
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
@@ -2383,21 +2411,19 @@ const payload = {
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${
-                                  isSelected
+                                className={`tasks-section__member-row ${isSelected
                                     ? "tasks-section__member-row--selected"
                                     : ""
-                                }`}
+                                  }`}
                                 onClick={() =>
                                   handleFormChange("assignedUserId", String(userId))
                                 }
                               >
                                 <span
-                                  className={`tasks-section__member-check ${
-                                    isSelected
+                                  className={`tasks-section__member-check ${isSelected
                                       ? "tasks-section__member-check--selected"
                                       : ""
-                                  }`}
+                                    }`}
                                 >
                                   {isSelected ? "✓" : ""}
                                 </span>
@@ -2733,20 +2759,18 @@ const payload = {
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${
-                          isSelected ? "tasks-section__member-row--selected" : ""
-                        }`}
+                        className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""
+                          }`}
                         onClick={() => {
                           handleEditFormChange("assignedUserId", String(userId));
                           closeEditAssigneeModal();
                         }}
                       >
                         <span
-                          className={`tasks-section__member-check ${
-                            isSelected
+                          className={`tasks-section__member-check ${isSelected
                               ? "tasks-section__member-check--selected"
                               : ""
-                          }`}
+                            }`}
                         >
                           {isSelected ? "✓" : ""}
                         </span>

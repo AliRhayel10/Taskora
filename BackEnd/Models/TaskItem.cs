@@ -19,6 +19,8 @@ namespace BackEnd.Models
 
         public string? Description { get; set; }
 
+        public string? Feedback { get; set; }
+
         public int? AssignedToUserId { get; set; }
 
         public int CreatedByUserId { get; set; }

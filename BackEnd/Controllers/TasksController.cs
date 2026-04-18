@@ -799,6 +799,7 @@ namespace BackEnd.Controllers
     TeamId = t.TeamId,
     Title = t.Title,
     Description = t.Description,
+    Feedback = t.Feedback,
     AssignedToUserId = t.AssignedToUserId,
     CreatedByUserId = t.CreatedByUserId,
     Priority = t.Priority,
@@ -835,6 +836,7 @@ namespace BackEnd.Controllers
     TeamId = t.TeamId,
     Title = t.Title,
     Description = t.Description,
+    Feedback = t.Feedback,
     AssignedToUserId = t.AssignedToUserId,
     CreatedByUserId = t.CreatedByUserId,
     Priority = t.Priority,
@@ -1275,6 +1277,10 @@ namespace BackEnd.Controllers
 
             var oldTaskStatusId = task.TaskStatusId;
             task.TaskStatusId = request.NewTaskStatusId;
+            if (!string.IsNullOrWhiteSpace(request.Feedback))
+{
+    task.Feedback = request.Feedback.Trim();
+}
 
             _context.TaskStatusHistories.Add(new TaskStatusHistory
             {
