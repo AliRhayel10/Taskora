@@ -2157,132 +2157,135 @@ export default function TasksSection({
           ))}
         </div>
 
-        <div
-          className="tasks-section__range-menu"
-          ref={dashboardRangeMenuRef}
-        >
+        <div className="tasks-section__actions-stack">
+          <div
+            className="tasks-section__range-menu"
+            ref={dashboardRangeMenuRef}
+          >
+            <button
+              type="button"
+              className="tasks-section__range-btn"
+              onClick={openDashboardRangeMenu}
+            >
+              <span>{dashboardRangeLabel}</span>
+              <FiChevronDown />
+            </button>
+
+            {isDashboardRangeMenuOpen && (
+              <div className="tasks-section__range-dropdown">
+                <div
+                  className="tasks-section__range-tabs"
+                  role="tablist"
+                  aria-label="Date range presets"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={draftDashboardPreset === "today"}
+                    className={`tasks-section__range-option ${
+                      draftDashboardPreset === "today"
+                        ? "tasks-section__range-option--active"
+                        : ""
+                    }`}
+                    onClick={() => handleSelectDashboardPreset("today")}
+                  >
+                    Today
+                  </button>
+
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={draftDashboardPreset === "thisWeek"}
+                    className={`tasks-section__range-option ${
+                      draftDashboardPreset === "thisWeek"
+                        ? "tasks-section__range-option--active"
+                        : ""
+                    }`}
+                    onClick={() => handleSelectDashboardPreset("thisWeek")}
+                  >
+                    This Week
+                  </button>
+
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={draftDashboardPreset === "custom"}
+                    className={`tasks-section__range-option ${
+                      draftDashboardPreset === "custom"
+                        ? "tasks-section__range-option--active"
+                        : ""
+                    }`}
+                    onClick={() => handleSelectDashboardPreset("custom")}
+                  >
+                    Custom
+                  </button>
+                </div>
+
+                {draftDashboardPreset === "custom" && (
+                  <>
+                    <div className="tasks-section__range-divider"></div>
+
+                    <div className="tasks-section__custom-range">
+                      <div className="tasks-section__custom-range-header">
+                        <FiCalendar />
+                        <span>Pick a custom range</span>
+                      </div>
+
+                      <div className="tasks-section__custom-range-preview">
+                        {draftDashboardCustomRange?.from
+                          ? formatDateText(draftDashboardCustomRange.from)
+                          : "Start"}{" "}
+                        <span>to</span>{" "}
+                        {draftDashboardCustomRange?.to
+                          ? formatDateText(draftDashboardCustomRange.to)
+                          : "End"}
+                      </div>
+
+                      <div className="tasks-section__calendar-shell">
+                        <DayPicker
+                          mode="range"
+                          selected={draftDashboardCustomRange}
+                          onSelect={handleDashboardCustomRangeSelect}
+                          showOutsideDays={false}
+                          numberOfMonths={1}
+                          className="tasks-section__dashboard-day-picker"
+                          modifiers={{
+                            past: (date) =>
+                              startOfDay(date) < startOfDay(new Date()),
+                          }}
+                          modifiersClassNames={{
+                            past: "tasks-section__dashboard-day--past",
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="tasks-section__apply-btn"
+                        onClick={handleApplyDashboardCustomRange}
+                        disabled={
+                          !draftDashboardCustomRange?.from ||
+                          !draftDashboardCustomRange?.to
+                        }
+                      >
+                        Apply Range
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
-            className="tasks-section__range-btn"
-            onClick={openDashboardRangeMenu}
+            className="tasks-section__create-btn"
+            onClick={openCreateModal}
           >
-            <span>{dashboardRangeLabel}</span>
-            <FiChevronDown />
+            <FiPlus />
+            Create Task
           </button>
-
-          {isDashboardRangeMenuOpen && (
-            <div className="tasks-section__range-dropdown">
-              <div
-                className="tasks-section__range-tabs"
-                role="tablist"
-                aria-label="Date range presets"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftDashboardPreset === "today"}
-                  className={`tasks-section__range-option ${
-                    draftDashboardPreset === "today"
-                      ? "tasks-section__range-option--active"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectDashboardPreset("today")}
-                >
-                  Today
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftDashboardPreset === "thisWeek"}
-                  className={`tasks-section__range-option ${
-                    draftDashboardPreset === "thisWeek"
-                      ? "tasks-section__range-option--active"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectDashboardPreset("thisWeek")}
-                >
-                  This Week
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftDashboardPreset === "custom"}
-                  className={`tasks-section__range-option ${
-                    draftDashboardPreset === "custom"
-                      ? "tasks-section__range-option--active"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectDashboardPreset("custom")}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {draftDashboardPreset === "custom" && (
-                <>
-                  <div className="tasks-section__range-divider"></div>
-
-                  <div className="tasks-section__custom-range">
-                    <div className="tasks-section__custom-range-header">
-                      <FiCalendar />
-                      <span>Pick a custom range</span>
-                    </div>
-
-                    <div className="tasks-section__custom-range-preview">
-                      {draftDashboardCustomRange?.from
-                        ? formatDateText(draftDashboardCustomRange.from)
-                        : "Start"}{" "}
-                      <span>to</span>{" "}
-                      {draftDashboardCustomRange?.to
-                        ? formatDateText(draftDashboardCustomRange.to)
-                        : "End"}
-                    </div>
-
-                    <div className="tasks-section__calendar-shell">
-                      <DayPicker
-                        mode="range"
-                        selected={draftDashboardCustomRange}
-                        onSelect={handleDashboardCustomRangeSelect}
-                        showOutsideDays={false}
-                        numberOfMonths={1}
-                        className="tasks-section__dashboard-day-picker"
-                        modifiers={{
-                          past: (date) => startOfDay(date) < startOfDay(new Date()),
-                        }}
-                        modifiersClassNames={{
-                          past: "tasks-section__dashboard-day--past",
-                        }}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      className="tasks-section__apply-btn"
-                      onClick={handleApplyDashboardCustomRange}
-                      disabled={
-                        !draftDashboardCustomRange?.from ||
-                        !draftDashboardCustomRange?.to
-                      }
-                    >
-                      Apply Range
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
-
-        <button
-          type="button"
-          className="tasks-section__create-btn"
-          onClick={openCreateModal}
-        >
-          <FiPlus />
-          Create Task
-        </button>
       </div>
 
       {isLoading ? (
