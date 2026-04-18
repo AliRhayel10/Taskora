@@ -1350,13 +1350,23 @@ export default function TasksSection({
     return tasksWithUsers.filter((task) => isTaskUnassigned(task)).length;
   }, [tasksWithUsers]);
 
+  const tasksInSelectedRange = useMemo(() => {
+    return tasksWithUsers.filter((task) =>
+      doesTaskOverlapRange(
+        task,
+        activeDashboardRange.start,
+        activeDashboardRange.end
+      )
+    );
+  }, [tasksWithUsers, activeDashboardRange]);
+
   const taskCounts = useMemo(() => {
     const counts = {
-      all: tasksWithUsers.length,
+      all: tasksInSelectedRange.length,
       unassigned: 0,
     };
 
-    tasksWithUsers.forEach((task) => {
+    tasksInSelectedRange.forEach((task) => {
       if (isTaskUnassigned(task)) {
         counts.unassigned += 1;
       }
@@ -1366,12 +1376,12 @@ export default function TasksSection({
     });
 
     return counts;
-  }, [tasksWithUsers]);
+  }, [tasksInSelectedRange]);
 
   const filteredTasks = useMemo(() => {
     const normalizedSearch = String(searchValue || "").trim().toLowerCase();
 
-    return tasksWithUsers.filter((task) => {
+    return tasksInSelectedRange.filter((task) => {
       const matchesTab =
         activeTab === "all"
           ? true
@@ -1380,16 +1390,6 @@ export default function TasksSection({
             : normalizeStatus(task.effectiveStatus) === activeTab;
 
       if (!matchesTab) {
-        return false;
-      }
-
-      if (
-        !doesTaskOverlapRange(
-          task,
-          activeDashboardRange.start,
-          activeDashboardRange.end
-        )
-      ) {
         return false;
       }
 
@@ -1415,7 +1415,7 @@ export default function TasksSection({
         status.includes(normalizedSearch)
       );
     });
-  }, [tasksWithUsers, activeTab, searchValue, activeDashboardRange]);
+  }, [tasksInSelectedRange, activeTab, searchValue]);
 
   const sortedTasks = useMemo(() => {
     if (!sortConfig.key) return filteredTasks;
