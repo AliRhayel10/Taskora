@@ -787,7 +787,8 @@ namespace BackEnd.Controllers
         [HttpGet("company/{companyId}")]
         public async Task<IActionResult> GetTasksByCompany(int companyId)
         {
-            var tasks = await _context.Tasks
+            var tasks = _context.Tasks
+    .Where(t => !t.IsArchived)
                 .Include(t => t.TaskStatus)
                 .Include(t => t.AssignedToUser)
                 .Where(t => t.CompanyId == companyId)
@@ -1277,10 +1278,24 @@ namespace BackEnd.Controllers
 
             var oldTaskStatusId = task.TaskStatusId;
             task.TaskStatusId = request.NewTaskStatusId;
+
             if (!string.IsNullOrWhiteSpace(request.Feedback))
-{
-    task.Feedback = request.Feedback.Trim();
-}
+            {
+                task.Feedback = request.Feedback.Trim();
+            }
+
+            var normalizedStatusName = (newStatus.StatusName ?? "").Trim().ToLower();
+
+            if (normalizedStatusName == "approved")
+            {
+                task.IsArchived = true;
+                task.ArchivedAt = DateTime.Now;
+            }
+            else
+            {
+                task.IsArchived = false;
+                task.ArchivedAt = null;
+            }
 
             _context.TaskStatusHistories.Add(new TaskStatusHistory
             {

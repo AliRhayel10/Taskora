@@ -41,6 +41,8 @@ namespace BackEnd.Models
 
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
+        public bool IsArchived { get; set; } = false;
+public DateTime? ArchivedAt { get; set; }
 
         public int TaskStatusId { get; set; }
 

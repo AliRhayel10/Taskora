@@ -25,6 +25,9 @@ namespace BackEnd.DTOs.Tasks
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
 
+        public bool IsArchived { get; set; }
+public DateTime? ArchivedAt { get; set; }
+
         public int TaskStatusId { get; set; }
         public string TaskStatusName { get; set; } = string.Empty;
     }

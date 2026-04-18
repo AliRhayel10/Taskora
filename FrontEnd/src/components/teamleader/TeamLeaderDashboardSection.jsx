@@ -435,126 +435,143 @@ export default function TeamLeaderDashboardSection({
     return getRangeLabel(selectedPreset);
   }, [selectedPreset, customRange]);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      const companyId = parseInt(user?.companyId, 10);
+useEffect(() => {
+  const fetchDashboardData = async () => {
+    const companyId = parseInt(user?.companyId, 10);
 
-      if (!companyId) {
-        setErrorMessage("Missing user information.");
-        setLoading(false);
-        return;
+    if (!companyId) {
+      setErrorMessage("Missing user information.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const teamsUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(companyId)}`;
+      const membersUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(companyId)}/members`;
+      const tasksUrl = `http://localhost:5000/api/tasks/company/${encodeURIComponent(companyId)}`;
+
+      const [teamsResponse, membersResponse, tasksResponse] = await Promise.all([
+        fetch(teamsUrl),
+        fetch(membersUrl),
+        fetch(tasksUrl),
+      ]);
+
+      if (!teamsResponse.ok) {
+        throw new Error(`Failed to load teams. (${teamsResponse.status})`);
       }
 
-      try {
-        setLoading(true);
-        setErrorMessage("");
-
-        const teamsUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(
-          companyId
-        )}`;
-        const membersUrl = `http://localhost:5000/api/Teams/company/${encodeURIComponent(
-          companyId
-        )}/members`;
-        const tasksUrl = `http://localhost:5000/api/tasks/company/${encodeURIComponent(
-          companyId
-        )}`;
-
-        const [teamsResponse, membersResponse, tasksResponse] = await Promise.all([
-          fetch(teamsUrl),
-          fetch(membersUrl),
-          fetch(tasksUrl),
-        ]);
-
-        if (!teamsResponse.ok) {
-          throw new Error(`Failed to load teams. (${teamsResponse.status})`);
-        }
-
-        if (!membersResponse.ok) {
-          throw new Error(`Failed to load members. (${membersResponse.status})`);
-        }
-
-        if (!tasksResponse.ok) {
-          throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
-        }
-
-        const teamsData = await parseJsonSafely(teamsResponse);
-        const membersData = await parseJsonSafely(membersResponse);
-        const tasksData = await parseJsonSafely(tasksResponse);
-
-        if (!Array.isArray(teamsData)) {
-          throw new Error("Teams response format is invalid.");
-        }
-
-        if (!Array.isArray(membersData)) {
-          throw new Error("Members response format is invalid.");
-        }
-
-        if (!tasksData || typeof tasksData !== "object" || !tasksData.success) {
-          throw new Error(
-            tasksData?.message || "Tasks response format is invalid."
-          );
-        }
-
-        const leaderTeams = resolveLeaderTeams(teamsData, user);
-
-        if (leaderTeams.length === 0) {
-          throw new Error("No team found for this team leader.");
-        }
-
-        const leaderTeamIds = leaderTeams
-          .map((team) => getTeamId(team))
-          .filter((id) => id > 0);
-
-        const teamName =
-          leaderTeams.map((team) => getTeamName(team)).filter(Boolean).join(", ") ||
-          "Team";
-
-        setLeaderTeamName(teamName);
-
-        const leaderMemberIds = [
-          ...new Set(
-            leaderTeams.flatMap((team) =>
-              Array.isArray(team?.memberIds)
-                ? team.memberIds.map((id) => Number(id)).filter((id) => id > 0)
-                : []
-            )
-          ),
-        ];
-
-        const filteredMembers = membersData.filter((member) => {
-          const memberId = getMemberId(member);
-          const isEmployee = isEmployeeMember(member);
-          const belongsToLeaderTeam = leaderMemberIds.includes(memberId);
-
-          return isEmployee && belongsToLeaderTeam;
-        });
-
-        const filteredTasks = (tasksData.tasks || []).filter((task) => {
-          const belongsToLeaderTeam = leaderTeamIds.includes(Number(task?.teamId));
-          const isInRange = doesTaskOverlapRange(
-            task,
-            activeRange.start,
-            activeRange.end
-          );
-
-          return belongsToLeaderTeam && isInRange;
-        });
-
-        setMembers(filteredMembers);
-        setTasks(filteredTasks);
-      } catch (error) {
-        console.error("Dashboard fetch error:", error);
-        setMembers([]);
-        setTasks([]);
-        setLeaderTeamName("");
-        setErrorMessage(error.message || "Failed to load dashboard data.");
-      } finally {
-        setLoading(false);
+      if (!membersResponse.ok) {
+        throw new Error(`Failed to load members. (${membersResponse.status})`);
       }
-    };
 
-    fetchDashboardData();
-  }, [user, activeRange.start, activeRange.end]);
+      if (!tasksResponse.ok) {
+        throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
+      }
+
+      const teamsData = await parseJsonSafely(teamsResponse);
+      const membersData = await parseJsonSafely(membersResponse);
+      const tasksData = await parseJsonSafely(tasksResponse);
+
+      if (!Array.isArray(teamsData)) {
+        throw new Error("Teams response format is invalid.");
+      }
+
+      if (!Array.isArray(membersData)) {
+        throw new Error("Members response format is invalid.");
+      }
+
+      // ✅ FIX 1: safer validation
+      const tasksResponseLooksValid =
+        Array.isArray(tasksData) ||
+        Array.isArray(tasksData?.tasks) ||
+        Array.isArray(tasksData?.data) ||
+        Array.isArray(tasksData?.data?.tasks) ||
+        tasksData?.success === true;
+
+      if (!tasksResponseLooksValid) {
+        console.log("Invalid tasks response:", tasksData);
+        throw new Error(
+          tasksData?.message || "Tasks response format is invalid."
+        );
+      }
+
+      const leaderTeams = resolveLeaderTeams(teamsData, user);
+
+      if (leaderTeams.length === 0) {
+        throw new Error("No team found for this team leader.");
+      }
+
+      const leaderTeamIds = leaderTeams
+        .map((team) => getTeamId(team))
+        .filter((id) => id > 0);
+
+      const teamName =
+        leaderTeams.map((team) => getTeamName(team)).filter(Boolean).join(", ") ||
+        "Team";
+
+      setLeaderTeamName(teamName);
+
+      const leaderMemberIds = [
+        ...new Set(
+          leaderTeams.flatMap((team) =>
+            Array.isArray(team?.memberIds)
+              ? team.memberIds.map((id) => Number(id)).filter((id) => id > 0)
+              : []
+          )
+        ),
+      ];
+
+      const filteredMembers = membersData.filter((member) => {
+        const memberId = getMemberId(member);
+        const isEmployee = isEmployeeMember(member);
+        const belongsToLeaderTeam = leaderMemberIds.includes(memberId);
+
+        return isEmployee && belongsToLeaderTeam;
+      });
+
+      // ✅ FIX 2: normalize tasks safely
+      const resolvedTasks = Array.isArray(tasksData)
+        ? tasksData
+        : Array.isArray(tasksData?.tasks)
+        ? tasksData.tasks
+        : Array.isArray(tasksData?.data)
+        ? tasksData.data
+        : Array.isArray(tasksData?.data?.tasks)
+        ? tasksData.data.tasks
+        : [];
+
+      console.log("tasksData raw:", tasksData);
+      console.log("resolvedTasks:", resolvedTasks);
+
+      const filteredTasks = resolvedTasks.filter((task) => {
+        const belongsToLeaderTeam = leaderTeamIds.includes(Number(task?.teamId));
+        const isInRange = doesTaskOverlapRange(
+          task,
+          activeRange.start,
+          activeRange.end
+        );
+
+        return belongsToLeaderTeam && isInRange;
+      });
+
+      setMembers(filteredMembers);
+      setTasks(filteredTasks);
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+      setMembers([]);
+      setTasks([]);
+      setLeaderTeamName("");
+      setErrorMessage(error.message || "Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboardData();
+}, [user, activeRange.start, activeRange.end]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
