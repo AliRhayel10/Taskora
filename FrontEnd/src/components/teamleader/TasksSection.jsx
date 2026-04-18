@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../../assets/styles/teamleader/tasks-section.css";
 import {
   FiAlertTriangle,
+  FiArchive,
   FiCalendar,
   FiCheck,
   FiChevronDown,
@@ -100,6 +101,7 @@ const normalizeStatus = (status = "") => {
   if (["done", "completed", "complete"].includes(safe)) return "done";
   if (["todo", "to do"].includes(safe)) return "todo";
   if (["inprogress", "in progress"].includes(safe)) return "inprogress";
+  if (["archived", "archive"].includes(safe)) return "archived";
   if (safe === "blocked") return "blocked";
 
   return safe || "unknown";
@@ -122,6 +124,7 @@ const getStatusClass = (status = "") => {
   if (normalized === "approved") return "tasks-section__status--approved";
   if (normalized === "rejected") return "tasks-section__status--rejected";
   if (normalized === "inprogress") return "tasks-section__status--progress";
+  if (normalized === "archived") return "tasks-section__status--archived";
   if (normalized === "blocked") return "tasks-section__status--blocked";
   if (normalized === "done") return "tasks-section__status--done";
 
@@ -179,7 +182,7 @@ const getTasksArrayFromPayload = (payload) => {
     payload?.tasks?.result,
     payload?.items,
     payload?.data,
-    payload?.data?.result,
+    payload?.data?.result
   );
 };
 
@@ -190,7 +193,7 @@ const getStatusesArrayFromPayload = (payload, setupRulesData = null) => {
     responseData?.statuses,
     payload?.statuses,
     responseData,
-    setupRulesData?.statuses,
+    setupRulesData?.statuses
   );
 };
 
@@ -202,7 +205,7 @@ const getMembersArrayFromPayload = (payload) => {
     responseData?.items,
     responseData?.result,
     payload?.items,
-    payload?.result,
+    payload?.result
   );
 };
 
@@ -214,7 +217,7 @@ const getTeamsArrayFromPayload = (payload) => {
     responseData?.items,
     responseData?.result,
     payload?.items,
-    payload?.result,
+    payload?.result
   );
 };
 
@@ -419,7 +422,11 @@ export default function TasksSection({
   const resolvedCurrentUserId =
     storedUser?.userId ?? storedUser?.UserId ?? storedUser?.id ?? storedUser?.Id ?? null;
   const storedUserTeamId =
-    storedUser?.teamId ?? storedUser?.TeamId ?? storedUser?.team?.teamId ?? storedUser?.team?.TeamId ?? null;
+    storedUser?.teamId ??
+    storedUser?.TeamId ??
+    storedUser?.team?.teamId ??
+    storedUser?.team?.TeamId ??
+    null;
 
   const resolvedTasksEndpoint =
     tasksEndpoint ?? `${API_BASE}/api/tasks/company/${resolvedCompanyId}`;
@@ -469,6 +476,7 @@ export default function TasksSection({
   const [statusTabs, setStatusTabs] = useState([
     { key: "all", label: "All" },
     { key: "unassigned", label: "Unassigned" },
+    { key: "archived", label: "Archived" },
   ]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -556,10 +564,6 @@ export default function TasksSection({
     const rawTasksArray = getTasksArrayFromPayload(refreshPayload);
     const refreshedTasks = rawTasksArray.map(mapTaskFromApi);
 
-    console.log("loadTasks refreshPayload:", refreshPayload);
-    console.log("loadTasks rawTasksArray:", rawTasksArray);
-    console.log("loadTasks refreshedTasks:", refreshedTasks);
-
     setTasks(refreshedTasks);
   };
 
@@ -593,6 +597,14 @@ export default function TasksSection({
     );
 
     return getBackendStatusId(pendingStatus);
+  }, [backendStatuses]);
+
+  const archivedStatusId = useMemo(() => {
+    const archivedStatus = backendStatuses.find(
+      (status) => normalizeStatus(getBackendStatusName(status)) === "archived"
+    );
+
+    return getBackendStatusId(archivedStatus);
   }, [backendStatuses]);
 
   useEffect(() => {
@@ -712,11 +724,6 @@ export default function TasksSection({
 
         const rawTasksArray = getTasksArrayFromPayload(tasksPayload);
         const normalizedTasks = rawTasksArray.map(mapTaskFromApi);
-
-        console.log("tasksPayload:", tasksPayload);
-        console.log("rawTasksArray:", rawTasksArray);
-        console.log("normalizedTasks:", normalizedTasks);
-
         setTasks(normalizedTasks);
 
         const mappedPriorityMultipliers =
@@ -766,10 +773,13 @@ export default function TasksSection({
               array.findIndex((entry) => entry.key === tab.key) === index
           );
 
+        const archiveTabExists = tabs.some((tab) => tab.key === "archived");
+
         setStatusTabs([
           { key: "all", label: "All" },
           { key: "unassigned", label: "Unassigned" },
           ...tabs,
+          ...(archiveTabExists ? [] : [{ key: "archived", label: "Archived" }]),
         ]);
       } catch (error) {
         console.error("loadData error:", error);
@@ -1185,6 +1195,7 @@ export default function TasksSection({
   const isDoneTask = (task) => normalizeStatus(task.effectiveStatus) === "done";
   const isApprovedTask = (task) => normalizeStatus(task.effectiveStatus) === "approved";
   const isRejectedTask = (task) => normalizeStatus(task.effectiveStatus) === "rejected";
+  const isArchivedTask = (task) => normalizeStatus(task.effectiveStatus) === "archived";
 
   const openCreateModal = () => {
     setFormState(DEFAULT_FORM);
@@ -1246,10 +1257,6 @@ export default function TasksSection({
         ChangedByUserId: Number(resolvedCurrentUserId),
       };
 
-      console.log("📤 Sending updateTaskStatus request:");
-      console.log("➡️ URL:", resolvedUpdateTaskStatusEndpoint);
-      console.log("➡️ Payload:", payload);
-
       const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
         method: "PUT",
         headers: {
@@ -1258,26 +1265,21 @@ export default function TasksSection({
         body: JSON.stringify(payload),
       });
 
-      console.log("📥 Response status:", response.status);
-
       const text = await response.text();
-      console.log("📥 Raw response text:", text);
 
       let data = null;
       try {
         data = text ? JSON.parse(text) : null;
       } catch {
-        console.warn("⚠️ Response is not JSON");
+        data = null;
       }
-
-      console.log("📥 Parsed response:", data);
 
       if (!response.ok) {
         throw new Error(
           data?.message ||
-          data?.title ||
-          text ||
-          "Unable to update task status."
+            data?.title ||
+            text ||
+            "Unable to update task status."
         );
       }
 
@@ -1288,13 +1290,23 @@ export default function TasksSection({
         message: successMessage,
       });
     } catch (error) {
-      console.error("❌ updateTaskStatus failed:", error);
-
       setFeedback({
         type: "error",
         message: error?.message || "Unable to update task status.",
       });
     }
+  };
+
+  const archiveTask = async (task) => {
+    if (!archivedStatusId) {
+      setFeedback({
+        type: "error",
+        message: "Archived status is not configured in the backend.",
+      });
+      return;
+    }
+
+    await updateTaskStatus(task, archivedStatusId, "Task moved to archive.");
   };
 
   const openFeedbackModal = (task) => {
@@ -1312,11 +1324,6 @@ export default function TasksSection({
 
   const submitRejectedFeedback = async () => {
     if (!feedbackTask?.id || !feedbackText.trim() || !pendingStatusId) {
-      console.error("❌ Missing feedbackTask.id, feedbackText, or pendingStatusId", {
-        feedbackTask,
-        feedbackText,
-        pendingStatusId,
-      });
       return;
     }
 
@@ -1339,9 +1346,6 @@ export default function TasksSection({
         Feedback: feedbackText.trim(),
       };
 
-      console.log("📤 submitRejectedFeedback payload:", payload);
-      console.log("📤 submitRejectedFeedback url:", resolvedUpdateTaskStatusEndpoint);
-
       const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
         method: "PUT",
         headers: {
@@ -1351,23 +1355,20 @@ export default function TasksSection({
       });
 
       const text = await response.text();
-      console.log("📥 submitRejectedFeedback raw response:", text);
 
       let data = null;
       try {
         data = text ? JSON.parse(text) : null;
       } catch {
-        console.warn("⚠️ submitRejectedFeedback response is not JSON");
+        data = null;
       }
-
-      console.log("📥 submitRejectedFeedback parsed response:", data);
 
       if (!response.ok) {
         throw new Error(
           data?.message ||
-          data?.title ||
-          text ||
-          "Unable to send feedback."
+            data?.title ||
+            text ||
+            "Unable to send feedback."
         );
       }
 
@@ -1379,7 +1380,6 @@ export default function TasksSection({
         message: "Feedback added and task moved back to Pending.",
       });
     } catch (error) {
-      console.error("❌ submitRejectedFeedback error:", error);
       setFeedback({
         type: "error",
         message: error?.message || "Unable to send feedback.",
@@ -1499,7 +1499,7 @@ export default function TasksSection({
       if (!deleteAttempt.ok) {
         throw new Error(
           deleteAttempt.message ||
-          "Unable to delete task because no backend delete endpoint responded successfully."
+            "Unable to delete task because no backend delete endpoint responded successfully."
         );
       }
 
@@ -1695,7 +1695,7 @@ export default function TasksSection({
       if (!updateAttempt.ok) {
         throw new Error(
           updateAttempt.message ||
-          "Unable to save task because no backend update endpoint responded successfully."
+            "Unable to save task because no backend update endpoint responded successfully."
         );
       }
 
@@ -2242,7 +2242,17 @@ export default function TasksSection({
                                     <FiX />
                                   </button>
                                 </>
-                              ) : isApprovedTask(task) ? null : isRejectedTask(task) ? (
+                              ) : isApprovedTask(task) ? (
+                                <button
+                                  type="button"
+                                  className="tasks-section__action-btn tasks-section__action-btn--archive"
+                                  title="Move to archive"
+                                  onClick={() => archiveTask(task)}
+                                  disabled={!archivedStatusId}
+                                >
+                                  <FiArchive />
+                                </button>
+                              ) : isArchivedTask(task) ? null : isRejectedTask(task) ? (
                                 <>
                                   <button
                                     type="button"
