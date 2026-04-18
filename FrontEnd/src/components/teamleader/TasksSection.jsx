@@ -87,8 +87,16 @@ const getWeekRange = (offsetWeeks = 0) => {
 
 const getMonthRange = (offsetMonths = 0) => {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth() + offsetMonths, 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + offsetMonths + 1, 0);
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth() + offsetMonths,
+    1,
+  );
+  const monthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + offsetMonths + 1,
+    0,
+  );
 
   return {
     start: startOfDay(monthStart),
@@ -112,12 +120,18 @@ const MONTH_OPTIONS = [
 ];
 
 const getYearOptions = (startYear, endYear) => {
-  const resolvedEndYear = Math.max(Number(endYear) || new Date().getFullYear(), Number(startYear) || new Date().getFullYear());
-  const resolvedStartYear = Math.min(Number(startYear) || resolvedEndYear, resolvedEndYear);
+  const resolvedEndYear = Math.max(
+    Number(endYear) || new Date().getFullYear(),
+    Number(startYear) || new Date().getFullYear(),
+  );
+  const resolvedStartYear = Math.min(
+    Number(startYear) || resolvedEndYear,
+    resolvedEndYear,
+  );
 
   return Array.from(
     { length: resolvedEndYear - resolvedStartYear + 1 },
-    (_, index) => resolvedStartYear + index
+    (_, index) => resolvedStartYear + index,
   );
 };
 
@@ -159,7 +173,9 @@ const loadDashboardRangeState = () => {
     return {
       selectedPreset: parsed?.selectedPreset || "thisWeek",
       customRange: {
-        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
+        from: parsed?.customRange?.from
+          ? new Date(parsed.customRange.from)
+          : null,
         to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
       },
     };
@@ -180,7 +196,7 @@ const saveDashboardRangeState = (selectedPreset, customRange) => {
         from: customRange?.from ? customRange.from.toISOString() : null,
         to: customRange?.to ? customRange.to.toISOString() : null,
       },
-    })
+    }),
   );
 };
 
@@ -224,6 +240,23 @@ const getRangeLabel = (preset) => {
 };
 
 const formatDateText = (value) => format(value, "dd/MM/yyyy");
+
+const formatMonthYearText = (value) => format(value, "MMMM yyyy");
+
+const isFullMonthRange = (fromValue, toValue) => {
+  if (!(fromValue instanceof Date) || Number.isNaN(fromValue.getTime()))
+    return false;
+  if (!(toValue instanceof Date) || Number.isNaN(toValue.getTime()))
+    return false;
+
+  return (
+    fromValue.getFullYear() === toValue.getFullYear() &&
+    fromValue.getMonth() === toValue.getMonth() &&
+    fromValue.getDate() === 1 &&
+    toValue.getDate() ===
+      new Date(toValue.getFullYear(), toValue.getMonth() + 1, 0).getDate()
+  );
+};
 
 const getStoredUser = () => {
   try {
@@ -407,7 +440,7 @@ const getTasksArrayFromPayload = (payload) => {
     payload?.tasks?.result,
     payload?.items,
     payload?.data,
-    payload?.data?.result
+    payload?.data?.result,
   );
 };
 
@@ -418,7 +451,7 @@ const getStatusesArrayFromPayload = (payload, setupRulesData = null) => {
     responseData?.statuses,
     payload?.statuses,
     responseData,
-    setupRulesData?.statuses
+    setupRulesData?.statuses,
   );
 };
 
@@ -430,7 +463,7 @@ const getMembersArrayFromPayload = (payload) => {
     responseData?.items,
     responseData?.result,
     payload?.items,
-    payload?.result
+    payload?.result,
   );
 };
 
@@ -442,7 +475,7 @@ const getTeamsArrayFromPayload = (payload) => {
     responseData?.items,
     responseData?.result,
     payload?.items,
-    payload?.result
+    payload?.result,
   );
 };
 
@@ -470,10 +503,18 @@ const getProfileImage = (user = {}) => {
 };
 
 const getTaskStatusId = (task) =>
-  task.taskStatusId ?? task.TaskStatusId ?? task.statusId ?? task.StatusId ?? null;
+  task.taskStatusId ??
+  task.TaskStatusId ??
+  task.statusId ??
+  task.StatusId ??
+  null;
 
 const getBackendStatusId = (status) =>
-  status?.taskStatusId ?? status?.TaskStatusId ?? status?.id ?? status?.Id ?? null;
+  status?.taskStatusId ??
+  status?.TaskStatusId ??
+  status?.id ??
+  status?.Id ??
+  null;
 
 const getBackendStatusName = (status) =>
   status?.statusName ??
@@ -501,7 +542,9 @@ const getErrorMessageFromPayload = (payload, fallbackMessage) => {
 
 const isTaskUnassigned = (task) => {
   const assignedId = String(task?.assignedUserId ?? "").trim();
-  const assignedName = String(task?.assignedUserName ?? "").trim().toLowerCase();
+  const assignedName = String(task?.assignedUserName ?? "")
+    .trim()
+    .toLowerCase();
 
   return !assignedId || !assignedName || assignedName === "unknown user";
 };
@@ -513,10 +556,7 @@ const mapTaskFromApi = (task) => ({
   description: task.description ?? task.Description ?? "",
   feedback: task.feedback ?? task.Feedback ?? null,
   assignedUserId:
-    task.assignedUserId ??
-    task.assignedToUserId ??
-    task.AssignedToUserId ??
-    "",
+    task.assignedUserId ?? task.assignedToUserId ?? task.AssignedToUserId ?? "",
   assignedUserName:
     task.assignedUserName ??
     task.assignedToUserName ??
@@ -654,7 +694,7 @@ async function tryRequestCandidates(candidates) {
 
       lastErrorMessage = getErrorMessageFromPayload(
         payload,
-        `${candidate.options.method} ${candidate.url} failed`
+        `${candidate.options.method} ${candidate.url} failed`,
       );
     } catch (error) {
       lastErrorMessage = error?.message || "Network request failed.";
@@ -682,7 +722,11 @@ export default function TasksSection({
   const resolvedCompanyId =
     companyId ?? storedUser?.companyId ?? storedUser?.CompanyId ?? null;
   const resolvedCurrentUserId =
-    storedUser?.userId ?? storedUser?.UserId ?? storedUser?.id ?? storedUser?.Id ?? null;
+    storedUser?.userId ??
+    storedUser?.UserId ??
+    storedUser?.id ??
+    storedUser?.Id ??
+    null;
   const storedUserTeamId =
     storedUser?.teamId ??
     storedUser?.TeamId ??
@@ -727,7 +771,10 @@ export default function TasksSection({
     ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}`
     : "";
 
-  const initialDashboardRangeState = useMemo(() => loadDashboardRangeState(), []);
+  const initialDashboardRangeState = useMemo(
+    () => loadDashboardRangeState(),
+    [],
+  );
 
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -752,20 +799,23 @@ export default function TasksSection({
 
   const [activeTab, setActiveTab] = useState("all");
   const [selectedDashboardPreset, setSelectedDashboardPreset] = useState(
-    initialDashboardRangeState.selectedPreset
+    initialDashboardRangeState.selectedPreset,
   );
   const [dashboardCustomRange, setDashboardCustomRange] = useState(
-    initialDashboardRangeState.customRange
+    initialDashboardRangeState.customRange,
   );
   const [draftDashboardPreset, setDraftDashboardPreset] = useState(
-    initialDashboardRangeState.selectedPreset
+    initialDashboardRangeState.selectedPreset,
   );
   const [draftDashboardCustomRange, setDraftDashboardCustomRange] = useState({
     from: null,
     to: null,
   });
-  const [dashboardCalendarMonth, setDashboardCalendarMonth] = useState(() => new Date());
-  const [isDashboardRangeMenuOpen, setIsDashboardRangeMenuOpen] = useState(false);
+  const [dashboardCalendarMonth, setDashboardCalendarMonth] = useState(
+    () => new Date(),
+  );
+  const [isDashboardRangeMenuOpen, setIsDashboardRangeMenuOpen] =
+    useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [memberSearch, setMemberSearch] = useState("");
@@ -782,7 +832,10 @@ export default function TasksSection({
   const [isEditDueDateOpen, setIsEditDueDateOpen] = useState(false);
   const [editDueDateDraft, setEditDueDateDraft] = useState(DEFAULT_RANGE);
   const [editMemberSearch, setEditMemberSearch] = useState("");
-  const [editTaskDraft, setEditTaskDraft] = useState({ title: "", description: "" });
+  const [editTaskDraft, setEditTaskDraft] = useState({
+    title: "",
+    description: "",
+  });
   const [activeEditField, setActiveEditField] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
@@ -821,9 +874,12 @@ export default function TasksSection({
 
       const matchedTeam = teams.find((team) => {
         const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
-        const hasUserAsMember = memberIds.some((id) => Number(id) === numericUserId);
+        const hasUserAsMember = memberIds.some(
+          (id) => Number(id) === numericUserId,
+        );
         const isLeader =
-          Number(team?.teamLeaderUserId ?? team?.teamLeaderId) === numericUserId;
+          Number(team?.teamLeaderUserId ?? team?.teamLeaderId) ===
+          numericUserId;
 
         return hasUserAsMember || isLeader;
       });
@@ -849,7 +905,7 @@ export default function TasksSection({
 
   const newStatusId = useMemo(() => {
     const newStatus = backendStatuses.find(
-      (status) => normalizeStatus(getBackendStatusName(status)) === "new"
+      (status) => normalizeStatus(getBackendStatusName(status)) === "new",
     );
 
     return getBackendStatusId(newStatus);
@@ -857,7 +913,7 @@ export default function TasksSection({
 
   const approvedStatusId = useMemo(() => {
     const approvedStatus = backendStatuses.find(
-      (status) => normalizeStatus(getBackendStatusName(status)) === "approved"
+      (status) => normalizeStatus(getBackendStatusName(status)) === "approved",
     );
 
     return getBackendStatusId(approvedStatus);
@@ -865,7 +921,7 @@ export default function TasksSection({
 
   const rejectedStatusId = useMemo(() => {
     const rejectedStatus = backendStatuses.find(
-      (status) => normalizeStatus(getBackendStatusName(status)) === "rejected"
+      (status) => normalizeStatus(getBackendStatusName(status)) === "rejected",
     );
 
     return getBackendStatusId(rejectedStatus);
@@ -873,7 +929,7 @@ export default function TasksSection({
 
   const pendingStatusId = useMemo(() => {
     const pendingStatus = backendStatuses.find(
-      (status) => normalizeStatus(getBackendStatusName(status)) === "pending"
+      (status) => normalizeStatus(getBackendStatusName(status)) === "pending",
     );
 
     return getBackendStatusId(pendingStatus);
@@ -881,7 +937,7 @@ export default function TasksSection({
 
   const archivedStatusId = useMemo(() => {
     const archivedStatus = backendStatuses.find(
-      (status) => normalizeStatus(getBackendStatusName(status)) === "archived"
+      (status) => normalizeStatus(getBackendStatusName(status)) === "archived",
     );
 
     return getBackendStatusId(archivedStatus);
@@ -1031,7 +1087,7 @@ export default function TasksSection({
 
         const resolvedStatuses = getStatusesArrayFromPayload(
           statusesPayload,
-          setupRulesData
+          setupRulesData,
         );
         setBackendStatuses(resolvedStatuses);
 
@@ -1050,7 +1106,7 @@ export default function TasksSection({
           .filter(Boolean)
           .filter(
             (tab, index, array) =>
-              array.findIndex((entry) => entry.key === tab.key) === index
+              array.findIndex((entry) => entry.key === tab.key) === index,
           );
 
         const archiveTabExists = tabs.some((tab) => tab.key === "archived");
@@ -1107,7 +1163,7 @@ export default function TasksSection({
         : new Date();
 
     setDashboardCalendarMonth(
-      new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1)
+      new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1),
     );
   };
 
@@ -1144,7 +1200,7 @@ export default function TasksSection({
 
   const activeDashboardRange = useMemo(
     () => getPresetRange(selectedDashboardPreset, dashboardCustomRange),
-    [selectedDashboardPreset, dashboardCustomRange]
+    [selectedDashboardPreset, dashboardCustomRange],
   );
 
   const dashboardRangeLabel = useMemo(() => {
@@ -1153,13 +1209,41 @@ export default function TasksSection({
       dashboardCustomRange?.from instanceof Date &&
       dashboardCustomRange?.to instanceof Date
     ) {
+      if (
+        isFullMonthRange(dashboardCustomRange.from, dashboardCustomRange.to)
+      ) {
+        return formatMonthYearText(dashboardCustomRange.from);
+      }
+
       return `${formatDateText(dashboardCustomRange.from)} - ${formatDateText(
-        dashboardCustomRange.to
+        dashboardCustomRange.to,
       )}`;
     }
 
     return getRangeLabel(selectedDashboardPreset);
   }, [selectedDashboardPreset, dashboardCustomRange]);
+
+  const dashboardCustomPreviewLabel = useMemo(() => {
+    if (
+      draftDashboardCustomRange?.from instanceof Date &&
+      draftDashboardCustomRange?.to instanceof Date
+    ) {
+      if (
+        isFullMonthRange(
+          draftDashboardCustomRange.from,
+          draftDashboardCustomRange.to,
+        )
+      ) {
+        return formatMonthYearText(draftDashboardCustomRange.from);
+      }
+
+      return `${formatDateText(draftDashboardCustomRange.from)} - ${formatDateText(
+        draftDashboardCustomRange.to,
+      )}`;
+    }
+
+    return formatMonthYearText(dashboardCalendarMonth);
+  }, [draftDashboardCustomRange, dashboardCalendarMonth]);
 
   const dashboardYearOptions = useMemo(() => {
     const candidateYears = [
@@ -1206,7 +1290,7 @@ export default function TasksSection({
         to: null,
       });
       setDashboardCalendarMonth(
-        new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1)
+        new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1),
       );
       return;
     }
@@ -1239,52 +1323,54 @@ export default function TasksSection({
     });
 
     if (anchorDate instanceof Date && !Number.isNaN(anchorDate.getTime())) {
-      setDashboardCalendarMonth(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1));
+      setDashboardCalendarMonth(
+        new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1),
+      );
     }
   };
-
 
   const handleDashboardMonthChange = (nextMonthIndex) => {
     setDashboardCalendarMonth(
       (currentMonth) =>
-        new Date(currentMonth.getFullYear(), Number(nextMonthIndex), 1)
+        new Date(currentMonth.getFullYear(), Number(nextMonthIndex), 1),
     );
   };
 
   const handleDashboardYearChange = (nextYear) => {
     setDashboardCalendarMonth(
-      (currentMonth) =>
-        new Date(Number(nextYear), currentMonth.getMonth(), 1)
+      (currentMonth) => new Date(Number(nextYear), currentMonth.getMonth(), 1),
     );
   };
 
-  const handleSelectVisibleDashboardMonth = () => {
+  const getVisibleDashboardMonthRange = () => {
     const visibleMonthStart = new Date(
       dashboardCalendarMonth.getFullYear(),
       dashboardCalendarMonth.getMonth(),
-      1
+      1,
     );
     const visibleMonthEnd = new Date(
       dashboardCalendarMonth.getFullYear(),
       dashboardCalendarMonth.getMonth() + 1,
-      0
+      0,
     );
 
-    setDraftDashboardPreset("custom");
-    setDraftDashboardCustomRange({
+    return {
       from: startOfDay(visibleMonthStart),
       to: endOfDay(visibleMonthEnd),
-    });
+    };
   };
 
   const handleApplyDashboardCustomRange = () => {
-    if (!draftDashboardCustomRange?.from || !draftDashboardCustomRange?.to) return;
+    const nextRange =
+      draftDashboardCustomRange?.from && draftDashboardCustomRange?.to
+        ? {
+            from: startOfDay(draftDashboardCustomRange.from),
+            to: endOfDay(draftDashboardCustomRange.to),
+          }
+        : getVisibleDashboardMonthRange();
 
     setSelectedDashboardPreset("custom");
-    setDashboardCustomRange({
-      from: startOfDay(draftDashboardCustomRange.from),
-      to: endOfDay(draftDashboardCustomRange.to),
-    });
+    setDashboardCustomRange(nextRange);
     setIsDashboardRangeMenuOpen(false);
     setDraftDashboardCustomRange({ from: null, to: null });
   };
@@ -1373,9 +1459,9 @@ export default function TasksSection({
     () =>
       users.find(
         (user) =>
-          String(user.userId ?? user.id) === String(formState.assignedUserId)
+          String(user.userId ?? user.id) === String(formState.assignedUserId),
       ) || null,
-    [users, formState.assignedUserId]
+    [users, formState.assignedUserId],
   );
 
   const selectedUserTeamId = useMemo(() => {
@@ -1404,9 +1490,9 @@ export default function TasksSection({
       users.find(
         (user) =>
           String(user.userId ?? user.id) ===
-          String(editFormState?.assignedUserId ?? "")
+          String(editFormState?.assignedUserId ?? ""),
       ) || null,
-    [users, editFormState]
+    [users, editFormState],
   );
 
   const editingSelectedUserTeamId = useMemo(() => {
@@ -1426,7 +1512,7 @@ export default function TasksSection({
     }
 
     return resolveTeamIdForUser(
-      editingSelectedUser.userId ?? editingSelectedUser.id
+      editingSelectedUser.userId ?? editingSelectedUser.id,
     );
   }, [editingSelectedUser, resolveTeamIdForUser, storedUserTeamId]);
 
@@ -1466,10 +1552,11 @@ export default function TasksSection({
     return tasks.map((task) => {
       const matchedUser = users.find(
         (user) =>
-          String(user.userId ?? user.id) === String(task.assignedUserId)
+          String(user.userId ?? user.id) === String(task.assignedUserId),
       );
 
-      const fallbackName = matchedUser?.fullName ?? matchedUser?.name ?? "Unknown User";
+      const fallbackName =
+        matchedUser?.fullName ?? matchedUser?.name ?? "Unknown User";
       const fallbackEmail = matchedUser?.email ?? "";
       const fallbackAvatar = getProfileImage(matchedUser || {});
 
@@ -1500,8 +1587,8 @@ export default function TasksSection({
       doesTaskOverlapRange(
         task,
         activeDashboardRange.start,
-        activeDashboardRange.end
-      )
+        activeDashboardRange.end,
+      ),
     );
   }, [tasksWithUsers, activeDashboardRange]);
 
@@ -1524,7 +1611,9 @@ export default function TasksSection({
   }, [tasksInSelectedRange]);
 
   const filteredTasks = useMemo(() => {
-    const normalizedSearch = String(searchValue || "").trim().toLowerCase();
+    const normalizedSearch = String(searchValue || "")
+      .trim()
+      .toLowerCase();
 
     return tasksInSelectedRange.filter((task) => {
       const matchesTab =
@@ -1544,8 +1633,12 @@ export default function TasksSection({
 
       const title = String(task.title || "").toLowerCase();
       const description = String(task.description || "").toLowerCase();
-      const assignedUserName = String(task.assignedUserName || "").toLowerCase();
-      const assignedUserEmail = String(task.assignedUserEmail || "").toLowerCase();
+      const assignedUserName = String(
+        task.assignedUserName || "",
+      ).toLowerCase();
+      const assignedUserEmail = String(
+        task.assignedUserEmail || "",
+      ).toLowerCase();
       const priority = String(task.priority || "").toLowerCase();
       const complexity = String(task.complexity || "").toLowerCase();
       const status = String(task.effectiveStatus || "").toLowerCase();
@@ -1579,7 +1672,9 @@ export default function TasksSection({
         case "priority":
           return priorityRank[String(task.priority || "").toLowerCase()] ?? 0;
         case "complexity":
-          return complexityRank[String(task.complexity || "").toLowerCase()] ?? 0;
+          return (
+            complexityRank[String(task.complexity || "").toLowerCase()] ?? 0
+          );
         case "estimatedEffortHours":
           return Number(task.estimatedEffortHours ?? 0);
         case "weight":
@@ -1624,9 +1719,11 @@ export default function TasksSection({
 
   const computedTaskWeight = useMemo(() => {
     const baseEffort = Number(formState.estimatedEffortHours);
-    const priorityMultiplier = Number(priorityMultipliers[formState.priority] ?? 0);
+    const priorityMultiplier = Number(
+      priorityMultipliers[formState.priority] ?? 0,
+    );
     const complexityMultiplier = Number(
-      complexityMultipliers[formState.complexity] ?? 0
+      complexityMultipliers[formState.complexity] ?? 0,
     );
 
     if (!baseEffort || !priorityMultiplier || !complexityMultiplier) {
@@ -1662,10 +1759,10 @@ export default function TasksSection({
   const computedEditTaskWeight = useMemo(() => {
     const baseEffort = Number(editFormState?.estimatedEffortHours);
     const priorityMultiplier = Number(
-      priorityMultipliers[editFormState?.priority] ?? 0
+      priorityMultipliers[editFormState?.priority] ?? 0,
     );
     const complexityMultiplier = Number(
-      complexityMultipliers[editFormState?.complexity] ?? 0
+      complexityMultipliers[editFormState?.complexity] ?? 0,
     );
 
     if (!baseEffort || !priorityMultiplier || !complexityMultiplier) {
@@ -1679,14 +1776,17 @@ export default function TasksSection({
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
           selectedRange.to,
-          "dd/MM/yyyy"
+          "dd/MM/yyyy",
         )}`
       : "Select date range";
 
   const isDoneTask = (task) => normalizeStatus(task.effectiveStatus) === "done";
-  const isApprovedTask = (task) => normalizeStatus(task.effectiveStatus) === "approved";
-  const isRejectedTask = (task) => normalizeStatus(task.effectiveStatus) === "rejected";
-  const isArchivedTask = (task) => normalizeStatus(task.effectiveStatus) === "archived";
+  const isApprovedTask = (task) =>
+    normalizeStatus(task.effectiveStatus) === "approved";
+  const isRejectedTask = (task) =>
+    normalizeStatus(task.effectiveStatus) === "rejected";
+  const isArchivedTask = (task) =>
+    normalizeStatus(task.effectiveStatus) === "archived";
 
   const openCreateModal = () => {
     setFormState(DEFAULT_FORM);
@@ -1770,7 +1870,7 @@ export default function TasksSection({
           data?.message ||
             data?.title ||
             text ||
-            "Unable to update task status."
+            "Unable to update task status.",
         );
       }
 
@@ -1800,8 +1900,12 @@ export default function TasksSection({
           setBackendStatuses(liveStatuses);
 
           const archivedStatus = liveStatuses.find((status) => {
-            const normalizedName = normalizeStatus(getBackendStatusName(status));
-            return normalizedName === "archived" || normalizedName === "archive";
+            const normalizedName = normalizeStatus(
+              getBackendStatusName(status),
+            );
+            return (
+              normalizedName === "archived" || normalizedName === "archive"
+            );
           });
 
           nextArchivedStatusId = getBackendStatusId(archivedStatus);
@@ -1819,11 +1923,16 @@ export default function TasksSection({
       return;
     }
 
-    await updateTaskStatus(task, nextArchivedStatusId, "Task moved to archive.", {
-      nextStatusName: "Archived",
-      skipReload: true,
-      preserveIfMissing: true,
-    });
+    await updateTaskStatus(
+      task,
+      nextArchivedStatusId,
+      "Task moved to archive.",
+      {
+        nextStatusName: "Archived",
+        skipReload: true,
+        preserveIfMissing: true,
+      },
+    );
   };
 
   const openFeedbackModal = (task) => {
@@ -1882,10 +1991,7 @@ export default function TasksSection({
 
       if (!response.ok) {
         throw new Error(
-          data?.message ||
-            data?.title ||
-            text ||
-            "Unable to send feedback."
+          data?.message || data?.title || text || "Unable to send feedback.",
         );
       }
 
@@ -2016,7 +2122,7 @@ export default function TasksSection({
       if (!deleteAttempt.ok) {
         throw new Error(
           deleteAttempt.message ||
-            "Unable to delete task because no backend delete endpoint responded successfully."
+            "Unable to delete task because no backend delete endpoint responded successfully.",
         );
       }
 
@@ -2081,7 +2187,8 @@ export default function TasksSection({
       priority: task.priority || "",
       complexity: task.complexity || "",
       estimatedEffortHours:
-        task.estimatedEffortHours === null || task.estimatedEffortHours === undefined
+        task.estimatedEffortHours === null ||
+        task.estimatedEffortHours === undefined
           ? ""
           : String(task.estimatedEffortHours),
       dueDate: task.dueDate || "",
@@ -2115,7 +2222,7 @@ export default function TasksSection({
     handleEditFormChange("title", capitalizeWords(editTaskDraft.title));
     handleEditFormChange(
       "description",
-      capitalizeWords(editTaskDraft.description)
+      capitalizeWords(editTaskDraft.description),
     );
     closeEditTaskInfoModal();
   };
@@ -2149,7 +2256,10 @@ export default function TasksSection({
   const applyEditDueDate = () => {
     if (!editDueDateDraft?.from || !editDueDateDraft?.to) return;
 
-    handleEditFormChange("startDate", format(editDueDateDraft.from, "yyyy-MM-dd"));
+    handleEditFormChange(
+      "startDate",
+      format(editDueDateDraft.from, "yyyy-MM-dd"),
+    );
     handleEditFormChange("dueDate", format(editDueDateDraft.to, "yyyy-MM-dd"));
     closeEditDueDateModal();
   };
@@ -2158,7 +2268,7 @@ export default function TasksSection({
     if (!editingTaskId || !editFormState || isSavingEdit) return;
 
     const taskToEdit = tasks.find(
-      (task) => String(task.id) === String(editingTaskId)
+      (task) => String(task.id) === String(editingTaskId),
     );
     if (!taskToEdit) return;
 
@@ -2212,7 +2322,7 @@ export default function TasksSection({
       if (!updateAttempt.ok) {
         throw new Error(
           updateAttempt.message ||
-            "Unable to save task because no backend update endpoint responded successfully."
+            "Unable to save task because no backend update endpoint responded successfully.",
         );
       }
 
@@ -2253,10 +2363,7 @@ export default function TasksSection({
       </div>
 
       <div className="tasks-section__toolbar tasks-section__toolbar--range-row">
-        <div
-          className="tasks-section__range-menu"
-          ref={dashboardRangeMenuRef}
-        >
+        <div className="tasks-section__range-menu" ref={dashboardRangeMenuRef}>
           <button
             type="button"
             className="tasks-section__range-btn"
@@ -2327,18 +2434,14 @@ export default function TasksSection({
                     </div>
 
                     <div className="tasks-section__custom-range-preview">
-                      {draftDashboardCustomRange?.from
-                        ? formatDateText(draftDashboardCustomRange.from)
-                        : "Start"}{" "}
-                      <span>to</span>{" "}
-                      {draftDashboardCustomRange?.to
-                        ? formatDateText(draftDashboardCustomRange.to)
-                        : "End"}
+                      {dashboardCustomPreviewLabel}
                     </div>
 
                     <div className="tasks-section__month-picker-row">
                       <div className="tasks-section__month-picker-field">
-                        <label htmlFor="tasks-section-month-select">Month</label>
+                        <label htmlFor="tasks-section-month-select">
+                          Month
+                        </label>
                         <div className="tasks-section__month-picker-select-wrap">
                           <select
                             id="tasks-section-month-select"
@@ -2380,14 +2483,6 @@ export default function TasksSection({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className="tasks-section__month-select-btn"
-                      onClick={handleSelectVisibleDashboardMonth}
-                    >
-                      Select whole month
-                    </button>
-
                     <div className="tasks-section__calendar-shell">
                       <DayPicker
                         mode="range"
@@ -2408,17 +2503,15 @@ export default function TasksSection({
                       />
                     </div>
 
-                    <button
-                      type="button"
-                      className="tasks-section__apply-btn"
-                      onClick={handleApplyDashboardCustomRange}
-                      disabled={
-                        !draftDashboardCustomRange?.from ||
-                        !draftDashboardCustomRange?.to
-                      }
-                    >
-                      Apply Range
-                    </button>
+                    <div className="tasks-section__apply-btn-wrap">
+                      <button
+                        type="button"
+                        className="tasks-section__apply-btn"
+                        onClick={handleApplyDashboardCustomRange}
+                      >
+                        Apply Range
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -2455,7 +2548,6 @@ export default function TasksSection({
           </button>
         </div>
       )}
-
 
       <div className="tasks-section__toolbar tasks-section__toolbar--tabs-row">
         <div className="tasks-section__tabs">
@@ -2505,7 +2597,9 @@ export default function TasksSection({
             <FiClipboard />
           </div>
           <h3>No tasks found</h3>
-          <p>Try changing the selected tab or create a new task to get started.</p>
+          <p>
+            Try changing the selected tab or create a new task to get started.
+          </p>
         </div>
       ) : (
         <div className="tasks-section__table-card">
@@ -2520,7 +2614,9 @@ export default function TasksSection({
                       onClick={() => handleSort("title")}
                     >
                       <span>Task</span>
-                      <FiChevronDown className={getSortIconClassName("title")} />
+                      <FiChevronDown
+                        className={getSortIconClassName("title")}
+                      />
                     </button>
                   </th>
                   <th>
@@ -2542,7 +2638,9 @@ export default function TasksSection({
                       onClick={() => handleSort("priority")}
                     >
                       <span>Priority</span>
-                      <FiChevronDown className={getSortIconClassName("priority")} />
+                      <FiChevronDown
+                        className={getSortIconClassName("priority")}
+                      />
                     </button>
                   </th>
                   <th>
@@ -2576,7 +2674,9 @@ export default function TasksSection({
                       onClick={() => handleSort("weight")}
                     >
                       <span>Weight</span>
-                      <FiChevronDown className={getSortIconClassName("weight")} />
+                      <FiChevronDown
+                        className={getSortIconClassName("weight")}
+                      />
                     </button>
                   </th>
                   <th>
@@ -2598,7 +2698,9 @@ export default function TasksSection({
                       onClick={() => handleSort("dueDate")}
                     >
                       <span>Due Date</span>
-                      <FiChevronDown className={getSortIconClassName("dueDate")} />
+                      <FiChevronDown
+                        className={getSortIconClassName("dueDate")}
+                      />
                     </button>
                   </th>
                   <th className="tasks-section__col-actions">Actions</th>
@@ -2640,14 +2742,17 @@ export default function TasksSection({
                                 </span>
                               </strong>
                               <small>
-                                {editFormState.description || "Add task description"}
+                                {editFormState.description ||
+                                  "Add task description"}
                               </small>
                             </div>
                           </button>
                         ) : (
                           <div className="tasks-section__task-cell">
                             <strong>{task.title}</strong>
-                            <small>{task.description || "No description"}</small>
+                            <small>
+                              {task.description || "No description"}
+                            </small>
                           </div>
                         )}
                       </td>
@@ -2667,14 +2772,18 @@ export default function TasksSection({
                                 {previewUser && getProfileImage(previewUser) ? (
                                   <img
                                     src={getProfileImage(previewUser)}
-                                    alt={previewUser.fullName ?? previewUser.name ?? "User"}
+                                    alt={
+                                      previewUser.fullName ??
+                                      previewUser.name ??
+                                      "User"
+                                    }
                                     className="tasks-section__avatar-image"
                                   />
                                 ) : (
                                   getInitials(
                                     previewUser?.fullName ??
                                       previewUser?.name ??
-                                      task.assignedUserName
+                                      task.assignedUserName,
                                   )
                                 )}
                               </div>
@@ -2694,7 +2803,9 @@ export default function TasksSection({
                                   </span>
                                 </strong>
                                 <small>
-                                  {previewUser?.email ?? task.assignedUserEmail ?? "—"}
+                                  {previewUser?.email ??
+                                    task.assignedUserEmail ??
+                                    "—"}
                                 </small>
                               </div>
                             </div>
@@ -2733,7 +2844,10 @@ export default function TasksSection({
                               ref={prioritySelectRef}
                               value={editFormState.priority}
                               onChange={(event) =>
-                                handleEditFormChange("priority", event.target.value)
+                                handleEditFormChange(
+                                  "priority",
+                                  event.target.value,
+                                )
                               }
                               className="tasks-section__inline-select"
                             >
@@ -2748,7 +2862,7 @@ export default function TasksSection({
                         ) : (
                           <span
                             className={`tasks-section__badge ${getPriorityClass(
-                              task.priority
+                              task.priority,
                             )}`}
                           >
                             {task.priority}
@@ -2765,7 +2879,7 @@ export default function TasksSection({
                               onChange={(event) =>
                                 handleEditFormChange(
                                   "complexity",
-                                  event.target.value
+                                  event.target.value,
                                 )
                               }
                               className="tasks-section__inline-select"
@@ -2781,7 +2895,7 @@ export default function TasksSection({
                         ) : (
                           <span
                             className={`tasks-section__badge ${getComplexityClass(
-                              task.complexity
+                              task.complexity,
                             )}`}
                           >
                             {task.complexity}
@@ -2801,7 +2915,7 @@ export default function TasksSection({
                             onChange={(event) =>
                               handleEditFormChange(
                                 "estimatedEffortHours",
-                                event.target.value
+                                event.target.value,
                               )
                             }
                           />
@@ -2819,7 +2933,7 @@ export default function TasksSection({
                       <td className="tasks-section__cell-status">
                         <span
                           className={`tasks-section__status-inline ${getStatusClass(
-                            task.effectiveStatus
+                            task.effectiveStatus,
                           )}`}
                         >
                           <span className="tasks-section__status-inline-icon">
@@ -2838,10 +2952,11 @@ export default function TasksSection({
                           >
                             <strong>
                               <span className="tasks-section__date-range-text">
-                                {editFormState?.startDate || editFormState?.dueDate
+                                {editFormState?.startDate ||
+                                editFormState?.dueDate
                                   ? formatDateRange(
                                       editFormState.startDate,
-                                      editFormState.dueDate
+                                      editFormState.dueDate,
                                     )
                                   : "Select date range"}
                               </span>
@@ -2915,7 +3030,7 @@ export default function TasksSection({
                                       updateTaskStatus(
                                         task,
                                         approvedStatusId,
-                                        "Task marked as approved."
+                                        "Task marked as approved.",
                                       )
                                     }
                                     disabled={!approvedStatusId}
@@ -2931,7 +3046,7 @@ export default function TasksSection({
                                       updateTaskStatus(
                                         task,
                                         rejectedStatusId,
-                                        "Task marked as rejected."
+                                        "Task marked as rejected.",
                                       )
                                     }
                                     disabled={!rejectedStatusId}
@@ -2945,11 +3060,12 @@ export default function TasksSection({
                                   className="tasks-section__action-btn tasks-section__action-btn--archive"
                                   title="Move to archive"
                                   onClick={() => archiveTask(task)}
-                                  
                                 >
                                   <FiArchive />
                                 </button>
-                              ) : isArchivedTask(task) ? null : isRejectedTask(task) ? (
+                              ) : isArchivedTask(task) ? null : isRejectedTask(
+                                  task,
+                                ) ? (
                                 <>
                                   <button
                                     type="button"
@@ -3048,7 +3164,10 @@ export default function TasksSection({
       )}
 
       {isCreateOpen && (
-        <div className="tasks-section__modal-overlay" onClick={closeCreateModal}>
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={closeCreateModal}
+        >
           <div
             className="tasks-section__modal tasks-section__modal--wide"
             onClick={(event) => event.stopPropagation()}
@@ -3104,7 +3223,10 @@ export default function TasksSection({
                       type="text"
                       value={formState.title}
                       onChange={(event) =>
-                        handleFormChange("title", capitalizeWords(event.target.value))
+                        handleFormChange(
+                          "title",
+                          capitalizeWords(event.target.value),
+                        )
                       }
                       required
                     />
@@ -3112,7 +3234,8 @@ export default function TasksSection({
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
                     <label htmlFor="task-description">
-                      Description <span className="tasks-section__required">*</span>
+                      Description{" "}
+                      <span className="tasks-section__required">*</span>
                     </label>
                     <textarea
                       id="task-description"
@@ -3120,7 +3243,7 @@ export default function TasksSection({
                       onChange={(event) =>
                         handleFormChange(
                           "description",
-                          capitalizeWords(event.target.value)
+                          capitalizeWords(event.target.value),
                         )
                       }
                       rows={4}
@@ -3130,7 +3253,8 @@ export default function TasksSection({
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
                     <label>
-                      Selected user <span className="tasks-section__required">*</span>
+                      Selected user{" "}
+                      <span className="tasks-section__required">*</span>
                     </label>
                     <p className="tasks-section__field-description">
                       Search and select one employee to assign this task to.
@@ -3143,18 +3267,23 @@ export default function TasksSection({
                           type="text"
                           placeholder="Search any member in the company..."
                           value={memberSearch}
-                          onChange={(event) => setMemberSearch(event.target.value)}
+                          onChange={(event) =>
+                            setMemberSearch(event.target.value)
+                          }
                         />
                       </div>
 
                       <div className="tasks-section__member-table">
                         {assignableUsers.length === 0 ? (
-                          <p className="tasks-section__members-empty">No members found.</p>
+                          <p className="tasks-section__members-empty">
+                            No members found.
+                          </p>
                         ) : (
                           assignableUsers.map((user) => {
                             const userId = user.userId ?? user.id;
                             const isSelected =
-                              String(formState.assignedUserId) === String(userId);
+                              String(formState.assignedUserId) ===
+                              String(userId);
                             const imageUrl = getProfileImage(user);
 
                             return (
@@ -3167,7 +3296,10 @@ export default function TasksSection({
                                     : ""
                                 }`}
                                 onClick={() =>
-                                  handleFormChange("assignedUserId", String(userId))
+                                  handleFormChange(
+                                    "assignedUserId",
+                                    String(userId),
+                                  )
                                 }
                               >
                                 <span
@@ -3189,14 +3321,18 @@ export default function TasksSection({
                                     />
                                   ) : (
                                     <span className="tasks-section__member-avatar-fallback">
-                                      {getInitials(user.fullName ?? user.name ?? "")}
+                                      {getInitials(
+                                        user.fullName ?? user.name ?? "",
+                                      )}
                                     </span>
                                   )}
                                 </span>
 
                                 <span className="tasks-section__member-copy">
                                   <strong>
-                                    {user.fullName ?? user.name ?? "Unknown User"}
+                                    {user.fullName ??
+                                      user.name ??
+                                      "Unknown User"}
                                   </strong>
                                   <small>{user.email || "—"}</small>
                                 </span>
@@ -3212,7 +3348,8 @@ export default function TasksSection({
                 <div className="tasks-section__form-grid">
                   <div className="tasks-section__form-group">
                     <label htmlFor="task-priority">
-                      Priority <span className="tasks-section__required">*</span>
+                      Priority{" "}
+                      <span className="tasks-section__required">*</span>
                     </label>
                     <div className="tasks-section__select-wrapper">
                       <select
@@ -3236,7 +3373,8 @@ export default function TasksSection({
 
                   <div className="tasks-section__form-group">
                     <label htmlFor="task-complexity">
-                      Complexity <span className="tasks-section__required">*</span>
+                      Complexity{" "}
+                      <span className="tasks-section__required">*</span>
                     </label>
                     <div className="tasks-section__select-wrapper">
                       <select
@@ -3260,7 +3398,8 @@ export default function TasksSection({
 
                   <div className="tasks-section__form-group">
                     <label htmlFor="task-effort">
-                      Base effort <span className="tasks-section__required">*</span>
+                      Base effort{" "}
+                      <span className="tasks-section__required">*</span>
                     </label>
                     <input
                       id="task-effort"
@@ -3269,7 +3408,10 @@ export default function TasksSection({
                       step="1"
                       value={formState.estimatedEffortHours}
                       onChange={(event) =>
-                        handleFormChange("estimatedEffortHours", event.target.value)
+                        handleFormChange(
+                          "estimatedEffortHours",
+                          event.target.value,
+                        )
                       }
                       required
                     />
@@ -3289,7 +3431,8 @@ export default function TasksSection({
 
                   <div className="tasks-section__form-group tasks-section__form-group--full">
                     <label>
-                      Date range <span className="tasks-section__required">*</span>
+                      Date range{" "}
+                      <span className="tasks-section__required">*</span>
                     </label>
 
                     <div
@@ -3325,7 +3468,7 @@ export default function TasksSection({
                               }
                               disabled={{
                                 before: new Date(
-                                  new Date().setHours(0, 0, 0, 0)
+                                  new Date().setHours(0, 0, 0, 0),
                                 ),
                               }}
                               showOutsideDays={false}
@@ -3499,7 +3642,9 @@ export default function TasksSection({
 
               <div className="tasks-section__member-table">
                 {filteredEditAssignableUsers.length === 0 ? (
-                  <p className="tasks-section__members-empty">No members found.</p>
+                  <p className="tasks-section__members-empty">
+                    No members found.
+                  </p>
                 ) : (
                   filteredEditAssignableUsers.map((user) => {
                     const userId = user.userId ?? user.id;
@@ -3512,10 +3657,15 @@ export default function TasksSection({
                         key={userId}
                         type="button"
                         className={`tasks-section__member-row ${
-                          isSelected ? "tasks-section__member-row--selected" : ""
+                          isSelected
+                            ? "tasks-section__member-row--selected"
+                            : ""
                         }`}
                         onClick={() => {
-                          handleEditFormChange("assignedUserId", String(userId));
+                          handleEditFormChange(
+                            "assignedUserId",
+                            String(userId),
+                          );
                           closeEditAssigneeModal();
                         }}
                       >
@@ -3544,7 +3694,9 @@ export default function TasksSection({
                         </span>
 
                         <span className="tasks-section__member-copy">
-                          <strong>{user.fullName ?? user.name ?? "Unknown User"}</strong>
+                          <strong>
+                            {user.fullName ?? user.name ?? "Unknown User"}
+                          </strong>
                           <small>{user.email || "—"}</small>
                         </span>
                       </button>
@@ -3618,7 +3770,10 @@ export default function TasksSection({
               />
             </div>
 
-            <div className="tasks-section__form-actions" style={{ marginTop: "16px" }}>
+            <div
+              className="tasks-section__form-actions"
+              style={{ marginTop: "16px" }}
+            >
               <button
                 type="button"
                 className="tasks-section__secondary-btn"
@@ -3652,8 +3807,8 @@ export default function TasksSection({
               <div>
                 <h3>Add Feedback</h3>
                 <p>
-                  Add feedback for <strong>{feedbackTask.title}</strong>. The task will
-                  be moved back to Pending.
+                  Add feedback for <strong>{feedbackTask.title}</strong>. The
+                  task will be moved back to Pending.
                 </p>
               </div>
 
