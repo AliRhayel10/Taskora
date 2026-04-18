@@ -5,15 +5,20 @@ import {
   FiArchive,
   FiCalendar,
   FiCheck,
+  FiCheckCircle,
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+  FiClock,
   FiEdit2,
   FiEye,
+  FiPauseCircle,
+  FiPlayCircle,
   FiPlus,
   FiSearch,
   FiTrash2,
   FiX,
+  FiXCircle,
   FiClipboard,
   FiMessageSquare,
 } from "react-icons/fi";
@@ -129,6 +134,23 @@ const getStatusClass = (status = "") => {
   if (normalized === "done") return "tasks-section__status--done";
 
   return "tasks-section__status--todo";
+};
+
+const getStatusIcon = (status = "") => {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "new" || normalized === "todo") return <FiClipboard />;
+  if (normalized === "pending") return <FiClock />;
+  if (normalized === "acknowledged" || normalized === "inprogress") {
+    return <FiPlayCircle />;
+  }
+  if (normalized === "done") return <FiCheckCircle />;
+  if (normalized === "approved") return <FiCheck />;
+  if (normalized === "rejected") return <FiXCircle />;
+  if (normalized === "archived") return <FiArchive />;
+  if (normalized === "blocked") return <FiPauseCircle />;
+
+  return <FiClipboard />;
 };
 
 const getPriorityClass = (priority = "") => {
@@ -2150,11 +2172,14 @@ export default function TasksSection({
 
                       <td className="tasks-section__cell-status">
                         <span
-                          className={`tasks-section__status-badge ${getStatusClass(
+                          className={`tasks-section__status-inline ${getStatusClass(
                             task.effectiveStatus
                           )}`}
                         >
-                          {prettifyLabel(task.effectiveStatus)}
+                          <span className="tasks-section__status-inline-icon">
+                            {getStatusIcon(task.effectiveStatus)}
+                          </span>
+                          <span>{prettifyLabel(task.effectiveStatus)}</span>
                         </span>
                       </td>
 

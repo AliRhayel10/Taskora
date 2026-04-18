@@ -1902,3 +1902,66 @@
         font-size: 0.92rem;
     }
 }
+
+.tasks-section__status-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.tasks-section__status-inline-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.98rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.tasks-section__status-badge {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-height: unset !important;
+    border-radius: 0 !important;
+}
+
+.tasks-section__status--todo {
+    color: #4338ca;
+}
+
+.tasks-section__status--pending {
+    color: #c2410c;
+}
+
+.tasks-section__status--progress {
+    color: #1d4ed8;
+}
+
+.tasks-section__status--blocked {
+    color: #b91c1c;
+}
+
+.tasks-section__status--done {
+    color: #166534;
+}
+
+.tasks-section__status--approved {
+    color: #15803d;
+}
+
+.tasks-section__status--rejected {
+    color: #b42318;
+}
+
+.tasks-section__status--archived {
+    color: #64748b;
+}
