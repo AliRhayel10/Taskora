@@ -1186,46 +1186,71 @@ export default function TasksSection({
     setIsDatePickerOpen(false);
   };
 
-  const updateTaskStatus = async (task, nextStatusId, successMessage) => {
-    if (!task?.id || !nextStatusId) return;
+const updateTaskStatus = async (task, nextStatusId, successMessage) => {
+  if (!task?.id || !nextStatusId) {
+    console.error("❌ Missing task id or status id", { task, nextStatusId });
+    return;
+  }
 
-    setFeedback(null);
+  setFeedback(null);
 
+  try {
+const payload = {
+  TaskId: Number(task.id),
+  NewTaskStatusId: Number(nextStatusId),
+  ChangedByUserId: Number(resolvedCurrentUserId),
+};
+
+    console.log("📤 Sending updateTaskStatus request:");
+    console.log("➡️ URL:", `${API_BASE}/api/tasks/update-status`);
+    console.log("➡️ Payload:", payload);
+
+    const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log("📥 Response status:", response.status);
+
+    const text = await response.text();
+    console.log("📥 Raw response text:", text);
+
+    let data = null;
     try {
-      const payload = {
-        TaskId: Number(task.id),
-        TaskStatusId: Number(nextStatusId),
-      };
-
-      const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await parseJsonSafe(response);
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessageFromPayload(data, "Unable to update task status.")
-        );
-      }
-
-      await loadTasks();
-
-      setFeedback({
-        type: "success",
-        message: successMessage,
-      });
-    } catch (error) {
-      setFeedback({
-        type: "error",
-        message: error?.message || "Unable to update task status.",
-      });
+      data = JSON.parse(text);
+    } catch {
+      console.warn("⚠️ Response is not JSON");
     }
-  };
+
+    console.log("📥 Parsed response:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+        data?.title ||
+        text ||
+        "Unable to update task status."
+      );
+    }
+
+    await loadTasks();
+
+    setFeedback({
+      type: "success",
+      message: successMessage,
+    });
+  } catch (error) {
+    console.error("❌ updateTaskStatus failed:", error);
+
+    setFeedback({
+      type: "error",
+      message: error?.message || "Unable to update task status.",
+    });
+  }
+};
 
   const openFeedbackModal = (task) => {
     setFeedbackTask(task);
@@ -1253,6 +1278,11 @@ export default function TasksSection({
         Feedback: feedbackText.trim(),
       };
 
+      console.log("submitRejectedFeedback task", feedbackTask);
+      console.log("submitRejectedFeedback pendingStatusId", pendingStatusId);
+      console.log("submitRejectedFeedback payload", payload);
+      alert(`submitRejectedFeedback payload: ${JSON.stringify(payload)}`);
+
       const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
         method: "PUT",
         headers: {
@@ -1262,6 +1292,7 @@ export default function TasksSection({
       });
 
       const data = await parseJsonSafe(response);
+      console.log("feedback update-status response", response.status, data);
 
       if (!response.ok) {
         throw new Error(
@@ -1277,6 +1308,7 @@ export default function TasksSection({
         message: "Feedback added and task moved back to Pending.",
       });
     } catch (error) {
+      console.error("submitRejectedFeedback error", error);
       setFeedback({
         type: "error",
         message: error?.message || "Unable to send feedback.",
@@ -1613,11 +1645,13 @@ export default function TasksSection({
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-      } ${sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${
+      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+    } ${
+      sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-      }`;
+    }`;
   };
 
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
@@ -1632,10 +1666,11 @@ export default function TasksSection({
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${feedback.type === "success"
-            ? "tasks-section__feedback--success"
-            : "tasks-section__feedback--error"
-            }`}
+          className={`tasks-section__feedback ${
+            feedback.type === "success"
+              ? "tasks-section__feedback--success"
+              : "tasks-section__feedback--error"
+          }`}
         >
           {feedback.message}
         </div>
@@ -1664,8 +1699,9 @@ export default function TasksSection({
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
-                  }`}
+                className={`tasks-section__tab ${
+                  activeTab === tab.key ? "tasks-section__tab--active" : ""
+                }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -1872,8 +1908,8 @@ export default function TasksSection({
                                 ) : (
                                   getInitials(
                                     previewUser?.fullName ??
-                                    previewUser?.name ??
-                                    task.assignedUserName
+                                      previewUser?.name ??
+                                      task.assignedUserName
                                   )
                                 )}
                               </div>
@@ -2035,7 +2071,10 @@ export default function TasksSection({
                             <strong>
                               <span className="tasks-section__date-range-text">
                                 {editFormState?.startDate || editFormState?.dueDate
-                                  ? formatDateRange(editFormState.startDate, editFormState.dueDate)
+                                  ? formatDateRange(
+                                      editFormState.startDate,
+                                      editFormState.dueDate
+                                    )
                                   : "Select date range"}
                               </span>
                               <span
@@ -2105,7 +2144,11 @@ export default function TasksSection({
                                     className="tasks-section__action-btn tasks-section__action-btn--approve"
                                     title="Mark as approved"
                                     onClick={() =>
-                                      updateTaskStatus(task, approvedStatusId, "Task marked as approved.")
+                                      updateTaskStatus(
+                                        task,
+                                        approvedStatusId,
+                                        "Task marked as approved."
+                                      )
                                     }
                                     disabled={!approvedStatusId}
                                   >
@@ -2117,7 +2160,11 @@ export default function TasksSection({
                                     className="tasks-section__action-btn tasks-section__action-btn--danger"
                                     title="Reject task"
                                     onClick={() =>
-                                      updateTaskStatus(task, rejectedStatusId, "Task marked as rejected.")
+                                      updateTaskStatus(
+                                        task,
+                                        rejectedStatusId,
+                                        "Task marked as rejected."
+                                      )
                                     }
                                     disabled={!rejectedStatusId}
                                   >
@@ -2196,10 +2243,11 @@ export default function TasksSection({
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber
-                    ? "tasks-section__page-btn--active"
-                    : ""
-                    }`}
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
+                    currentPage === pageNumber
+                      ? "tasks-section__page-btn--active"
+                      : ""
+                  }`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
@@ -2248,16 +2296,18 @@ export default function TasksSection({
 
             <div className="tasks-section__stepper">
               <div
-                className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""
-                  }`}
+                className={`tasks-section__step ${
+                  createStep === 1 ? "tasks-section__step--active" : ""
+                }`}
               >
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
               <div
-                className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""
-                  }`}
+                className={`tasks-section__step ${
+                  createStep === 2 ? "tasks-section__step--active" : ""
+                }`}
               >
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
@@ -2333,19 +2383,21 @@ export default function TasksSection({
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${isSelected
-                                  ? "tasks-section__member-row--selected"
-                                  : ""
-                                  }`}
+                                className={`tasks-section__member-row ${
+                                  isSelected
+                                    ? "tasks-section__member-row--selected"
+                                    : ""
+                                }`}
                                 onClick={() =>
                                   handleFormChange("assignedUserId", String(userId))
                                 }
                               >
                                 <span
-                                  className={`tasks-section__member-check ${isSelected
-                                    ? "tasks-section__member-check--selected"
-                                    : ""
-                                    }`}
+                                  className={`tasks-section__member-check ${
+                                    isSelected
+                                      ? "tasks-section__member-check--selected"
+                                      : ""
+                                  }`}
                                 >
                                   {isSelected ? "✓" : ""}
                                 </span>
@@ -2681,18 +2733,20 @@ export default function TasksSection({
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${isSelected ? "tasks-section__member-row--selected" : ""
-                          }`}
+                        className={`tasks-section__member-row ${
+                          isSelected ? "tasks-section__member-row--selected" : ""
+                        }`}
                         onClick={() => {
                           handleEditFormChange("assignedUserId", String(userId));
                           closeEditAssigneeModal();
                         }}
                       >
                         <span
-                          className={`tasks-section__member-check ${isSelected
-                            ? "tasks-section__member-check--selected"
-                            : ""
-                            }`}
+                          className={`tasks-section__member-check ${
+                            isSelected
+                              ? "tasks-section__member-check--selected"
+                              : ""
+                          }`}
                         >
                           {isSelected ? "✓" : ""}
                         </span>
