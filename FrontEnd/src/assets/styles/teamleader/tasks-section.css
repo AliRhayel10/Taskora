@@ -1577,12 +1577,12 @@
 
 .tasks-section__table thead th:nth-child(1),
 .tasks-section__table tbody td:nth-child(1) {
-    width: 17%;
+    width: 15%;
 }
 
 .tasks-section__table thead th:nth-child(2),
 .tasks-section__table tbody td:nth-child(2) {
-    width: 17%;
+    width: 15%;
 }
 
 .tasks-section__table thead th:nth-child(3),
@@ -1602,13 +1602,13 @@
 
 .tasks-section__table thead th:nth-child(6),
 .tasks-section__table tbody td:nth-child(6) {
-    width: 6%;
+    width: 5%;
 }
 
 .tasks-section__table thead th:nth-child(7),
 .tasks-section__table tbody td:nth-child(7) {
-    width: 13%;
-    min-width: 170px;
+    width: 15%;
+    min-width: 190px;
 }
 
 .tasks-section__table thead th:nth-child(8),
