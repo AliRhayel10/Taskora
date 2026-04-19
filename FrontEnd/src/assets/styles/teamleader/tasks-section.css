@@ -1240,6 +1240,10 @@
   transform: translateY(-1px);
 }
 
+body.dark .tasks-section__title-line {
+  background: #94a3b8;
+}
+
 .tasks-section__modal-header {
   display: flex;
   align-items: flex-start;
