@@ -199,31 +199,130 @@ async function fetchFirstSuccessful(urls) {
   return { ok: false, data: [] };
 }
 
-function buildDonutStyle(segments) {
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+function getPluralLabel(count, singular, plural = `${singular}s`) {
+  return count === 1 ? singular : plural;
+}
 
-  if (!total) {
-    return {
-      background: "conic-gradient(#e2e8f0 0deg 360deg)",
-    };
-  }
-
-  let currentAngle = 0;
-  const stops = segments.map((segment) => {
-    const sliceAngle = (segment.value / total) * 360;
-    const start = currentAngle;
-    const end = currentAngle + sliceAngle;
-    currentAngle = end;
-    return `${segment.color} ${start}deg ${end}deg`;
-  });
-
+function polarToCartesian(cx, cy, radius, angleInDegrees) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
   return {
-    background: `conic-gradient(${stops.join(", ")})`,
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians),
   };
 }
 
-function getPluralLabel(count, singular, plural = `${singular}s`) {
-  return count === 1 ? singular : plural;
+function describeArc(cx, cy, radius, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+
+  return [
+    "M",
+    start.x,
+    start.y,
+    "A",
+    radius,
+    radius,
+    0,
+    largeArcFlag,
+    0,
+    end.x,
+    end.y,
+  ].join(" ");
+}
+
+function buildDonutSegments(segments) {
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+
+  if (!total) return [];
+
+  let currentAngle = 0;
+
+  return segments
+    .filter((segment) => segment.value > 0)
+    .map((segment) => {
+      const sweepAngle = (segment.value / total) * 360;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + sweepAngle;
+      const midAngle = startAngle + sweepAngle / 2;
+
+      currentAngle = endAngle;
+
+      return {
+        ...segment,
+        sweepAngle,
+        startAngle,
+        endAngle,
+        midAngle,
+      };
+    });
+}
+
+function TaskSummaryDonut({ segments, totalTasks }) {
+  const size = 230;
+  const center = size / 2;
+  const radius = 83;
+  const strokeWidth = 44;
+  const labelRadius = 83;
+  const donutSegments = buildDonutSegments(segments);
+
+  return (
+    <div className="dashboard-section__donut-wrap">
+      <div className="dashboard-section__donut" role="img" aria-label="Task status distribution chart">
+        <svg
+          className="dashboard-section__donut-svg"
+          viewBox={`0 0 ${size} ${size}`}
+          aria-hidden="true"
+        >
+          <circle
+            className="dashboard-section__donut-track"
+            cx={center}
+            cy={center}
+            r={radius}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+
+          {donutSegments.map((segment) => (
+            <path
+              key={segment.key}
+              d={describeArc(center, center, radius, segment.startAngle, segment.endAngle)}
+              fill="none"
+              stroke={segment.color}
+              strokeWidth={strokeWidth}
+              strokeLinecap="butt"
+            />
+          ))}
+
+          {donutSegments.map((segment) => {
+            if (segment.sweepAngle < 18) {
+              return null;
+            }
+
+            const labelPosition = polarToCartesian(center, center, labelRadius, segment.midAngle);
+
+            return (
+              <text
+                key={`${segment.key}-label`}
+                x={labelPosition.x}
+                y={labelPosition.y}
+                className="dashboard-section__donut-segment-label"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {segment.percentage}%
+              </text>
+            );
+          })}
+        </svg>
+
+        <div className="dashboard-section__donut-center">
+          <strong>{totalTasks}</strong>
+          <span>Total tasks</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardSection({ searchValue = "" }) {
@@ -491,17 +590,10 @@ export default function DashboardSection({ searchValue = "" }) {
                 </div>
 
                 <div className="dashboard-section__task-summary-body">
-                  <div className="dashboard-section__donut-wrap">
-                    <div
-                      className="dashboard-section__donut"
-                      style={buildDonutStyle(dashboardData.taskSummary)}
-                    >
-                      <div className="dashboard-section__donut-center">
-                        <strong>{dashboardData.stats.tasks}</strong>
-                        <span>Total tasks</span>
-                      </div>
-                    </div>
-                  </div>
+                  <TaskSummaryDonut
+                    segments={dashboardData.taskSummary}
+                    totalTasks={dashboardData.stats.tasks}
+                  />
 
                   {dashboardData.taskSummary.length === 0 ? (
                     <div className="dashboard-section__empty dashboard-section__empty--compact">
@@ -516,7 +608,6 @@ export default function DashboardSection({ searchValue = "" }) {
                             style={{ backgroundColor: item.color }}
                           ></span>
                           <div className="dashboard-section__summary-copy">
-                            <strong>{item.percentage}%</strong>
                             <span>{item.label}</span>
                             <small>
                               {item.value} {getPluralLabel(item.value, "task")}
