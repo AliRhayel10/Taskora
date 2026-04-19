@@ -883,3 +883,131 @@ body.dark .teamleader-dashboard-section__workload-line {
     font-size: 0.84rem;
   }
 }
+
+/* Tasks-style custom month selector for dashboard range */
+.teamleader-dashboard-section__range-dropdown {
+  max-height: min(calc(100vh - 120px), 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 12px 12px;
+  scrollbar-width: thin;
+}
+
+.teamleader-dashboard-section__custom-range {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teamleader-dashboard-section__apply-btn-wrap {
+  position: sticky;
+  bottom: 0;
+  margin-top: 2px;
+  padding: 8px 0 0;
+  background: linear-gradient(to bottom, rgba(248, 250, 252, 0), #f8fafc 22%, #f8fafc 100%);
+}
+
+.teamleader-dashboard-section__custom-range-preview {
+  min-height: 36px;
+  font-size: 0.84rem;
+}
+
+.teamleader-dashboard-section__month-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.7fr);
+  gap: 8px;
+}
+
+.teamleader-dashboard-section__month-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.teamleader-dashboard-section__month-picker-field label {
+  color: #475467;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.teamleader-dashboard-section__month-picker-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.teamleader-dashboard-section__month-picker-select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0 38px 0 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.teamleader-dashboard-section__month-picker-select:hover {
+  background: #f8fbff;
+  border-color: #93c5fd;
+}
+
+.teamleader-dashboard-section__month-picker-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.teamleader-dashboard-section__month-picker-select-wrap svg {
+  position: absolute;
+  right: 12px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.teamleader-dashboard-section__calendar-shell {
+  padding: 8px;
+}
+
+.teamleader-dashboard-section__day-picker .rdp {
+  --rdp-cell-size: 34px;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-caption {
+  padding: 0 2px 6px;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-caption_label {
+  font-size: 0.92rem;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-head_cell,
+.teamleader-dashboard-section__day-picker .rdp-weekday {
+  font-size: 0.72rem;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-day_button {
+  width: 30px;
+  height: 30px;
+  font-size: 0.84rem;
+}
+
+.teamleader-dashboard-section__day-picker .rdp-nav_button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+@media (max-width: 560px) {
+  .teamleader-dashboard-section__month-picker-row {
+    grid-template-columns: 1fr;
+  }
+}

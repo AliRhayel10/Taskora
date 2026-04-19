@@ -12,7 +12,7 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
-import { format } from "date-fns";
+import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
 import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
@@ -56,6 +56,61 @@ function getWeekRange(offsetWeeks = 0) {
     start: weekStart,
     end: endOfDay(weekEnd),
   };
+}
+
+function getMonthRange(monthDate) {
+  const base = startOfMonth(monthDate || new Date());
+  return {
+    start: startOfDay(base),
+    end: endOfDay(endOfMonth(base)),
+  };
+}
+
+function isFullMonthRange(range) {
+  if (!(range?.from instanceof Date) || !(range?.to instanceof Date)) return false;
+
+  const monthStart = startOfMonth(range.from);
+  const monthEnd = endOfMonth(range.from);
+
+  return (
+    startOfDay(range.from).getTime() === startOfDay(monthStart).getTime() &&
+    endOfDay(range.to).getTime() === endOfDay(monthEnd).getTime() &&
+    range.from.getMonth() === range.to.getMonth() &&
+    range.from.getFullYear() === range.to.getFullYear()
+  );
+}
+
+function formatMonthYearText(date) {
+  return format(date, "MMMM yyyy");
+}
+
+function getInitialCalendarMonth(selectedPreset, customRange) {
+  if (
+    selectedPreset === "custom" &&
+    customRange?.from instanceof Date &&
+    !Number.isNaN(customRange.from.getTime())
+  ) {
+    return startOfMonth(customRange.from);
+  }
+
+  return startOfMonth(new Date());
+}
+
+function buildYearOptions(tasks) {
+  const currentYear = new Date().getFullYear();
+  const candidateYears = [];
+
+  for (const task of Array.isArray(tasks) ? tasks : []) {
+    const start = parseApiDate(task?.startDate);
+    const due = parseApiDate(task?.dueDate);
+    if (start) candidateYears.push(start.getFullYear())
+    if (due) candidateYears.push(due.getFullYear())
+  }
+
+  const earliestDataYear = candidateYears.length ? Math.min(...candidateYears) : currentYear - 5;
+  const startYear = Math.min(earliestDataYear, currentYear);
+  const endYear = currentYear + 5;
+  return Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index);
 }
 
 function loadRangeState() {
@@ -407,6 +462,12 @@ export default function TeamLeaderDashboardSection({
     from: null,
     to: null,
   });
+  const [draftCalendarMonth, setDraftCalendarMonth] = useState(
+    getInitialCalendarMonth(
+      initialRangeState.selectedPreset,
+      initialRangeState.customRange
+    )
+  );
 
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
 
@@ -429,11 +490,15 @@ export default function TeamLeaderDashboardSection({
         from: customRange?.from || null,
         to: customRange?.to || null,
       });
+      setDraftCalendarMonth(
+        getInitialCalendarMonth(selectedPreset, customRange)
+      );
     } else {
       setDraftCustomRange({
         from: null,
         to: null,
       });
+      setDraftCalendarMonth(startOfMonth(new Date()));
     }
   };
 
@@ -479,6 +544,10 @@ export default function TeamLeaderDashboardSection({
       customRange?.from instanceof Date &&
       customRange?.to instanceof Date
     ) {
+      if (isFullMonthRange(customRange)) {
+        return formatMonthYearText(customRange.from);
+      }
+
       return `${formatDateText(customRange.from)} - ${formatDateText(
         customRange.to
       )}`;
@@ -486,6 +555,28 @@ export default function TeamLeaderDashboardSection({
 
     return getRangeLabel(selectedPreset);
   }, [selectedPreset, customRange]);
+
+  const draftRangePreview = useMemo(() => {
+    if (
+      draftCustomRange?.from instanceof Date &&
+      draftCustomRange?.to instanceof Date
+    ) {
+      if (isFullMonthRange(draftCustomRange)) {
+        return formatMonthYearText(draftCustomRange.from);
+      }
+
+      return `${formatDateText(draftCustomRange.from)} - ${formatDateText(
+        draftCustomRange.to
+      )}`;
+    }
+
+    return formatMonthYearText(draftCalendarMonth);
+  }, [draftCalendarMonth, draftCustomRange]);
+
+  const yearOptions = useMemo(() => buildYearOptions(tasks), [tasks]);
+
+  const selectedMonthIndex = draftCalendarMonth.getMonth();
+  const selectedYearValue = draftCalendarMonth.getFullYear();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -798,6 +889,7 @@ export default function TeamLeaderDashboardSection({
         from: null,
         to: null,
       });
+      setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
       return;
     }
 
@@ -815,6 +907,10 @@ export default function TeamLeaderDashboardSection({
       to: null,
     });
 
+    if (preset === "custom") {
+      setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
+    }
+
     setSelectedPreset(preset);
     setCustomRange({
       from: nextRange.start,
@@ -829,22 +925,46 @@ export default function TeamLeaderDashboardSection({
       from: range?.from || null,
       to: range?.to || null,
     });
+
+    if (range?.from instanceof Date) {
+      setDraftCalendarMonth(startOfMonth(range.from));
+    }
+  };
+
+  const handleDraftMonthChange = (monthIndex) => {
+    const nextMonth = startOfMonth(
+      setMonth(new Date(draftCalendarMonth), Number(monthIndex))
+    );
+    setDraftCalendarMonth(nextMonth);
+    setDraftPreset("custom");
+    setDraftCustomRange({ from: null, to: null });
+  };
+
+  const handleDraftYearChange = (yearValue) => {
+    const nextMonth = startOfMonth(
+      setYear(new Date(draftCalendarMonth), Number(yearValue))
+    );
+    setDraftCalendarMonth(nextMonth);
+    setDraftPreset("custom");
+    setDraftCustomRange({ from: null, to: null });
   };
 
   const handleApplyCustomRange = () => {
-    if (!draftCustomRange?.from || !draftCustomRange?.to) return;
+    const nextRange =
+      draftCustomRange?.from instanceof Date &&
+      draftCustomRange?.to instanceof Date
+        ? {
+            from: startOfDay(draftCustomRange.from),
+            to: endOfDay(draftCustomRange.to),
+          }
+        : {
+            from: getMonthRange(draftCalendarMonth).start,
+            to: getMonthRange(draftCalendarMonth).end,
+          };
 
     setSelectedPreset("custom");
-    setCustomRange({
-      from: startOfDay(draftCustomRange.from),
-      to: endOfDay(draftCustomRange.to),
-    });
+    setCustomRange(nextRange);
     setIsRangeMenuOpen(false);
-
-    setDraftCustomRange({
-      from: null,
-      to: null,
-    });
   };
 
   return (
@@ -924,18 +1044,54 @@ export default function TeamLeaderDashboardSection({
                     </div>
 
                     <div className="teamleader-dashboard-section__custom-range-preview">
-                      {draftCustomRange?.from
-                        ? formatDateText(draftCustomRange.from)
-                        : "Start"}{" "}
-                      <span>to</span>{" "}
-                      {draftCustomRange?.to
-                        ? formatDateText(draftCustomRange.to)
-                        : "End"}
+                      {draftRangePreview}
+                    </div>
+
+                    <div className="teamleader-dashboard-section__month-picker-row">
+                      <div className="teamleader-dashboard-section__month-picker-field">
+                        <label htmlFor="teamleader-dashboard-month-select">Month</label>
+                        <div className="teamleader-dashboard-section__month-picker-select-wrap">
+                          <select
+                            id="teamleader-dashboard-month-select"
+                            className="teamleader-dashboard-section__month-picker-select"
+                            value={selectedMonthIndex}
+                            onChange={(event) => handleDraftMonthChange(event.target.value)}
+                          >
+                            {Array.from({ length: 12 }, (_, index) => (
+                              <option key={index} value={index}>
+                                {format(new Date(2026, index, 1), "MMMM")}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+
+                      <div className="teamleader-dashboard-section__month-picker-field">
+                        <label htmlFor="teamleader-dashboard-year-select">Year</label>
+                        <div className="teamleader-dashboard-section__month-picker-select-wrap">
+                          <select
+                            id="teamleader-dashboard-year-select"
+                            className="teamleader-dashboard-section__month-picker-select"
+                            value={selectedYearValue}
+                            onChange={(event) => handleDraftYearChange(event.target.value)}
+                          >
+                            {yearOptions.map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="teamleader-dashboard-section__calendar-shell">
                       <DayPicker
                         mode="range"
+                        month={draftCalendarMonth}
+                        onMonthChange={(month) => setDraftCalendarMonth(startOfMonth(month))}
                         selected={draftCustomRange}
                         onSelect={handleCustomRangeSelect}
                         showOutsideDays={false}
@@ -950,14 +1106,15 @@ export default function TeamLeaderDashboardSection({
                       />
                     </div>
 
-                    <button
-                      type="button"
-                      className="teamleader-dashboard-section__apply-btn"
-                      onClick={handleApplyCustomRange}
-                      disabled={!draftCustomRange?.from || !draftCustomRange?.to}
-                    >
-                      Apply Range
-                    </button>
+                    <div className="teamleader-dashboard-section__apply-btn-wrap">
+                      <button
+                        type="button"
+                        className="teamleader-dashboard-section__apply-btn"
+                        onClick={handleApplyCustomRange}
+                      >
+                        Apply Range
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
