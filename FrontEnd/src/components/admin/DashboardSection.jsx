@@ -1177,33 +1177,36 @@ export default function DashboardSection({ searchValue = "" }) {
                 </div>
 
                 <div className="dashboard-section__task-summary-body">
-                  <TaskSummaryDonut
-                    segments={dashboardData.taskSummary}
-                    totalTasks={dashboardData.stats.tasks}
-                  />
+                  <div className="dashboard-section__task-summary-layout">
+                    <div className="dashboard-section__task-summary-chart-side">
+                      <TaskSummaryDonut
+                        segments={dashboardData.taskSummary}
+                        totalTasks={dashboardData.stats.tasks}
+                      />
+                    </div>
 
-                  {dashboardData.taskSummary.length === 0 ? (
-                    <div className="dashboard-section__empty dashboard-section__empty--compact">
-                      <span>No task statuses available yet.</span>
-                    </div>
-                  ) : (
-                    <div className="dashboard-section__summary-grid">
-                      {dashboardData.taskSummary.map((item) => (
-                        <div key={item.key} className="dashboard-section__summary-item">
-                          <span
-                            className="dashboard-section__summary-dot"
-                            style={{ backgroundColor: item.color }}
-                          ></span>
-                          <div className="dashboard-section__summary-copy">
-                            <span>{item.label}</span>
-                            <small>
-                              {item.value} {getPluralLabel(item.value, "task")}
-                            </small>
-                          </div>
+                    <div className="dashboard-section__task-summary-status-side">
+                      {dashboardData.taskSummary.length === 0 ? (
+                        <div className="dashboard-section__empty dashboard-section__empty--compact">
+                          <span>No task statuses available yet.</span>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="dashboard-section__summary-grid">
+                          {dashboardData.taskSummary.map((item) => (
+                            <div key={item.key} className="dashboard-section__summary-item">
+                              <span
+                                className="dashboard-section__summary-dot"
+                                style={{ backgroundColor: item.color }}
+                              ></span>
+                              <div className="dashboard-section__summary-copy">
+                                <span>{item.label}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </article>
 
