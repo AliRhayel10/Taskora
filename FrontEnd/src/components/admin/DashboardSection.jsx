@@ -3,6 +3,7 @@ import {
   FiActivity,
   FiAlertCircle,
   FiCheckSquare,
+  FiChevronDown,
   FiLayers,
   FiMoreHorizontal,
   FiTrendingUp,
@@ -33,6 +34,13 @@ const FALLBACK_STATUS_COLORS = [
   "#ec4899",
   "#f97316",
   "#6366f1",
+];
+
+const CHART_PERIOD_OPTIONS = [
+  { value: "this-week", label: "This Week" },
+  { value: "this-month", label: "This Month" },
+  { value: "last-30-days", label: "Last 30 Days" },
+  { value: "all-time", label: "All Time" },
 ];
 
 function getStoredUser() {
@@ -91,6 +99,18 @@ function normalizeStatusesResponse(data) {
   if (Array.isArray(data?.data?.result)) return data.data.result;
   if (Array.isArray(data?.result)) return data.result;
   if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+
+function normalizePrioritiesResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.priorities)) return data.priorities;
+  if (Array.isArray(data?.priority)) return data.priority;
+  if (Array.isArray(data?.data?.priorities)) return data.data.priorities;
+  if (Array.isArray(data?.data?.result)) return data.data.result;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
   return [];
 }
 
@@ -164,6 +184,107 @@ function getStatusOrder(status, fallbackIndex) {
   return Number.isFinite(Number(rawOrder)) ? Number(rawOrder) : fallbackIndex;
 }
 
+function getPriorityId(priority) {
+  const rawId =
+    priority?.priorityId ??
+    priority?.PriorityId ??
+    priority?.id ??
+    priority?.Id ??
+    null;
+
+  return rawId === null || rawId === undefined || rawId === "" ? null : String(rawId);
+}
+
+function getPriorityName(priority) {
+  return String(
+    priority?.priorityName ||
+      priority?.PriorityName ||
+      priority?.name ||
+      priority?.Name ||
+      priority?.title ||
+      priority?.Title ||
+      ""
+  ).trim();
+}
+
+function getPriorityOrder(priority, fallbackIndex) {
+  const rawOrder = priority?.displayOrder ?? priority?.DisplayOrder ?? priority?.order ?? priority?.Order;
+  return Number.isFinite(Number(rawOrder)) ? Number(rawOrder) : fallbackIndex;
+}
+
+function getTaskPriorityId(task) {
+  const rawId =
+    task?.priorityId ??
+    task?.PriorityId ??
+    task?.taskPriorityId ??
+    task?.TaskPriorityId ??
+    task?.priority?.priorityId ??
+    task?.priority?.PriorityId ??
+    task?.taskPriority?.priorityId ??
+    task?.taskPriority?.PriorityId ??
+    null;
+
+  return rawId === null || rawId === undefined || rawId === "" ? null : String(rawId);
+}
+
+function getTaskPriorityName(task) {
+  return String(
+    task?.priorityName ||
+      task?.PriorityName ||
+      task?.priority?.priorityName ||
+      task?.priority?.PriorityName ||
+      task?.priority?.name ||
+      task?.priority?.Name ||
+      task?.taskPriority?.priorityName ||
+      task?.taskPriority?.PriorityName ||
+      task?.taskPriority?.name ||
+      task?.taskPriority?.Name ||
+      ""
+  ).trim();
+}
+
+function getTeamId(team) {
+  const rawId = team?.teamId ?? team?.TeamId ?? team?.id ?? team?.Id ?? null;
+  return rawId === null || rawId === undefined || rawId === "" ? null : String(rawId);
+}
+
+function getTeamName(team) {
+  return String(
+    team?.teamName ||
+      team?.TeamName ||
+      team?.name ||
+      team?.Name ||
+      ""
+  ).trim();
+}
+
+function getTaskTeamId(task) {
+  const rawId =
+    task?.teamId ??
+    task?.TeamId ??
+    task?.team?.teamId ??
+    task?.team?.TeamId ??
+    task?.assignedTeamId ??
+    task?.AssignedTeamId ??
+    null;
+
+  return rawId === null || rawId === undefined || rawId === "" ? null : String(rawId);
+}
+
+function getTaskTeamName(task) {
+  return String(
+    task?.teamName ||
+      task?.TeamName ||
+      task?.team?.teamName ||
+      task?.team?.TeamName ||
+      task?.team?.name ||
+      task?.team?.Name ||
+      task?.assignedTeamName ||
+      task?.AssignedTeamName ||
+      ""
+  ).trim();
+}
+
 function isCompletedStatus(status) {
   const normalized = normalizeStatus(status);
   return [
@@ -175,6 +296,10 @@ function isCompletedStatus(status) {
     "resolved",
     "approved",
   ].includes(normalized);
+}
+
+function isApprovedStatus(status) {
+  return normalizeStatus(status) === "approved";
 }
 
 function getStatusColor(statusName, index) {
@@ -258,6 +383,111 @@ function buildDonutSegments(segments) {
     });
 }
 
+function getTaskRelevantDate(task) {
+  const rawDate =
+    task?.approvedAt ||
+    task?.ApprovedAt ||
+    task?.completedAt ||
+    task?.CompletedAt ||
+    task?.doneAt ||
+    task?.DoneAt ||
+    task?.closedAt ||
+    task?.ClosedAt ||
+    task?.updatedAt ||
+    task?.UpdatedAt ||
+    task?.modifiedAt ||
+    task?.ModifiedAt ||
+    task?.createdAt ||
+    task?.CreatedAt ||
+    task?.date ||
+    task?.Date ||
+    null;
+
+  const parsed = rawDate ? new Date(rawDate) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+}
+
+function formatShortDate(date) {
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function toDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function startOfDay(date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function addDays(date, amount) {
+  const value = new Date(date);
+  value.setDate(value.getDate() + amount);
+  return value;
+}
+
+function getDateRange(period, tasksWithDates) {
+  const today = startOfDay(new Date());
+
+  if (period === "this-week") {
+    const day = today.getDay();
+    const diffToMonday = (day + 6) % 7;
+    const start = addDays(today, -diffToMonday);
+    return { start, end: today, pointsLimit: 7 };
+  }
+
+  if (period === "this-month") {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { start, end: today, pointsLimit: 31 };
+  }
+
+  if (period === "last-30-days") {
+    const start = addDays(today, -29);
+    return { start, end: today, pointsLimit: 30 };
+  }
+
+  const datedTasks = tasksWithDates.filter((item) => item.date instanceof Date);
+  if (datedTasks.length === 0) {
+    return { start: addDays(today, -6), end: today, pointsLimit: 7 };
+  }
+
+  const sortedDates = datedTasks.map((item) => item.date).sort((a, b) => a - b);
+  return {
+    start: startOfDay(sortedDates[0]),
+    end: startOfDay(sortedDates[sortedDates.length - 1]),
+    pointsLimit: Math.max(7, Math.min(60, sortedDates.length)),
+  };
+}
+
+function buildSmoothedLinePath(points) {
+  if (!points.length) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  let path = `M ${points[0].x} ${points[0].y}`;
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    const controlX = (current.x + next.x) / 2;
+
+    path += ` C ${controlX} ${current.y}, ${controlX} ${next.y}, ${next.x} ${next.y}`;
+  }
+
+  return path;
+}
+
+function buildAreaPath(points, baseY) {
+  if (!points.length) return "";
+  return `${buildSmoothedLinePath(points)} L ${points[points.length - 1].x} ${baseY} L ${points[0].x} ${baseY} Z`;
+}
+
 function TaskSummaryDonut({ segments, totalTasks }) {
   const size = 230;
   const center = size / 2;
@@ -325,11 +555,108 @@ function TaskSummaryDonut({ segments, totalTasks }) {
   );
 }
 
+function TasksCompletedChart({ dataPoints }) {
+  const width = 920;
+  const height = 380;
+  const margin = { top: 16, right: 20, bottom: 58, left: 20 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  const baseY = margin.top + chartHeight;
+  const maxValue = Math.max(...dataPoints.map((point) => point.value), 0);
+  const normalizedMax = maxValue > 0 ? maxValue : 1;
+  const gridRows = 4;
+
+  const points = dataPoints.map((point, index) => {
+    const x =
+      margin.left +
+      (dataPoints.length === 1 ? chartWidth / 2 : (index / (dataPoints.length - 1)) * chartWidth);
+    const y = margin.top + chartHeight - (point.value / normalizedMax) * (chartHeight * 0.82);
+
+    return {
+      ...point,
+      x,
+      y,
+    };
+  });
+
+  const linePath = buildSmoothedLinePath(points);
+  const areaPath = buildAreaPath(points, baseY);
+
+  return (
+    <div className="dashboard-section__tasks-chart-wrap">
+      <svg
+        className="dashboard-section__tasks-chart"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Approved tasks chart"
+      >
+        <defs>
+          <linearGradient id="dashboardApprovedGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#84cc16" stopOpacity="0.42" />
+            <stop offset="100%" stopColor="#84cc16" stopOpacity="0.03" />
+          </linearGradient>
+        </defs>
+
+        {Array.from({ length: gridRows + 1 }).map((_, index) => {
+          const y = margin.top + (chartHeight / gridRows) * index;
+          return (
+            <line
+              key={`row-${index}`}
+              x1={margin.left}
+              y1={y}
+              x2={margin.left + chartWidth}
+              y2={y}
+              className="dashboard-section__tasks-chart-grid"
+            />
+          );
+        })}
+
+        {points.map((point) => (
+          <line
+            key={`col-${point.key}`}
+            x1={point.x}
+            y1={margin.top}
+            x2={point.x}
+            y2={baseY}
+            className="dashboard-section__tasks-chart-grid dashboard-section__tasks-chart-grid--vertical"
+          />
+        ))}
+
+        {areaPath ? (
+          <path d={areaPath} className="dashboard-section__tasks-chart-area" fill="url(#dashboardApprovedGradient)" />
+        ) : null}
+
+        {linePath ? <path d={linePath} className="dashboard-section__tasks-chart-line" /> : null}
+
+        {points.map((point) => (
+          <g key={point.key}>
+            <circle className="dashboard-section__tasks-chart-point-ring" cx={point.x} cy={point.y} r="9.5" />
+            <circle className="dashboard-section__tasks-chart-point" cx={point.x} cy={point.y} r="6" />
+            <text
+              x={point.x}
+              y={height - 18}
+              textAnchor="middle"
+              className="dashboard-section__tasks-chart-label"
+            >
+              {point.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 export default function DashboardSection({ searchValue = "" }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskStatuses, setTaskStatuses] = useState([]);
+  const [priorities, setPriorities] = useState([]);
+  const [selectedPriority, setSelectedPriority] = useState("all");
+  const [selectedPeriod, setSelectedPeriod] = useState("this-week");
+  const [selectedTeam, setSelectedTeam] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const currentUser = useMemo(() => getStoredUser(), []);
@@ -343,6 +670,7 @@ export default function DashboardSection({ searchValue = "" }) {
         setTeams([]);
         setTasks([]);
         setTaskStatuses([]);
+        setPriorities([]);
         setLoading(false);
         return;
       }
@@ -356,7 +684,7 @@ export default function DashboardSection({ searchValue = "" }) {
           pageNumber: "1",
         });
 
-        const [usersResult, teamsResult, tasksResult, statusesResult] = await Promise.all([
+        const [usersResult, teamsResult, tasksResult, statusesResult, prioritiesResult] = await Promise.all([
           fetchFirstSuccessful([
             `${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}/members`,
             `${API_BASE_URL}/api/auth/company-users/${encodeURIComponent(companyId)}?${usersParams.toString()}`,
@@ -367,18 +695,27 @@ export default function DashboardSection({ searchValue = "" }) {
           fetchFirstSuccessful([`${API_BASE_URL}/api/teams/company/${encodeURIComponent(companyId)}`]),
           fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/company/${encodeURIComponent(companyId)}`]),
           fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/statuses/${encodeURIComponent(companyId)}`]),
+          fetchFirstSuccessful([
+            `${API_BASE_URL}/api/tasks/priorities/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/priorities/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/task-priorities/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/taskpriorities/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/tasks/company/${encodeURIComponent(companyId)}/priorities`,
+          ]),
         ]);
 
         setUsers(normalizeUsersResponse(usersResult.data));
         setTeams(normalizeTeamsResponse(teamsResult.data));
         setTasks(normalizeTasksResponse(tasksResult.data));
         setTaskStatuses(normalizeStatusesResponse(statusesResult.data));
+        setPriorities(normalizePrioritiesResponse(prioritiesResult.data));
       } catch (error) {
         console.error("Failed to load dashboard:", error);
         setUsers([]);
         setTeams([]);
         setTasks([]);
         setTaskStatuses([]);
+        setPriorities([]);
       } finally {
         setLoading(false);
       }
@@ -452,19 +789,149 @@ export default function DashboardSection({ searchValue = "" }) {
           }
         );
 
+    const orderedPriorityOptions = priorities
+      .map((priority, index) => ({
+        id: getPriorityId(priority),
+        label: getPriorityName(priority),
+        order: getPriorityOrder(priority, index),
+      }))
+      .filter((priority) => priority.label)
+      .sort((a, b) => a.order - b.order);
+
+    const fallbackPriorityMap = new Map();
+    tasks.forEach((task) => {
+      const taskPriorityName = getTaskPriorityName(task);
+      if (!taskPriorityName) return;
+      const normalized = normalizeStatus(taskPriorityName);
+      if (!fallbackPriorityMap.has(normalized)) {
+        fallbackPriorityMap.set(normalized, {
+          id: getTaskPriorityId(task) || normalized,
+          label: taskPriorityName,
+        });
+      }
+    });
+
+    const priorityOptions = orderedPriorityOptions.length > 0
+      ? orderedPriorityOptions
+      : Array.from(fallbackPriorityMap.values()).map((priority, index) => ({
+          ...priority,
+          order: index,
+        }));
+
+    const orderedTeamOptions = teams
+      .map((team, index) => ({
+        id: getTeamId(team),
+        label: getTeamName(team),
+        order: index,
+      }))
+      .filter((team) => team.label);
+
+    const fallbackTeamMap = new Map();
+    tasks.forEach((task) => {
+      const taskTeamName = getTaskTeamName(task);
+      if (!taskTeamName) return;
+      const id = getTaskTeamId(task) || normalizeStatus(taskTeamName);
+      if (!fallbackTeamMap.has(id)) {
+        fallbackTeamMap.set(id, { id, label: taskTeamName });
+      }
+    });
+
+    const teamOptions = orderedTeamOptions.length > 0
+      ? orderedTeamOptions
+      : Array.from(fallbackTeamMap.values()).map((team, index) => ({
+          ...team,
+          order: index,
+        }));
+
+    const approvedTasks = tasks
+      .filter((task) => isApprovedStatus(getTaskStatus(task)))
+      .map((task) => ({
+        task,
+        date: getTaskRelevantDate(task),
+        priorityId: getTaskPriorityId(task),
+        priorityName: getTaskPriorityName(task),
+        teamId: getTaskTeamId(task),
+        teamName: getTaskTeamName(task),
+      }));
+
+    const priorityFilteredApprovedTasks = approvedTasks.filter((item) => {
+      if (selectedPriority === "all") return true;
+
+      const normalizedTaskPriority = normalizeStatus(item.priorityName);
+      return item.priorityId === selectedPriority || normalizedTaskPriority === selectedPriority;
+    });
+
+    const teamFilteredApprovedTasks = priorityFilteredApprovedTasks.filter((item) => {
+      if (selectedTeam === "all") return true;
+      return item.teamId === selectedTeam || normalizeStatus(item.teamName) === selectedTeam;
+    });
+
+    const range = getDateRange(selectedPeriod, teamFilteredApprovedTasks);
+    const startTime = startOfDay(range.start).getTime();
+    const endTime = startOfDay(range.end).getTime();
+    const bucketMap = new Map();
+
+    for (let time = startTime; time <= endTime; time += 24 * 60 * 60 * 1000) {
+      const bucketDate = new Date(time);
+      bucketMap.set(toDateKey(bucketDate), {
+        key: toDateKey(bucketDate),
+        date: bucketDate,
+        label: formatShortDate(bucketDate),
+        value: 0,
+      });
+    }
+
+    teamFilteredApprovedTasks.forEach((item) => {
+      if (!item.date) return;
+      const bucketKey = toDateKey(startOfDay(item.date));
+      if (!bucketMap.has(bucketKey)) return;
+      bucketMap.get(bucketKey).value += 1;
+    });
+
+    let tasksCompletedSeries = Array.from(bucketMap.values());
+
+    if (selectedPeriod === "all-time" && tasksCompletedSeries.length > 12) {
+      const chunkSize = Math.ceil(tasksCompletedSeries.length / 12);
+      const compressed = [];
+
+      for (let index = 0; index < tasksCompletedSeries.length; index += chunkSize) {
+        const chunk = tasksCompletedSeries.slice(index, index + chunkSize);
+        const lastPoint = chunk[chunk.length - 1];
+        compressed.push({
+          key: `${chunk[0].key}-${lastPoint.key}`,
+          date: lastPoint.date,
+          label: formatShortDate(lastPoint.date),
+          value: chunk.reduce((sum, entry) => sum + entry.value, 0),
+        });
+      }
+
+      tasksCompletedSeries = compressed;
+    }
+
+    const approvedTaskCount = teamFilteredApprovedTasks.filter((item) => {
+      if (!item.date) return selectedPeriod === "all-time";
+      const itemTime = startOfDay(item.date).getTime();
+      return itemTime >= startTime && itemTime <= endTime;
+    }).length;
+
     const searchableContent = [
       "dashboard",
       "task summary",
+      "tasks completed",
+      "approved tasks",
       "users",
       "teams",
       "tasks",
       "completion",
       ...taskSummary.flatMap((item) => [item.label, String(item.value), `${item.percentage}%`]),
+      ...priorityOptions.map((priority) => priority.label),
+      ...teamOptions.map((team) => team.label),
       String(users.length),
       String(teams.length),
       String(tasks.length),
       String(activeUsers.length),
       String(completedTasks.length),
+      String(approvedTaskCount),
     ]
       .join(" ")
       .toLowerCase();
@@ -482,8 +949,12 @@ export default function DashboardSection({ searchValue = "" }) {
           tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0,
       },
       taskSummary,
+      priorityOptions,
+      teamOptions,
+      tasksCompletedSeries,
+      approvedTaskCount,
     };
-  }, [users, teams, tasks, taskStatuses, normalizedSearch]);
+  }, [users, teams, tasks, taskStatuses, priorities, selectedPriority, selectedPeriod, selectedTeam, normalizedSearch]);
 
   const statCards = [
     {
@@ -573,7 +1044,7 @@ export default function DashboardSection({ searchValue = "" }) {
               ))}
             </div>
 
-            <div className="dashboard-section__content-grid dashboard-section__content-grid--single">
+            <div className="dashboard-section__content-grid">
               <article className="dashboard-section__panel dashboard-section__task-summary-panel">
                 <div className="dashboard-section__panel-header">
                   <div>
@@ -618,6 +1089,91 @@ export default function DashboardSection({ searchValue = "" }) {
                     </div>
                   )}
                 </div>
+              </article>
+
+              <article className="dashboard-section__panel dashboard-section__tasks-completed-panel">
+                <div className="dashboard-section__panel-header dashboard-section__panel-header--stacked">
+                  <div>
+                    <h3>Tasks Completed</h3>
+                    <p>Approved tasks from the backend, grouped over time</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="dashboard-section__summary-menu"
+                    aria-label="Tasks completed options"
+                  >
+                    <FiMoreHorizontal />
+                  </button>
+                </div>
+
+                <div className="dashboard-section__tasks-completed-toolbar">
+                  <div className="dashboard-section__tasks-completed-label">
+                    Tasks by:
+                    <span>{dashboardData.priorityOptions.find((option) => option.id === selectedPriority || normalizeStatus(option.label) === selectedPriority)?.label || "priority"}</span>
+                  </div>
+
+                  <div className="dashboard-section__tasks-completed-filters">
+                    <label className="dashboard-section__filter-select">
+                      <select
+                        value={selectedPriority}
+                        onChange={(event) => setSelectedPriority(event.target.value)}
+                        aria-label="Filter approved tasks by priority"
+                      >
+                        <option value="all">Priority: All</option>
+                        {dashboardData.priorityOptions.map((priority) => (
+                          <option key={priority.id || priority.label} value={priority.id || normalizeStatus(priority.label)}>
+                            {priority.label}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown />
+                    </label>
+
+                    <label className="dashboard-section__filter-select">
+                      <select
+                        value={selectedPeriod}
+                        onChange={(event) => setSelectedPeriod(event.target.value)}
+                        aria-label="Filter approved tasks by period"
+                      >
+                        {CHART_PERIOD_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown />
+                    </label>
+
+                    <label className="dashboard-section__filter-select">
+                      <select
+                        value={selectedTeam}
+                        onChange={(event) => setSelectedTeam(event.target.value)}
+                        aria-label="Filter approved tasks by team"
+                      >
+                        <option value="all">Team: All</option>
+                        {dashboardData.teamOptions.map((team) => (
+                          <option key={team.id || team.label} value={team.id || normalizeStatus(team.label)}>
+                            Team: {team.label}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown />
+                    </label>
+                  </div>
+                </div>
+
+                {dashboardData.tasksCompletedSeries.length === 0 ? (
+                  <div className="dashboard-section__empty">
+                    <span>No approved task data available for the selected filters.</span>
+                  </div>
+                ) : (
+                  <>
+                    <TasksCompletedChart dataPoints={dashboardData.tasksCompletedSeries} />
+                    <div className="dashboard-section__tasks-completed-footnote">
+                      Showing <strong>{dashboardData.approvedTaskCount}</strong> approved {getPluralLabel(dashboardData.approvedTaskCount, "task")} for the selected filters.
+                    </div>
+                  </>
+                )}
               </article>
             </div>
           </>

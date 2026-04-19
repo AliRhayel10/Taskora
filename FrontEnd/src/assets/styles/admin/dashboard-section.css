@@ -164,8 +164,9 @@
 
 .dashboard-section__content-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 540px) minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
 }
 
 .dashboard-section__content-grid--single {
@@ -184,7 +185,12 @@
 }
 
 .dashboard-section__task-summary-panel {
-  max-width: 540px;
+  min-width: 0;
+}
+
+.dashboard-section__tasks-completed-panel {
+  min-width: 0;
+  gap: 18px;
 }
 
 .dashboard-section__panel-header {
@@ -192,6 +198,10 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.dashboard-section__panel-header--stacked {
+  align-items: flex-start;
 }
 
 .dashboard-section__panel-header h3 {
@@ -343,6 +353,123 @@
   font-weight: 700;
 }
 
+.dashboard-section__tasks-completed-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.dashboard-section__tasks-completed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e293b;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.dashboard-section__tasks-completed-label span {
+  text-transform: lowercase;
+}
+
+.dashboard-section__tasks-completed-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-section__filter-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 168px;
+}
+
+.dashboard-section__filter-select select {
+  width: 100%;
+  appearance: none;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 16px;
+  min-height: 46px;
+  padding: 0 42px 0 16px;
+  color: #334155;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+}
+
+.dashboard-section__filter-select svg {
+  position: absolute;
+  right: 14px;
+  color: #94a3b8;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.dashboard-section__tasks-chart-wrap {
+  width: 100%;
+  min-height: 360px;
+}
+
+.dashboard-section__tasks-chart {
+  width: 100%;
+  height: 360px;
+  display: block;
+}
+
+.dashboard-section__tasks-chart-grid {
+  stroke: rgba(226, 232, 240, 0.8);
+  stroke-width: 1;
+}
+
+.dashboard-section__tasks-chart-grid--vertical {
+  stroke: rgba(241, 245, 249, 0.9);
+}
+
+.dashboard-section__tasks-chart-area {
+  stroke: none;
+}
+
+.dashboard-section__tasks-chart-line {
+  fill: none;
+  stroke: #54d12f;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dashboard-section__tasks-chart-point-ring {
+  fill: #ffffff;
+  stroke: #eaffea;
+  stroke-width: 2;
+}
+
+.dashboard-section__tasks-chart-point {
+  fill: #54d12f;
+}
+
+.dashboard-section__tasks-chart-label {
+  fill: #1e293b;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dashboard-section__tasks-completed-footnote {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dashboard-section__tasks-completed-footnote strong {
+  color: #1e293b;
+}
+
 .dashboard-section__empty {
   min-height: 160px;
   display: flex;
@@ -361,13 +488,15 @@
   padding: 8px 0 2px;
 }
 
+@media (max-width: 1280px) {
+  .dashboard-section__content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1180px) {
   .dashboard-section__stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-section__content-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -382,10 +511,6 @@
 
   .dashboard-section__panel-header {
     align-items: flex-start;
-  }
-
-  .dashboard-section__task-summary-panel {
-    max-width: 100%;
   }
 
   .dashboard-section__donut {
@@ -411,5 +536,23 @@
     flex-basis: calc((100% - 14px) / 2);
     max-width: calc((100% - 14px) / 2);
   }
-}
 
+  .dashboard-section__tasks-completed-toolbar,
+  .dashboard-section__tasks-completed-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-section__filter-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard-section__tasks-chart-wrap {
+    min-height: 300px;
+  }
+
+  .dashboard-section__tasks-chart {
+    height: 300px;
+  }
+}
