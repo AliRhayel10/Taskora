@@ -39,8 +39,6 @@ const FALLBACK_STATUS_COLORS = [
 const CHART_PERIOD_OPTIONS = [
   { value: "this-week", label: "This Week" },
   { value: "this-month", label: "This Month" },
-  { value: "last-30-days", label: "Last 30 Days" },
-  { value: "all-time", label: "All Time" },
 ];
 
 function getStoredUser() {
@@ -105,12 +103,33 @@ function normalizeStatusesResponse(data) {
 function normalizePrioritiesResponse(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.priorities)) return data.priorities;
+  if (Array.isArray(data?.priorities?.result)) return data.priorities.result;
+  if (Array.isArray(data?.priorities?.items)) return data.priorities.items;
   if (Array.isArray(data?.priority)) return data.priority;
+  if (Array.isArray(data?.taskPriorities)) return data.taskPriorities;
+  if (Array.isArray(data?.taskPriorities?.result)) return data.taskPriorities.result;
+  if (Array.isArray(data?.taskPriorities?.items)) return data.taskPriorities.items;
+  if (Array.isArray(data?.taskPriority)) return data.taskPriority;
+  if (Array.isArray(data?.companyPriorities)) return data.companyPriorities;
+  if (Array.isArray(data?.companyTaskPriorities)) return data.companyTaskPriorities;
   if (Array.isArray(data?.data?.priorities)) return data.data.priorities;
+  if (Array.isArray(data?.data?.priorities?.result)) return data.data.priorities.result;
+  if (Array.isArray(data?.data?.priorities?.items)) return data.data.priorities.items;
+  if (Array.isArray(data?.data?.priority)) return data.data.priority;
+  if (Array.isArray(data?.data?.taskPriorities)) return data.data.taskPriorities;
+  if (Array.isArray(data?.data?.taskPriorities?.result)) return data.data.taskPriorities.result;
+  if (Array.isArray(data?.data?.taskPriorities?.items)) return data.data.taskPriorities.items;
+  if (Array.isArray(data?.data?.taskPriority)) return data.data.taskPriority;
+  if (Array.isArray(data?.data?.companyPriorities)) return data.data.companyPriorities;
+  if (Array.isArray(data?.data?.companyTaskPriorities)) return data.data.companyTaskPriorities;
+  if (Array.isArray(data?.data?.items)) return data.data.items;
+  if (Array.isArray(data?.data?.rows)) return data.data.rows;
   if (Array.isArray(data?.data?.result)) return data.data.result;
   if (Array.isArray(data?.result)) return data.result;
-  if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.rows)) return data.rows;
+  if (Array.isArray(data?.list)) return data.list;
+  if (Array.isArray(data?.data)) return data.data;
   return [];
 }
 
@@ -302,6 +321,40 @@ function isApprovedStatus(status) {
   return normalizeStatus(status) === "approved";
 }
 
+function isApprovedTask(task) {
+  if (isApprovedStatus(getTaskStatus(task))) return true;
+
+  const approvalStatus = normalizeStatus(
+    task?.approvalStatus ||
+      task?.ApprovalStatus ||
+      task?.taskApprovalStatus ||
+      task?.TaskApprovalStatus ||
+      task?.approval?.status ||
+      task?.approval?.Status ||
+      ""
+  );
+
+  if (approvalStatus === "approved") return true;
+
+  if (
+    task?.isApproved === true ||
+    task?.IsApproved === true ||
+    task?.approved === true ||
+    task?.Approved === true
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    task?.approvedAt ||
+      task?.ApprovedAt ||
+      task?.approvedById ||
+      task?.ApprovedById ||
+      task?.approvedBy ||
+      task?.ApprovedBy
+  );
+}
+
 function getStatusColor(statusName, index) {
   const normalized = normalizeStatus(statusName);
   return STATUS_COLOR_MAP[normalized] || FALLBACK_STATUS_COLORS[index % FALLBACK_STATUS_COLORS.length];
@@ -440,29 +493,102 @@ function getDateRange(period, tasksWithDates) {
     const day = today.getDay();
     const diffToMonday = (day + 6) % 7;
     const start = addDays(today, -diffToMonday);
-    return { start, end: today, pointsLimit: 7 };
+    return { start, end: today };
   }
 
   if (period === "this-month") {
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { start, end: today, pointsLimit: 31 };
-  }
-
-  if (period === "last-30-days") {
-    const start = addDays(today, -29);
-    return { start, end: today, pointsLimit: 30 };
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { start, end };
   }
 
   const datedTasks = tasksWithDates.filter((item) => item.date instanceof Date);
   if (datedTasks.length === 0) {
-    return { start: addDays(today, -6), end: today, pointsLimit: 7 };
+    return { start: addDays(today, -6), end: today };
   }
 
   const sortedDates = datedTasks.map((item) => item.date).sort((a, b) => a - b);
   return {
     start: startOfDay(sortedDates[0]),
     end: startOfDay(sortedDates[sortedDates.length - 1]),
-    pointsLimit: Math.max(7, Math.min(60, sortedDates.length)),
+  };
+}
+
+function buildApprovedTasksSeries(period, tasksWithDates) {
+  const { start, end } = getDateRange(period, tasksWithDates);
+  const startTime = startOfDay(start).getTime();
+  const endTime = startOfDay(end).getTime();
+  const filteredTasks = tasksWithDates.filter((item) => {
+    const itemDate = item.date instanceof Date ? startOfDay(item.date) : startOfDay(new Date());
+    const itemTime = itemDate.getTime();
+    return itemTime >= startTime && itemTime <= endTime;
+  });
+
+  if (period === "this-month") {
+    const lastDayOfMonth = end.getDate();
+    const milestoneDays = Array.from(
+      new Set([1, 5, 10, 15, 20, 25, lastDayOfMonth].filter((day) => day <= lastDayOfMonth))
+    );
+
+    const buckets = milestoneDays.map((day) => {
+      const bucketDate = new Date(start.getFullYear(), start.getMonth(), day);
+      return {
+        key: toDateKey(bucketDate),
+        date: bucketDate,
+        label: formatShortDate(bucketDate),
+        value: 0,
+      };
+    });
+
+    filteredTasks.forEach((item) => {
+      const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
+      const itemDay = itemDate.getDate();
+
+      let bucketIndex = milestoneDays.findIndex((day, index) => {
+        const nextDay = milestoneDays[index + 1];
+        if (!nextDay) return itemDay >= day;
+        return itemDay >= day && itemDay < nextDay;
+      });
+
+      if (bucketIndex === -1) {
+        bucketIndex = milestoneDays.length - 1;
+      }
+
+      buckets[bucketIndex].value += 1;
+    });
+
+    return {
+      start,
+      end,
+      series: buckets,
+      totalCount: filteredTasks.length,
+    };
+  }
+
+  const bucketMap = new Map();
+  for (let time = startTime; time <= endTime; time += 24 * 60 * 60 * 1000) {
+    const bucketDate = new Date(time);
+    bucketMap.set(toDateKey(bucketDate), {
+      key: toDateKey(bucketDate),
+      date: bucketDate,
+      label: formatShortDate(bucketDate),
+      value: 0,
+    });
+  }
+
+  filteredTasks.forEach((item) => {
+    const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
+    const bucketKey = toDateKey(itemDate);
+    if (bucketMap.has(bucketKey)) {
+      bucketMap.get(bucketKey).value += 1;
+    }
+  });
+
+  return {
+    start,
+    end,
+    series: Array.from(bucketMap.values()),
+    totalCount: filteredTasks.length,
   };
 }
 
@@ -558,7 +684,7 @@ function TaskSummaryDonut({ segments, totalTasks }) {
 function TasksCompletedChart({ dataPoints }) {
   const width = 920;
   const height = 380;
-  const margin = { top: 16, right: 20, bottom: 58, left: 20 };
+  const margin = { top: 18, right: 22, bottom: 60, left: 22 };
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
   const baseY = margin.top + chartHeight;
@@ -570,7 +696,8 @@ function TasksCompletedChart({ dataPoints }) {
     const x =
       margin.left +
       (dataPoints.length === 1 ? chartWidth / 2 : (index / (dataPoints.length - 1)) * chartWidth);
-    const y = margin.top + chartHeight - (point.value / normalizedMax) * (chartHeight * 0.82);
+    const normalizedValue = maxValue === 0 ? 0.28 : point.value / normalizedMax;
+    const y = margin.top + chartHeight - normalizedValue * (chartHeight * 0.78);
 
     return {
       ...point,
@@ -593,8 +720,8 @@ function TasksCompletedChart({ dataPoints }) {
       >
         <defs>
           <linearGradient id="dashboardApprovedGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#84cc16" stopOpacity="0.42" />
-            <stop offset="100%" stopColor="#84cc16" stopOpacity="0.03" />
+            <stop offset="0%" stopColor="#84cc16" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#84cc16" stopOpacity="0.04" />
           </linearGradient>
         </defs>
 
@@ -697,10 +824,17 @@ export default function DashboardSection({ searchValue = "" }) {
           fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/statuses/${encodeURIComponent(companyId)}`]),
           fetchFirstSuccessful([
             `${API_BASE_URL}/api/tasks/priorities/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/priorities/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/task-priorities/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/taskpriorities/company/${encodeURIComponent(companyId)}`,
             `${API_BASE_URL}/api/tasks/company/${encodeURIComponent(companyId)}/priorities`,
+            `${API_BASE_URL}/api/company/${encodeURIComponent(companyId)}/priorities`,
+            `${API_BASE_URL}/api/companies/${encodeURIComponent(companyId)}/priorities`,
+            `${API_BASE_URL}/api/priorities/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/priority/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/task-priorities/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/taskpriority/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/taskpriorities/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/task-priority/company/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/company-task-priorities/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/task-priorities/${encodeURIComponent(companyId)}`,
           ]),
         ]);
 
@@ -811,12 +945,38 @@ export default function DashboardSection({ searchValue = "" }) {
       }
     });
 
-    const priorityOptions = orderedPriorityOptions.length > 0
-      ? orderedPriorityOptions
-      : Array.from(fallbackPriorityMap.values()).map((priority, index) => ({
-          ...priority,
-          order: index,
-        }));
+    const mergedPriorityMap = new Map();
+
+    orderedPriorityOptions.forEach((priority, index) => {
+      const normalizedLabel = normalizeStatus(priority.label);
+      const key = priority.id || normalizedLabel || `priority-${index}`;
+      mergedPriorityMap.set(key, {
+        id: priority.id || normalizedLabel || `priority-${index}`,
+        label: priority.label,
+        order: priority.order,
+      });
+    });
+
+    Array.from(fallbackPriorityMap.values()).forEach((priority, index) => {
+      const normalizedLabel = normalizeStatus(priority.label);
+      const existingKey =
+        priority.id && mergedPriorityMap.has(priority.id)
+          ? priority.id
+          : Array.from(mergedPriorityMap.keys()).find(
+              (key) => normalizeStatus(mergedPriorityMap.get(key)?.label) === normalizedLabel
+            );
+
+      if (!existingKey) {
+        const key = priority.id || normalizedLabel || `fallback-priority-${index}`;
+        mergedPriorityMap.set(key, {
+          id: priority.id || normalizedLabel || `fallback-priority-${index}`,
+          label: priority.label,
+          order: orderedPriorityOptions.length + index,
+        });
+      }
+    });
+
+    const priorityOptions = Array.from(mergedPriorityMap.values()).sort((a, b) => a.order - b.order);
 
     const orderedTeamOptions = teams
       .map((team, index) => ({
@@ -844,10 +1004,10 @@ export default function DashboardSection({ searchValue = "" }) {
         }));
 
     const approvedTasks = tasks
-      .filter((task) => isApprovedStatus(getTaskStatus(task)))
+      .filter((task) => isApprovedTask(task))
       .map((task) => ({
         task,
-        date: getTaskRelevantDate(task),
+        date: getTaskRelevantDate(task) || startOfDay(new Date()),
         priorityId: getTaskPriorityId(task),
         priorityName: getTaskPriorityName(task),
         teamId: getTaskTeamId(task),
@@ -866,53 +1026,9 @@ export default function DashboardSection({ searchValue = "" }) {
       return item.teamId === selectedTeam || normalizeStatus(item.teamName) === selectedTeam;
     });
 
-    const range = getDateRange(selectedPeriod, teamFilteredApprovedTasks);
-    const startTime = startOfDay(range.start).getTime();
-    const endTime = startOfDay(range.end).getTime();
-    const bucketMap = new Map();
-
-    for (let time = startTime; time <= endTime; time += 24 * 60 * 60 * 1000) {
-      const bucketDate = new Date(time);
-      bucketMap.set(toDateKey(bucketDate), {
-        key: toDateKey(bucketDate),
-        date: bucketDate,
-        label: formatShortDate(bucketDate),
-        value: 0,
-      });
-    }
-
-    teamFilteredApprovedTasks.forEach((item) => {
-      if (!item.date) return;
-      const bucketKey = toDateKey(startOfDay(item.date));
-      if (!bucketMap.has(bucketKey)) return;
-      bucketMap.get(bucketKey).value += 1;
-    });
-
-    let tasksCompletedSeries = Array.from(bucketMap.values());
-
-    if (selectedPeriod === "all-time" && tasksCompletedSeries.length > 12) {
-      const chunkSize = Math.ceil(tasksCompletedSeries.length / 12);
-      const compressed = [];
-
-      for (let index = 0; index < tasksCompletedSeries.length; index += chunkSize) {
-        const chunk = tasksCompletedSeries.slice(index, index + chunkSize);
-        const lastPoint = chunk[chunk.length - 1];
-        compressed.push({
-          key: `${chunk[0].key}-${lastPoint.key}`,
-          date: lastPoint.date,
-          label: formatShortDate(lastPoint.date),
-          value: chunk.reduce((sum, entry) => sum + entry.value, 0),
-        });
-      }
-
-      tasksCompletedSeries = compressed;
-    }
-
-    const approvedTaskCount = teamFilteredApprovedTasks.filter((item) => {
-      if (!item.date) return selectedPeriod === "all-time";
-      const itemTime = startOfDay(item.date).getTime();
-      return itemTime >= startTime && itemTime <= endTime;
-    }).length;
+    const tasksCompletedData = buildApprovedTasksSeries(selectedPeriod, teamFilteredApprovedTasks);
+    const tasksCompletedSeries = tasksCompletedData.series;
+    const approvedTaskCount = tasksCompletedData.totalCount;
 
     const searchableContent = [
       "dashboard",
@@ -1107,10 +1223,7 @@ export default function DashboardSection({ searchValue = "" }) {
                 </div>
 
                 <div className="dashboard-section__tasks-completed-toolbar">
-                  <div className="dashboard-section__tasks-completed-label">
-                    Tasks by:
-                    <span>{dashboardData.priorityOptions.find((option) => option.id === selectedPriority || normalizeStatus(option.label) === selectedPriority)?.label || "priority"}</span>
-                  </div>
+                  <div className="dashboard-section__tasks-completed-label">Tasks by:</div>
 
                   <div className="dashboard-section__tasks-completed-filters">
                     <label className="dashboard-section__filter-select">
@@ -1119,7 +1232,7 @@ export default function DashboardSection({ searchValue = "" }) {
                         onChange={(event) => setSelectedPriority(event.target.value)}
                         aria-label="Filter approved tasks by priority"
                       >
-                        <option value="all">Priority: All</option>
+                        <option value="all">All</option>
                         {dashboardData.priorityOptions.map((priority) => (
                           <option key={priority.id || priority.label} value={priority.id || normalizeStatus(priority.label)}>
                             {priority.label}
@@ -1153,7 +1266,7 @@ export default function DashboardSection({ searchValue = "" }) {
                         <option value="all">Team: All</option>
                         {dashboardData.teamOptions.map((team) => (
                           <option key={team.id || team.label} value={team.id || normalizeStatus(team.label)}>
-                            Team: {team.label}
+                            {team.label}
                           </option>
                         ))}
                       </select>
