@@ -714,7 +714,7 @@ export default function TasksSection({
   membersEndpoint,
   updateTaskEndpoint,
   deleteTaskEndpoint,
-  pageSize = 5,
+  pageSize = 10,
   searchValue = "",
 }) {
   const storedUser = getStoredUser();

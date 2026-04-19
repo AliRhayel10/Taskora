@@ -1,8 +1,11 @@
 .tasks-section {
   width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0px;
+  overflow: hidden;
 }
 
 .tasks-section__title-row {
@@ -23,6 +26,14 @@
   flex: 1;
   height: 1px;
   background: #cbd5e1;
+}
+
+.tasks-section__title-row,
+.tasks-section__toolbar,
+.tasks-section__unassigned-warning,
+.tasks-section__feedback,
+.tasks-section__state-card {
+  flex-shrink: 0;
 }
 
 .tasks-section__toolbar {
@@ -833,12 +844,16 @@
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
   margin-top: 15px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .tasks-section__table-wrap {
   width: 100%;
+  max-height: calc(100vh - 360px);
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .tasks-section__table {
@@ -849,6 +864,9 @@
 }
 
 .tasks-section__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: 14px 16px;
   background: #eaf2ff;
   border-bottom: 1px solid #cbd5e1;
@@ -1027,7 +1045,7 @@
 
 .tasks-section__badge--medium-complexity {
   background: transparent;
-  color: #c2410c;
+  color: #ff5900;
   border-color: transparent;
 }
 
@@ -1118,6 +1136,7 @@
   padding: 14px 16px;
   border-top: 1px solid #e2e8f0;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .tasks-section__pagination-info {
@@ -2510,4 +2529,26 @@ body.dark .tasks-section__title-line {
 
 .tasks-section__day-picker .rdp-month {
   width: 100%;
+}
+
+
+
+.tasks-section__table tbody tr:last-child td {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tasks-section__pagination {
+  margin-top: 0;
+}
+
+@media (max-width: 1100px) {
+  .tasks-section__table-wrap {
+    max-height: calc(100vh - 420px);
+  }
+}
+
+@media (max-width: 760px) {
+  .tasks-section__table-wrap {
+    max-height: calc(100vh - 460px);
+  }
 }
