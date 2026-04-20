@@ -2911,129 +2911,109 @@ export default function TasksSection({
                       </td>
 
                       <td className="tasks-section__cell-actions">
-                        <div className="tasks-section__actions">
-                          {isEditing ? (
-                            <>
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--danger"
-                                title="Cancel"
-                                onClick={cancelEditMode}
-                                disabled={isSavingEdit}
-                              >
-                                <FiX />
-                              </button>
+<div className="tasks-section__actions">
+  {isEditing ? (
+    <>
+      <button
+        type="button"
+        className="tasks-section__action-btn tasks-section__action-btn--danger"
+        title="Cancel"
+        onClick={cancelEditMode}
+        disabled={isSavingEdit}
+      >
+        <FiX />
+      </button>
 
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--edit"
-                                title="Save changes"
-                                onClick={saveTaskChanges}
-                                disabled={
-                                  isSavingEdit ||
-                                  !editFormState.title?.trim() ||
-                                  !editFormState.description?.trim() ||
-                                  !editFormState.assignedUserId ||
-                                  !editFormState.priority ||
-                                  !editFormState.complexity ||
-                                  !editFormState.estimatedEffortHours ||
-                                  !editFormState.startDate ||
-                                  !editFormState.dueDate ||
-                                  !computedEditTaskWeight
-                                }
-                              >
-                                <FiCheck />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                className="tasks-section__action-btn tasks-section__action-btn--view"
-                                title="View task"
-                                onClick={() => setSelectedTaskForView(task)}
-                              >
-                                <FiEye />
-                              </button>
+      <button
+        type="button"
+        className="tasks-section__action-btn tasks-section__action-btn--edit"
+        title="Save changes"
+        onClick={saveTaskChanges}
+        disabled={
+          isSavingEdit ||
+          !editFormState.title?.trim() ||
+          !editFormState.description?.trim() ||
+          !editFormState.assignedUserId ||
+          !editFormState.priority ||
+          !editFormState.complexity ||
+          !editFormState.estimatedEffortHours ||
+          !editFormState.startDate ||
+          !editFormState.dueDate ||
+          !computedEditTaskWeight
+        }
+      >
+        <FiCheck />
+      </button>
+    </>
+  ) : (
+    <>
+      <button
+        type="button"
+        className="tasks-section__action-btn tasks-section__action-btn--view"
+        title="View task"
+        onClick={() => setSelectedTaskForView(task)}
+      >
+        <FiEye />
+      </button>
 
-                              {isDoneTask(task) ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="tasks-section__action-btn tasks-section__action-btn--edit"
-                                    title="Edit task"
-                                    onClick={() => openEditMode(task)}
-                                  >
-                                    <FiEdit2 />
-                                  </button>
+      {(() => {
+        const status = String(task?.status || "").trim().toLowerCase();
+        const isEditableStatus =
+          status === "new" ||
+          status === "acknowledged" ||
+          status === "pending";
 
-                                  <button
-                                    type="button"
-                                    className="tasks-section__action-btn tasks-section__action-btn--danger"
-                                    title="Delete task"
-                                    onClick={() => setDeleteTaskId(task.id)}
-                                    disabled={isDeletingTask}
-                                  >
-                                    <FiTrash2 />
-                                  </button>
-                                </>
-                              ) : isApprovedTask(task) ? (
-                                <button
-                                  type="button"
-                                  className="tasks-section__action-btn tasks-section__action-btn--archive"
-                                  title="Move to archive"
-                                  onClick={() => archiveTask(task)}
-                                >
-                                  <FiArchive />
-                                </button>
-                              ) : isArchivedTask(task) ? null : isRejectedTask(
-                                  task,
-                                ) ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="tasks-section__action-btn tasks-section__action-btn--edit"
-                                    title="Edit task"
-                                    onClick={() => openEditMode(task)}
-                                  >
-                                    <FiEdit2 />
-                                  </button>
+        if (isApprovedTask(task)) {
+          return (
+            <button
+              type="button"
+              className="tasks-section__action-btn tasks-section__action-btn--archive"
+              title="Move to archive"
+              onClick={() => archiveTask(task)}
+            >
+              <FiArchive />
+            </button>
+          );
+        }
 
-                                  <button
-                                    type="button"
-                                    className="tasks-section__action-btn tasks-section__action-btn--danger"
-                                    title="Delete task"
-                                    onClick={() => setDeleteTaskId(task.id)}
-                                    disabled={isDeletingTask}
-                                  >
-                                    <FiTrash2 />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="tasks-section__action-btn tasks-section__action-btn--edit"
-                                    title="Edit task"
-                                    onClick={() => openEditMode(task)}
-                                  >
-                                    <FiEdit2 />
-                                  </button>
+        if (isArchivedTask(task)) {
+          return null;
+        }
 
-                                  <button
-                                    type="button"
-                                    className="tasks-section__action-btn tasks-section__action-btn--danger"
-                                    title="Delete task"
-                                    onClick={() => setDeleteTaskId(task.id)}
-                                    disabled={isDeletingTask}
-                                  >
-                                    <FiTrash2 />
-                                  </button>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
+        if (isDoneTask(task)) {
+          return null;
+        }
+
+        if (isEditableStatus) {
+          return (
+            <>
+              <button
+                type="button"
+                className="tasks-section__action-btn tasks-section__action-btn--edit"
+                title="Edit task"
+                onClick={() => openEditMode(task)}
+              >
+                <FiEdit2 />
+              </button>
+
+              <button
+                type="button"
+                className="tasks-section__action-btn tasks-section__action-btn--danger"
+                title="Delete task"
+                onClick={() => setDeleteTaskId(task.id)}
+                disabled={isDeletingTask}
+              >
+                <FiTrash2 />
+              </button>
+            </>
+          );
+        }
+
+        return null;
+      })()}
+    </>
+  )}
+</div>
                       </td>
                     </tr>
                   );
