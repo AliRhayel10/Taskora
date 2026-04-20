@@ -1279,7 +1279,7 @@ export default function DashboardSection({ searchValue = "" }) {
                 <div className="dashboard-section__panel-header dashboard-section__panel-header--stacked">
                   <div>
                     <h3>Tasks Activity</h3>
-                    <p>Number of backend tasks grouped over time</p>
+                    <p>Number of Tasks</p>
                   </div>
                   <button
                     type="button"
