@@ -523,7 +523,7 @@ function getDateRange(period, tasksWithDates) {
   };
 }
 
-function buildApprovedTasksSeries(period, tasksWithDates) {
+function buildTasksActivitySeries(period, tasksWithDates) {
   const { start, end } = getDateRange(period, tasksWithDates);
   const startTime = startOfDay(start).getTime();
   const endTime = startOfDay(end).getTime();
@@ -623,6 +623,41 @@ function buildAreaPath(points, baseY) {
   return `${buildSmoothedLinePath(points)} L ${points[points.length - 1].x} ${baseY} L ${points[0].x} ${baseY} Z`;
 }
 
+
+function getNiceAxisConfig(maxValue, rowCount = 4) {
+  if (maxValue <= 0) {
+    return {
+      rowCount,
+      step: 1,
+      max: rowCount,
+      values: Array.from({ length: rowCount + 1 }, (_, index) => rowCount - index),
+    };
+  }
+
+  const roughStep = maxValue / rowCount;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const residual = roughStep / magnitude;
+
+  let niceMultiplier = 1;
+  if (residual > 5) {
+    niceMultiplier = 10;
+  } else if (residual > 2) {
+    niceMultiplier = 5;
+  } else if (residual > 1) {
+    niceMultiplier = 2;
+  }
+
+  const step = niceMultiplier * magnitude;
+  const niceMax = Math.max(step * rowCount, Math.ceil(maxValue / step) * step);
+
+  return {
+    rowCount,
+    step,
+    max: niceMax,
+    values: Array.from({ length: rowCount + 1 }, (_, index) => niceMax - index * step),
+  };
+}
+
 function TaskSummaryDonut({ segments, totalTasks }) {
   const size = 300;
   const center = size / 2;
@@ -690,23 +725,23 @@ function TaskSummaryDonut({ segments, totalTasks }) {
   );
 }
 
-function TasksCompletedChart({ dataPoints }) {
+
+function TasksActivityChart({ dataPoints }) {
   const width = 920;
-  const height = 380;
-  const margin = { top: 18, right: 38, bottom: 60, left: 38 };
+  const height = 330;
+  const margin = { top: 16, right: 40, bottom: 52, left: 58 };
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
   const baseY = margin.top + chartHeight;
   const maxValue = Math.max(...dataPoints.map((point) => point.value), 0);
-  const normalizedMax = maxValue > 0 ? maxValue : 1;
-  const gridRows = 4;
+  const axis = getNiceAxisConfig(maxValue, 4);
 
   const points = dataPoints.map((point, index) => {
     const x =
       margin.left +
       (dataPoints.length === 1 ? chartWidth / 2 : (index / (dataPoints.length - 1)) * chartWidth);
-    const normalizedValue = maxValue === 0 ? 0 : point.value / normalizedMax;
-    const y = margin.top + chartHeight - normalizedValue * (chartHeight * 0.78);
+    const normalizedValue = axis.max === 0 ? 0 : point.value / axis.max;
+    const y = baseY - normalizedValue * chartHeight;
 
     return {
       ...point,
@@ -725,26 +760,36 @@ function TasksCompletedChart({ dataPoints }) {
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label="Approved tasks chart"
+        aria-label="Tasks activity chart"
       >
         <defs>
-          <linearGradient id="dashboardApprovedGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="dashboardTasksActivityGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#84cc16" stopOpacity="0.4" />
             <stop offset="100%" stopColor="#84cc16" stopOpacity="0.04" />
           </linearGradient>
         </defs>
 
-        {Array.from({ length: gridRows + 1 }).map((_, index) => {
-          const y = margin.top + (chartHeight / gridRows) * index;
+        {axis.values.map((value, index) => {
+          const y = margin.top + (chartHeight / axis.rowCount) * index;
           return (
-            <line
-              key={`row-${index}`}
-              x1={margin.left}
-              y1={y}
-              x2={margin.left + chartWidth}
-              y2={y}
-              className="dashboard-section__tasks-chart-grid"
-            />
+            <g key={`row-${value}-${index}`}>
+              <line
+                x1={margin.left}
+                y1={y}
+                x2={margin.left + chartWidth}
+                y2={y}
+                className="dashboard-section__tasks-chart-grid"
+              />
+              <text
+                x={margin.left - 12}
+                y={y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                className="dashboard-section__tasks-chart-y-label"
+              >
+                {value}
+              </text>
+            </g>
           );
         })}
 
@@ -760,18 +805,18 @@ function TasksCompletedChart({ dataPoints }) {
         ))}
 
         {areaPath ? (
-          <path d={areaPath} className="dashboard-section__tasks-chart-area" fill="url(#dashboardApprovedGradient)" />
+          <path d={areaPath} className="dashboard-section__tasks-chart-area" fill="url(#dashboardTasksActivityGradient)" />
         ) : null}
 
         {linePath ? <path d={linePath} className="dashboard-section__tasks-chart-line" /> : null}
 
         {points.map((point) => (
           <g key={point.key}>
-            <circle className="dashboard-section__tasks-chart-point-ring" cx={point.x} cy={point.y} r="9.5" />
-            <circle className="dashboard-section__tasks-chart-point" cx={point.x} cy={point.y} r="6" />
+            <circle className="dashboard-section__tasks-chart-point-ring" cx={point.x} cy={point.y} r="8.5" />
+            <circle className="dashboard-section__tasks-chart-point" cx={point.x} cy={point.y} r="5.5" />
             <text
               x={point.x}
-              y={height - 18}
+              y={height - 16}
               textAnchor="middle"
               className="dashboard-section__tasks-chart-label"
             >
@@ -1014,8 +1059,7 @@ export default function DashboardSection({ searchValue = "" }) {
           order: index,
         }));
 
-    const approvedTasks = tasks
-      .filter((task) => isApprovedTask(task))
+    const activityTasks = tasks
       .map((task) => ({
         task,
         date: getTaskRelevantDate(task) || startOfDay(new Date()),
@@ -1025,27 +1069,28 @@ export default function DashboardSection({ searchValue = "" }) {
         teamName: getTaskTeamName(task),
       }));
 
-    const priorityFilteredApprovedTasks = approvedTasks.filter((item) => {
+    const priorityFilteredTasks = activityTasks.filter((item) => {
       if (selectedPriority === "all") return true;
 
       const normalizedTaskPriority = normalizeStatus(item.priorityName);
       return item.priorityId === selectedPriority || normalizedTaskPriority === selectedPriority;
     });
 
-    const teamFilteredApprovedTasks = priorityFilteredApprovedTasks.filter((item) => {
+    const teamFilteredTasks = priorityFilteredTasks.filter((item) => {
       if (selectedTeam === "all") return true;
       return item.teamId === selectedTeam || normalizeStatus(item.teamName) === selectedTeam;
     });
 
-    const tasksCompletedData = buildApprovedTasksSeries(selectedPeriod, teamFilteredApprovedTasks);
-    const tasksCompletedSeries = tasksCompletedData.series;
-    const approvedTaskCount = tasksCompletedData.totalCount;
+    const tasksActivityData = buildTasksActivitySeries(selectedPeriod, teamFilteredTasks);
+    const tasksActivitySeries = tasksActivityData.series;
+    const activityTaskCount = tasksActivityData.totalCount;
 
     const searchableContent = [
       "dashboard",
       "task summary",
+      "tasks activity",
+      "task activity",
       "tasks completed",
-      "approved tasks",
       "users",
       "teams",
       "tasks",
@@ -1058,7 +1103,7 @@ export default function DashboardSection({ searchValue = "" }) {
       String(tasks.length),
       String(activeUsers.length),
       String(completedTasks.length),
-      String(approvedTaskCount),
+      String(activityTaskCount),
     ]
       .join(" ")
       .toLowerCase();
@@ -1078,8 +1123,8 @@ export default function DashboardSection({ searchValue = "" }) {
       taskSummary,
       priorityOptions,
       teamOptions,
-      tasksCompletedSeries,
-      approvedTaskCount,
+      tasksActivitySeries,
+      activityTaskCount,
     };
   }, [users, teams, tasks, taskStatuses, priorities, selectedPriority, selectedPeriod, selectedTeam, normalizedSearch]);
 
@@ -1225,13 +1270,13 @@ export default function DashboardSection({ searchValue = "" }) {
               <article className="dashboard-section__panel dashboard-section__tasks-completed-panel">
                 <div className="dashboard-section__panel-header dashboard-section__panel-header--stacked">
                   <div>
-                    <h3>Tasks Completed</h3>
-                    <p>Approved tasks from the backend, grouped over time</p>
+                    <h3>Tasks Activity</h3>
+                    <p>Number of backend tasks grouped over time</p>
                   </div>
                   <button
                     type="button"
                     className="dashboard-section__summary-menu"
-                    aria-label="Tasks completed options"
+                    aria-label="Tasks activity options"
                   >
                     <FiMoreHorizontal />
                   </button>
@@ -1245,7 +1290,7 @@ export default function DashboardSection({ searchValue = "" }) {
                       <select
                         value={selectedPriority}
                         onChange={(event) => setSelectedPriority(event.target.value)}
-                        aria-label="Filter approved tasks by priority"
+                        aria-label="Filter tasks by priority"
                       >
                         <option value="all">All priorities</option>
                         {dashboardData.priorityOptions.map((priority) => {
@@ -1266,7 +1311,7 @@ export default function DashboardSection({ searchValue = "" }) {
                       <select
                         value={selectedPeriod}
                         onChange={(event) => setSelectedPeriod(event.target.value)}
-                        aria-label="Filter approved tasks by period"
+                        aria-label="Filter tasks by period"
                       >
                         {CHART_PERIOD_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1281,7 +1326,7 @@ export default function DashboardSection({ searchValue = "" }) {
                       <select
                         value={selectedTeam}
                         onChange={(event) => setSelectedTeam(event.target.value)}
-                        aria-label="Filter approved tasks by team"
+                        aria-label="Filter tasks by team"
                       >
                         <option value="all">Team: All</option>
                         {dashboardData.teamOptions.map((team) => (
@@ -1295,15 +1340,15 @@ export default function DashboardSection({ searchValue = "" }) {
                   </div>
                 </div>
 
-                {dashboardData.tasksCompletedSeries.length === 0 ? (
+                {dashboardData.tasksActivitySeries.length === 0 ? (
                   <div className="dashboard-section__empty">
-                    <span>No approved task data available for the selected filters.</span>
+                    <span>No task activity data available for the selected filters.</span>
                   </div>
                 ) : (
                   <>
-                    <TasksCompletedChart dataPoints={dashboardData.tasksCompletedSeries} />
+                    <TasksActivityChart dataPoints={dashboardData.tasksActivitySeries} />
                     <div className="dashboard-section__tasks-completed-footnote">
-                      Showing <strong>{dashboardData.approvedTaskCount}</strong> approved {getPluralLabel(dashboardData.approvedTaskCount, "task")} for the selected filters.
+                      Showing <strong>{dashboardData.activityTaskCount}</strong> {getPluralLabel(dashboardData.activityTaskCount, "task")} for the selected filters.
                     </div>
                   </>
                 )}

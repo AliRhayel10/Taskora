@@ -166,7 +166,7 @@
   display: grid;
   grid-template-columns: minmax(0, 540px) minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .dashboard-section__content-grid--single {
@@ -191,7 +191,8 @@
 
 .dashboard-section__tasks-completed-panel {
   min-width: 0;
-  gap: 14px;
+  gap: 8px;
+  padding-bottom: 14px;
 }
 
 .dashboard-section__panel-header {
@@ -380,7 +381,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
+  gap: 10px 14px;
   flex-wrap: wrap;
 }
 
@@ -396,13 +397,14 @@
 .dashboard-section__tasks-completed-label-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   min-width: 0;
 }
 
 .dashboard-section__filter-select--priority {
-  min-width: 180px;
+  min-width: 0;
+  width: auto;
 }
 
 .dashboard-section__tasks-completed-filters {
@@ -435,6 +437,19 @@
   cursor: pointer;
 }
 
+.dashboard-section__filter-select--priority select {
+  width: auto;
+  min-height: auto;
+  padding: 0 20px 0 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: #64748b;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
 .dashboard-section__filter-select svg {
   position: absolute;
   right: 14px;
@@ -443,17 +458,21 @@
   pointer-events: none;
 }
 
+.dashboard-section__filter-select--priority svg {
+  right: 0;
+}
+
 .dashboard-section__tasks-chart-wrap {
   width: 100%;
-  min-height: 250px;
+  min-height: 180px;
   display: flex;
   align-items: stretch;
 }
 
 .dashboard-section__tasks-chart {
   width: 100%;
-  height: 250px;
-  min-height: 250px;
+  height: 180px;
+  min-height: 180px;
   display: block;
 }
 
@@ -490,7 +509,13 @@
 
 .dashboard-section__tasks-chart-label {
   fill: #1e293b;
-  font-size: 16px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-section__tasks-chart-y-label {
+  fill: #94a3b8;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -498,7 +523,7 @@
   color: #64748b;
   font-size: 0.9rem;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: -2px;
 }
 
 .dashboard-section__tasks-completed-footnote strong {
@@ -594,10 +619,10 @@
   }
 
   .dashboard-section__tasks-chart-wrap {
-    min-height: 220px;
+    min-height: 200px;
   }
 
   .dashboard-section__tasks-chart {
-    min-height: 220px;
+    min-height: 200px;
   }
 }
