@@ -729,7 +729,7 @@ function TaskSummaryDonut({ segments, totalTasks }) {
 function TasksActivityChart({ dataPoints }) {
   const width = 920;
   const height = 330;
-  const margin = { top: 16, right: 44, bottom: 72, left: 78 };
+  const margin = { top: 16, right: 40, bottom: 96, left: 98 };
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
   const baseY = margin.top + chartHeight;
@@ -781,7 +781,7 @@ function TasksActivityChart({ dataPoints }) {
                 className="dashboard-section__tasks-chart-grid"
               />
               <text
-                x={margin.left - 20}
+                x={margin.left - 28}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="middle"
@@ -816,7 +816,7 @@ function TasksActivityChart({ dataPoints }) {
             <circle className="dashboard-section__tasks-chart-point" cx={point.x} cy={point.y} r="5.5" />
             <text
               x={point.x}
-              y={height - 22}
+              y={height - 12}
               textAnchor="middle"
               className="dashboard-section__tasks-chart-label"
             >
@@ -1128,6 +1128,14 @@ export default function DashboardSection({ searchValue = "" }) {
     };
   }, [users, teams, tasks, taskStatuses, priorities, selectedPriority, selectedPeriod, selectedTeam, normalizedSearch]);
 
+  const selectedPriorityLabel =
+    selectedPriority === "all"
+      ? "Priority"
+      : dashboardData.priorityOptions.find((priority) => {
+          const priorityValue = priority.id || normalizeStatus(priority.label);
+          return priorityValue === selectedPriority;
+        })?.label || "Priority";
+
   const statCards = [
     {
       key: "users",
@@ -1284,8 +1292,13 @@ export default function DashboardSection({ searchValue = "" }) {
 
                 <div className="dashboard-section__tasks-completed-toolbar">
                   <div className="dashboard-section__tasks-completed-label-group">
-                    <label className="dashboard-section__filter-select dashboard-section__filter-select--priority">
+                    <label className="dashboard-section__priority-trigger">
+                      <span className="dashboard-section__priority-trigger-text">
+                        {selectedPriorityLabel}
+                      </span>
+                      <FiChevronDown className="dashboard-section__priority-trigger-icon" />
                       <select
+                        className="dashboard-section__priority-native-select"
                         value={selectedPriority}
                         onChange={(event) => setSelectedPriority(event.target.value)}
                         aria-label="Filter tasks by priority"
@@ -1300,7 +1313,6 @@ export default function DashboardSection({ searchValue = "" }) {
                           );
                         })}
                       </select>
-                      <FiChevronDown />
                     </label>
                   </div>
 

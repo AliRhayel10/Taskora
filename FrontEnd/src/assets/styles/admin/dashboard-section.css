@@ -248,7 +248,7 @@
   display: grid;
   grid-template-columns: minmax(235px, 300px) minmax(0, 1fr);
   align-items: center;
-  gap: 4px;
+  gap: 20px;
 }
 
 .dashboard-section__task-summary-chart-side,
@@ -630,4 +630,39 @@
 
 .dashboard-section__tasks-chart-label {
   letter-spacing: 0;
+}
+
+.dashboard-section__priority-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: #1e293b;
+  font-size: 0.98rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dashboard-section__priority-trigger-text {
+  color: #1e293b;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dashboard-section__priority-trigger-icon {
+  color: #000000;
+  font-size: 1rem;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.dashboard-section__priority-native-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
