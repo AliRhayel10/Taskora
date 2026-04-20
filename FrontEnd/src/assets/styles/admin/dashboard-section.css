@@ -396,6 +396,7 @@
 .dashboard-section__filter-select--priority {
   min-width: 0;
   width: auto;
+  margin-left: 12px;
 }
 
 .dashboard-section__tasks-completed-filters {
@@ -430,14 +431,14 @@
 
 .dashboard-section__filter-select--priority select {
   width: auto;
-  min-height: auto;
+  min-height: 42px;
   padding: 0 24px 0 0;
   border: 0;
   background: transparent;
   border-radius: 0;
   box-shadow: none;
   color: #1e293b;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
@@ -638,8 +639,9 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
+  margin-left: 12px;
   color: #1e293b;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.2;
   cursor: pointer;
@@ -647,14 +649,14 @@
 
 .dashboard-section__priority-trigger-text {
   color: #1e293b;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .dashboard-section__priority-trigger-icon {
   color: #000000;
-  font-size: 1rem;
+  font-size: 0.95rem;
   flex-shrink: 0;
   pointer-events: none;
 }
