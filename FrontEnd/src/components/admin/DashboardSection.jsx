@@ -758,7 +758,7 @@ function TasksActivityChart({ dataPoints }) {
       <svg
         className="dashboard-section__tasks-chart"
         viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Tasks activity chart"
       >
@@ -1271,7 +1271,6 @@ export default function DashboardSection({ searchValue = "" }) {
                 <div className="dashboard-section__panel-header dashboard-section__panel-header--stacked">
                   <div>
                     <h3>Tasks Activity</h3>
-                    <p>Number of backend tasks grouped over time</p>
                   </div>
                   <button
                     type="button"
@@ -1345,12 +1344,7 @@ export default function DashboardSection({ searchValue = "" }) {
                     <span>No task activity data available for the selected filters.</span>
                   </div>
                 ) : (
-                  <>
-                    <TasksActivityChart dataPoints={dashboardData.tasksActivitySeries} />
-                    <div className="dashboard-section__tasks-completed-footnote">
-                      Showing <strong>{dashboardData.activityTaskCount}</strong> {getPluralLabel(dashboardData.activityTaskCount, "task")} for the selected filters.
-                    </div>
-                  </>
+                  <TasksActivityChart dataPoints={dashboardData.tasksActivitySeries} />
                 )}
               </article>
             </div>
