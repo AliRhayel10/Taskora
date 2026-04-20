@@ -25,6 +25,7 @@ import {
 import { DayPicker } from "react-day-picker";
 import { format } from "date-fns";
 import "react-day-picker/dist/style.css";
+import TaskDetailsPage from "./TaskDetailsPage";
 
 const API_BASE = "http://localhost:5000";
 
@@ -827,6 +828,7 @@ export default function TasksSection({
   const [deleteTaskId, setDeleteTaskId] = useState(null);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editFormState, setEditFormState] = useState(null);
+  const [selectedTaskForView, setSelectedTaskForView] = useState(null);
   const [isEditAssigneeOpen, setIsEditAssigneeOpen] = useState(false);
   const [isEditTaskInfoOpen, setIsEditTaskInfoOpen] = useState(false);
   const [isEditDueDateOpen, setIsEditDueDateOpen] = useState(false);
@@ -2355,6 +2357,15 @@ export default function TasksSection({
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(currentPage * pageSize, sortedTasks.length);
 
+  if (selectedTaskForView) {
+    return (
+      <TaskDetailsPage
+        task={selectedTaskForView}
+        onBack={() => setSelectedTaskForView(null)}
+      />
+    );
+  }
+
   return (
     <section className="tasks-section">
       <div className="tasks-section__title-row">
@@ -3016,6 +3027,7 @@ export default function TasksSection({
                                 type="button"
                                 className="tasks-section__action-btn tasks-section__action-btn--view"
                                 title="View task"
+                                onClick={() => setSelectedTaskForView(task)}
                               >
                                 <FiEye />
                               </button>
