@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCalendar,
+  FiCheck,
   FiChevronDown,
   FiClock,
   FiEdit2,
   FiFlag,
   FiLayers,
-  FiMoreHorizontal,
+  FiRotateCcw,
   FiTarget,
   FiUser,
   FiX,
@@ -93,6 +94,41 @@ const formatDateLabel = (value) => {
     month: "2-digit",
     year: "numeric",
   });
+};
+
+const toIsoDate = (value = "") => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length !== 8) return "";
+
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+
+  return `${year}-${month}-${day}`;
+};
+
+const toDisplayDate = (value = "") => {
+  const iso = toIsoDate(value);
+  if (!iso) return "";
+
+  const [year, month, day] = iso.split("-");
+  return `${day}/${month}/${year}`;
+};
+
+const formatDateInputValue = (value = "") => {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+  const parts = [];
+
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 8));
+
+  return parts.join("/");
 };
 
 const getPriorityClass = (priority = "") => {
@@ -233,6 +269,8 @@ export default function TaskDetailsPage({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isReviewMenuOpen, setIsReviewMenuOpen] = useState(false);
   const [editFormState, setEditFormState] = useState(DEFAULT_EDIT_FORM);
+  const [startDateInput, setStartDateInput] = useState("");
+  const [dueDateInput, setDueDateInput] = useState("");
   const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
@@ -363,6 +401,9 @@ export default function TaskDetailsPage({
 
   const openEditModal = () => {
     setIsReviewMenuOpen(false);
+    const nextStartDate = toIsoDate(currentTask?.startDate || "");
+    const nextDueDate = toIsoDate(currentTask?.dueDate || "");
+
     setEditFormState({
       title: currentTask?.title || "",
       description: currentTask?.description || "",
@@ -374,15 +415,19 @@ export default function TaskDetailsPage({
         currentTask?.estimatedEffortHours === undefined
           ? ""
           : String(currentTask.estimatedEffortHours),
-      startDate: currentTask?.startDate || "",
-      dueDate: currentTask?.dueDate || "",
+      startDate: nextStartDate,
+      dueDate: nextDueDate,
     });
+    setStartDateInput(toDisplayDate(nextStartDate));
+    setDueDateInput(toDisplayDate(nextDueDate));
     setIsEditOpen(true);
   };
 
   const closeEditModal = () => {
     setIsEditOpen(false);
     setEditFormState(DEFAULT_EDIT_FORM);
+    setStartDateInput("");
+    setDueDateInput("");
   };
 
   const handleEditFormChange = (field, value) => {
@@ -390,6 +435,21 @@ export default function TaskDetailsPage({
       ...previous,
       [field]: value,
     }));
+  };
+
+  const handleDateInputChange = (field, rawValue) => {
+    const formattedValue = formatDateInputValue(rawValue);
+    const isoValue = toIsoDate(formattedValue);
+
+    if (field === "startDate") {
+      setStartDateInput(formattedValue);
+    }
+
+    if (field === "dueDate") {
+      setDueDateInput(formattedValue);
+    }
+
+    handleEditFormChange(field, isoValue);
   };
 
   const refreshCurrentTask = (patch = {}) => {
@@ -564,29 +624,22 @@ export default function TaskDetailsPage({
         <div className="task-details-page__title-line"></div>
       </div>
 
-      <div className="task-details-page__toolbar">
-        <button
-          type="button"
-          className="tasks-section__create-btn task-details-page__edit-btn"
-          onClick={openEditModal}
-        >
-          <FiEdit2 />
-          <span>Edit</span>
-        </button>
-
-        {isDoneTask ? (
+      {isDoneTask ? (
+        <div className="task-details-page__toolbar">
           <div
             className="task-details-page__review-menu"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
-              className="tasks-section__create-btn task-details-page__review-btn"
+              className="task-details-page__review-btn"
               onClick={() => setIsReviewMenuOpen((previous) => !previous)}
               disabled={isUpdatingStatus || (!approvedStatusId && !newStatusId)}
+              aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
+              title={isUpdatingStatus ? "Updating task review" : "Review task"}
             >
-              <FiMoreHorizontal />
-              <span>{isUpdatingStatus ? "Updating..." : "Review Task"}</span>
+              <FiCheck />
+              <span>Review Task</span>
               <FiChevronDown />
             </button>
 
@@ -598,7 +651,8 @@ export default function TaskDetailsPage({
                   onClick={handleApprove}
                   disabled={isUpdatingStatus || !approvedStatusId}
                 >
-                  Mark as Approved
+                  <FiCheck />
+                  <span>Approve</span>
                 </button>
                 <button
                   type="button"
@@ -606,13 +660,14 @@ export default function TaskDetailsPage({
                   onClick={handleReject}
                   disabled={isUpdatingStatus || !newStatusId}
                 >
-                  Reject and Return as New
+                  <FiRotateCcw />
+                  <span>Reject</span>
                 </button>
               </div>
             ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {feedback ? (
         <div
@@ -625,6 +680,16 @@ export default function TaskDetailsPage({
       ) : null}
 
       <div className="task-details-page__single-card">
+        <button
+          type="button"
+          className="task-details-page__edit-btn"
+          onClick={openEditModal}
+          aria-label="Edit task"
+          title="Edit task"
+        >
+          <FiEdit2 />
+        </button>
+
         <div className="task-details-page__top-block">
           <h3>{title}</h3>
           <p>{description}</p>
@@ -868,11 +933,15 @@ export default function TaskDetailsPage({
                   </label>
                   <input
                     id="task-details-start-date"
-                    type="date"
-                    value={editFormState.startDate}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DD/MM/YYYY"
+                    className="task-details-page__date-input"
+                    value={startDateInput}
                     onChange={(event) =>
-                      handleEditFormChange("startDate", event.target.value)
+                      handleDateInputChange("startDate", event.target.value)
                     }
+                    maxLength={10}
                     required
                   />
                 </div>
@@ -883,11 +952,15 @@ export default function TaskDetailsPage({
                   </label>
                   <input
                     id="task-details-due-date"
-                    type="date"
-                    value={editFormState.dueDate}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DD/MM/YYYY"
+                    className="task-details-page__date-input"
+                    value={dueDateInput}
                     onChange={(event) =>
-                      handleEditFormChange("dueDate", event.target.value)
+                      handleDateInputChange("dueDate", event.target.value)
                     }
+                    maxLength={10}
                     required
                   />
                 </div>
