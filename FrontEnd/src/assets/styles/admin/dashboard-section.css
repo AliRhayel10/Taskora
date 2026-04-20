@@ -639,14 +639,15 @@
   gap: 4px;
   min-width: 0;
   color: #1e293b;
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1.2;
   cursor: pointer;
 }
 
 .dashboard-section__priority-trigger-text {
   color: #1e293b;
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
 }

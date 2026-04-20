@@ -781,7 +781,7 @@ function TasksActivityChart({ dataPoints }) {
                 className="dashboard-section__tasks-chart-grid"
               />
               <text
-                x={margin.left - 28}
+                x={28}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="middle"
