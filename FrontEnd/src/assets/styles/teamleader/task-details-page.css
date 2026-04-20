@@ -453,7 +453,7 @@
 }
 
 .task-details-page__confirm-modal {
-  width: min(100%, 420px);
+  width: min(100%, 460px);
   background: #ffffff;
   border: 1px solid #dbe3ef;
   border-radius: 20px;
@@ -495,6 +495,41 @@
   color: #475569;
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.task-details-page__confirm-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.task-details-page__confirm-form-group label {
+  color: #1e293b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.task-details-page__confirm-form-group textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.95rem;
+  padding: 12px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.task-details-page__confirm-form-group textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .task-details-page__confirm-actions {

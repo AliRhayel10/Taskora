@@ -212,6 +212,7 @@ export default function TaskDetailsPage({
   updateTaskStatusEndpoint,
   updateTaskEndpoint,
   setupRulesEndpoint,
+  submitTaskFeedbackEndpoint,
 }) {
   const storedUser = useMemo(() => getStoredUser(), []);
   const resolvedCompanyId =
@@ -236,6 +237,8 @@ export default function TaskDetailsPage({
   const resolvedUpdateTaskStatusEndpoint =
     updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/update-status`;
   const resolvedUpdateTaskEndpoint = updateTaskEndpoint ?? `${API_BASE}/api/tasks/update`;
+  const resolvedSubmitTaskFeedbackEndpoint =
+    submitTaskFeedbackEndpoint ?? `${API_BASE}/api/tasks/feedback`;
 
   const [currentTask, setCurrentTask] = useState(task);
   const [backendStatuses, setBackendStatuses] = useState([]);
@@ -246,8 +249,10 @@ export default function TaskDetailsPage({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isReviewMenuOpen, setIsReviewMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [reassignFeedback, setReassignFeedback] = useState("");
   const [editFormState, setEditFormState] = useState(DEFAULT_EDIT_FORM);
   const [feedback, setFeedback] = useState(null);
 
@@ -335,7 +340,7 @@ export default function TaskDetailsPage({
 
   const pendingStatusId = useMemo(() => {
     const pendingStatus = backendStatuses.find(
-      (item) => normalizeStatus(getBackendStatusName(item)) === "pending",
+      (item) => getBackendStatusName(item) === "Pending",
     );
     return getBackendStatusId(pendingStatus);
   }, [backendStatuses]);
@@ -407,6 +412,12 @@ export default function TaskDetailsPage({
     setEditFormState(DEFAULT_EDIT_FORM);
   };
 
+  const closeConfirmModal = () => {
+    if (isUpdatingStatus || isSubmittingFeedback) return;
+    setConfirmAction(null);
+    setReassignFeedback("");
+  };
+
   const handleEditFormChange = (field, value) => {
     setEditFormState((previous) => ({
       ...previous,
@@ -464,14 +475,79 @@ export default function TaskDetailsPage({
     }
   };
 
+  const submitReassignFeedback = async () => {
+    if (!currentTask?.id) {
+      throw new Error("Missing task information.");
+    }
+
+    const trimmedFeedback = reassignFeedback.trim();
+
+    if (!trimmedFeedback) {
+      throw new Error("Feedback is required.");
+    }
+
+    setIsSubmittingFeedback(true);
+
+    try {
+      const payload = {
+        taskId: Number(currentTask.id),
+        feedback: trimmedFeedback,
+        assignedToUserId: Number(currentTask.assignedUserId || 0),
+        companyId: Number(resolvedCompanyId || 0),
+        teamId: Number(currentTask.teamId || 0),
+        createdByUserId: Number(resolvedCurrentUserId || 0),
+      };
+
+      const candidates = [
+        resolvedSubmitTaskFeedbackEndpoint,
+        `${API_BASE}/api/tasks/feedback`,
+        `${API_BASE}/api/tasks/reassign-feedback`,
+        `${API_BASE}/api/tasks/add-feedback`,
+      ];
+
+      let success = false;
+      let lastMessage = "Unable to submit feedback.";
+
+      for (const url of candidates) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const responsePayload = await parseJsonSafe(response);
+
+          if (response.ok) {
+            success = true;
+            break;
+          }
+
+          lastMessage =
+            responsePayload?.message || responsePayload?.title || lastMessage;
+        } catch (error) {
+          lastMessage = error?.message || lastMessage;
+        }
+      }
+
+      if (!success) {
+        throw new Error(lastMessage);
+      }
+
+      return true;
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   const handleApprove = () => {
     setIsReviewMenuOpen(false);
     setConfirmAction("approve");
   };
 
-  const handleReject = () => {
+  const handleReassign = () => {
     setIsReviewMenuOpen(false);
-    setConfirmAction("reject");
+    setConfirmAction("reassign");
   };
 
   const handleConfirmAction = async () => {
@@ -486,18 +562,28 @@ export default function TaskDetailsPage({
         });
       }
 
-      if (confirmAction === "reject") {
-        await updateStatus(pendingStatusId, "Task moved to pending successfully.", {
+      if (confirmAction === "reassign") {
+        await submitReassignFeedback();
+
+        await updateStatus(pendingStatusId, "Task re assigned and moved to pending.", {
           status: "Pending",
           effectiveStatus: "Pending",
           taskStatusId: pendingStatusId,
+          assignedUserId: currentTask.assignedUserId,
+          assignedUserName: currentTask.assignedUserName,
+          assignedUserEmail: currentTask.assignedUserEmail,
+          assignedUserAvatar: currentTask.assignedUserAvatar,
         });
       }
 
       setConfirmAction(null);
+      setReassignFeedback("");
       window.location.reload();
-    } catch {
-      // feedback is already handled in updateStatus
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to complete this action.",
+      });
     }
   };
 
@@ -613,7 +699,7 @@ export default function TaskDetailsPage({
         <div className="task-details-page__title-line"></div>
       </div>
 
-      {isReviewable && !isLocked ? (
+      {isReviewable ? (
         <div className="task-details-page__toolbar">
           <div
             className="task-details-page__review-menu"
@@ -623,7 +709,7 @@ export default function TaskDetailsPage({
               type="button"
               className="task-details-page__review-btn"
               onClick={() => setIsReviewMenuOpen((previous) => !previous)}
-              disabled={isUpdatingStatus || (!approvedStatusId && !pendingStatusId)}
+              disabled={isUpdatingStatus || isSubmittingFeedback || (!approvedStatusId && !pendingStatusId)}
               aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
               title={isUpdatingStatus ? "Updating task review" : "Review task"}
             >
@@ -637,7 +723,7 @@ export default function TaskDetailsPage({
                   type="button"
                   className="task-details-page__review-option task-details-page__review-option--approve"
                   onClick={handleApprove}
-                  disabled={isUpdatingStatus || !approvedStatusId}
+                  disabled={isUpdatingStatus || isSubmittingFeedback || !approvedStatusId}
                 >
                   <span>Approve</span>
                 </button>
@@ -645,11 +731,11 @@ export default function TaskDetailsPage({
                 <button
                   type="button"
                   className="task-details-page__review-option task-details-page__review-option--reject"
-                  onClick={handleReject}
-                  disabled={isUpdatingStatus || !pendingStatusId}
+                  onClick={handleReassign}
+                  disabled={isUpdatingStatus || isSubmittingFeedback || !pendingStatusId}
                 >
                   <FiRotateCcw />
-                  <span>Reject</span>
+                  <span>Re Assign</span>
                 </button>
               </div>
             ) : null}
@@ -996,39 +1082,58 @@ export default function TaskDetailsPage({
       {confirmAction ? (
         <div
           className="tasks-section__modal-overlay"
-          onClick={() => {
-            if (!isUpdatingStatus) setConfirmAction(null);
-          }}
+          onClick={closeConfirmModal}
         >
           <div
             className="task-details-page__confirm-modal"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="task-details-page__confirm-header">
-              <h3>Confirm Action</h3>
+              <h3>
+                {confirmAction === "approve" ? "Approve Task" : "Re Assign Task"}
+              </h3>
+
               <button
                 type="button"
                 className="task-details-page__confirm-close"
-                onClick={() => setConfirmAction(null)}
+                onClick={closeConfirmModal}
                 aria-label="Close confirmation"
-                disabled={isUpdatingStatus}
+                disabled={isUpdatingStatus || isSubmittingFeedback}
               >
                 <FiX />
               </button>
             </div>
 
-            <p className="task-details-page__confirm-text">
-              {confirmAction === "approve"
-                ? "Are you sure you want to approve this task?"
-                : "Are you sure you want to reject this task and move it to pending?"}
-            </p>
+            {confirmAction === "approve" ? (
+              <p className="task-details-page__confirm-text">
+                Are you sure you want to approve this task?
+              </p>
+            ) : (
+              <>
+                <p className="task-details-page__confirm-text">
+                  Add feedback for the assigned user. The task will stay assigned to the same user and will be moved to Pending.
+                </p>
+
+                <div className="task-details-page__confirm-form-group">
+                  <label htmlFor="task-reassign-feedback">Feedback</label>
+                  <textarea
+                    id="task-reassign-feedback"
+                    value={reassignFeedback}
+                    onChange={(event) => setReassignFeedback(event.target.value)}
+                    placeholder="Write feedback here"
+                    rows={5}
+                    disabled={isUpdatingStatus || isSubmittingFeedback}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="task-details-page__confirm-actions">
               <button
                 type="button"
                 className="task-details-page__confirm-cancel"
-                onClick={() => setConfirmAction(null)}
-                disabled={isUpdatingStatus}
+                onClick={closeConfirmModal}
+                disabled={isUpdatingStatus || isSubmittingFeedback}
               >
                 Cancel
               </button>
@@ -1041,13 +1146,17 @@ export default function TaskDetailsPage({
                     : "task-details-page__confirm-submit--reject"
                 }`}
                 onClick={handleConfirmAction}
-                disabled={isUpdatingStatus}
+                disabled={
+                  isUpdatingStatus ||
+                  isSubmittingFeedback ||
+                  (confirmAction === "reassign" && !reassignFeedback.trim())
+                }
               >
-                {isUpdatingStatus
+                {isUpdatingStatus || isSubmittingFeedback
                   ? "Saving..."
                   : confirmAction === "approve"
                     ? "Approve"
-                    : "Reject"}
+                    : "Re Assign"}
               </button>
             </div>
           </div>
