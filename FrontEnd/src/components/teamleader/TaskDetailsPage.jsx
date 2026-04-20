@@ -1,9 +1,7 @@
 import React, { useMemo } from "react";
 import {
-  FiAlertCircle,
   FiArrowLeft,
   FiCalendar,
-  FiCheckSquare,
   FiClock,
   FiFlag,
   FiLayers,
@@ -58,65 +56,42 @@ const formatDateLabel = (value) => {
   });
 };
 
-const normalizeStatus = (value = "") =>
-  String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s-]+/g, " ");
-
-const getStatusClass = (status = "") => {
-  const normalized = normalizeStatus(status);
-
-  if (normalized === "approved") return "task-details-page__pill--approved";
-  if (normalized === "done") return "task-details-page__pill--done";
-  if (normalized === "rejected" || normalized === "blocked") {
-    return "task-details-page__pill--danger";
-  }
-  if (normalized === "pending") return "task-details-page__pill--pending";
-  if (normalized === "acknowledged" || normalized === "in progress") {
-    return "task-details-page__pill--info";
-  }
-  if (normalized === "archived") return "task-details-page__pill--neutral";
-
-  return "task-details-page__pill--primary";
-};
-
-const getPriorityClass = (priority = "") => {
-  const normalized = String(priority).trim().toLowerCase();
-
-  if (normalized === "critical") return "task-details-page__pill--danger";
-  if (normalized === "high") return "task-details-page__pill--high";
-  if (normalized === "medium") return "task-details-page__pill--pending";
-
-  return "task-details-page__pill--primary";
-};
-
-const getComplexityClass = (complexity = "") => {
-  const normalized = String(complexity).trim().toLowerCase();
-
-  if (normalized === "complex") return "task-details-page__pill--danger";
-  if (normalized === "medium") return "task-details-page__pill--pending";
-
-  return "task-details-page__pill--primary";
-};
-
 const getDurationLabel = (startDate, dueDate) => {
-  if (!startDate || !dueDate) return "Not enough date data";
+  if (!startDate || !dueDate) return "Not set";
 
   const start = new Date(`${String(startDate).split("T")[0]}T00:00:00`);
   const end = new Date(`${String(dueDate).split("T")[0]}T00:00:00`);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return "Not enough date data";
+    return "Not set";
   }
 
   const diffTime = end.getTime() - start.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return "Due date before start date";
+  if (diffDays < 0) return "Invalid dates";
   if (diffDays === 0) return "1 day";
 
   return `${diffDays + 1} days`;
+};
+
+const getPriorityClass = (priority = "") => {
+  const normalized = String(priority).trim().toLowerCase();
+
+  if (normalized === "critical") return "task-details-page__tag--danger";
+  if (normalized === "high") return "task-details-page__tag--warning";
+  if (normalized === "medium") return "task-details-page__tag--warning";
+
+  return "task-details-page__tag--primary";
+};
+
+const getComplexityClass = (complexity = "") => {
+  const normalized = String(complexity).trim().toLowerCase();
+
+  if (normalized === "complex") return "task-details-page__tag--danger";
+  if (normalized === "medium") return "task-details-page__tag--warning";
+
+  return "task-details-page__tag--primary";
 };
 
 export default function TaskDetailsPage({ task, onBack }) {
@@ -132,12 +107,14 @@ export default function TaskDetailsPage({ task, onBack }) {
   const profileImage = getProfileImage(assignee);
   const title = task?.title?.trim() || "Task details";
   const description = task?.description?.trim() || "No task description was added.";
-  const effort = Number(task?.estimatedEffortHours || 0);
-  const weight = Number(task?.weight || 0);
-  const status = task?.status || "New";
   const priority = task?.priority || "Low";
   const complexity = task?.complexity || "Simple";
+  const effort = Number(task?.estimatedEffortHours || 0);
+  const weight = Number(task?.weight || 0);
+  const startDateLabel = formatDateLabel(task?.startDate);
+  const dueDateLabel = formatDateLabel(task?.dueDate);
   const durationLabel = getDurationLabel(task?.startDate, task?.dueDate);
+  const feedback = String(task?.feedback || "").trim();
 
   return (
     <section className="task-details-page">
@@ -157,137 +134,127 @@ export default function TaskDetailsPage({ task, onBack }) {
         <div className="task-details-page__title-line"></div>
       </div>
 
-      <div className="task-details-page__hero-card">
-        <div className="task-details-page__hero-copy">
-          <span className="task-details-page__eyebrow">Task overview</span>
+      <div className="task-details-page__header">
+        <div className="task-details-page__header-main">
+          <span className="task-details-page__eyebrow">Task Overview</span>
           <h3>{title}</h3>
           <p>{description}</p>
         </div>
 
-        <div className="task-details-page__hero-pills">
-          <span className={`task-details-page__pill ${getStatusClass(status)}`}>
-            {status}
-          </span>
-          <span className={`task-details-page__pill ${getPriorityClass(priority)}`}>
+        <div className="task-details-page__header-tags">
+          <span className={`task-details-page__tag ${getPriorityClass(priority)}`}>
             {priority} Priority
           </span>
-          <span
-            className={`task-details-page__pill ${getComplexityClass(complexity)}`}
-          >
+          <span className={`task-details-page__tag ${getComplexityClass(complexity)}`}>
             {complexity} Complexity
           </span>
         </div>
       </div>
 
-      <div className="task-details-page__stats-grid">
-        <article className="task-details-page__stat-card">
-          <span className="task-details-page__stat-icon task-details-page__stat-icon--effort">
-            <FiClock />
-          </span>
-          <div className="task-details-page__stat-copy">
-            <small>Estimated Effort</small>
-            <strong>{effort > 0 ? `${effort} h` : "Not set"}</strong>
-          </div>
-        </article>
-
-        <article className="task-details-page__stat-card">
-          <span className="task-details-page__stat-icon task-details-page__stat-icon--weight">
-            <FiTarget />
-          </span>
-          <div className="task-details-page__stat-copy">
-            <small>Task Weight</small>
-            <strong>{weight > 0 ? weight.toFixed(2) : "Not set"}</strong>
-          </div>
-        </article>
-
-        <article className="task-details-page__stat-card">
-          <span className="task-details-page__stat-icon task-details-page__stat-icon--duration">
-            <FiCalendar />
-          </span>
-          <div className="task-details-page__stat-copy">
-            <small>Timeline</small>
-            <strong>{durationLabel}</strong>
-          </div>
-        </article>
-
-        <article className="task-details-page__stat-card">
-          <span className="task-details-page__stat-icon task-details-page__stat-icon--status">
-            <FiCheckSquare />
-          </span>
-          <div className="task-details-page__stat-copy">
-            <small>Current Status</small>
-            <strong>{status}</strong>
-          </div>
-        </article>
-      </div>
-
-      <div className="task-details-page__content-grid">
-        <div className="task-details-page__main-column">
-          <article className="task-details-page__panel">
-            <div className="task-details-page__panel-head">
-              <h4>Description</h4>
+      <div className="task-details-page__layout">
+        <div className="task-details-page__main">
+          <section className="task-details-page__section">
+            <div className="task-details-page__section-head">
+              <h4>Assignment</h4>
             </div>
-            <div className="task-details-page__description-box">
-              <p>{description}</p>
-            </div>
-          </article>
 
-          <article className="task-details-page__panel">
-            <div className="task-details-page__panel-head">
+            <div className="task-details-page__assignee-row">
+              <div className="task-details-page__assignee-card">
+                <div className="task-details-page__assignee-avatar">
+                  {profileImage ? (
+                    <img src={profileImage} alt={assignee.fullName} />
+                  ) : (
+                    <span>{getInitials(assignee.fullName)}</span>
+                  )}
+                </div>
+
+                <div className="task-details-page__assignee-copy">
+                  <strong>{assignee.fullName}</strong>
+                  <small>{assignee.email}</small>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="task-details-page__section">
+            <div className="task-details-page__section-head">
               <h4>Schedule</h4>
             </div>
 
-            <div className="task-details-page__details-grid">
-              <div className="task-details-page__detail-item">
-                <span className="task-details-page__detail-label">Start Date</span>
-                <strong>{formatDateLabel(task?.startDate)}</strong>
+            <div className="task-details-page__timeline-grid">
+              <div className="task-details-page__timeline-item">
+                <span className="task-details-page__timeline-icon">
+                  <FiCalendar />
+                </span>
+                <div>
+                  <small>Start Date</small>
+                  <strong>{startDateLabel}</strong>
+                </div>
               </div>
-              <div className="task-details-page__detail-item">
-                <span className="task-details-page__detail-label">Due Date</span>
-                <strong>{formatDateLabel(task?.dueDate)}</strong>
+
+              <div className="task-details-page__timeline-item">
+                <span className="task-details-page__timeline-icon">
+                  <FiCalendar />
+                </span>
+                <div>
+                  <small>Due Date</small>
+                  <strong>{dueDateLabel}</strong>
+                </div>
               </div>
-              <div className="task-details-page__detail-item">
-                <span className="task-details-page__detail-label">Duration</span>
-                <strong>{durationLabel}</strong>
-              </div>
-              <div className="task-details-page__detail-item">
-                <span className="task-details-page__detail-label">Task ID</span>
-                <strong>{task?.id || "Not available"}</strong>
+
+              <div className="task-details-page__timeline-item">
+                <span className="task-details-page__timeline-icon">
+                  <FiClock />
+                </span>
+                <div>
+                  <small>Duration</small>
+                  <strong>{durationLabel}</strong>
+                </div>
               </div>
             </div>
-          </article>
+          </section>
+
+          {feedback ? (
+            <section className="task-details-page__section">
+              <div className="task-details-page__section-head">
+                <h4>Feedback</h4>
+              </div>
+              <div className="task-details-page__text-block">
+                <p>{feedback}</p>
+              </div>
+            </section>
+          ) : null}
         </div>
 
-        <aside className="task-details-page__side-column">
-          <article className="task-details-page__panel">
-            <div className="task-details-page__panel-head">
-              <h4>Assigned Member</h4>
+        <aside className="task-details-page__sidebar">
+          <section className="task-details-page__section task-details-page__section--compact">
+            <div className="task-details-page__section-head">
+              <h4>Task Summary</h4>
             </div>
 
-            <div className="task-details-page__assignee-card">
-              <div className="task-details-page__assignee-avatar">
-                {profileImage ? (
-                  <img src={profileImage} alt={assignee.fullName} />
-                ) : (
-                  <span>{getInitials(assignee.fullName)}</span>
-                )}
+            <div className="task-details-page__summary-list">
+              <div className="task-details-page__summary-row">
+                <span className="task-details-page__summary-icon task-details-page__summary-icon--effort">
+                  <FiClock />
+                </span>
+                <div>
+                  <small>Estimated Effort</small>
+                  <strong>{effort > 0 ? `${effort} h` : "Not set"}</strong>
+                </div>
               </div>
 
-              <div className="task-details-page__assignee-copy">
-                <strong>{assignee.fullName}</strong>
-                <small>{assignee.email}</small>
+              <div className="task-details-page__summary-row">
+                <span className="task-details-page__summary-icon task-details-page__summary-icon--weight">
+                  <FiTarget />
+                </span>
+                <div>
+                  <small>Task Weight</small>
+                  <strong>{weight > 0 ? weight.toFixed(2) : "Not set"}</strong>
+                </div>
               </div>
-            </div>
-          </article>
 
-          <article className="task-details-page__panel">
-            <div className="task-details-page__panel-head">
-              <h4>Task Info</h4>
-            </div>
-
-            <div className="task-details-page__meta-list">
-              <div className="task-details-page__meta-row">
-                <span className="task-details-page__meta-icon">
+              <div className="task-details-page__summary-row">
+                <span className="task-details-page__summary-icon task-details-page__summary-icon--priority">
                   <FiFlag />
                 </span>
                 <div>
@@ -296,8 +263,8 @@ export default function TaskDetailsPage({ task, onBack }) {
                 </div>
               </div>
 
-              <div className="task-details-page__meta-row">
-                <span className="task-details-page__meta-icon">
+              <div className="task-details-page__summary-row">
+                <span className="task-details-page__summary-icon task-details-page__summary-icon--complexity">
                   <FiLayers />
                 </span>
                 <div>
@@ -306,8 +273,8 @@ export default function TaskDetailsPage({ task, onBack }) {
                 </div>
               </div>
 
-              <div className="task-details-page__meta-row">
-                <span className="task-details-page__meta-icon">
+              <div className="task-details-page__summary-row">
+                <span className="task-details-page__summary-icon task-details-page__summary-icon--assignee">
                   <FiUser />
                 </span>
                 <div>
@@ -315,18 +282,8 @@ export default function TaskDetailsPage({ task, onBack }) {
                   <strong>{task?.assignedUserId ? "Assigned" : "Unassigned"}</strong>
                 </div>
               </div>
-
-              <div className="task-details-page__meta-row">
-                <span className="task-details-page__meta-icon">
-                  <FiAlertCircle />
-                </span>
-                <div>
-                  <small>Feedback</small>
-                  <strong>{task?.feedback?.trim() || "No feedback yet"}</strong>
-                </div>
-              </div>
             </div>
-          </article>
+          </section>
         </aside>
       </div>
     </section>
