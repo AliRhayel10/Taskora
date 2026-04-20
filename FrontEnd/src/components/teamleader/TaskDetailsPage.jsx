@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  FiArchive,
   FiArrowLeft,
   FiCalendar,
   FiChevronDown,
@@ -212,7 +213,6 @@ export default function TaskDetailsPage({
   updateTaskStatusEndpoint,
   updateTaskEndpoint,
   setupRulesEndpoint,
-  submitTaskFeedbackEndpoint,
 }) {
   const storedUser = useMemo(() => getStoredUser(), []);
   const resolvedCompanyId =
@@ -237,8 +237,6 @@ export default function TaskDetailsPage({
   const resolvedUpdateTaskStatusEndpoint =
     updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/update-status`;
   const resolvedUpdateTaskEndpoint = updateTaskEndpoint ?? `${API_BASE}/api/tasks/update`;
-  const resolvedSubmitTaskFeedbackEndpoint =
-    submitTaskFeedbackEndpoint ?? `${API_BASE}/api/tasks/feedback`;
 
   const [currentTask, setCurrentTask] = useState(task);
   const [backendStatuses, setBackendStatuses] = useState([]);
@@ -249,7 +247,6 @@ export default function TaskDetailsPage({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isReviewMenuOpen, setIsReviewMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [reassignFeedback, setReassignFeedback] = useState("");
@@ -345,6 +342,13 @@ export default function TaskDetailsPage({
     return getBackendStatusId(pendingStatus);
   }, [backendStatuses]);
 
+  const archivedStatusId = useMemo(() => {
+    const archivedStatus = backendStatuses.find(
+      (item) => normalizeStatus(getBackendStatusName(item)) === "archived",
+    );
+    return getBackendStatusId(archivedStatus);
+  }, [backendStatuses]);
+
   const resolveTeamIdForUser = (userId) => {
     const numericUserId = Number(userId);
     if (!numericUserId) return Number(currentTask?.teamId || 0);
@@ -382,9 +386,13 @@ export default function TaskDetailsPage({
   const dueDateLabel = formatDateLabel(currentTask?.dueDate);
 
   const normalizedCurrentStatus = normalizeStatus(status);
-  const isReviewable = normalizedCurrentStatus === "done";
-  const isLocked =
-    normalizedCurrentStatus === "approved" || normalizedCurrentStatus === "pending";
+  const canEdit =
+    normalizedCurrentStatus === "new" ||
+    normalizedCurrentStatus === "acknowledged" ||
+    normalizedCurrentStatus === "pending";
+  const isDone = normalizedCurrentStatus === "done";
+  const isApproved = normalizedCurrentStatus === "approved";
+  const isArchived = normalizedCurrentStatus === "archived";
 
   const openEditModal = () => {
     setIsReviewMenuOpen(false);
@@ -413,7 +421,7 @@ export default function TaskDetailsPage({
   };
 
   const closeConfirmModal = () => {
-    if (isUpdatingStatus || isSubmittingFeedback) return;
+    if (isUpdatingStatus) return;
     setConfirmAction(null);
     setReassignFeedback("");
   };
@@ -432,7 +440,7 @@ export default function TaskDetailsPage({
     return nextTask;
   };
 
-  const updateStatus = async (nextStatusId, successMessage, patch) => {
+  const updateStatus = async (nextStatusId, successMessage, patch, feedbackText = "") => {
     if (!currentTask?.id || !nextStatusId || !resolvedCurrentUserId) {
       throw new Error("Missing required task status data.");
     }
@@ -448,10 +456,14 @@ export default function TaskDetailsPage({
           TaskId: Number(currentTask.id),
           NewTaskStatusId: Number(nextStatusId),
           ChangedByUserId: Number(resolvedCurrentUserId),
+          Feedback: feedbackText || "",
         }),
       });
 
-      const payload = await parseJsonSafe(response);
+      let payload = null;
+      if (response.status !== 204) {
+        payload = await parseJsonSafe(response);
+      }
 
       if (!response.ok) {
         throw new Error(payload?.message || payload?.title || "Unable to update task status.");
@@ -475,71 +487,6 @@ export default function TaskDetailsPage({
     }
   };
 
-  const submitReassignFeedback = async () => {
-    if (!currentTask?.id) {
-      throw new Error("Missing task information.");
-    }
-
-    const trimmedFeedback = reassignFeedback.trim();
-
-    if (!trimmedFeedback) {
-      throw new Error("Feedback is required.");
-    }
-
-    setIsSubmittingFeedback(true);
-
-    try {
-      const payload = {
-        taskId: Number(currentTask.id),
-        feedback: trimmedFeedback,
-        assignedToUserId: Number(currentTask.assignedUserId || 0),
-        companyId: Number(resolvedCompanyId || 0),
-        teamId: Number(currentTask.teamId || 0),
-        createdByUserId: Number(resolvedCurrentUserId || 0),
-      };
-
-      const candidates = [
-        resolvedSubmitTaskFeedbackEndpoint,
-        `${API_BASE}/api/tasks/feedback`,
-        `${API_BASE}/api/tasks/reassign-feedback`,
-        `${API_BASE}/api/tasks/add-feedback`,
-      ];
-
-      let success = false;
-      let lastMessage = "Unable to submit feedback.";
-
-      for (const url of candidates) {
-        try {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          const responsePayload = await parseJsonSafe(response);
-
-          if (response.ok) {
-            success = true;
-            break;
-          }
-
-          lastMessage =
-            responsePayload?.message || responsePayload?.title || lastMessage;
-        } catch (error) {
-          lastMessage = error?.message || lastMessage;
-        }
-      }
-
-      if (!success) {
-        throw new Error(lastMessage);
-      }
-
-      return true;
-    } finally {
-      setIsSubmittingFeedback(false);
-    }
-  };
-
   const handleApprove = () => {
     setIsReviewMenuOpen(false);
     setConfirmAction("approve");
@@ -550,30 +497,62 @@ export default function TaskDetailsPage({
     setConfirmAction("reassign");
   };
 
+  const handleArchive = async () => {
+    try {
+      await updateStatus(
+        archivedStatusId,
+        "Task archived successfully.",
+        {
+          status: "Archived",
+          effectiveStatus: "Archived",
+          taskStatusId: archivedStatusId,
+        },
+        "",
+      );
+      window.location.reload();
+    } catch {
+      // feedback is already handled in updateStatus
+    }
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmAction) return;
 
     try {
       if (confirmAction === "approve") {
-        await updateStatus(approvedStatusId, "Task approved successfully.", {
-          status: "Approved",
-          effectiveStatus: "Approved",
-          taskStatusId: approvedStatusId,
-        });
+        await updateStatus(
+          approvedStatusId,
+          "Task approved successfully.",
+          {
+            status: "Approved",
+            effectiveStatus: "Approved",
+            taskStatusId: approvedStatusId,
+          },
+          "",
+        );
       }
 
       if (confirmAction === "reassign") {
-        await submitReassignFeedback();
+        const trimmedFeedback = reassignFeedback.trim();
 
-        await updateStatus(pendingStatusId, "Task re assigned and moved to pending.", {
-          status: "Pending",
-          effectiveStatus: "Pending",
-          taskStatusId: pendingStatusId,
-          assignedUserId: currentTask.assignedUserId,
-          assignedUserName: currentTask.assignedUserName,
-          assignedUserEmail: currentTask.assignedUserEmail,
-          assignedUserAvatar: currentTask.assignedUserAvatar,
-        });
+        if (!trimmedFeedback) {
+          throw new Error("Feedback is required.");
+        }
+
+        await updateStatus(
+          pendingStatusId,
+          "Task re assigned and moved to pending.",
+          {
+            status: "Pending",
+            effectiveStatus: "Pending",
+            taskStatusId: pendingStatusId,
+            assignedUserId: currentTask.assignedUserId,
+            assignedUserName: currentTask.assignedUserName,
+            assignedUserEmail: currentTask.assignedUserEmail,
+            assignedUserAvatar: currentTask.assignedUserAvatar,
+          },
+          trimmedFeedback,
+        );
       }
 
       setConfirmAction(null);
@@ -699,7 +678,7 @@ export default function TaskDetailsPage({
         <div className="task-details-page__title-line"></div>
       </div>
 
-      {isReviewable ? (
+      {isDone ? (
         <div className="task-details-page__toolbar">
           <div
             className="task-details-page__review-menu"
@@ -709,7 +688,7 @@ export default function TaskDetailsPage({
               type="button"
               className="task-details-page__review-btn"
               onClick={() => setIsReviewMenuOpen((previous) => !previous)}
-              disabled={isUpdatingStatus || isSubmittingFeedback || (!approvedStatusId && !pendingStatusId)}
+              disabled={isUpdatingStatus || (!approvedStatusId && !pendingStatusId)}
               aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
               title={isUpdatingStatus ? "Updating task review" : "Review task"}
             >
@@ -723,7 +702,7 @@ export default function TaskDetailsPage({
                   type="button"
                   className="task-details-page__review-option task-details-page__review-option--approve"
                   onClick={handleApprove}
-                  disabled={isUpdatingStatus || isSubmittingFeedback || !approvedStatusId}
+                  disabled={isUpdatingStatus || !approvedStatusId}
                 >
                   <span>Approve</span>
                 </button>
@@ -732,7 +711,7 @@ export default function TaskDetailsPage({
                   type="button"
                   className="task-details-page__review-option task-details-page__review-option--reject"
                   onClick={handleReassign}
-                  disabled={isUpdatingStatus || isSubmittingFeedback || !pendingStatusId}
+                  disabled={isUpdatingStatus || !pendingStatusId}
                 >
                   <FiRotateCcw />
                   <span>Re Assign</span>
@@ -740,6 +719,22 @@ export default function TaskDetailsPage({
               </div>
             ) : null}
           </div>
+        </div>
+      ) : null}
+
+      {isApproved ? (
+        <div className="task-details-page__toolbar">
+          <button
+            type="button"
+            className="task-details-page__archive-btn"
+            onClick={handleArchive}
+            disabled={isUpdatingStatus || !archivedStatusId}
+            aria-label={isUpdatingStatus ? "Archiving task" : "Archive task"}
+            title={isUpdatingStatus ? "Archiving task" : "Archive task"}
+          >
+            <FiArchive />
+            <span>Archive</span>
+          </button>
         </div>
       ) : null}
 
@@ -754,7 +749,7 @@ export default function TaskDetailsPage({
       ) : null}
 
       <div className="task-details-page__single-card">
-        {!isLocked ? (
+        {canEdit ? (
           <button
             type="button"
             className="task-details-page__edit-btn"
@@ -1098,7 +1093,7 @@ export default function TaskDetailsPage({
                 className="task-details-page__confirm-close"
                 onClick={closeConfirmModal}
                 aria-label="Close confirmation"
-                disabled={isUpdatingStatus || isSubmittingFeedback}
+                disabled={isUpdatingStatus}
               >
                 <FiX />
               </button>
@@ -1122,7 +1117,7 @@ export default function TaskDetailsPage({
                     onChange={(event) => setReassignFeedback(event.target.value)}
                     placeholder="Write feedback here"
                     rows={5}
-                    disabled={isUpdatingStatus || isSubmittingFeedback}
+                    disabled={isUpdatingStatus}
                   />
                 </div>
               </>
@@ -1133,7 +1128,7 @@ export default function TaskDetailsPage({
                 type="button"
                 className="task-details-page__confirm-cancel"
                 onClick={closeConfirmModal}
-                disabled={isUpdatingStatus || isSubmittingFeedback}
+                disabled={isUpdatingStatus}
               >
                 Cancel
               </button>
@@ -1148,11 +1143,10 @@ export default function TaskDetailsPage({
                 onClick={handleConfirmAction}
                 disabled={
                   isUpdatingStatus ||
-                  isSubmittingFeedback ||
                   (confirmAction === "reassign" && !reassignFeedback.trim())
                 }
               >
-                {isUpdatingStatus || isSubmittingFeedback
+                {isUpdatingStatus
                   ? "Saving..."
                   : confirmAction === "approve"
                     ? "Approve"

@@ -45,11 +45,10 @@
   position: relative;
 }
 
-.task-details-page__review-btn {
+.task-details-page__review-btn,
+.task-details-page__archive-btn {
   min-height: 42px;
-  border: 1px solid #2563eb;
   border-radius: 12px;
-  background: #2563eb;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
@@ -66,6 +65,11 @@
     box-shadow 0.2s ease;
 }
 
+.task-details-page__review-btn {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+}
+
 .task-details-page__review-btn:hover:not(:disabled) {
   background: #1d4ed8;
   border-color: #1d4ed8;
@@ -73,7 +77,20 @@
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
 }
 
+.task-details-page__archive-btn {
+  border: 1px solid #475569;
+  background: #475569;
+}
+
+.task-details-page__archive-btn:hover:not(:disabled) {
+  background: #334155;
+  border-color: #334155;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(51, 65, 85, 0.16);
+}
+
 .task-details-page__review-btn:disabled,
+.task-details-page__archive-btn:disabled,
 .task-details-page__edit-btn:disabled,
 .task-details-page__review-option:disabled,
 .task-details-page__confirm-cancel:disabled,
