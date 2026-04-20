@@ -226,6 +226,62 @@
   color: #1e293b !important;
 }
 
+.task-details-page__value--low {
+  color: #1d4ed8 !important;
+}
+
+.task-details-page__value--medium-priority {
+  color: #c2410c !important;
+}
+
+.task-details-page__value--high {
+  color: #eb1b1b !important;
+}
+
+.task-details-page__value--critical {
+  color: #991b1b !important;
+}
+
+.task-details-page__value--simple {
+  color: #1d4ed8 !important;
+}
+
+.task-details-page__value--medium-complexity {
+  color: #ff5900 !important;
+}
+
+.task-details-page__value--complex {
+  color: #eb1b1b !important;
+}
+
+.task-details-page__value--new {
+  color: #2563eb !important;
+}
+
+.task-details-page__value--acknowledged {
+  color: #7c3aed !important;
+}
+
+.task-details-page__value--pending {
+  color: #d97706 !important;
+}
+
+.task-details-page__value--done {
+  color: #0891b2 !important;
+}
+
+.task-details-page__value--approved {
+  color: #16a34a !important;
+}
+
+.task-details-page__value--rejected {
+  color: #dc2626 !important;
+}
+
+.task-details-page__value--archived {
+  color: #64748b !important;
+}
+
 @media (max-width: 760px) {
   .task-details-page {
     gap: 16px;

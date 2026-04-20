@@ -59,44 +59,34 @@ const formatDateLabel = (value) => {
 const getPriorityClass = (priority = "") => {
   const normalized = String(priority).trim().toLowerCase();
 
-  if (normalized === "critical" || normalized === "high") {
-    return "task-details-page__value--danger";
-  }
+  if (normalized === "low") return "task-details-page__value--low";
+  if (normalized === "medium") return "task-details-page__value--medium-priority";
+  if (normalized === "high") return "task-details-page__value--high";
+  if (normalized === "critical") return "task-details-page__value--critical";
 
-  if (normalized === "medium") {
-    return "task-details-page__value--warning";
-  }
-
-  return "task-details-page__value--primary";
+  return "task-details-page__value--default";
 };
 
 const getComplexityClass = (complexity = "") => {
   const normalized = String(complexity).trim().toLowerCase();
 
-  if (normalized === "complex") return "task-details-page__value--danger";
-  if (normalized === "medium") return "task-details-page__value--warning";
+  if (normalized === "simple") return "task-details-page__value--simple";
+  if (normalized === "medium") return "task-details-page__value--medium-complexity";
+  if (normalized === "complex") return "task-details-page__value--complex";
 
-  return "task-details-page__value--primary";
+  return "task-details-page__value--default";
 };
 
 const getStatusClass = (status = "") => {
   const normalized = String(status).trim().toLowerCase();
 
-  if (normalized === "approved" || normalized === "done") {
-    return "task-details-page__value--success";
-  }
-
-  if (normalized === "pending") {
-    return "task-details-page__value--warning";
-  }
-
-  if (normalized === "rejected") {
-    return "task-details-page__value--danger";
-  }
-
-  if (normalized === "new" || normalized === "acknowledged") {
-    return "task-details-page__value--primary";
-  }
+  if (normalized === "new") return "task-details-page__value--new";
+  if (normalized === "acknowledged") return "task-details-page__value--acknowledged";
+  if (normalized === "pending") return "task-details-page__value--pending";
+  if (normalized === "done") return "task-details-page__value--done";
+  if (normalized === "approved") return "task-details-page__value--approved";
+  if (normalized === "rejected") return "task-details-page__value--rejected";
+  if (normalized === "archived") return "task-details-page__value--archived";
 
   return "task-details-page__value--default";
 };
@@ -114,7 +104,8 @@ export default function TaskDetailsPage({ task, onBack }) {
   const profileImage = getProfileImage(assignee);
 
   const title = task?.title?.trim() || "Untitled Task";
-  const description = task?.description?.trim() || "No task description was added.";
+  const description =
+    task?.description?.trim() || "No task description was added.";
   const priority = task?.priority || "Low";
   const complexity = task?.complexity || "Simple";
   const effort = Number(task?.estimatedEffortHours || 0);
@@ -184,7 +175,9 @@ export default function TaskDetailsPage({ task, onBack }) {
               <FiLayers />
               <span>Complexity</span>
             </div>
-            <strong className={getComplexityClass(complexity)}>{complexity}</strong>
+            <strong className={getComplexityClass(complexity)}>
+              {complexity}
+            </strong>
           </div>
 
           <div className="task-details-page__detail-item">
