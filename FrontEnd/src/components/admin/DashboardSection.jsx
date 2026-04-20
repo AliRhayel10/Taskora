@@ -14,26 +14,21 @@ import "../../assets/styles/admin/dashboard-section.css";
 const API_BASE_URL = "http://localhost:5000";
 
 const STATUS_COLOR_MAP = {
-  new: "#3b82f6",
-  pending: "#f59e0b",
-  acknowledged: "#8b5cf6",
-  done: "#22c55e",
-  approved: "#16a34a",
-  rejected: "#ef4444",
-  blocked: "#64748b",
-  "in progress": "#f97316",
-  inprogress: "#f97316",
+  new: "#9ca3af",          // grey
+  pending: "#f59e0b",      // orange-yellow
+  acknowledged: "#8b5cf6", // purple
+  done: "#3b82f6",         // blue
+  approved: "#22c55e",     // green
+  archived: "#ef4444",     // red
 };
 
 const FALLBACK_STATUS_COLORS = [
-  "#3b82f6",
-  "#f59e0b",
-  "#8b5cf6",
-  "#22c55e",
-  "#14b8a6",
-  "#ec4899",
-  "#f97316",
-  "#6366f1",
+  "#9ca3af", // grey
+  "#f59e0b", // orange
+  "#8b5cf6", // purple
+  "#3b82f6", // blue
+  "#22c55e", // green
+  "#ef4444", // red
 ];
 
 const CHART_PERIOD_OPTIONS = [
