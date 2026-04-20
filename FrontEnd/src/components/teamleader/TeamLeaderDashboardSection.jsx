@@ -103,8 +103,8 @@ function buildYearOptions(tasks) {
   for (const task of Array.isArray(tasks) ? tasks : []) {
     const start = parseApiDate(task?.startDate);
     const due = parseApiDate(task?.dueDate);
-    if (start) candidateYears.push(start.getFullYear())
-    if (due) candidateYears.push(due.getFullYear())
+    if (start) candidateYears.push(start.getFullYear());
+    if (due) candidateYears.push(due.getFullYear());
   }
 
   const earliestDataYear = candidateYears.length ? Math.min(...candidateYears) : currentYear - 5;
@@ -1153,11 +1153,6 @@ export default function TeamLeaderDashboardSection({
                 </div>
               </article>
             ))}
-          </div>
-
-          <div className="teamleader-dashboard-section__workload-head">
-            <h3>{leaderTeamName} Member Workload</h3>
-            <span className="teamleader-dashboard-section__workload-line"></span>
           </div>
 
           <div className="teamleader-dashboard-section__table-card">

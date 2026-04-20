@@ -494,28 +494,8 @@
   line-height: 1;
 }
 
-.teamleader-dashboard-section__workload-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.teamleader-dashboard-section__workload-head h3 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 1.2rem;
-  font-weight: 800;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.teamleader-dashboard-section__workload-line {
-  flex: 1;
-  height: 1px;
-  background: #cbd5e1;
-}
-
 .teamleader-dashboard-section__table-card {
+  width: min(100%, 760px);
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 16px;
@@ -821,17 +801,17 @@
   color: #ffffff;
 }
 
-body.dark .teamleader-dashboard-section__workload-head h3 {
-  color: #1e293b;
-}
-
-body.dark .teamleader-dashboard-section__workload-line {
-  background: #94a3b8;
+body.dark .teamleader-dashboard-section__table-card {
+  background: #f8fafc;
 }
 
 @media (max-width: 1100px) {
   .teamleader-dashboard-section__cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teamleader-dashboard-section__table-card {
+    width: 100%;
   }
 }
 
@@ -864,8 +844,8 @@ body.dark .teamleader-dashboard-section__workload-line {
     grid-template-columns: 1fr;
   }
 
-  .teamleader-dashboard-section__workload-head h3 {
-    font-size: 1.05rem;
+  .teamleader-dashboard-section__table-card {
+    width: 100%;
   }
 
   .teamleader-dashboard-section__employee-details strong,
