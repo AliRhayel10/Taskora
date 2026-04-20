@@ -170,7 +170,7 @@ export default function TaskDetailsPage({ task, onBack }) {
 
         <div className="task-details-page__divider" />
 
-        <div className="task-details-page__details-stack">
+        <div className="task-details-page__details-grid">
           <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiFlag />
@@ -205,10 +205,10 @@ export default function TaskDetailsPage({ task, onBack }) {
 
           <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
-              <FiUser />
-              <span>Status</span>
+              <FiCalendar />
+              <span>Due Date</span>
             </div>
-            <strong className={getStatusClass(status)}>{status}</strong>
+            <strong>{dueDateLabel}</strong>
           </div>
 
           <div className="task-details-page__detail-item">
@@ -221,10 +221,10 @@ export default function TaskDetailsPage({ task, onBack }) {
 
           <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
-              <FiCalendar />
-              <span>Due Date</span>
+              <FiUser />
+              <span>Status</span>
             </div>
-            <strong>{dueDateLabel}</strong>
+            <strong className={getStatusClass(status)}>{status}</strong>
           </div>
         </div>
       </div>
