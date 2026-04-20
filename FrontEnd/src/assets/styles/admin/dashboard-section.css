@@ -397,6 +397,7 @@
   min-width: 0;
   width: auto;
   margin-left: 12px;
+  cursor: pointer;
 }
 
 .dashboard-section__tasks-completed-filters {
@@ -438,7 +439,7 @@
   border-radius: 0;
   box-shadow: none;
   color: #1e293b;
-  font-size: 0.95rem;
+  font-size: 1rem !important;
   font-weight: 700;
 }
 
@@ -507,6 +508,7 @@
   fill: #1e293b;
   font-size: 17px;
   font-weight: 700;
+  letter-spacing: 0;
 }
 
 .dashboard-section__tasks-chart-y-label {
@@ -625,14 +627,6 @@
   }
 }
 
-.dashboard-section__filter-select--priority {
-  cursor: pointer;
-}
-
-.dashboard-section__tasks-chart-label {
-  letter-spacing: 0;
-}
-
 .dashboard-section__priority-trigger {
   position: relative;
   display: inline-flex;
@@ -641,7 +635,7 @@
   min-width: 0;
   margin-left: 12px;
   color: #1e293b;
-  font-size: 0.95rem;
+  font-size: 1rem !important;
   font-weight: 700;
   line-height: 1.2;
   cursor: pointer;
@@ -649,14 +643,14 @@
 
 .dashboard-section__priority-trigger-text {
   color: #1e293b;
-  font-size: 0.95rem;
+  font-size: 1rem !important;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .dashboard-section__priority-trigger-icon {
   color: #000000;
-  font-size: 0.95rem;
+  font-size: 1rem !important;
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -668,4 +662,5 @@
   height: 100%;
   opacity: 0;
   cursor: pointer;
+  font-size: 1rem !important;
 }
