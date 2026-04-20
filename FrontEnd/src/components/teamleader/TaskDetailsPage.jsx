@@ -2,16 +2,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCalendar,
-  FiCheck,
   FiChevronDown,
   FiClock,
   FiEdit2,
   FiFlag,
   FiLayers,
+  FiMoreHorizontal,
   FiTarget,
   FiUser,
   FiX,
-  FiXCircle,
 } from "react-icons/fi";
 import "../../assets/styles/teamleader/tasks-section.css";
 import "../../assets/styles/teamleader/task-details-page.css";
@@ -232,6 +231,7 @@ export default function TaskDetailsPage({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isReviewMenuOpen, setIsReviewMenuOpen] = useState(false);
   const [editFormState, setEditFormState] = useState(DEFAULT_EDIT_FORM);
   const [feedback, setFeedback] = useState(null);
 
@@ -301,6 +301,15 @@ export default function TaskDetailsPage({
     return () => clearTimeout(timer);
   }, [feedback]);
 
+  useEffect(() => {
+    if (!isReviewMenuOpen) return undefined;
+
+    const handleWindowClick = () => setIsReviewMenuOpen(false);
+
+    window.addEventListener("click", handleWindowClick);
+    return () => window.removeEventListener("click", handleWindowClick);
+  }, [isReviewMenuOpen]);
+
   const approvedStatusId = useMemo(() => {
     const approvedStatus = backendStatuses.find(
       (item) => normalizeStatus(getBackendStatusName(item)) === "approved",
@@ -353,6 +362,7 @@ export default function TaskDetailsPage({
   const isDoneTask = normalizeStatus(status) === "done";
 
   const openEditModal = () => {
+    setIsReviewMenuOpen(false);
     setEditFormState({
       title: currentTask?.title || "",
       description: currentTask?.description || "",
@@ -425,6 +435,7 @@ export default function TaskDetailsPage({
   };
 
   const handleApprove = async () => {
+    setIsReviewMenuOpen(false);
     await updateStatus(approvedStatusId, "Task approved successfully.", {
       status: "Approved",
       effectiveStatus: "Approved",
@@ -433,7 +444,8 @@ export default function TaskDetailsPage({
   };
 
   const handleReject = async () => {
-    await updateStatus(newStatusId, "Task marked as rejected and reassigned as new.", {
+    setIsReviewMenuOpen(false);
+    await updateStatus(newStatusId, "Task rejected and returned as new.", {
       status: "New",
       effectiveStatus: "New",
       taskStatusId: newStatusId,
@@ -536,16 +548,6 @@ export default function TaskDetailsPage({
 
   return (
     <section className="task-details-page">
-      {feedback ? (
-        <div
-          className={`task-details-page__feedback task-details-page__feedback--${feedback.type}`}
-          role="status"
-          aria-live="polite"
-        >
-          {feedback.message}
-        </div>
-      ) : null}
-
       <div className="task-details-page__title-row">
         {typeof onBack === "function" && (
           <button
@@ -560,42 +562,67 @@ export default function TaskDetailsPage({
 
         <h2>Task Details</h2>
         <div className="task-details-page__title-line"></div>
-
-        <div className="task-details-page__actions">
-          {isDoneTask ? (
-            <>
-              <button
-                type="button"
-                className="task-details-page__action-btn task-details-page__action-btn--approve"
-                onClick={handleApprove}
-                disabled={isUpdatingStatus || !approvedStatusId}
-              >
-                <FiCheck />
-                <span>Mark as Approved</span>
-              </button>
-
-              <button
-                type="button"
-                className="task-details-page__action-btn task-details-page__action-btn--reject"
-                onClick={handleReject}
-                disabled={isUpdatingStatus || !newStatusId}
-              >
-                <FiXCircle />
-                <span>Mark as Rejected</span>
-              </button>
-            </>
-          ) : null}
-
-          <button
-            type="button"
-            className="task-details-page__action-btn task-details-page__action-btn--edit"
-            onClick={openEditModal}
-          >
-            <FiEdit2 />
-            <span>Edit</span>
-          </button>
-        </div>
       </div>
+
+      <div className="task-details-page__toolbar">
+        <button
+          type="button"
+          className="tasks-section__create-btn task-details-page__edit-btn"
+          onClick={openEditModal}
+        >
+          <FiEdit2 />
+          <span>Edit</span>
+        </button>
+
+        {isDoneTask ? (
+          <div
+            className="task-details-page__review-menu"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="tasks-section__create-btn task-details-page__review-btn"
+              onClick={() => setIsReviewMenuOpen((previous) => !previous)}
+              disabled={isUpdatingStatus || (!approvedStatusId && !newStatusId)}
+            >
+              <FiMoreHorizontal />
+              <span>{isUpdatingStatus ? "Updating..." : "Review Task"}</span>
+              <FiChevronDown />
+            </button>
+
+            {isReviewMenuOpen ? (
+              <div className="task-details-page__review-dropdown">
+                <button
+                  type="button"
+                  className="task-details-page__review-option task-details-page__review-option--approve"
+                  onClick={handleApprove}
+                  disabled={isUpdatingStatus || !approvedStatusId}
+                >
+                  Mark as Approved
+                </button>
+                <button
+                  type="button"
+                  className="task-details-page__review-option task-details-page__review-option--reject"
+                  onClick={handleReject}
+                  disabled={isUpdatingStatus || !newStatusId}
+                >
+                  Reject and Return as New
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      {feedback ? (
+        <div
+          className={`task-details-page__feedback task-details-page__feedback--${feedback.type}`}
+          role="status"
+          aria-live="polite"
+        >
+          {feedback.message}
+        </div>
+      ) : null}
 
       <div className="task-details-page__single-card">
         <div className="task-details-page__top-block">
@@ -710,7 +737,9 @@ export default function TaskDetailsPage({
             <form className="tasks-section__form" onSubmit={handleSaveEdit}>
               <div className="tasks-section__form-grid">
                 <div className="tasks-section__form-group tasks-section__form-group--full">
-                  <label htmlFor="task-details-title">Title</label>
+                  <label htmlFor="task-details-title">
+                    Title <span className="tasks-section__required">*</span>
+                  </label>
                   <input
                     id="task-details-title"
                     type="text"
@@ -723,7 +752,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group tasks-section__form-group--full">
-                  <label htmlFor="task-details-description">Description</label>
+                  <label htmlFor="task-details-description">
+                    Description <span className="tasks-section__required">*</span>
+                  </label>
                   <textarea
                     id="task-details-description"
                     value={editFormState.description}
@@ -735,7 +766,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-assignee">Assigned To</label>
+                  <label htmlFor="task-details-assignee">
+                    Assigned To <span className="tasks-section__required">*</span>
+                  </label>
                   <div className="tasks-section__select-wrapper">
                     <select
                       id="task-details-assignee"
@@ -764,7 +797,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-priority">Priority</label>
+                  <label htmlFor="task-details-priority">
+                    Priority <span className="tasks-section__required">*</span>
+                  </label>
                   <div className="tasks-section__select-wrapper">
                     <select
                       id="task-details-priority"
@@ -785,7 +820,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-complexity">Complexity</label>
+                  <label htmlFor="task-details-complexity">
+                    Complexity <span className="tasks-section__required">*</span>
+                  </label>
                   <div className="tasks-section__select-wrapper">
                     <select
                       id="task-details-complexity"
@@ -806,7 +843,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-effort">Estimated Effort (hours)</label>
+                  <label htmlFor="task-details-effort">
+                    Estimated Effort (hours) <span className="tasks-section__required">*</span>
+                  </label>
                   <input
                     id="task-details-effort"
                     type="number"
@@ -824,19 +863,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-weight">Weight</label>
-                  <input
-                    id="task-details-weight"
-                    type="text"
-                    className="tasks-section__task-weight-input"
-                    value={weight > 0 ? weight.toFixed(2) : "Not set"}
-                    disabled
-                    readOnly
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-start-date">Start Date</label>
+                  <label htmlFor="task-details-start-date">
+                    Start Date <span className="tasks-section__required">*</span>
+                  </label>
                   <input
                     id="task-details-start-date"
                     type="date"
@@ -849,7 +878,9 @@ export default function TaskDetailsPage({
                 </div>
 
                 <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-due-date">Due Date</label>
+                  <label htmlFor="task-details-due-date">
+                    Due Date <span className="tasks-section__required">*</span>
+                  </label>
                   <input
                     id="task-details-due-date"
                     type="date"
@@ -858,6 +889,18 @@ export default function TaskDetailsPage({
                       handleEditFormChange("dueDate", event.target.value)
                     }
                     required
+                  />
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-weight">Weight</label>
+                  <input
+                    id="task-details-weight"
+                    type="text"
+                    className="tasks-section__task-weight-input"
+                    value={weight > 0 ? weight.toFixed(2) : "Not set"}
+                    disabled
+                    readOnly
                   />
                 </div>
 

@@ -30,6 +30,88 @@
   background: #cbd5e1;
 }
 
+.task-details-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: -6px;
+}
+
+.task-details-page__edit-btn,
+.task-details-page__review-btn {
+  min-width: 160px;
+}
+
+.task-details-page__review-btn svg:last-child {
+  font-size: 0.92rem;
+}
+
+.task-details-page__review-menu {
+  position: relative;
+}
+
+.task-details-page__review-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 230px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-details-page__review-option {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0 14px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.task-details-page__review-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.task-details-page__review-option--approve:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.task-details-page__review-option--reject {
+  color: #dc2626;
+}
+
+.task-details-page__review-option--reject:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.task-details-page__review-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .team-details-back-btn {
   width: 44px;
   height: 44px;
@@ -53,6 +135,28 @@
   background: #eff6ff;
   border-color: #1d4ed8;
   color: #1d4ed8;
+}
+
+.task-details-page__feedback {
+  width: min(860px, 100%);
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.14);
+}
+
+.task-details-page__feedback--success {
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.task-details-page__feedback--error {
+  background: #fff4f4;
+  border: 1px solid #fecaca;
+  color: #b42318;
 }
 
 .task-details-page__single-card {
@@ -286,6 +390,23 @@
   .task-details-page {
     gap: 16px;
     min-height: auto;
+  }
+
+  .task-details-page__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .task-details-page__edit-btn,
+  .task-details-page__review-btn {
+    width: 100%;
+  }
+
+  .task-details-page__review-dropdown {
+    left: 0;
+    right: auto;
+    width: 100%;
+    min-width: 0;
   }
 
   .task-details-page__title-row {
