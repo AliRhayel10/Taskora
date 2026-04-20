@@ -229,17 +229,8 @@ namespace BackEnd.Services
                     new BackEnd.Models.TaskStatus
                     {
                         CompanyId = company.CompanyId,
-                        StatusName = "Rejected",
-                        DisplayOrder = 6,
-                        IsDefault = false,
-                        IsActive = true,
-                        CreatedAt = DateTime.Now
-                    },
-                    new BackEnd.Models.TaskStatus
-                    {
-                        CompanyId = company.CompanyId,
                         StatusName = "Archived",
-                        DisplayOrder = 7,
+                        DisplayOrder = 6,
                         IsDefault = false,
                         IsActive = true,
                         CreatedAt = DateTime.Now
