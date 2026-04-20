@@ -166,7 +166,7 @@
   display: grid;
   grid-template-columns: minmax(0, 540px) minmax(0, 1fr);
   gap: 18px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .dashboard-section__content-grid--single {
@@ -187,6 +187,8 @@
 
 .dashboard-section__task-summary-panel {
   min-width: 0;
+  align-self: start;
+  padding-bottom: 10px;
 }
 
 .dashboard-section__tasks-completed-panel {
