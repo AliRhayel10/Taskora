@@ -31,7 +31,6 @@
 .tasks-section__title-row,
 .tasks-section__toolbar,
 .tasks-section__unassigned-warning,
-.tasks-section__feedback,
 .tasks-section__state-card {
   flex-shrink: 0;
 }
@@ -687,34 +686,6 @@
   background: #1d4ed8;
   border-color: #1d4ed8;
   transform: translateY(-1px);
-}
-
-.tasks-section__feedback {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  width: min(860px, calc(100vw - 32px));
-  border-radius: 16px;
-  padding: 14px 18px;
-  font-size: 0.98rem;
-  font-weight: 700;
-  text-align: center;
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.14);
-  animation: tasks-section__feedback-slide-in 0.22s ease;
-}
-
-.tasks-section__feedback--success {
-  background: #ecfdf3;
-  border: 1px solid #bbf7d0;
-  color: #166534;
-}
-
-.tasks-section__feedback--error {
-  background: #fff4f4;
-  border: 1px solid #fecaca;
-  color: #b42318;
 }
 
 .tasks-section__tabs {
@@ -1925,7 +1896,6 @@ body.dark .tasks-section__title-line {
     opacity 0.18s ease;
 }
 
-
 .tasks-section__apply-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 14px 24px rgba(37, 99, 235, 0.24);
@@ -2293,18 +2263,6 @@ body.dark .tasks-section__title-line {
   color: #7c2d12;
 }
 
-@keyframes tasks-section__feedback-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
 @media (max-width: 1100px) {
   .tasks-section__toolbar {
     flex-direction: column;
@@ -2416,15 +2374,6 @@ body.dark .tasks-section__title-line {
   }
 }
 
-@media (max-width: 560px) {
-  .tasks-section__feedback {
-    top: 10px;
-    width: calc(100vw - 20px);
-    padding: 12px 14px;
-    font-size: 0.92rem;
-  }
-}
-
 .tasks-section__status-badge {
   display: inline-flex;
   align-items: center;
@@ -2508,7 +2457,6 @@ body.dark .tasks-section__title-line {
   border-color: transparent;
 }
 
-
 /* Compact custom range dropdown so Apply Range stays fully visible without scrolling */
 .tasks-section__range-dropdown {
   padding-bottom: 8px;
@@ -2530,8 +2478,6 @@ body.dark .tasks-section__title-line {
 .tasks-section__day-picker .rdp-month {
   width: 100%;
 }
-
-
 
 .tasks-section__table tbody tr:last-child td {
   border-bottom: 1px solid #e2e8f0;
