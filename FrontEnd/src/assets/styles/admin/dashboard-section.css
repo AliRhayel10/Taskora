@@ -385,19 +385,10 @@
   flex-wrap: wrap;
 }
 
-.dashboard-section__tasks-completed-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #1e293b;
-  font-size: 0.98rem;
-  font-weight: 700;
-}
-
 .dashboard-section__tasks-completed-label-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   flex-wrap: wrap;
   min-width: 0;
 }
@@ -440,12 +431,12 @@
 .dashboard-section__filter-select--priority select {
   width: auto;
   min-height: auto;
-  padding: 0 20px 0 0;
+  padding: 0 24px 0 0;
   border: 0;
   background: transparent;
   border-radius: 0;
   box-shadow: none;
-  color: #64748b;
+  color: #1e293b;
   font-size: 0.98rem;
   font-weight: 700;
 }
@@ -460,6 +451,8 @@
 
 .dashboard-section__filter-select--priority svg {
   right: 0;
+  color: #000000;
+  font-size: 1rem;
 }
 
 .dashboard-section__tasks-chart-wrap {
@@ -475,6 +468,7 @@
   height: 260px;
   min-height: 260px;
   display: block;
+  overflow: visible;
 }
 
 .dashboard-section__tasks-chart-grid {
@@ -628,4 +622,12 @@
   .dashboard-section__tasks-chart-y-label {
     font-size: 12px;
   }
+}
+
+.dashboard-section__filter-select--priority {
+  cursor: pointer;
+}
+
+.dashboard-section__tasks-chart-label {
+  letter-spacing: 0;
 }

@@ -729,7 +729,7 @@ function TaskSummaryDonut({ segments, totalTasks }) {
 function TasksActivityChart({ dataPoints }) {
   const width = 920;
   const height = 330;
-  const margin = { top: 16, right: 40, bottom: 52, left: 58 };
+  const margin = { top: 16, right: 44, bottom: 72, left: 78 };
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
   const baseY = margin.top + chartHeight;
@@ -781,7 +781,7 @@ function TasksActivityChart({ dataPoints }) {
                 className="dashboard-section__tasks-chart-grid"
               />
               <text
-                x={margin.left - 12}
+                x={margin.left - 20}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="middle"
@@ -816,7 +816,7 @@ function TasksActivityChart({ dataPoints }) {
             <circle className="dashboard-section__tasks-chart-point" cx={point.x} cy={point.y} r="5.5" />
             <text
               x={point.x}
-              y={height - 16}
+              y={height - 22}
               textAnchor="middle"
               className="dashboard-section__tasks-chart-label"
             >
@@ -1271,6 +1271,7 @@ export default function DashboardSection({ searchValue = "" }) {
                 <div className="dashboard-section__panel-header dashboard-section__panel-header--stacked">
                   <div>
                     <h3>Tasks Activity</h3>
+                    <p>Number of backend tasks grouped over time</p>
                   </div>
                   <button
                     type="button"
@@ -1283,15 +1284,13 @@ export default function DashboardSection({ searchValue = "" }) {
 
                 <div className="dashboard-section__tasks-completed-toolbar">
                   <div className="dashboard-section__tasks-completed-label-group">
-                    <div className="dashboard-section__tasks-completed-label">Tasks by:</div>
-
                     <label className="dashboard-section__filter-select dashboard-section__filter-select--priority">
                       <select
                         value={selectedPriority}
                         onChange={(event) => setSelectedPriority(event.target.value)}
                         aria-label="Filter tasks by priority"
                       >
-                        <option value="all">All priorities</option>
+                        <option value="all">Priority</option>
                         {dashboardData.priorityOptions.map((priority) => {
                           const priorityValue = priority.id || normalizeStatus(priority.label);
                           return (
