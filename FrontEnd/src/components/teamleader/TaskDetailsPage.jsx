@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCalendar,
-  FiCheck,
   FiChevronDown,
   FiClock,
   FiEdit2,
@@ -99,36 +98,16 @@ const formatDateLabel = (value) => {
 const toIsoDate = (value = "") => {
   const raw = String(value || "").trim();
   if (!raw) return "";
-
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
 
-  const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (digits.length !== 8) return "";
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return "";
 
-  const day = digits.slice(0, 2);
-  const month = digits.slice(2, 4);
-  const year = digits.slice(4, 8);
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
-};
-
-const toDisplayDate = (value = "") => {
-  const iso = toIsoDate(value);
-  if (!iso) return "";
-
-  const [year, month, day] = iso.split("-");
-  return `${day}/${month}/${year}`;
-};
-
-const formatDateInputValue = (value = "") => {
-  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
-  const parts = [];
-
-  if (digits.length > 0) parts.push(digits.slice(0, 2));
-  if (digits.length > 2) parts.push(digits.slice(2, 4));
-  if (digits.length > 4) parts.push(digits.slice(4, 8));
-
-  return parts.join("/");
 };
 
 const getPriorityClass = (priority = "") => {
@@ -268,9 +247,8 @@ export default function TaskDetailsPage({
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isReviewMenuOpen, setIsReviewMenuOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [editFormState, setEditFormState] = useState(DEFAULT_EDIT_FORM);
-  const [startDateInput, setStartDateInput] = useState("");
-  const [dueDateInput, setDueDateInput] = useState("");
   const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
@@ -355,11 +333,11 @@ export default function TaskDetailsPage({
     return getBackendStatusId(approvedStatus);
   }, [backendStatuses]);
 
-  const newStatusId = useMemo(() => {
-    const newStatus = backendStatuses.find(
-      (item) => normalizeStatus(getBackendStatusName(item)) === "new",
+  const pendingStatusId = useMemo(() => {
+    const pendingStatus = backendStatuses.find(
+      (item) => normalizeStatus(getBackendStatusName(item)) === "pending",
     );
-    return getBackendStatusId(newStatus);
+    return getBackendStatusId(pendingStatus);
   }, [backendStatuses]);
 
   const resolveTeamIdForUser = (userId) => {
@@ -397,12 +375,14 @@ export default function TaskDetailsPage({
   const status = currentTask?.status || "Not set";
   const startDateLabel = formatDateLabel(currentTask?.startDate);
   const dueDateLabel = formatDateLabel(currentTask?.dueDate);
-  const isDoneTask = normalizeStatus(status) === "done";
+
+  const normalizedCurrentStatus = normalizeStatus(status);
+  const isReviewable = normalizedCurrentStatus === "done";
+  const isLocked =
+    normalizedCurrentStatus === "approved" || normalizedCurrentStatus === "pending";
 
   const openEditModal = () => {
     setIsReviewMenuOpen(false);
-    const nextStartDate = toIsoDate(currentTask?.startDate || "");
-    const nextDueDate = toIsoDate(currentTask?.dueDate || "");
 
     setEditFormState({
       title: currentTask?.title || "",
@@ -415,19 +395,16 @@ export default function TaskDetailsPage({
         currentTask?.estimatedEffortHours === undefined
           ? ""
           : String(currentTask.estimatedEffortHours),
-      startDate: nextStartDate,
-      dueDate: nextDueDate,
+      startDate: toIsoDate(currentTask?.startDate || ""),
+      dueDate: toIsoDate(currentTask?.dueDate || ""),
     });
-    setStartDateInput(toDisplayDate(nextStartDate));
-    setDueDateInput(toDisplayDate(nextDueDate));
+
     setIsEditOpen(true);
   };
 
   const closeEditModal = () => {
     setIsEditOpen(false);
     setEditFormState(DEFAULT_EDIT_FORM);
-    setStartDateInput("");
-    setDueDateInput("");
   };
 
   const handleEditFormChange = (field, value) => {
@@ -435,21 +412,6 @@ export default function TaskDetailsPage({
       ...previous,
       [field]: value,
     }));
-  };
-
-  const handleDateInputChange = (field, rawValue) => {
-    const formattedValue = formatDateInputValue(rawValue);
-    const isoValue = toIsoDate(formattedValue);
-
-    if (field === "startDate") {
-      setStartDateInput(formattedValue);
-    }
-
-    if (field === "dueDate") {
-      setDueDateInput(formattedValue);
-    }
-
-    handleEditFormChange(field, isoValue);
   };
 
   const refreshCurrentTask = (patch = {}) => {
@@ -460,7 +422,9 @@ export default function TaskDetailsPage({
   };
 
   const updateStatus = async (nextStatusId, successMessage, patch) => {
-    if (!currentTask?.id || !nextStatusId || !resolvedCurrentUserId) return;
+    if (!currentTask?.id || !nextStatusId || !resolvedCurrentUserId) {
+      throw new Error("Missing required task status data.");
+    }
 
     setIsUpdatingStatus(true);
     setFeedback(null);
@@ -483,33 +447,58 @@ export default function TaskDetailsPage({
       }
 
       refreshCurrentTask(patch);
-      setFeedback({ type: "success", message: successMessage });
+
+      if (successMessage) {
+        setFeedback({ type: "success", message: successMessage });
+      }
+
+      return true;
     } catch (error) {
       setFeedback({
         type: "error",
         message: error?.message || "Unable to update task status.",
       });
+      throw error;
     } finally {
       setIsUpdatingStatus(false);
     }
   };
 
-  const handleApprove = async () => {
+  const handleApprove = () => {
     setIsReviewMenuOpen(false);
-    await updateStatus(approvedStatusId, "Task approved successfully.", {
-      status: "Approved",
-      effectiveStatus: "Approved",
-      taskStatusId: approvedStatusId,
-    });
+    setConfirmAction("approve");
   };
 
-  const handleReject = async () => {
+  const handleReject = () => {
     setIsReviewMenuOpen(false);
-    await updateStatus(newStatusId, "Task rejected and returned as new.", {
-      status: "New",
-      effectiveStatus: "New",
-      taskStatusId: newStatusId,
-    });
+    setConfirmAction("reject");
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+
+    try {
+      if (confirmAction === "approve") {
+        await updateStatus(approvedStatusId, "Task approved successfully.", {
+          status: "Approved",
+          effectiveStatus: "Approved",
+          taskStatusId: approvedStatusId,
+        });
+      }
+
+      if (confirmAction === "reject") {
+        await updateStatus(pendingStatusId, "Task moved to pending successfully.", {
+          status: "Pending",
+          effectiveStatus: "Pending",
+          taskStatusId: pendingStatusId,
+        });
+      }
+
+      setConfirmAction(null);
+      window.location.reload();
+    } catch {
+      // feedback is already handled in updateStatus
+    }
   };
 
   const handleSaveEdit = async (event) => {
@@ -624,7 +613,7 @@ export default function TaskDetailsPage({
         <div className="task-details-page__title-line"></div>
       </div>
 
-      {isDoneTask ? (
+      {isReviewable && !isLocked ? (
         <div className="task-details-page__toolbar">
           <div
             className="task-details-page__review-menu"
@@ -634,11 +623,10 @@ export default function TaskDetailsPage({
               type="button"
               className="task-details-page__review-btn"
               onClick={() => setIsReviewMenuOpen((previous) => !previous)}
-              disabled={isUpdatingStatus || (!approvedStatusId && !newStatusId)}
+              disabled={isUpdatingStatus || (!approvedStatusId && !pendingStatusId)}
               aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
               title={isUpdatingStatus ? "Updating task review" : "Review task"}
             >
-              <FiCheck />
               <span>Review Task</span>
               <FiChevronDown />
             </button>
@@ -651,14 +639,14 @@ export default function TaskDetailsPage({
                   onClick={handleApprove}
                   disabled={isUpdatingStatus || !approvedStatusId}
                 >
-                  <FiCheck />
                   <span>Approve</span>
                 </button>
+
                 <button
                   type="button"
                   className="task-details-page__review-option task-details-page__review-option--reject"
                   onClick={handleReject}
-                  disabled={isUpdatingStatus || !newStatusId}
+                  disabled={isUpdatingStatus || !pendingStatusId}
                 >
                   <FiRotateCcw />
                   <span>Reject</span>
@@ -680,15 +668,17 @@ export default function TaskDetailsPage({
       ) : null}
 
       <div className="task-details-page__single-card">
-        <button
-          type="button"
-          className="task-details-page__edit-btn"
-          onClick={openEditModal}
-          aria-label="Edit task"
-          title="Edit task"
-        >
-          <FiEdit2 />
-        </button>
+        {!isLocked ? (
+          <button
+            type="button"
+            className="task-details-page__edit-btn"
+            onClick={openEditModal}
+            aria-label="Edit task"
+            title="Edit task"
+          >
+            <FiEdit2 />
+          </button>
+        ) : null}
 
         <div className="task-details-page__top-block">
           <h3>{title}</h3>
@@ -933,15 +923,11 @@ export default function TaskDetailsPage({
                   </label>
                   <input
                     id="task-details-start-date"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="DD/MM/YYYY"
-                    className="task-details-page__date-input"
-                    value={startDateInput}
+                    type="date"
+                    value={editFormState.startDate}
                     onChange={(event) =>
-                      handleDateInputChange("startDate", event.target.value)
+                      handleEditFormChange("startDate", event.target.value)
                     }
-                    maxLength={10}
                     required
                   />
                 </div>
@@ -952,15 +938,11 @@ export default function TaskDetailsPage({
                   </label>
                   <input
                     id="task-details-due-date"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="DD/MM/YYYY"
-                    className="task-details-page__date-input"
-                    value={dueDateInput}
+                    type="date"
+                    value={editFormState.dueDate}
                     onChange={(event) =>
-                      handleDateInputChange("dueDate", event.target.value)
+                      handleEditFormChange("dueDate", event.target.value)
                     }
-                    maxLength={10}
                     required
                   />
                 </div>
@@ -1007,6 +989,67 @@ export default function TaskDetailsPage({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmAction ? (
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={() => {
+            if (!isUpdatingStatus) setConfirmAction(null);
+          }}
+        >
+          <div
+            className="task-details-page__confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="task-details-page__confirm-header">
+              <h3>Confirm Action</h3>
+              <button
+                type="button"
+                className="task-details-page__confirm-close"
+                onClick={() => setConfirmAction(null)}
+                aria-label="Close confirmation"
+                disabled={isUpdatingStatus}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <p className="task-details-page__confirm-text">
+              {confirmAction === "approve"
+                ? "Are you sure you want to approve this task?"
+                : "Are you sure you want to reject this task and move it to pending?"}
+            </p>
+
+            <div className="task-details-page__confirm-actions">
+              <button
+                type="button"
+                className="task-details-page__confirm-cancel"
+                onClick={() => setConfirmAction(null)}
+                disabled={isUpdatingStatus}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className={`task-details-page__confirm-submit ${
+                  confirmAction === "approve"
+                    ? "task-details-page__confirm-submit--approve"
+                    : "task-details-page__confirm-submit--reject"
+                }`}
+                onClick={handleConfirmAction}
+                disabled={isUpdatingStatus}
+              >
+                {isUpdatingStatus
+                  ? "Saving..."
+                  : confirmAction === "approve"
+                    ? "Approve"
+                    : "Reject"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
