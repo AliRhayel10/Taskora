@@ -2,10 +2,10 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 22px;
   padding: 1px 0 0;
   margin: 0;
-  min-height: 0;
+  min-height: calc(100vh - 140px);
   box-sizing: border-box;
 }
 
@@ -55,115 +55,127 @@
   color: #1d4ed8;
 }
 
-.task-details-page__hero-card,
-.task-details-page__info-card {
-  width: 100%;
+.task-details-page__single-card {
+  width: min(100%, 640px);
+  min-height: calc(100vh - 230px);
   background: #ffffff;
   border: 1px solid #dbe3ef;
   border-radius: 28px;
+  padding: 26px 28px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.task-details-page__hero-card {
+.task-details-page__top-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-details-page__top-block h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.task-details-page__top-block p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.task-details-page__divider {
+  width: 100%;
+  height: 1px;
+  background: #dbe3ef;
+  flex-shrink: 0;
+}
+
+.task-details-page__assigned-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-details-page__assigned-section h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.task-details-page__assignee-row {
   display: flex;
   align-items: center;
-  gap: 28px;
-  padding: 30px 34px;
+  gap: 14px;
+  min-width: 0;
 }
 
-.task-details-page__hero-avatar {
-  width: 128px;
-  height: 128px;
+.task-details-page__assignee-avatar {
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
   background: #dbeafe;
-  color: #1e293b;
+  color: #2563eb;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.1rem;
+  font-size: 1rem;
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
-  border: 4px solid #eff6ff;
 }
 
-.task-details-page__hero-avatar img {
+.task-details-page__assignee-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.task-details-page__hero-content {
+.task-details-page__assignee-copy {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.task-details-page__hero-content h3 {
-  margin: 0;
+.task-details-page__assignee-copy strong {
   color: #1e293b;
-  font-size: 2.15rem;
+  font-size: 1.02rem;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.35;
   word-break: break-word;
 }
 
-.task-details-page__hero-content h4 {
-  margin: 0;
-  color: #334155;
-  font-size: 1.1rem;
-  font-weight: 700;
+.task-details-page__assignee-copy small {
+  color: #64748b;
+  font-size: 0.92rem;
   line-height: 1.45;
   word-break: break-word;
 }
 
-.task-details-page__hero-content p {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.98rem;
-  font-weight: 600;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.task-details-page__info-card {
-  padding: 34px 38px;
-}
-
-.task-details-page__info-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.task-details-page__info-header h3 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 1.35rem;
-  font-weight: 800;
-}
-
-.task-details-page__info-divider {
-  width: 100%;
-  height: 1px;
-  background: #dbe3ef;
-  margin: 22px 0 28px;
-}
-
-.task-details-page__info-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 34px 28px;
-}
-
-.task-details-page__info-item {
-  min-width: 0;
+.task-details-page__details-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.task-details-page__detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .task-details-page__label-row {
@@ -171,7 +183,7 @@
   align-items: center;
   gap: 10px;
   color: #64748b;
-  font-size: 0.95rem;
+  font-size: 0.94rem;
   font-weight: 700;
   line-height: 1.3;
 }
@@ -182,11 +194,11 @@
   flex-shrink: 0;
 }
 
-.task-details-page__info-item strong {
+.task-details-page__detail-item strong {
   color: #1e293b;
   font-size: 0.98rem;
   font-weight: 800;
-  line-height: 1.45;
+  line-height: 1.4;
   word-break: break-word;
   padding-left: 28px;
 }
@@ -211,15 +223,10 @@
   color: #1e293b !important;
 }
 
-@media (max-width: 1100px) {
-  .task-details-page__info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 760px) {
   .task-details-page {
-    gap: 20px;
+    gap: 18px;
+    min-height: auto;
   }
 
   .task-details-page__title-row {
@@ -236,60 +243,49 @@
     border-radius: 10px;
   }
 
-  .task-details-page__hero-card {
-    padding: 22px 18px;
-    gap: 18px;
-    flex-direction: column;
-    align-items: flex-start;
+  .task-details-page__single-card {
+    width: 100%;
+    min-height: auto;
+    padding: 20px 18px;
     border-radius: 22px;
+    gap: 18px;
   }
 
-  .task-details-page__hero-avatar {
-    width: 96px;
-    height: 96px;
-    font-size: 1.5rem;
+  .task-details-page__top-block h3 {
+    font-size: 1.55rem;
   }
 
-  .task-details-page__hero-content h3 {
-    font-size: 1.6rem;
+  .task-details-page__top-block p {
+    font-size: 0.94rem;
   }
 
-  .task-details-page__hero-content h4 {
+  .task-details-page__assigned-section h4 {
     font-size: 1rem;
   }
 
-  .task-details-page__hero-content p {
-    font-size: 0.92rem;
+  .task-details-page__assignee-avatar {
+    width: 54px;
+    height: 54px;
   }
 
-  .task-details-page__info-card {
-    padding: 22px 18px;
-    border-radius: 22px;
+  .task-details-page__assignee-copy strong {
+    font-size: 0.97rem;
   }
 
-  .task-details-page__info-header h3 {
-    font-size: 1.15rem;
+  .task-details-page__assignee-copy small {
+    font-size: 0.87rem;
   }
 
-  .task-details-page__info-divider {
-    margin: 18px 0 22px;
-  }
-
-  .task-details-page__info-grid {
-    grid-template-columns: 1fr;
-    gap: 22px;
-  }
-
-  .task-details-page__info-item {
-    gap: 8px;
+  .task-details-page__detail-item {
+    gap: 5px;
   }
 
   .task-details-page__label-row {
-    font-size: 0.9rem;
+    font-size: 0.89rem;
   }
 
-  .task-details-page__info-item strong {
-    font-size: 0.95rem;
+  .task-details-page__detail-item strong {
+    font-size: 0.94rem;
     padding-left: 26px;
   }
 }

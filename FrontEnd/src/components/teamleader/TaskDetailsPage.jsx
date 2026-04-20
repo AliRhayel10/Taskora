@@ -141,47 +141,37 @@ export default function TaskDetailsPage({ task, onBack }) {
         <div className="task-details-page__title-line"></div>
       </div>
 
-      <div className="task-details-page__hero-card">
-        <div className="task-details-page__hero-avatar">
-          {profileImage ? (
-            <img src={profileImage} alt={assignee.fullName} />
-          ) : (
-            <span>{getInitials(title)}</span>
-          )}
-        </div>
-
-        <div className="task-details-page__hero-content">
+      <div className="task-details-page__single-card">
+        <div className="task-details-page__top-block">
           <h3>{title}</h3>
-          <h4>{description}</h4>
-          <p>{assignee.email}</p>
-        </div>
-      </div>
-
-      <div className="task-details-page__info-card">
-        <div className="task-details-page__info-header">
-          <h3>Task Information</h3>
+          <p>{description}</p>
         </div>
 
-        <div className="task-details-page__info-divider"></div>
+        <div className="task-details-page__divider" />
 
-        <div className="task-details-page__info-grid">
-          <div className="task-details-page__info-item">
-            <div className="task-details-page__label-row">
-              <FiUser />
-              <span>Assigned To</span>
+        <div className="task-details-page__assigned-section">
+          <h4>Assigned To</h4>
+
+          <div className="task-details-page__assignee-row">
+            <div className="task-details-page__assignee-avatar">
+              {profileImage ? (
+                <img src={profileImage} alt={assignee.fullName} />
+              ) : (
+                <span>{getInitials(assignee.fullName)}</span>
+              )}
             </div>
-            <strong>{assignee.fullName}</strong>
-          </div>
 
-          <div className="task-details-page__info-item">
-            <div className="task-details-page__label-row">
-              <FiClock />
-              <span>Estimated Effort</span>
+            <div className="task-details-page__assignee-copy">
+              <strong>{assignee.fullName}</strong>
+              <small>{assignee.email}</small>
             </div>
-            <strong>{effort > 0 ? `${effort} h` : "Not set"}</strong>
           </div>
+        </div>
 
-          <div className="task-details-page__info-item">
+        <div className="task-details-page__divider" />
+
+        <div className="task-details-page__details-stack">
+          <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiFlag />
               <span>Priority</span>
@@ -189,7 +179,7 @@ export default function TaskDetailsPage({ task, onBack }) {
             <strong className={getPriorityClass(priority)}>{priority}</strong>
           </div>
 
-          <div className="task-details-page__info-item">
+          <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiLayers />
               <span>Complexity</span>
@@ -197,7 +187,15 @@ export default function TaskDetailsPage({ task, onBack }) {
             <strong className={getComplexityClass(complexity)}>{complexity}</strong>
           </div>
 
-          <div className="task-details-page__info-item">
+          <div className="task-details-page__detail-item">
+            <div className="task-details-page__label-row">
+              <FiClock />
+              <span>Estimated Effort</span>
+            </div>
+            <strong>{effort > 0 ? `${effort} h` : "Not set"}</strong>
+          </div>
+
+          <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiTarget />
               <span>Weight</span>
@@ -205,7 +203,7 @@ export default function TaskDetailsPage({ task, onBack }) {
             <strong>{weight > 0 ? weight.toFixed(2) : "Not set"}</strong>
           </div>
 
-          <div className="task-details-page__info-item">
+          <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiUser />
               <span>Status</span>
@@ -213,7 +211,7 @@ export default function TaskDetailsPage({ task, onBack }) {
             <strong className={getStatusClass(status)}>{status}</strong>
           </div>
 
-          <div className="task-details-page__info-item">
+          <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiCalendar />
               <span>Start Date</span>
@@ -221,7 +219,7 @@ export default function TaskDetailsPage({ task, onBack }) {
             <strong>{startDateLabel}</strong>
           </div>
 
-          <div className="task-details-page__info-item">
+          <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiCalendar />
               <span>Due Date</span>
