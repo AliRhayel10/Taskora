@@ -2274,6 +2274,18 @@ export default function TasksSection({
       <TaskDetailsPage
         task={selectedTaskForView}
         onBack={() => setSelectedTaskForView(null)}
+        onTaskUpdated={(updatedTask) => {
+          if (updatedTask) {
+            setSelectedTaskForView(updatedTask);
+          }
+          loadTasks().catch(() => null);
+        }}
+        companyId={resolvedCompanyId}
+        statusesEndpoint={resolvedStatusesEndpoint}
+        membersEndpoint={resolvedMembersEndpoint}
+        updateTaskStatusEndpoint={resolvedUpdateTaskStatusEndpoint}
+        updateTaskEndpoint={resolvedUpdateTaskEndpoint}
+        setupRulesEndpoint={resolvedSetupRulesEndpoint}
       />
     );
   }

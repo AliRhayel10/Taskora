@@ -1,16 +1,56 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCalendar,
+  FiCheck,
+  FiChevronDown,
   FiClock,
+  FiEdit2,
   FiFlag,
   FiLayers,
   FiTarget,
   FiUser,
+  FiX,
+  FiXCircle,
 } from "react-icons/fi";
+import "../../assets/styles/teamleader/tasks-section.css";
 import "../../assets/styles/teamleader/task-details-page.css";
 
 const API_BASE = "http://localhost:5000";
+
+const DEFAULT_EDIT_FORM = {
+  title: "",
+  description: "",
+  assignedUserId: "",
+  priority: "",
+  complexity: "",
+  estimatedEffortHours: "",
+  startDate: "",
+  dueDate: "",
+};
+
+const getStoredUser = () => {
+  try {
+    const raw =
+      localStorage.getItem("user") ||
+      localStorage.getItem("currentUser") ||
+      localStorage.getItem("loggedInUser");
+
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const parseJsonSafe = async (response) => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
+const normalizeStatus = (value = "") => String(value).trim().toLowerCase();
 
 const getProfileImage = (user = {}) => {
   const rawValue =
@@ -91,31 +131,421 @@ const getStatusClass = (status = "") => {
   return "task-details-page__value--default";
 };
 
-export default function TaskDetailsPage({ task, onBack }) {
+const getResponseData = (payload) => payload?.data ?? payload ?? null;
+
+const getStatusesArrayFromPayload = (payload) => {
+  const data = getResponseData(payload);
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.statuses)) return payload.statuses;
+  if (Array.isArray(data?.statuses)) return data.statuses;
+
+  return [];
+};
+
+const getMembersArrayFromPayload = (payload) => {
+  const data = getResponseData(payload);
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.members)) return payload.members;
+  if (Array.isArray(data?.members)) return data.members;
+
+  return [];
+};
+
+const getTeamsArrayFromPayload = (payload) => {
+  const data = getResponseData(payload);
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.teams)) return payload.teams;
+  if (Array.isArray(data?.teams)) return data.teams;
+
+  return [];
+};
+
+const getBackendStatusName = (status) =>
+  status?.statusName || status?.name || status?.taskStatusName || status?.label || "";
+
+const getBackendStatusId = (status) =>
+  status?.taskStatusId || status?.statusId || status?.id || status?.TaskStatusId || null;
+
+const buildTaskUpdatePayload = ({ currentTask, editFormState, companyId, teamId }) => ({
+  taskId: Number(currentTask.id),
+  companyId: Number(companyId),
+  teamId: Number(teamId || currentTask.teamId || 0),
+  title: editFormState.title.trim(),
+  description: editFormState.description.trim(),
+  assignedToUserId: Number(editFormState.assignedUserId),
+  priority: editFormState.priority,
+  complexity: editFormState.complexity,
+  estimatedEffortHours: Number(editFormState.estimatedEffortHours),
+  weight: Number(currentTask.weight || 0),
+  taskStatusId: currentTask.taskStatusId ? Number(currentTask.taskStatusId) : undefined,
+  startDate: editFormState.startDate || currentTask.startDate || null,
+  dueDate: editFormState.dueDate || currentTask.dueDate || null,
+});
+
+export default function TaskDetailsPage({
+  task,
+  onBack,
+  onTaskUpdated,
+  companyId,
+  statusesEndpoint,
+  membersEndpoint,
+  updateTaskStatusEndpoint,
+  updateTaskEndpoint,
+  setupRulesEndpoint,
+}) {
+  const storedUser = useMemo(() => getStoredUser(), []);
+  const resolvedCompanyId =
+    companyId ?? storedUser?.companyId ?? storedUser?.CompanyId ?? null;
+  const resolvedCurrentUserId =
+    storedUser?.userId ?? storedUser?.UserId ?? storedUser?.id ?? storedUser?.Id ?? null;
+
+  const resolvedStatusesEndpoint =
+    statusesEndpoint ??
+    (resolvedCompanyId ? `${API_BASE}/api/tasks/statuses/${resolvedCompanyId}` : "");
+  const resolvedMembersEndpoint =
+    membersEndpoint ??
+    (resolvedCompanyId
+      ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}/members`
+      : "");
+  const resolvedTeamsEndpoint = resolvedCompanyId
+    ? `${API_BASE}/api/Teams/company/${resolvedCompanyId}`
+    : "";
+  const resolvedSetupRulesEndpoint =
+    setupRulesEndpoint ??
+    (resolvedCompanyId ? `${API_BASE}/api/tasks/setup-rules/${resolvedCompanyId}` : "");
+  const resolvedUpdateTaskStatusEndpoint =
+    updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/update-status`;
+  const resolvedUpdateTaskEndpoint = updateTaskEndpoint ?? `${API_BASE}/api/tasks/update`;
+
+  const [currentTask, setCurrentTask] = useState(task);
+  const [backendStatuses, setBackendStatuses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [priorityOptions, setPriorityOptions] = useState([]);
+  const [complexityOptions, setComplexityOptions] = useState([]);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [editFormState, setEditFormState] = useState(DEFAULT_EDIT_FORM);
+  const [feedback, setFeedback] = useState(null);
+
+  useEffect(() => {
+    setCurrentTask(task);
+  }, [task]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadMeta = async () => {
+      try {
+        const [statusesResponse, membersResponse, teamsResponse, setupRulesResponse] =
+          await Promise.all([
+            resolvedStatusesEndpoint ? fetch(resolvedStatusesEndpoint) : null,
+            resolvedMembersEndpoint ? fetch(resolvedMembersEndpoint) : null,
+            resolvedTeamsEndpoint ? fetch(resolvedTeamsEndpoint) : null,
+            resolvedSetupRulesEndpoint ? fetch(resolvedSetupRulesEndpoint) : null,
+          ]);
+
+        const [statusesPayload, membersPayload, teamsPayload, setupRulesPayload] =
+          await Promise.all([
+            statusesResponse?.ok ? parseJsonSafe(statusesResponse) : null,
+            membersResponse?.ok ? parseJsonSafe(membersResponse) : null,
+            teamsResponse?.ok ? parseJsonSafe(teamsResponse) : null,
+            setupRulesResponse?.ok ? parseJsonSafe(setupRulesResponse) : null,
+          ]);
+
+        if (ignore) return;
+
+        setBackendStatuses(getStatusesArrayFromPayload(statusesPayload));
+        setUsers(getMembersArrayFromPayload(membersPayload));
+        setTeams(getTeamsArrayFromPayload(teamsPayload));
+
+        const setupRules = getResponseData(setupRulesPayload) || {};
+        const priorities = Object.keys(setupRules?.priorityMultipliers || {});
+        const complexities = Object.keys(setupRules?.complexityMultipliers || {});
+
+        setPriorityOptions(
+          priorities.length ? priorities : ["Low", "Medium", "High", "Critical"],
+        );
+        setComplexityOptions(
+          complexities.length ? complexities : ["Simple", "Medium", "Complex"],
+        );
+      } catch {
+        if (ignore) return;
+        setPriorityOptions(["Low", "Medium", "High", "Critical"]);
+        setComplexityOptions(["Simple", "Medium", "Complex"]);
+      }
+    };
+
+    loadMeta();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    resolvedMembersEndpoint,
+    resolvedSetupRulesEndpoint,
+    resolvedStatusesEndpoint,
+    resolvedTeamsEndpoint,
+  ]);
+
+  useEffect(() => {
+    if (!feedback) return undefined;
+    const timer = setTimeout(() => setFeedback(null), 3000);
+    return () => clearTimeout(timer);
+  }, [feedback]);
+
+  const approvedStatusId = useMemo(() => {
+    const approvedStatus = backendStatuses.find(
+      (item) => normalizeStatus(getBackendStatusName(item)) === "approved",
+    );
+    return getBackendStatusId(approvedStatus);
+  }, [backendStatuses]);
+
+  const newStatusId = useMemo(() => {
+    const newStatus = backendStatuses.find(
+      (item) => normalizeStatus(getBackendStatusName(item)) === "new",
+    );
+    return getBackendStatusId(newStatus);
+  }, [backendStatuses]);
+
+  const resolveTeamIdForUser = (userId) => {
+    const numericUserId = Number(userId);
+    if (!numericUserId) return Number(currentTask?.teamId || 0);
+
+    const matchedTeam = teams.find((team) => {
+      const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
+      const hasMember = memberIds.some((id) => Number(id) === numericUserId);
+      const isLeader =
+        Number(team?.teamLeaderUserId ?? team?.teamLeaderId) === numericUserId;
+
+      return hasMember || isLeader;
+    });
+
+    return Number(matchedTeam?.teamId || currentTask?.teamId || 0);
+  };
+
   const assignee = useMemo(
     () => ({
-      fullName: task?.assignedUserName || "Unassigned",
-      email: task?.assignedUserEmail || "No email available",
-      assignedUserAvatar: task?.assignedUserAvatar || "",
+      fullName: currentTask?.assignedUserName || "Unassigned",
+      email: currentTask?.assignedUserEmail || "No email available",
+      assignedUserAvatar: currentTask?.assignedUserAvatar || "",
     }),
-    [task],
+    [currentTask],
   );
 
   const profileImage = getProfileImage(assignee);
+  const title = currentTask?.title?.trim() || "Untitled Task";
+  const description = currentTask?.description?.trim() || "No task description was added.";
+  const priority = currentTask?.priority || "Low";
+  const complexity = currentTask?.complexity || "Simple";
+  const effort = Number(currentTask?.estimatedEffortHours || 0);
+  const weight = Number(currentTask?.weight || 0);
+  const status = currentTask?.status || "Not set";
+  const startDateLabel = formatDateLabel(currentTask?.startDate);
+  const dueDateLabel = formatDateLabel(currentTask?.dueDate);
+  const isDoneTask = normalizeStatus(status) === "done";
 
-  const title = task?.title?.trim() || "Untitled Task";
-  const description =
-    task?.description?.trim() || "No task description was added.";
-  const priority = task?.priority || "Low";
-  const complexity = task?.complexity || "Simple";
-  const effort = Number(task?.estimatedEffortHours || 0);
-  const weight = Number(task?.weight || 0);
-  const status = task?.status || "Not set";
-  const startDateLabel = formatDateLabel(task?.startDate);
-  const dueDateLabel = formatDateLabel(task?.dueDate);
+  const openEditModal = () => {
+    setEditFormState({
+      title: currentTask?.title || "",
+      description: currentTask?.description || "",
+      assignedUserId: String(currentTask?.assignedUserId ?? ""),
+      priority: currentTask?.priority || priorityOptions[0] || "Low",
+      complexity: currentTask?.complexity || complexityOptions[0] || "Simple",
+      estimatedEffortHours:
+        currentTask?.estimatedEffortHours === null ||
+        currentTask?.estimatedEffortHours === undefined
+          ? ""
+          : String(currentTask.estimatedEffortHours),
+      startDate: currentTask?.startDate || "",
+      dueDate: currentTask?.dueDate || "",
+    });
+    setIsEditOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditOpen(false);
+    setEditFormState(DEFAULT_EDIT_FORM);
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditFormState((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const refreshCurrentTask = (patch = {}) => {
+    const nextTask = { ...currentTask, ...patch };
+    setCurrentTask(nextTask);
+    onTaskUpdated?.(nextTask);
+    return nextTask;
+  };
+
+  const updateStatus = async (nextStatusId, successMessage, patch) => {
+    if (!currentTask?.id || !nextStatusId || !resolvedCurrentUserId) return;
+
+    setIsUpdatingStatus(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          TaskId: Number(currentTask.id),
+          NewTaskStatusId: Number(nextStatusId),
+          ChangedByUserId: Number(resolvedCurrentUserId),
+        }),
+      });
+
+      const payload = await parseJsonSafe(response);
+
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.title || "Unable to update task status.");
+      }
+
+      refreshCurrentTask(patch);
+      setFeedback({ type: "success", message: successMessage });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to update task status.",
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    await updateStatus(approvedStatusId, "Task approved successfully.", {
+      status: "Approved",
+      effectiveStatus: "Approved",
+      taskStatusId: approvedStatusId,
+    });
+  };
+
+  const handleReject = async () => {
+    await updateStatus(newStatusId, "Task marked as rejected and reassigned as new.", {
+      status: "New",
+      effectiveStatus: "New",
+      taskStatusId: newStatusId,
+    });
+  };
+
+  const handleSaveEdit = async (event) => {
+    event.preventDefault();
+
+    if (!currentTask?.id || !resolvedCompanyId) return;
+
+    setIsSavingEdit(true);
+    setFeedback(null);
+
+    try {
+      const payload = buildTaskUpdatePayload({
+        currentTask,
+        editFormState,
+        companyId: resolvedCompanyId,
+        teamId: resolveTeamIdForUser(editFormState.assignedUserId),
+      });
+
+      const candidates = [
+        `${resolvedUpdateTaskEndpoint}`,
+        `${resolvedUpdateTaskEndpoint}/${currentTask.id}`,
+        `${API_BASE}/api/tasks/${currentTask.id}`,
+        `${API_BASE}/api/tasks/update/${currentTask.id}`,
+      ];
+
+      let success = false;
+      let lastMessage = "Unable to update task.";
+
+      for (const url of candidates) {
+        try {
+          const response = await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const responsePayload = await parseJsonSafe(response);
+
+          if (response.ok) {
+            success = true;
+            break;
+          }
+
+          lastMessage =
+            responsePayload?.message || responsePayload?.title || lastMessage;
+        } catch (error) {
+          lastMessage = error?.message || lastMessage;
+        }
+      }
+
+      if (!success) {
+        throw new Error(lastMessage);
+      }
+
+      const selectedUser = users.find(
+        (user) =>
+          String(
+            user?.userId ?? user?.UserId ?? user?.id ?? user?.Id ?? "",
+          ) === String(editFormState.assignedUserId),
+      );
+
+      refreshCurrentTask({
+        ...currentTask,
+        title: editFormState.title.trim(),
+        description: editFormState.description.trim(),
+        assignedUserId: Number(editFormState.assignedUserId),
+        assignedUserName:
+          selectedUser?.fullName ||
+          selectedUser?.name ||
+          selectedUser?.full_name ||
+          currentTask?.assignedUserName,
+        assignedUserEmail:
+          selectedUser?.email || selectedUser?.Email || currentTask?.assignedUserEmail,
+        assignedUserAvatar:
+          selectedUser?.profileImageUrl ||
+          selectedUser?.ProfileImageUrl ||
+          selectedUser?.imageUrl ||
+          currentTask?.assignedUserAvatar,
+        priority: editFormState.priority,
+        complexity: editFormState.complexity,
+        estimatedEffortHours: Number(editFormState.estimatedEffortHours || 0),
+        startDate: editFormState.startDate,
+        dueDate: editFormState.dueDate,
+      });
+
+      closeEditModal();
+      setFeedback({ type: "success", message: "Task updated successfully." });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to update task.",
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   return (
     <section className="task-details-page">
+      {feedback ? (
+        <div
+          className={`task-details-page__feedback task-details-page__feedback--${feedback.type}`}
+          role="status"
+          aria-live="polite"
+        >
+          {feedback.message}
+        </div>
+      ) : null}
+
       <div className="task-details-page__title-row">
         {typeof onBack === "function" && (
           <button
@@ -130,6 +560,41 @@ export default function TaskDetailsPage({ task, onBack }) {
 
         <h2>Task Details</h2>
         <div className="task-details-page__title-line"></div>
+
+        <div className="task-details-page__actions">
+          {isDoneTask ? (
+            <>
+              <button
+                type="button"
+                className="task-details-page__action-btn task-details-page__action-btn--approve"
+                onClick={handleApprove}
+                disabled={isUpdatingStatus || !approvedStatusId}
+              >
+                <FiCheck />
+                <span>Mark as Approved</span>
+              </button>
+
+              <button
+                type="button"
+                className="task-details-page__action-btn task-details-page__action-btn--reject"
+                onClick={handleReject}
+                disabled={isUpdatingStatus || !newStatusId}
+              >
+                <FiXCircle />
+                <span>Mark as Rejected</span>
+              </button>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            className="task-details-page__action-btn task-details-page__action-btn--edit"
+            onClick={openEditModal}
+          >
+            <FiEdit2 />
+            <span>Edit</span>
+          </button>
+        </div>
       </div>
 
       <div className="task-details-page__single-card">
@@ -175,9 +640,7 @@ export default function TaskDetailsPage({ task, onBack }) {
               <FiLayers />
               <span>Complexity</span>
             </div>
-            <strong className={getComplexityClass(complexity)}>
-              {complexity}
-            </strong>
+            <strong className={getComplexityClass(complexity)}>{complexity}</strong>
           </div>
 
           <div className="task-details-page__detail-item">
@@ -221,6 +684,216 @@ export default function TaskDetailsPage({ task, onBack }) {
           </div>
         </div>
       </div>
+
+      {isEditOpen ? (
+        <div className="tasks-section__modal-overlay" onClick={closeEditModal}>
+          <div
+            className="tasks-section__modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="tasks-section__modal-header tasks-section__modal-header--lined">
+              <div>
+                <h3>Edit Task</h3>
+                <p>Update all task fields except weight and status.</p>
+              </div>
+
+              <button
+                type="button"
+                className="tasks-section__modal-close"
+                onClick={closeEditModal}
+                aria-label="Close"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <form className="tasks-section__form" onSubmit={handleSaveEdit}>
+              <div className="tasks-section__form-grid">
+                <div className="tasks-section__form-group tasks-section__form-group--full">
+                  <label htmlFor="task-details-title">Title</label>
+                  <input
+                    id="task-details-title"
+                    type="text"
+                    value={editFormState.title}
+                    onChange={(event) =>
+                      handleEditFormChange("title", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="tasks-section__form-group tasks-section__form-group--full">
+                  <label htmlFor="task-details-description">Description</label>
+                  <textarea
+                    id="task-details-description"
+                    value={editFormState.description}
+                    onChange={(event) =>
+                      handleEditFormChange("description", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-assignee">Assigned To</label>
+                  <div className="tasks-section__select-wrapper">
+                    <select
+                      id="task-details-assignee"
+                      value={editFormState.assignedUserId}
+                      onChange={(event) =>
+                        handleEditFormChange("assignedUserId", event.target.value)
+                      }
+                      required
+                    >
+                      <option value="">Select member</option>
+                      {users.map((user) => {
+                        const userId =
+                          user?.userId ?? user?.UserId ?? user?.id ?? user?.Id;
+                        const userName =
+                          user?.fullName || user?.name || user?.full_name || `User ${userId}`;
+
+                        return (
+                          <option key={userId} value={String(userId)}>
+                            {userName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <FiChevronDown />
+                  </div>
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-priority">Priority</label>
+                  <div className="tasks-section__select-wrapper">
+                    <select
+                      id="task-details-priority"
+                      value={editFormState.priority}
+                      onChange={(event) =>
+                        handleEditFormChange("priority", event.target.value)
+                      }
+                      required
+                    >
+                      {priorityOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <FiChevronDown />
+                  </div>
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-complexity">Complexity</label>
+                  <div className="tasks-section__select-wrapper">
+                    <select
+                      id="task-details-complexity"
+                      value={editFormState.complexity}
+                      onChange={(event) =>
+                        handleEditFormChange("complexity", event.target.value)
+                      }
+                      required
+                    >
+                      {complexityOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <FiChevronDown />
+                  </div>
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-effort">Estimated Effort (hours)</label>
+                  <input
+                    id="task-details-effort"
+                    type="number"
+                    min="0"
+                    step="0.25"
+                    value={editFormState.estimatedEffortHours}
+                    onChange={(event) =>
+                      handleEditFormChange(
+                        "estimatedEffortHours",
+                        event.target.value,
+                      )
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-weight">Weight</label>
+                  <input
+                    id="task-details-weight"
+                    type="text"
+                    className="tasks-section__task-weight-input"
+                    value={weight > 0 ? weight.toFixed(2) : "Not set"}
+                    disabled
+                    readOnly
+                  />
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-start-date">Start Date</label>
+                  <input
+                    id="task-details-start-date"
+                    type="date"
+                    value={editFormState.startDate}
+                    onChange={(event) =>
+                      handleEditFormChange("startDate", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-due-date">Due Date</label>
+                  <input
+                    id="task-details-due-date"
+                    type="date"
+                    value={editFormState.dueDate}
+                    onChange={(event) =>
+                      handleEditFormChange("dueDate", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="tasks-section__form-group">
+                  <label htmlFor="task-details-status">Status</label>
+                  <input
+                    id="task-details-status"
+                    type="text"
+                    className="tasks-section__task-weight-input"
+                    value={status}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              <div className="tasks-section__form-actions">
+                <button
+                  type="button"
+                  className="tasks-section__secondary-btn"
+                  onClick={closeEditModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="tasks-section__submit-btn"
+                  disabled={isSavingEdit}
+                >
+                  {isSavingEdit ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
