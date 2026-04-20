@@ -515,56 +515,36 @@ export default function TaskDetailsPage({
     }
   };
 
-  const handleConfirmAction = async () => {
-    if (!confirmAction) return;
+const handleConfirmAction = async () => {
+  try {
+    if (confirmAction === "approve") {
+      await updateStatus(approvedStatusId);
 
-    try {
-      if (confirmAction === "approve") {
-        await updateStatus(
-          approvedStatusId,
-          "Task approved successfully.",
-          {
-            status: "Approved",
-            effectiveStatus: "Approved",
-            taskStatusId: approvedStatusId,
-          },
-          "",
-        );
-      }
-
-      if (confirmAction === "reassign") {
-        const trimmedFeedback = reassignFeedback.trim();
-
-        if (!trimmedFeedback) {
-          throw new Error("Feedback is required.");
-        }
-
-        await updateStatus(
-          pendingStatusId,
-          "Task re assigned and moved to pending.",
-          {
-            status: "Pending",
-            effectiveStatus: "Pending",
-            taskStatusId: pendingStatusId,
-            assignedUserId: currentTask.assignedUserId,
-            assignedUserName: currentTask.assignedUserName,
-            assignedUserEmail: currentTask.assignedUserEmail,
-            assignedUserAvatar: currentTask.assignedUserAvatar,
-          },
-          trimmedFeedback,
-        );
-      }
-
-      setConfirmAction(null);
-      setReassignFeedback("");
-      window.location.reload();
-    } catch (error) {
-      setFeedback({
-        type: "error",
-        message: error?.message || "Unable to complete this action.",
-      });
+      setCurrentTask((prev) => ({
+        ...prev,
+        status: "Approved",
+        taskStatusId: approvedStatusId
+      }));
     }
-  };
+
+    if (confirmAction === "reassign") {
+      await updateStatus(pendingStatusId, reassignFeedback);
+
+      setCurrentTask((prev) => ({
+        ...prev,
+        status: "Pending",
+        taskStatusId: pendingStatusId
+      }));
+    }
+
+    // close modal
+    setConfirmAction(null);
+    setReassignFeedback("");
+
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const handleSaveEdit = async (event) => {
     event.preventDefault();
