@@ -2,7 +2,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   padding: 1px 0 0;
   margin: 0;
   min-height: calc(100vh - 140px);
@@ -56,28 +56,30 @@
 }
 
 .task-details-page__single-card {
-  width: min(100%, 500px);
-  min-height: calc(100vh - 230px);
+  width: min(100%, 410px);
+  min-height: unset;
+  height: fit-content;
   background: #ffffff;
   border: 1px solid #dbe3ef;
-  border-radius: 28px;
-  padding: 22px 22px;
+  border-radius: 24px;
+  padding: 18px 18px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  align-self: flex-start;
 }
 
 .task-details-page__top-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .task-details-page__top-block h3 {
   margin: 0;
   color: #1e293b;
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   font-weight: 800;
   line-height: 1.2;
   word-break: break-word;
@@ -86,7 +88,7 @@
 .task-details-page__top-block p {
   margin: 0;
   color: #64748b;
-  font-size: 0.94rem;
+  font-size: 0.93rem;
   font-weight: 500;
   line-height: 1.5;
   word-break: break-word;
@@ -121,15 +123,15 @@
 }
 
 .task-details-page__assignee-avatar {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: #dbeafe;
   color: #2563eb;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
@@ -146,12 +148,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .task-details-page__assignee-copy strong {
   color: #1e293b;
-  font-size: 0.96rem;
+  font-size: 0.95rem;
   font-weight: 800;
   line-height: 1.3;
   word-break: break-word;
@@ -159,7 +161,7 @@
 
 .task-details-page__assignee-copy small {
   color: #64748b;
-  font-size: 0.87rem;
+  font-size: 0.86rem;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -167,23 +169,23 @@
 .task-details-page__details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 16px;
+  gap: 18px 10px;
   align-content: start;
 }
 
 .task-details-page__detail-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .task-details-page__label-row {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   color: #64748b;
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.25;
   min-width: 0;
@@ -191,17 +193,17 @@
 
 .task-details-page__label-row svg {
   color: #2563eb;
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   flex-shrink: 0;
 }
 
 .task-details-page__detail-item strong {
   color: #1e293b;
-  font-size: 0.93rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
-  padding-left: 21px;
+  padding-left: 20px;
 }
 
 .task-details-page__value--primary {
@@ -226,7 +228,7 @@
 
 @media (max-width: 760px) {
   .task-details-page {
-    gap: 18px;
+    gap: 16px;
     min-height: auto;
   }
 
@@ -247,47 +249,47 @@
   .task-details-page__single-card {
     width: 100%;
     min-height: auto;
-    padding: 18px 16px;
-    border-radius: 22px;
+    padding: 16px 14px;
+    border-radius: 20px;
     gap: 16px;
   }
 
   .task-details-page__top-block h3 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   .task-details-page__top-block p {
-    font-size: 0.92rem;
+    font-size: 0.91rem;
   }
 
   .task-details-page__assigned-section h4 {
-    font-size: 0.98rem;
+    font-size: 0.96rem;
   }
 
   .task-details-page__assignee-avatar {
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
   }
 
   .task-details-page__assignee-copy strong {
-    font-size: 0.94rem;
+    font-size: 0.93rem;
   }
 
   .task-details-page__assignee-copy small {
-    font-size: 0.84rem;
+    font-size: 0.83rem;
   }
 
   .task-details-page__details-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 14px;
   }
 
   .task-details-page__label-row {
-    font-size: 0.85rem;
+    font-size: 0.84rem;
   }
 
   .task-details-page__detail-item strong {
-    font-size: 0.92rem;
-    padding-left: 24px;
+    font-size: 0.91rem;
+    padding-left: 22px;
   }
 }
