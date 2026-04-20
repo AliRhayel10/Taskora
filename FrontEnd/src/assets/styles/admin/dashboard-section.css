@@ -245,20 +245,24 @@
 .dashboard-section__task-summary-layout {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(235px, 300px) minmax(0, 1fr);
   align-items: center;
-  gap: 28px;
+  gap: 4px;
 }
 
 .dashboard-section__task-summary-chart-side,
 .dashboard-section__task-summary-status-side {
   display: flex;
   align-items: center;
+}
+
+.dashboard-section__task-summary-chart-side {
   justify-content: center;
 }
 
 .dashboard-section__task-summary-status-side {
   min-width: 0;
+  justify-content: flex-start;
 }
 
 .dashboard-section__donut-wrap {
@@ -270,8 +274,8 @@
 
 .dashboard-section__donut {
   position: relative;
-  width: 210px;
-  height: 210px;
+  width: 270px;
+  height: 270px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -286,7 +290,7 @@
 }
 
 .dashboard-section__donut-track {
-  stroke: #e2e8f0;
+  stroke: transparent;
 }
 
 .dashboard-section__donut-segment-label {
@@ -298,8 +302,8 @@
 
 .dashboard-section__donut-center {
   position: absolute;
-  width: 114px;
-  height: 114px;
+  width: 146px;
+  height: 146px;
   border-radius: 50%;
   background: #f8fafc;
   display: flex;
@@ -312,15 +316,15 @@
 
 .dashboard-section__donut-center strong {
   color: #1e293b;
-  font-size: 1.85rem;
+  font-size: 2.2rem;
   font-weight: 800;
   line-height: 1;
 }
 
 .dashboard-section__donut-center span {
-  margin-top: 7px;
+  margin-top: 6px;
   color: #64748b;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -330,15 +334,17 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 26px;
+  gap: 10px;
 }
 
 .dashboard-section__summary-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 12px;
   min-width: 0;
+  text-align: left;
 }
 
 .dashboard-section__summary-dot {
@@ -351,8 +357,10 @@
 .dashboard-section__summary-copy {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0;
   min-width: 0;
+  text-align: left;
 }
 
 .dashboard-section__summary-copy span {
@@ -360,7 +368,8 @@
   font-size: 0.98rem;
   font-weight: 800;
   line-height: 1.2;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-section__summary-copy small {
@@ -528,8 +537,8 @@
   }
 
   .dashboard-section__donut {
-    width: 180px;
-    height: 180px;
+    width: 220px;
+    height: 220px;
   }
 
   .dashboard-section__donut-segment-label {
@@ -537,22 +546,27 @@
   }
 
   .dashboard-section__donut-center {
-    width: 96px;
-    height: 96px;
+    width: 118px;
+    height: 118px;
   }
 
   .dashboard-section__task-summary-layout {
     grid-template-columns: 1fr;
-    gap: 22px;
+    gap: 12px;
   }
 
   .dashboard-section__summary-grid {
     align-items: center;
-    gap: 18px;
+    gap: 16px;
   }
 
   .dashboard-section__summary-item {
     justify-content: center;
+  }
+
+  .dashboard-section__summary-copy {
+    align-items: center;
+    text-align: center;
   }
 
   .dashboard-section__tasks-completed-toolbar,

@@ -615,11 +615,11 @@ function buildAreaPath(points, baseY) {
 }
 
 function TaskSummaryDonut({ segments, totalTasks }) {
-  const size = 230;
+  const size = 300;
   const center = size / 2;
-  const radius = 83;
-  const strokeWidth = 44;
-  const labelRadius = 83;
+  const radius = 108;
+  const strokeWidth = 56;
+  const labelRadius = 108;
   const donutSegments = buildDonutSegments(segments);
 
   return (
@@ -1197,6 +1197,7 @@ export default function DashboardSection({ searchValue = "" }) {
                               <span
                                 className="dashboard-section__summary-dot"
                                 style={{ backgroundColor: item.color }}
+                                aria-hidden="true"
                               ></span>
                               <div className="dashboard-section__summary-copy">
                                 <span>{item.label}</span>
