@@ -393,6 +393,18 @@
   font-weight: 700;
 }
 
+.dashboard-section__tasks-completed-label-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.dashboard-section__filter-select--priority {
+  min-width: 180px;
+}
+
 .dashboard-section__tasks-completed-filters {
   display: flex;
   align-items: center;
@@ -570,7 +582,8 @@
   }
 
   .dashboard-section__tasks-completed-toolbar,
-  .dashboard-section__tasks-completed-filters {
+  .dashboard-section__tasks-completed-filters,
+  .dashboard-section__tasks-completed-label-group {
     flex-direction: column;
     align-items: stretch;
   }

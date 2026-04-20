@@ -250,6 +250,8 @@ function getTaskPriorityName(task) {
   return String(
     task?.priorityName ||
       task?.PriorityName ||
+      task?.priority ||
+      task?.Priority ||
       task?.priority?.priorityName ||
       task?.priority?.PriorityName ||
       task?.priority?.name ||
@@ -446,6 +448,12 @@ function getTaskRelevantDate(task) {
     task?.DoneAt ||
     task?.closedAt ||
     task?.ClosedAt ||
+    task?.dueDate ||
+    task?.DueDate ||
+    task?.startDate ||
+    task?.StartDate ||
+    task?.archivedAt ||
+    task?.ArchivedAt ||
     task?.updatedAt ||
     task?.UpdatedAt ||
     task?.modifiedAt ||
@@ -493,7 +501,8 @@ function getDateRange(period, tasksWithDates) {
     const day = today.getDay();
     const diffToMonday = (day + 6) % 7;
     const start = addDays(today, -diffToMonday);
-    return { start, end: today };
+    const end = addDays(start, 6);
+    return { start, end };
   }
 
   if (period === "this-month") {
@@ -684,7 +693,7 @@ function TaskSummaryDonut({ segments, totalTasks }) {
 function TasksCompletedChart({ dataPoints }) {
   const width = 920;
   const height = 380;
-  const margin = { top: 18, right: 22, bottom: 60, left: 22 };
+  const margin = { top: 18, right: 38, bottom: 60, left: 38 };
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
   const baseY = margin.top + chartHeight;
@@ -696,7 +705,7 @@ function TasksCompletedChart({ dataPoints }) {
     const x =
       margin.left +
       (dataPoints.length === 1 ? chartWidth / 2 : (index / (dataPoints.length - 1)) * chartWidth);
-    const normalizedValue = maxValue === 0 ? 0.28 : point.value / normalizedMax;
+    const normalizedValue = maxValue === 0 ? 0 : point.value / normalizedMax;
     const y = margin.top + chartHeight - normalizedValue * (chartHeight * 0.78);
 
     return {
@@ -823,18 +832,7 @@ export default function DashboardSection({ searchValue = "" }) {
           fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/company/${encodeURIComponent(companyId)}`]),
           fetchFirstSuccessful([`${API_BASE_URL}/api/tasks/statuses/${encodeURIComponent(companyId)}`]),
           fetchFirstSuccessful([
-            `${API_BASE_URL}/api/tasks/priorities/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/tasks/company/${encodeURIComponent(companyId)}/priorities`,
-            `${API_BASE_URL}/api/company/${encodeURIComponent(companyId)}/priorities`,
-            `${API_BASE_URL}/api/companies/${encodeURIComponent(companyId)}/priorities`,
-            `${API_BASE_URL}/api/priorities/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/priority/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/task-priorities/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/taskpriority/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/taskpriorities/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/task-priority/company/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/company-task-priorities/${encodeURIComponent(companyId)}`,
-            `${API_BASE_URL}/api/task-priorities/${encodeURIComponent(companyId)}`,
+            `${API_BASE_URL}/api/tasks/setup-rules/${encodeURIComponent(companyId)}`,
           ]),
         ]);
 
@@ -842,7 +840,20 @@ export default function DashboardSection({ searchValue = "" }) {
         setTeams(normalizeTeamsResponse(teamsResult.data));
         setTasks(normalizeTasksResponse(tasksResult.data));
         setTaskStatuses(normalizeStatusesResponse(statusesResult.data));
-        setPriorities(normalizePrioritiesResponse(prioritiesResult.data));
+        const setupRules = prioritiesResult.data?.data || prioritiesResult.data || {};
+        const setupRulePriorityEntries = Object.keys(
+          setupRules?.priorityMultipliers || setupRules?.PriorityMultipliers || {}
+        ).map((name, index) => ({
+          id: normalizeStatus(name) || `priority-${index}`,
+          priorityName: name,
+          displayOrder: index,
+        }));
+
+        setPriorities(
+          setupRulePriorityEntries.length > 0
+            ? setupRulePriorityEntries
+            : normalizePrioritiesResponse(prioritiesResult.data)
+        );
       } catch (error) {
         console.error("Failed to load dashboard:", error);
         setUsers([]);
@@ -1227,25 +1238,30 @@ export default function DashboardSection({ searchValue = "" }) {
                 </div>
 
                 <div className="dashboard-section__tasks-completed-toolbar">
-                  <div className="dashboard-section__tasks-completed-label">Tasks by:</div>
+                  <div className="dashboard-section__tasks-completed-label-group">
+                    <div className="dashboard-section__tasks-completed-label">Tasks by:</div>
 
-                  <div className="dashboard-section__tasks-completed-filters">
-                    <label className="dashboard-section__filter-select">
+                    <label className="dashboard-section__filter-select dashboard-section__filter-select--priority">
                       <select
                         value={selectedPriority}
                         onChange={(event) => setSelectedPriority(event.target.value)}
                         aria-label="Filter approved tasks by priority"
                       >
-                        <option value="all">All</option>
-                        {dashboardData.priorityOptions.map((priority) => (
-                          <option key={priority.id || priority.label} value={priority.id || normalizeStatus(priority.label)}>
-                            {priority.label}
-                          </option>
-                        ))}
+                        <option value="all">All priorities</option>
+                        {dashboardData.priorityOptions.map((priority) => {
+                          const priorityValue = priority.id || normalizeStatus(priority.label);
+                          return (
+                            <option key={priorityValue} value={priorityValue}>
+                              {priority.label}
+                            </option>
+                          );
+                        })}
                       </select>
                       <FiChevronDown />
                     </label>
+                  </div>
 
+                  <div className="dashboard-section__tasks-completed-filters">
                     <label className="dashboard-section__filter-select">
                       <select
                         value={selectedPeriod}
