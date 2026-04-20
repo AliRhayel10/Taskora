@@ -1155,235 +1155,243 @@ export default function TeamLeaderDashboardSection({
             ))}
           </div>
 
-          <div className="teamleader-dashboard-section__table-card">
-            <div className="teamleader-dashboard-section__table-wrap">
-              <table className="teamleader-dashboard-section__table">
-                <thead>
-                  <tr>
-                    <th>
-                      <button
-                        type="button"
-                        className="teamleader-dashboard-section__sort-btn"
-                        onClick={() => handleSort("employee")}
-                      >
-                        <span>Employee</span>
-                        <FiChevronDown
-                          className={`teamleader-dashboard-section__sort-icon ${
-                            sortConfig.key === "employee"
-                              ? "teamleader-dashboard-section__sort-icon--active"
-                              : ""
-                          }`}
-                          style={{
-                            transform:
-                              sortConfig.key === "employee" &&
-                              sortConfig.direction === "desc"
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                          }}
-                        />
-                      </button>
-                    </th>
-
-                    <th>
-                      <button
-                        type="button"
-                        className="teamleader-dashboard-section__sort-btn"
-                        onClick={() => handleSort("tasks")}
-                      >
-                        <span>Tasks</span>
-                        <FiChevronDown
-                          className={`teamleader-dashboard-section__sort-icon ${
-                            sortConfig.key === "tasks"
-                              ? "teamleader-dashboard-section__sort-icon--active"
-                              : ""
-                          }`}
-                          style={{
-                            transform:
-                              sortConfig.key === "tasks" &&
-                              sortConfig.direction === "desc"
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                          }}
-                        />
-                      </button>
-                    </th>
-
-                    <th>
-                      <button
-                        type="button"
-                        className="teamleader-dashboard-section__sort-btn"
-                        onClick={() => handleSort("effort")}
-                      >
-                        <span>Effort</span>
-                        <FiChevronDown
-                          className={`teamleader-dashboard-section__sort-icon ${
-                            sortConfig.key === "effort"
-                              ? "teamleader-dashboard-section__sort-icon--active"
-                              : ""
-                          }`}
-                          style={{
-                            transform:
-                              sortConfig.key === "effort" &&
-                              sortConfig.direction === "desc"
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                          }}
-                        />
-                      </button>
-                    </th>
-
-                    <th>
-                      <button
-                        type="button"
-                        className="teamleader-dashboard-section__sort-btn"
-                        onClick={() => handleSort("weight")}
-                      >
-                        <span>Weight</span>
-                        <FiChevronDown
-                          className={`teamleader-dashboard-section__sort-icon ${
-                            sortConfig.key === "weight"
-                              ? "teamleader-dashboard-section__sort-icon--active"
-                              : ""
-                          }`}
-                          style={{
-                            transform:
-                              sortConfig.key === "weight" &&
-                              sortConfig.direction === "desc"
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                          }}
-                        />
-                      </button>
-                    </th>
-
-                    <th>
-                      <button
-                        type="button"
-                        className="teamleader-dashboard-section__sort-btn"
-                        onClick={() => handleSort("status")}
-                      >
-                        <span>Workload Status</span>
-                        <FiChevronDown
-                          className={`teamleader-dashboard-section__sort-icon ${
-                            sortConfig.key === "status"
-                              ? "teamleader-dashboard-section__sort-icon--active"
-                              : ""
-                          }`}
-                          style={{
-                            transform:
-                              sortConfig.key === "status" &&
-                              sortConfig.direction === "desc"
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                          }}
-                        />
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {paginatedRows.length === 0 ? (
+          <div className="teamleader-dashboard-section__content-grid">
+            <div className="teamleader-dashboard-section__table-card">
+              <div className="teamleader-dashboard-section__table-wrap">
+                <table className="teamleader-dashboard-section__table">
+                  <thead>
                     <tr>
-                      <td
-                        colSpan="5"
-                        className="teamleader-dashboard-section__empty-cell"
-                      >
-                        No workload data found for the selected range.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedRows.map((row, index) => (
-                      <tr
-                        key={row.userId}
-                        className={
-                          index % 2 === 0
-                            ? "teamleader-dashboard-section__row--odd"
-                            : "teamleader-dashboard-section__row--even"
-                        }
-                      >
-                        <td>
-                          <div className="teamleader-dashboard-section__employee-cell">
-                            <div className="teamleader-dashboard-section__avatar">
-                              {row.profileImageUrl ? (
-                                <img
-                                  src={getProfileImageUrl(row.profileImageUrl)}
-                                  alt={row.employee}
-                                  className="teamleader-dashboard-section__avatar-image"
-                                />
-                              ) : (
-                                getInitials(row.employee)
-                              )}
-                            </div>
+                      <th>
+                        <button
+                          type="button"
+                          className="teamleader-dashboard-section__sort-btn"
+                          onClick={() => handleSort("employee")}
+                        >
+                          <span>Employee</span>
+                          <FiChevronDown
+                            className={`teamleader-dashboard-section__sort-icon ${
+                              sortConfig.key === "employee"
+                                ? "teamleader-dashboard-section__sort-icon--active"
+                                : ""
+                            }`}
+                            style={{
+                              transform:
+                                sortConfig.key === "employee" &&
+                                sortConfig.direction === "desc"
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                            }}
+                          />
+                        </button>
+                      </th>
 
-                            <div className="teamleader-dashboard-section__employee-details">
-                              <strong>{row.employee}</strong>
-                              <small>{row.email || "No email"}</small>
-                            </div>
-                          </div>
-                        </td>
-                        <td>{row.tasks}</td>
-                        <td>{row.effort}</td>
-                        <td>{row.weight}</td>
-                        <td>
-                          <span
-                            className={`teamleader-dashboard-section__status ${getStatusClass(
-                              row.status
-                            )}`}
-                          >
-                            <span className="teamleader-dashboard-section__status-icon">
-                              {getStatusIcon(row.status)}
-                            </span>
-                            {row.status}
-                          </span>
+                      <th>
+                        <button
+                          type="button"
+                          className="teamleader-dashboard-section__sort-btn"
+                          onClick={() => handleSort("tasks")}
+                        >
+                          <span>Tasks</span>
+                          <FiChevronDown
+                            className={`teamleader-dashboard-section__sort-icon ${
+                              sortConfig.key === "tasks"
+                                ? "teamleader-dashboard-section__sort-icon--active"
+                                : ""
+                            }`}
+                            style={{
+                              transform:
+                                sortConfig.key === "tasks" &&
+                                sortConfig.direction === "desc"
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                            }}
+                          />
+                        </button>
+                      </th>
+
+                      <th>
+                        <button
+                          type="button"
+                          className="teamleader-dashboard-section__sort-btn"
+                          onClick={() => handleSort("effort")}
+                        >
+                          <span>Effort</span>
+                          <FiChevronDown
+                            className={`teamleader-dashboard-section__sort-icon ${
+                              sortConfig.key === "effort"
+                                ? "teamleader-dashboard-section__sort-icon--active"
+                                : ""
+                            }`}
+                            style={{
+                              transform:
+                                sortConfig.key === "effort" &&
+                                sortConfig.direction === "desc"
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                            }}
+                          />
+                        </button>
+                      </th>
+
+                      <th>
+                        <button
+                          type="button"
+                          className="teamleader-dashboard-section__sort-btn"
+                          onClick={() => handleSort("weight")}
+                        >
+                          <span>Weight</span>
+                          <FiChevronDown
+                            className={`teamleader-dashboard-section__sort-icon ${
+                              sortConfig.key === "weight"
+                                ? "teamleader-dashboard-section__sort-icon--active"
+                                : ""
+                            }`}
+                            style={{
+                              transform:
+                                sortConfig.key === "weight" &&
+                                sortConfig.direction === "desc"
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                            }}
+                          />
+                        </button>
+                      </th>
+
+                      <th>
+                        <button
+                          type="button"
+                          className="teamleader-dashboard-section__sort-btn"
+                          onClick={() => handleSort("status")}
+                        >
+                          <span>Workload Status</span>
+                          <FiChevronDown
+                            className={`teamleader-dashboard-section__sort-icon ${
+                              sortConfig.key === "status"
+                                ? "teamleader-dashboard-section__sort-icon--active"
+                                : ""
+                            }`}
+                            style={{
+                              transform:
+                                sortConfig.key === "status" &&
+                                sortConfig.direction === "desc"
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                            }}
+                          />
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {paginatedRows.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          className="teamleader-dashboard-section__empty-cell"
+                        >
+                          No workload data found for the selected range.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      paginatedRows.map((row, index) => (
+                        <tr
+                          key={row.userId}
+                          className={
+                            index % 2 === 0
+                              ? "teamleader-dashboard-section__row--odd"
+                              : "teamleader-dashboard-section__row--even"
+                          }
+                        >
+                          <td>
+                            <div className="teamleader-dashboard-section__employee-cell">
+                              <div className="teamleader-dashboard-section__avatar">
+                                {row.profileImageUrl ? (
+                                  <img
+                                    src={getProfileImageUrl(row.profileImageUrl)}
+                                    alt={row.employee}
+                                    className="teamleader-dashboard-section__avatar-image"
+                                  />
+                                ) : (
+                                  getInitials(row.employee)
+                                )}
+                              </div>
 
-            <div className="teamleader-dashboard-section__pagination">
-              <span className="teamleader-dashboard-section__pagination-info">
-                {paginationInfo}
-              </span>
+                              <div className="teamleader-dashboard-section__employee-details">
+                                <strong>{row.employee}</strong>
+                                <small>{row.email || "No email"}</small>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{row.tasks}</td>
+                          <td>{row.effort}</td>
+                          <td>{row.weight}</td>
+                          <td>
+                            <span
+                              className={`teamleader-dashboard-section__status ${getStatusClass(
+                                row.status
+                              )}`}
+                            >
+                              <span className="teamleader-dashboard-section__status-icon">
+                                {getStatusIcon(row.status)}
+                              </span>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-              <div className="teamleader-dashboard-section__pagination-controls">
-                <button
-                  type="button"
-                  className="teamleader-dashboard-section__page-btn"
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <FiChevronLeft />
-                </button>
+              <div className="teamleader-dashboard-section__pagination">
+                <span className="teamleader-dashboard-section__pagination-info">
+                  {paginationInfo}
+                </span>
 
-                {pageNumbers.map((page) => (
+                <div className="teamleader-dashboard-section__pagination-controls">
                   <button
-                    key={page}
                     type="button"
-                    className={`teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
-                      currentPage === page
-                        ? "teamleader-dashboard-section__page-btn--active"
-                        : ""
-                    }`}
-                    onClick={() => setCurrentPage(page)}
+                    className="teamleader-dashboard-section__page-btn"
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                    disabled={currentPage === 1}
                   >
-                    {page}
+                    <FiChevronLeft />
                   </button>
-                ))}
 
-                <button
-                  type="button"
-                  className="teamleader-dashboard-section__page-btn"
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <FiChevronRight />
-                </button>
+                  {pageNumbers.map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      className={`teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
+                        currentPage === page
+                          ? "teamleader-dashboard-section__page-btn--active"
+                          : ""
+                      }`}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="teamleader-dashboard-section__page-btn"
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <FiChevronRight />
+                  </button>
+                </div>
               </div>
             </div>
+
+            <aside className="teamleader-dashboard-section__requests-card">
+              <div className="teamleader-dashboard-section__requests-header">
+                <h3 className="teamleader-dashboard-section__requests-title">Requests</h3>
+              </div>
+            </aside>
           </div>
         </>
       )}
