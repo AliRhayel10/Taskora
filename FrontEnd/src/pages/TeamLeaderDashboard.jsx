@@ -102,7 +102,9 @@ export default function TeamLeaderDashboard() {
 
   useEffect(() => {
     if (!user) {
-      console.warn("[TeamLeaderDashboard] No valid team leader user found. Redirecting to login.");
+      console.warn(
+        "[TeamLeaderDashboard] No valid team leader user found. Redirecting to login."
+      );
       navigate("/login", { replace: true });
       return;
     }
@@ -117,12 +119,7 @@ export default function TeamLeaderDashboard() {
     navigate("/login", { replace: true });
   };
 
-  const searchPlaceholder =
-    activeItem === "Dashboard"
-      ? "Search"
-      : activeItem === "Tasks"
-        ? "Search tasks"
-        : "Search";
+const searchPlaceholder = "Search";
 
   if (!user) {
     return null;
@@ -145,7 +142,6 @@ export default function TeamLeaderDashboard() {
           showSearch={true}
           searchPlaceholder={searchPlaceholder}
           onOpenProfile={() => setActiveItem("Profile")}
-          onOpenSettings={() => {}}
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={() =>
@@ -163,10 +159,7 @@ export default function TeamLeaderDashboard() {
               />
             </>
           ) : activeItem === "Tasks" ? (
-            <TasksSection
-              searchValue={searchValue}
-              user={user}
-            />
+            <TasksSection searchValue={searchValue} user={user} />
           ) : activeItem === "Profile" ? (
             <TeamLeaderProfileSection user={user} setUser={setUser} />
           ) : (
