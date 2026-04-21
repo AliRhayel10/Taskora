@@ -4,6 +4,7 @@ import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import TeamLeaderDashboard from "./pages/TeamLeaderDashboard";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -20,7 +21,7 @@ export default function App() {
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
       <Route path="/teamleader" element={<TeamLeaderDashboard />} />
-      <Route path="/employee" element={<div>Employee Page</div>} />
+      <Route path="/employee" element={<EmployeeDashboard />} />
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/verify-otp" element={<VerifyOtpPage />} />

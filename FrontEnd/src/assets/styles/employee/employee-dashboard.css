@@ -1,0 +1,44 @@
+.employee-dashboard-section {
+  width: 100%;
+}
+
+.employee-dashboard-section__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.employee-dashboard-section__card,
+.employee-profile-section__card {
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.employee-dashboard-section__card h3,
+.employee-profile-section__card h3 {
+  margin: 0 0 10px;
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.employee-dashboard-section__card p,
+.employee-profile-section__card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.employee-profile-section {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .employee-dashboard-section__grid {
+    grid-template-columns: 1fr;
+  }
+}
