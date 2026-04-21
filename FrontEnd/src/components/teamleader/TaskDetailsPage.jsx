@@ -8,6 +8,7 @@ import {
   FiEdit2,
   FiFlag,
   FiLayers,
+  FiMessageSquare,
   FiRotateCcw,
   FiSend,
   FiTarget,
@@ -1204,7 +1205,7 @@ export default function TaskDetailsPage({
               <div className="task-details-page__section-header">
                 <div className="task-details-page__section-title-wrap">
                   <span className="task-details-page__section-icon">
-                    <FiEdit2 />
+                    <FiMessageSquare />
                   </span>
                   <h3>Feedback Summary</h3>
                 </div>
@@ -1266,37 +1267,36 @@ export default function TaskDetailsPage({
             </div>
           </div>
 
-          <div className="task-details-page__feedback-inline-card">
-            <form className="task-details-page__feedback-inline-form" onSubmit={handleTaskFeedbackSubmit}>
-              <div className="task-details-page__feedback-inline-input-wrap">
-                <span className="task-details-page__feedback-inline-icon">
-                  <FiEdit2 />
-                </span>
-                <input
-                  id="task-details-feedback"
-                  type="text"
-                  value={taskFeedbackText}
-                  onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
-                  placeholder="Add feedback and send it..."
-                  disabled={isSubmittingTaskFeedback}
-                  maxLength={500}
-                />
-                <div className="task-details-page__feedback-inline-count">
-                  {taskFeedbackText.length}/500
-                </div>
-              </div>
+<div className="task-details-page__feedback-inline-card">
+  <form className="task-details-page__feedback-inline-form" onSubmit={handleTaskFeedbackSubmit}>
+    <div className="task-details-page__feedback-inline-main">
+      <div className="task-details-page__feedback-inline-input-wrap">
+        <input
+          id="task-details-feedback"
+          type="text"
+          value={taskFeedbackText}
+          onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
+          placeholder="Add feedback and send it..."
+          disabled={isSubmittingTaskFeedback}
+          maxLength={500}
+        />
+        <div className="task-details-page__feedback-inline-count">
+          {taskFeedbackText.length}/500
+        </div>
+      </div>
+    </div>
 
-              <button
-                type="submit"
-                className="task-details-page__feedback-inline-submit"
-                disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
-                aria-label="Send feedback"
-              >
-                <FiSend />
-                <span>{isSubmittingTaskFeedback ? "Sending..." : "Send"}</span>
-              </button>
-            </form>
-          </div>
+    <button
+      type="submit"
+      className="task-details-page__feedback-inline-submit"
+      disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
+      aria-label="Send feedback"
+    >
+      <FiSend />
+      <span>{isSubmittingTaskFeedback ? "Sending..." : "Send"}</span>
+    </button>
+  </form>
+</div>
         </div>
       </div>
 
