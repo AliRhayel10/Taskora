@@ -1217,104 +1217,113 @@ namespace BackEnd.Controllers
             return await UpdateTask(request);
         }
 
-        [HttpPut("update-status")]
-        public async Task<IActionResult> UpdateTaskStatus([FromBody] UpdateTaskStatusRequest request)
+[HttpPut("update-status")]
+public async Task<IActionResult> UpdateTaskStatus([FromBody] UpdateTaskStatusRequest request)
+{
+    if (request == null || request.TaskId <= 0 || request.NewTaskStatusId <= 0)
+    {
+        return BadRequest(new
         {
-            if (request == null || request.TaskId <= 0 || request.NewTaskStatusId <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Invalid request."
-                });
-            }
+            success = false,
+            message = "Invalid request."
+        });
+    }
 
-            var task = await _context.Tasks
-                .FirstOrDefaultAsync(t => t.TaskId == request.TaskId);
+    var task = await _context.Tasks
+        .FirstOrDefaultAsync(t => t.TaskId == request.TaskId);
 
-            if (task == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "Task not found."
-                });
-            }
+    if (task == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "Task not found."
+        });
+    }
 
-            var newStatus = await _context.TaskStatuses
-                .FirstOrDefaultAsync(s =>
-                    s.TaskStatusId == request.NewTaskStatusId &&
-                    s.CompanyId == task.CompanyId &&
-                    s.IsActive);
+    var newStatus = await _context.TaskStatuses
+        .FirstOrDefaultAsync(s =>
+            s.TaskStatusId == request.NewTaskStatusId &&
+            s.CompanyId == task.CompanyId &&
+            s.IsActive);
 
-            if (newStatus == null)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "New task status is invalid."
-                });
-            }
+    if (newStatus == null)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "New task status is invalid."
+        });
+    }
 
-            var changedByUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.UserId == request.ChangedByUserId && u.CompanyId == task.CompanyId);
+    var changedByUser = await _context.Users
+        .FirstOrDefaultAsync(u => u.UserId == request.ChangedByUserId && u.CompanyId == task.CompanyId);
 
-            if (changedByUser == null)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "ChangedBy user is invalid."
-                });
-            }
+    if (changedByUser == null)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "ChangedBy user is invalid."
+        });
+    }
 
-            if (task.TaskStatusId == request.NewTaskStatusId)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Task already has this status."
-                });
-            }
+    bool isSameStatus = task.TaskStatusId == request.NewTaskStatusId;
+    bool hasFeedback = !string.IsNullOrWhiteSpace(request.Feedback);
 
-            var oldTaskStatusId = task.TaskStatusId;
-            task.TaskStatusId = request.NewTaskStatusId;
+    if (isSameStatus && !hasFeedback)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Task already has this status."
+        });
+    }
 
-            if (!string.IsNullOrWhiteSpace(request.Feedback))
-            {
-                task.Feedback = request.Feedback.Trim();
-            }
+    var oldTaskStatusId = task.TaskStatusId;
 
-            var normalizedStatusName = (newStatus.StatusName ?? "").Trim().ToLowerInvariant();
+    if (!isSameStatus)
+    {
+        task.TaskStatusId = request.NewTaskStatusId;
 
-            if (normalizedStatusName == "archived")
-            {
-                task.IsArchived = true;
-                task.ArchivedAt = DateTime.Now;
-            }
-            else
-            {
-                task.IsArchived = false;
-                task.ArchivedAt = null;
-            }
+        var normalizedStatusName = (newStatus.StatusName ?? "").Trim().ToLowerInvariant();
 
-            _context.TaskStatusHistories.Add(new TaskStatusHistory
-            {
-                CompanyId = task.CompanyId,
-                TaskId = task.TaskId,
-                OldTaskStatusId = oldTaskStatusId,
-                NewTaskStatusId = request.NewTaskStatusId,
-                ChangedByUserId = request.ChangedByUserId,
-                ChangedAt = DateTime.Now
-            });
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                success = true,
-                message = "Task status updated successfully."
-            });
+        if (normalizedStatusName == "archived")
+        {
+            task.IsArchived = true;
+            task.ArchivedAt = DateTime.Now;
         }
+        else
+        {
+            task.IsArchived = false;
+            task.ArchivedAt = null;
+        }
+    }
+
+    if (hasFeedback)
+    {
+        task.Feedback = request.Feedback.Trim();
+    }
+
+    _context.TaskStatusHistories.Add(new TaskStatusHistory
+    {
+        CompanyId = task.CompanyId,
+        TaskId = task.TaskId,
+        OldTaskStatusId = oldTaskStatusId,
+        NewTaskStatusId = request.NewTaskStatusId,
+        ChangedByUserId = request.ChangedByUserId,
+        ChangedAt = DateTime.Now
+    });
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        success = true,
+        message = hasFeedback && isSameStatus
+            ? "Feedback submitted successfully."
+            : "Task status updated successfully."
+    });
+}
     }
 }
