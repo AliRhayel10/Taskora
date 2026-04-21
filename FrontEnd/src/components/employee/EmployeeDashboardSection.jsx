@@ -365,7 +365,15 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
             }`}
             onClick={() => setActiveTab(tab.key)}
           >
-            <span>{tab.label}</span>
+            <span
+              className={`employee-dashboard-section__tab-label ${
+                activeTab === tab.key
+                  ? "employee-dashboard-section__tab-label--active"
+                  : ""
+              }`}
+            >
+              {tab.label}
+            </span>
             <span className="employee-dashboard-section__tab-count">
               {tabCounts[tab.key]}
             </span>
