@@ -32,6 +32,7 @@
 
 .task-details-page__toolbar {
   width: 100%;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -41,12 +42,20 @@
   box-sizing: border-box;
 }
 
+.task-details-page__toolbar-spacer {
+  width: 1px;
+  height: 42px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .task-details-page__review-menu {
   position: relative;
 }
 
 .task-details-page__review-btn,
-.task-details-page__archive-btn {
+.task-details-page__archive-btn,
+.task-details-page__trash-btn {
   min-height: 42px;
   border-radius: 12px;
   color: #ffffff;
@@ -89,8 +98,24 @@
   box-shadow: 0 10px 20px rgba(51, 65, 85, 0.16);
 }
 
+.task-details-page__trash-btn {
+  min-width: 42px;
+  width: 42px;
+  padding: 0;
+  border: 1px solid #dc2626;
+  background: #dc2626;
+}
+
+.task-details-page__trash-btn:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.16);
+}
+
 .task-details-page__review-btn:disabled,
 .task-details-page__archive-btn:disabled,
+.task-details-page__trash-btn:disabled,
 .task-details-page__edit-btn:disabled,
 .task-details-page__review-option:disabled,
 .task-details-page__confirm-cancel:disabled,
@@ -259,7 +284,9 @@
 .task-details-page__top-block {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 8px;
+  min-height: 132px;
   padding-right: 54px;
 }
 
@@ -614,6 +641,7 @@
 
   .task-details-page__toolbar {
     width: 100%;
+    min-height: 42px;
     justify-content: flex-end;
     margin-top: 0;
   }
@@ -655,6 +683,7 @@
   }
 
   .task-details-page__top-block {
+    min-height: 132px;
     padding-right: 48px;
   }
 

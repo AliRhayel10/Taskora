@@ -10,6 +10,7 @@ import {
   FiLayers,
   FiRotateCcw,
   FiTarget,
+  FiTrash2,
   FiUser,
   FiX,
 } from "react-icons/fi";
@@ -213,6 +214,7 @@ export default function TaskDetailsPage({
   updateTaskStatusEndpoint,
   updateTaskEndpoint,
   setupRulesEndpoint,
+  deleteTaskEndpoint,
 }) {
   const storedUser = useMemo(() => getStoredUser(), []);
   const resolvedCompanyId =
@@ -237,6 +239,7 @@ export default function TaskDetailsPage({
   const resolvedUpdateTaskStatusEndpoint =
     updateTaskStatusEndpoint ?? `${API_BASE}/api/tasks/update-status`;
   const resolvedUpdateTaskEndpoint = updateTaskEndpoint ?? `${API_BASE}/api/tasks/update`;
+  const resolvedDeleteTaskEndpoint = deleteTaskEndpoint ?? `${API_BASE}/api/tasks/delete`;
 
   const [currentTask, setCurrentTask] = useState(task);
   const [backendStatuses, setBackendStatuses] = useState([]);
@@ -247,6 +250,7 @@ export default function TaskDetailsPage({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [isReviewMenuOpen, setIsReviewMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [reassignFeedback, setReassignFeedback] = useState("");
@@ -337,7 +341,7 @@ export default function TaskDetailsPage({
 
   const pendingStatusId = useMemo(() => {
     const pendingStatus = backendStatuses.find(
-      (item) => getBackendStatusName(item) === "Pending",
+      (item) => normalizeStatus(getBackendStatusName(item)) === "pending",
     );
     return getBackendStatusId(pendingStatus);
   }, [backendStatuses]);
@@ -390,9 +394,11 @@ export default function TaskDetailsPage({
     normalizedCurrentStatus === "new" ||
     normalizedCurrentStatus === "acknowledged" ||
     normalizedCurrentStatus === "pending";
+  const canDelete = canEdit;
   const isDone = normalizedCurrentStatus === "done";
   const isApproved = normalizedCurrentStatus === "approved";
-  const isArchived = normalizedCurrentStatus === "archived";
+
+  const hasToolbarActions = isDone || isApproved || canDelete;
 
   const openEditModal = () => {
     setIsReviewMenuOpen(false);
@@ -421,9 +427,14 @@ export default function TaskDetailsPage({
   };
 
   const closeConfirmModal = () => {
-    if (isUpdatingStatus) return;
+    if (isUpdatingStatus || isDeletingTask) return;
     setConfirmAction(null);
     setReassignFeedback("");
+  };
+
+  const openDeleteModal = () => {
+    setIsReviewMenuOpen(false);
+    setConfirmAction("delete");
   };
 
   const handleEditFormChange = (field, value) => {
@@ -515,36 +526,118 @@ export default function TaskDetailsPage({
     }
   };
 
-const handleConfirmAction = async () => {
-  try {
-    if (confirmAction === "approve") {
-      await updateStatus(approvedStatusId);
+  const handleDeleteTask = async () => {
+    if (!currentTask?.id || isDeletingTask) return;
 
-      setCurrentTask((prev) => ({
-        ...prev,
-        status: "Approved",
-        taskStatusId: approvedStatusId
-      }));
+    setIsDeletingTask(true);
+    setFeedback(null);
+
+    try {
+      const deletePayload = {
+        taskId: Number(currentTask.id),
+        TaskId: Number(currentTask.id),
+        companyId: resolvedCompanyId ? Number(resolvedCompanyId) : undefined,
+        companyID: resolvedCompanyId ? Number(resolvedCompanyId) : undefined,
+        companyIdValue: resolvedCompanyId ? Number(resolvedCompanyId) : undefined,
+      };
+
+      const candidates = [
+        {
+          url: `${API_BASE}/api/tasks/${currentTask.id}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${API_BASE}/api/tasks/delete/${currentTask.id}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${resolvedDeleteTaskEndpoint}/${currentTask.id}`,
+          options: { method: "DELETE" },
+        },
+        {
+          url: `${resolvedDeleteTaskEndpoint}`,
+          options: {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(deletePayload),
+          },
+        },
+      ];
+
+      let success = false;
+      let lastMessage = "Unable to delete task.";
+
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(candidate.url, candidate.options);
+          const payload = response.status === 204 ? null : await parseJsonSafe(response);
+
+          if (response.ok) {
+            success = true;
+            break;
+          }
+
+          lastMessage = payload?.message || payload?.title || lastMessage;
+        } catch (error) {
+          lastMessage = error?.message || lastMessage;
+        }
+      }
+
+      if (!success) {
+        throw new Error(lastMessage);
+      }
+
+      setConfirmAction(null);
+      setFeedback({ type: "success", message: "Task deleted successfully." });
+      onTaskUpdated?.(null);
+
+      if (typeof onBack === "function") {
+        onBack();
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error?.message || "Unable to delete task.",
+      });
+    } finally {
+      setIsDeletingTask(false);
     }
+  };
 
-    if (confirmAction === "reassign") {
-      await updateStatus(pendingStatusId, reassignFeedback);
+  const handleConfirmAction = async () => {
+    try {
+      if (confirmAction === "approve") {
+        await updateStatus(approvedStatusId, "Task approved successfully.", {
+          status: "Approved",
+          taskStatusId: approvedStatusId,
+        });
+      }
 
-      setCurrentTask((prev) => ({
-        ...prev,
-        status: "Pending",
-        taskStatusId: pendingStatusId
-      }));
+      if (confirmAction === "reassign") {
+        await updateStatus(
+          pendingStatusId,
+          "Task moved back to pending successfully.",
+          {
+            status: "Pending",
+            taskStatusId: pendingStatusId,
+          },
+          reassignFeedback,
+        );
+      }
+
+      if (confirmAction === "delete") {
+        await handleDeleteTask();
+        return;
+      }
+
+      setConfirmAction(null);
+      setReassignFeedback("");
+    } catch (err) {
+      console.error(err);
     }
-
-    // close modal
-    setConfirmAction(null);
-    setReassignFeedback("");
-
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
   const handleSaveEdit = async (event) => {
     event.preventDefault();
@@ -658,65 +751,82 @@ const handleConfirmAction = async () => {
         <div className="task-details-page__title-line"></div>
       </div>
 
-      {isDone ? (
-        <div className="task-details-page__toolbar">
-          <div
-            className="task-details-page__review-menu"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="task-details-page__review-btn"
-              onClick={() => setIsReviewMenuOpen((previous) => !previous)}
-              disabled={isUpdatingStatus || (!approvedStatusId && !pendingStatusId)}
-              aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
-              title={isUpdatingStatus ? "Updating task review" : "Review task"}
-            >
-              <span>Review Task</span>
-              <FiChevronDown />
-            </button>
-
-            {isReviewMenuOpen ? (
-              <div className="task-details-page__review-dropdown">
+      <div className="task-details-page__toolbar">
+        {hasToolbarActions ? (
+          <>
+            {isDone ? (
+              <div
+                className="task-details-page__review-menu"
+                onClick={(event) => event.stopPropagation()}
+              >
                 <button
                   type="button"
-                  className="task-details-page__review-option task-details-page__review-option--approve"
-                  onClick={handleApprove}
-                  disabled={isUpdatingStatus || !approvedStatusId}
+                  className="task-details-page__review-btn"
+                  onClick={() => setIsReviewMenuOpen((previous) => !previous)}
+                  disabled={isUpdatingStatus || (!approvedStatusId && !pendingStatusId)}
+                  aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
+                  title={isUpdatingStatus ? "Updating task review" : "Review task"}
                 >
-                  <span>Approve</span>
+                  <span>Review Task</span>
+                  <FiChevronDown />
                 </button>
 
-                <button
-                  type="button"
-                  className="task-details-page__review-option task-details-page__review-option--reject"
-                  onClick={handleReassign}
-                  disabled={isUpdatingStatus || !pendingStatusId}
-                >
-                  <FiRotateCcw />
-                  <span>Re Assign</span>
-                </button>
+                {isReviewMenuOpen ? (
+                  <div className="task-details-page__review-dropdown">
+                    <button
+                      type="button"
+                      className="task-details-page__review-option task-details-page__review-option--approve"
+                      onClick={handleApprove}
+                      disabled={isUpdatingStatus || !approvedStatusId}
+                    >
+                      <span>Approve</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="task-details-page__review-option task-details-page__review-option--reject"
+                      onClick={handleReassign}
+                      disabled={isUpdatingStatus || !pendingStatusId}
+                    >
+                      <FiRotateCcw />
+                      <span>Re Assign</span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
-          </div>
-        </div>
-      ) : null}
 
-      {isApproved ? (
-        <div className="task-details-page__toolbar">
-          <button
-            type="button"
-            className="task-details-page__archive-btn"
-            onClick={handleArchive}
-            disabled={isUpdatingStatus || !archivedStatusId}
-            aria-label={isUpdatingStatus ? "Archiving task" : "Archive task"}
-            title={isUpdatingStatus ? "Archiving task" : "Archive task"}
-          >
-            <FiArchive />
-            <span>Archive</span>
-          </button>
-        </div>
-      ) : null}
+            {isApproved ? (
+              <button
+                type="button"
+                className="task-details-page__archive-btn"
+                onClick={handleArchive}
+                disabled={isUpdatingStatus || !archivedStatusId}
+                aria-label={isUpdatingStatus ? "Archiving task" : "Archive task"}
+                title={isUpdatingStatus ? "Archiving task" : "Archive task"}
+              >
+                <FiArchive />
+                <span>Archive</span>
+              </button>
+            ) : null}
+
+            {canDelete ? (
+              <button
+                type="button"
+                className="task-details-page__trash-btn"
+                onClick={openDeleteModal}
+                disabled={isDeletingTask}
+                aria-label={isDeletingTask ? "Deleting task" : "Delete task"}
+                title={isDeletingTask ? "Deleting task" : "Delete task"}
+              >
+                <FiTrash2 />
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <div className="task-details-page__toolbar-spacer" aria-hidden="true" />
+        )}
+      </div>
 
       {feedback ? (
         <div
@@ -805,17 +915,17 @@ const handleConfirmAction = async () => {
           <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiCalendar />
-              <span>Due Date</span>
+              <span>Start Date</span>
             </div>
-            <strong>{dueDateLabel}</strong>
+            <strong>{startDateLabel}</strong>
           </div>
 
           <div className="task-details-page__detail-item">
             <div className="task-details-page__label-row">
               <FiCalendar />
-              <span>Start Date</span>
+              <span>Due Date</span>
             </div>
-            <strong>{startDateLabel}</strong>
+            <strong>{dueDateLabel}</strong>
           </div>
 
           <div className="task-details-page__detail-item">
@@ -1060,79 +1170,114 @@ const handleConfirmAction = async () => {
           onClick={closeConfirmModal}
         >
           <div
-            className="task-details-page__confirm-modal"
+            className={
+              confirmAction === "delete"
+                ? "tasks-section__confirm-modal"
+                : "task-details-page__confirm-modal"
+            }
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="task-details-page__confirm-header">
-              <h3>
-                {confirmAction === "approve" ? "Approve Task" : "Re Assign Task"}
-              </h3>
+            {confirmAction === "delete" ? (
+              <>
+                <div className="tasks-section__confirm-copy">
+                  <h3>Delete Task</h3>
+                  <p>Are you sure you want to delete this task?</p>
+                </div>
 
-              <button
-                type="button"
-                className="task-details-page__confirm-close"
-                onClick={closeConfirmModal}
-                aria-label="Close confirmation"
-                disabled={isUpdatingStatus}
-              >
-                <FiX />
-              </button>
-            </div>
+                <div className="tasks-section__confirm-actions">
+                  <button
+                    type="button"
+                    className="tasks-section__secondary-btn"
+                    onClick={closeConfirmModal}
+                    disabled={isDeletingTask}
+                  >
+                    Cancel
+                  </button>
 
-            {confirmAction === "approve" ? (
-              <p className="task-details-page__confirm-text">
-                Are you sure you want to approve this task?
-              </p>
+                  <button
+                    type="button"
+                    className="tasks-section__danger-btn"
+                    onClick={handleConfirmAction}
+                    disabled={isDeletingTask}
+                  >
+                    {isDeletingTask ? "Deleting..." : "Confirm"}
+                  </button>
+                </div>
+              </>
             ) : (
               <>
-                <p className="task-details-page__confirm-text">
-                  Add feedback for the assigned user. The task will stay assigned to the same user and will be moved to Pending.
-                </p>
+                <div className="task-details-page__confirm-header">
+                  <h3>
+                    {confirmAction === "approve" ? "Approve Task" : "Re Assign Task"}
+                  </h3>
 
-                <div className="task-details-page__confirm-form-group">
-                  <label htmlFor="task-reassign-feedback">Feedback</label>
-                  <textarea
-                    id="task-reassign-feedback"
-                    value={reassignFeedback}
-                    onChange={(event) => setReassignFeedback(event.target.value)}
-                    placeholder="Write feedback here"
-                    rows={5}
+                  <button
+                    type="button"
+                    className="task-details-page__confirm-close"
+                    onClick={closeConfirmModal}
+                    aria-label="Close confirmation"
                     disabled={isUpdatingStatus}
-                  />
+                  >
+                    <FiX />
+                  </button>
+                </div>
+
+                {confirmAction === "approve" ? (
+                  <p className="task-details-page__confirm-text">
+                    Are you sure you want to approve this task?
+                  </p>
+                ) : (
+                  <>
+                    <p className="task-details-page__confirm-text">
+                      Add feedback for the assigned user. The task will stay assigned to the same user and will be moved to Pending.
+                    </p>
+
+                    <div className="task-details-page__confirm-form-group">
+                      <label htmlFor="task-reassign-feedback">Feedback</label>
+                      <textarea
+                        id="task-reassign-feedback"
+                        value={reassignFeedback}
+                        onChange={(event) => setReassignFeedback(event.target.value)}
+                        placeholder="Write feedback here"
+                        rows={5}
+                        disabled={isUpdatingStatus}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="task-details-page__confirm-actions">
+                  <button
+                    type="button"
+                    className="task-details-page__confirm-cancel"
+                    onClick={closeConfirmModal}
+                    disabled={isUpdatingStatus}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`task-details-page__confirm-submit ${
+                      confirmAction === "approve"
+                        ? "task-details-page__confirm-submit--approve"
+                        : "task-details-page__confirm-submit--reject"
+                    }`}
+                    onClick={handleConfirmAction}
+                    disabled={
+                      isUpdatingStatus ||
+                      (confirmAction === "reassign" && !reassignFeedback.trim())
+                    }
+                  >
+                    {isUpdatingStatus
+                      ? "Saving..."
+                      : confirmAction === "approve"
+                        ? "Approve"
+                        : "Re Assign"}
+                  </button>
                 </div>
               </>
             )}
-
-            <div className="task-details-page__confirm-actions">
-              <button
-                type="button"
-                className="task-details-page__confirm-cancel"
-                onClick={closeConfirmModal}
-                disabled={isUpdatingStatus}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className={`task-details-page__confirm-submit ${
-                  confirmAction === "approve"
-                    ? "task-details-page__confirm-submit--approve"
-                    : "task-details-page__confirm-submit--reject"
-                }`}
-                onClick={handleConfirmAction}
-                disabled={
-                  isUpdatingStatus ||
-                  (confirmAction === "reassign" && !reassignFeedback.trim())
-                }
-              >
-                {isUpdatingStatus
-                  ? "Saving..."
-                  : confirmAction === "approve"
-                    ? "Approve"
-                    : "Re Assign"}
-              </button>
-            </div>
           </div>
         </div>
       ) : null}
