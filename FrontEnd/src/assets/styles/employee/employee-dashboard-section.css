@@ -45,11 +45,12 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 8px;
   color: #ffffff;
 }
 
 .employee-dashboard-section__hero-content h3 {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 1.95rem;
   font-weight: 800;
   line-height: 1.2;
@@ -60,7 +61,7 @@
 }
 
 .employee-dashboard-section__hero-count {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 1.08rem;
   font-weight: 600;
   line-height: 1.35;
@@ -164,6 +165,13 @@
   padding-right: 16px;
 }
 
+.employee-dashboard-section__tab-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .employee-dashboard-section__tabs::-webkit-scrollbar {
   display: none;
 }
@@ -177,7 +185,6 @@
   padding: 8px 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.2s ease;

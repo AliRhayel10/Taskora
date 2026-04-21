@@ -355,29 +355,30 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
 
       <div className="employee-dashboard-section__tabs">
         {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`employee-dashboard-section__tab ${
-              activeTab === tab.key
-                ? "employee-dashboard-section__tab--active"
-                : ""
-            }`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            <span
-              className={`employee-dashboard-section__tab-label ${
+          <div key={tab.key} className="employee-dashboard-section__tab-group">
+            <button
+              type="button"
+              className={`employee-dashboard-section__tab ${
                 activeTab === tab.key
-                  ? "employee-dashboard-section__tab-label--active"
+                  ? "employee-dashboard-section__tab--active"
                   : ""
               }`}
+              onClick={() => setActiveTab(tab.key)}
             >
-              {tab.label}
-            </span>
+              <span
+                className={`employee-dashboard-section__tab-label ${
+                  activeTab === tab.key
+                    ? "employee-dashboard-section__tab-label--active"
+                    : ""
+                }`}
+              >
+                {tab.label}
+              </span>
+            </button>
             <span className="employee-dashboard-section__tab-count">
               {tabCounts[tab.key]}
             </span>
-          </button>
+          </div>
         ))}
       </div>
 
