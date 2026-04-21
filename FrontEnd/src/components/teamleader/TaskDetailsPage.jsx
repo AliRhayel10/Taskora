@@ -355,6 +355,24 @@ export default function TaskDetailsPage({
     return getBackendStatusId(archivedStatus);
   }, [backendStatuses]);
 
+  const status = currentTask?.status || currentTask?.effectiveStatus || "Not set";
+  const startDateLabel = formatDateLabel(currentTask?.startDate);
+  const dueDateLabel = formatDateLabel(currentTask?.dueDate);
+  const normalizedCurrentStatus = normalizeStatus(status);
+  const currentStatusId = useMemo(() => {
+    const directStatusId = Number(
+      currentTask?.taskStatusId ?? currentTask?.statusId ?? currentTask?.TaskStatusId ?? 0,
+    );
+
+    if (directStatusId) return directStatusId;
+
+    const matchedStatus = backendStatuses.find(
+      (item) => normalizeStatus(getBackendStatusName(item)) === normalizedCurrentStatus,
+    );
+
+    return Number(getBackendStatusId(matchedStatus) || 0);
+  }, [backendStatuses, currentTask, normalizedCurrentStatus]);
+
   const resolveTeamIdForUser = (userId) => {
     const numericUserId = Number(userId);
     if (!numericUserId) return Number(currentTask?.teamId || 0);
@@ -387,11 +405,6 @@ export default function TaskDetailsPage({
   const complexity = currentTask?.complexity || "Simple";
   const effort = Number(currentTask?.estimatedEffortHours || 0);
   const weight = Number(currentTask?.weight || 0);
-  const status = currentTask?.status || "Not set";
-  const startDateLabel = formatDateLabel(currentTask?.startDate);
-  const dueDateLabel = formatDateLabel(currentTask?.dueDate);
-
-  const normalizedCurrentStatus = normalizeStatus(status);
   const canEdit =
     normalizedCurrentStatus === "new" ||
     normalizedCurrentStatus === "acknowledged" ||
@@ -649,21 +662,54 @@ export default function TaskDetailsPage({
   const handleTaskFeedbackSubmit = async (event) => {
     event.preventDefault();
 
-    if (!taskFeedbackText.trim() || isSubmittingTaskFeedback) return;
+    const trimmedFeedback = taskFeedbackText.trim();
+
+    if (!trimmedFeedback || isSubmittingTaskFeedback) return;
+    if (!currentTask?.id || !resolvedCurrentUserId || !currentStatusId) {
+      setFeedback({
+        type: "error",
+        message: "Unable to submit feedback right now.",
+      });
+      return;
+    }
 
     setIsSubmittingTaskFeedback(true);
+    setFeedback(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await fetch(resolvedUpdateTaskStatusEndpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          TaskId: Number(currentTask.id),
+          NewTaskStatusId: Number(currentStatusId),
+          ChangedByUserId: Number(resolvedCurrentUserId),
+          Feedback: trimmedFeedback,
+        }),
+      });
+
+      let payload = null;
+      if (response.status !== 204) {
+        payload = await parseJsonSafe(response);
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.title || "Unable to submit feedback.");
+      }
+
+      refreshCurrentTask({
+        feedback: trimmedFeedback,
+        lastFeedback: trimmedFeedback,
+      });
       setTaskFeedbackText("");
       setFeedback({
         type: "success",
         message: "Feedback submitted successfully.",
       });
-    } catch {
+    } catch (error) {
       setFeedback({
         type: "error",
-        message: "Unable to submit feedback.",
+        message: error?.message || "Unable to submit feedback.",
       });
     } finally {
       setIsSubmittingTaskFeedback(false);
