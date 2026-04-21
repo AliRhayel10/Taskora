@@ -595,6 +595,14 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
+}
+
+.task-details-page__top-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
 }
 
 .task-details-page__timeline-card,
@@ -607,6 +615,21 @@
   padding: 18px 20px;
   box-sizing: border-box;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.task-details-page__timeline-card,
+.task-details-page__history-card {
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.task-details-page__card-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .task-details-page__section-header {
@@ -661,6 +684,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 }
 
 .task-details-page__summary-stats {
@@ -1034,11 +1058,26 @@
     padding-left: 22px;
   }
 
+  .task-details-page__top-panels {
+    grid-template-columns: 1fr;
+  }
+
   .task-details-page__timeline-card,
   .task-details-page__history-card,
   .task-details-page__feedback-inline-card {
     padding: 16px 14px;
     border-radius: 20px;
+  }
+
+  .task-details-page__timeline-card,
+  .task-details-page__history-card {
+    height: auto;
+    max-height: none;
+  }
+
+  .task-details-page__card-scroll-area {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .task-details-page__summary-stats {
