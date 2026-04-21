@@ -9,6 +9,7 @@ import {
   FiFlag,
   FiLayers,
   FiRotateCcw,
+  FiSend,
   FiTarget,
   FiTrash2,
   FiUser,
@@ -1137,65 +1138,66 @@ export default function TaskDetailsPage({
         </div>
 
         <div className="task-details-page__right-column">
-          <div className="task-details-page__feedback-card">
-            <div className="task-details-page__feedback-card-header">
-              <div className="task-details-page__feedback-card-icon">
-                <FiEdit2 />
+          <div className="task-details-page__timeline-card">
+            <div className="task-details-page__section-header">
+              <div className="task-details-page__section-title-wrap">
+                <span className="task-details-page__section-icon">
+                  <FiClock />
+                </span>
+                <h3>Activity Timeline</h3>
               </div>
 
-              <div className="task-details-page__feedback-card-copy">
-                <h3>Add Feedback</h3>
-                <p>Share your feedback, notes, or important updates about this task.</p>
-              </div>
-            </div>
-
-            <form className="task-details-page__feedback-form" onSubmit={handleTaskFeedbackSubmit}>
-              <div className="task-details-page__feedback-form-group">
-                <label htmlFor="task-details-feedback">Feedback</label>
-                <textarea
-                  id="task-details-feedback"
-                  value={taskFeedbackText}
-                  onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
-                  placeholder="Write your feedback here..."
-                  rows={8}
-                  disabled={isSubmittingTaskFeedback}
-                />
-                <div className="task-details-page__feedback-count">
-                  {taskFeedbackText.length} / 500
-                </div>
-              </div>
-
-              <div className="task-details-page__feedback-actions">
+              {historyEntries.length > 4 ? (
                 <button
                   type="button"
-                  className="task-details-page__feedback-cancel"
-                  onClick={handleTaskFeedbackCancel}
-                  disabled={isSubmittingTaskFeedback || !taskFeedbackText.length}
+                  className="task-details-page__view-all-btn"
+                  onClick={() => setShowAllTimeline((previous) => !previous)}
                 >
-                  Cancel
+                  {showAllTimeline ? "Show less" : "View all"}
                 </button>
+              ) : null}
+            </div>
 
-                <button
-                  type="submit"
-                  className="task-details-page__feedback-submit"
-                  disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
-                >
-                  {isSubmittingTaskFeedback ? "Submitting..." : "Submit Feedback"}
-                </button>
+            {isHistoryLoading ? (
+              <div className="task-details-page__empty-state">Loading timeline...</div>
+            ) : visibleTimelineEntries.length ? (
+              <div className="task-details-page__timeline-list">
+                {visibleTimelineEntries.map((item) => (
+                  <div key={item.id} className="task-details-page__timeline-item">
+                    <div
+                      className={`task-details-page__timeline-marker ${
+                        item.hasStatusChanged
+                          ? "task-details-page__timeline-marker--status"
+                          : "task-details-page__timeline-marker--feedback"
+                      }`}
+                    />
+                    <div className="task-details-page__timeline-content">
+                      <div className="task-details-page__timeline-heading">{item.timelineTitle}</div>
+                      <div className="task-details-page__timeline-meta">
+                        By {item.changedByName} • {item.changedAtLabel}
+                      </div>
+                      {item.feedbackText ? (
+                        <div className="task-details-page__timeline-note">“{item.feedbackText}”</div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </form>
+            ) : (
+              <div className="task-details-page__empty-state">No activity has been recorded yet.</div>
+            )}
           </div>
 
-          <div className="task-details-page__history-card">
+          <div className="task-details-page__history-card task-details-page__summary-card">
             <div className="task-details-page__section-header">
               <div className="task-details-page__section-title-wrap">
                 <span className="task-details-page__section-icon">
                   <FiEdit2 />
                 </span>
-                <h3>Feedback History</h3>
+                <h3>Feedback Summary</h3>
               </div>
 
-              {feedbackHistoryEntries.length > 3 ? (
+              {feedbackHistoryEntries.length > 2 ? (
                 <button
                   type="button"
                   className="task-details-page__view-all-btn"
@@ -1206,8 +1208,23 @@ export default function TaskDetailsPage({
               ) : null}
             </div>
 
+            <div className="task-details-page__summary-stats">
+              <div className="task-details-page__summary-stat">
+                <span>Total Feedback</span>
+                <strong>{feedbackHistoryEntries.length}</strong>
+              </div>
+              <div className="task-details-page__summary-stat">
+                <span>Latest Update</span>
+                <strong>
+                  {feedbackHistoryEntries.length
+                    ? feedbackHistoryEntries[0].changedAtLabel
+                    : "No updates yet"}
+                </strong>
+              </div>
+            </div>
+
             {isHistoryLoading ? (
-              <div className="task-details-page__empty-state">Loading history...</div>
+              <div className="task-details-page__empty-state">Loading feedback...</div>
             ) : visibleFeedbackHistoryEntries.length ? (
               <div className="task-details-page__history-list">
                 {visibleFeedbackHistoryEntries.map((item, index) => (
@@ -1234,48 +1251,36 @@ export default function TaskDetailsPage({
             )}
           </div>
 
-          <div className="task-details-page__timeline-card">
-            <div className="task-details-page__section-header">
-              <div className="task-details-page__section-title-wrap">
-                <span className="task-details-page__section-icon">
-                  <FiClock />
+          <div className="task-details-page__feedback-inline-card">
+            <form className="task-details-page__feedback-inline-form" onSubmit={handleTaskFeedbackSubmit}>
+              <div className="task-details-page__feedback-inline-input-wrap">
+                <span className="task-details-page__feedback-inline-icon">
+                  <FiEdit2 />
                 </span>
-                <h3>Activity Timeline</h3>
+                <input
+                  id="task-details-feedback"
+                  type="text"
+                  value={taskFeedbackText}
+                  onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
+                  placeholder="Add feedback and send it..."
+                  disabled={isSubmittingTaskFeedback}
+                  maxLength={500}
+                />
+                <div className="task-details-page__feedback-inline-count">
+                  {taskFeedbackText.length}/500
+                </div>
               </div>
 
-              {historyEntries.length > 5 ? (
-                <button
-                  type="button"
-                  className="task-details-page__view-all-btn"
-                  onClick={() => setShowAllTimeline((previous) => !previous)}
-                >
-                  {showAllTimeline ? "Show less" : "View all"}
-                </button>
-              ) : null}
-            </div>
-
-            {isHistoryLoading ? (
-              <div className="task-details-page__empty-state">Loading timeline...</div>
-            ) : visibleTimelineEntries.length ? (
-              <div className="task-details-page__timeline-list">
-                {visibleTimelineEntries.map((item) => (
-                  <div key={item.id} className="task-details-page__timeline-item">
-                    <div className={`task-details-page__timeline-marker ${item.hasStatusChanged ? "task-details-page__timeline-marker--status" : "task-details-page__timeline-marker--feedback"}`} />
-                    <div className="task-details-page__timeline-content">
-                      <div className="task-details-page__timeline-heading">{item.timelineTitle}</div>
-                      <div className="task-details-page__timeline-meta">
-                        By {item.changedByName} • {item.changedAtLabel}
-                      </div>
-                      {item.feedbackText ? (
-                        <div className="task-details-page__timeline-note">“{item.feedbackText}”</div>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="task-details-page__empty-state">No activity has been recorded yet.</div>
-            )}
+              <button
+                type="submit"
+                className="task-details-page__feedback-inline-submit"
+                disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
+                aria-label="Send feedback"
+              >
+                <FiSend />
+                <span>{isSubmittingTaskFeedback ? "Sending..." : "Send"}</span>
+              </button>
+            </form>
           </div>
         </div>
       </div>
