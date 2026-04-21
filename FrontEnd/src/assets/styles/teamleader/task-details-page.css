@@ -633,6 +633,155 @@
   border-color: #b91c1c;
 }
 
+
+.task-details-page__content-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(320px, 410px) minmax(420px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.task-details-page__feedback-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  border-radius: 24px;
+  padding: 22px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.task-details-page__feedback-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-details-page__feedback-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.task-details-page__feedback-card-copy h3 {
+  margin: 0 0 4px;
+  color: #0f172a;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.task-details-page__feedback-card-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.task-details-page__feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.task-details-page__feedback-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-details-page__feedback-form-group label {
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.task-details-page__feedback-form-group textarea {
+  width: 100%;
+  min-height: 230px;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 14px 16px;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-details-page__feedback-form-group textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.task-details-page__feedback-count {
+  align-self: flex-end;
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.task-details-page__feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.task-details-page__feedback-cancel,
+.task-details-page__feedback-submit {
+  min-height: 44px;
+  border-radius: 14px;
+  padding: 0 20px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-details-page__feedback-cancel {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.task-details-page__feedback-cancel:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.task-details-page__feedback-submit {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.task-details-page__feedback-submit:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
+}
+
+.task-details-page__feedback-cancel:disabled,
+.task-details-page__feedback-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 760px) {
   .task-details-page {
     gap: 16px;
@@ -664,6 +813,11 @@
     width: 40px;
     height: 40px;
     border-radius: 10px;
+  }
+
+  .task-details-page__content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .task-details-page__single-card {
@@ -724,6 +878,42 @@
   .task-details-page__detail-item strong {
     font-size: 0.91rem;
     padding-left: 22px;
+  }
+
+  .task-details-page__feedback-card {
+    padding: 18px 16px;
+    border-radius: 20px;
+    gap: 18px;
+  }
+
+  .task-details-page__feedback-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    font-size: 1.15rem;
+  }
+
+  .task-details-page__feedback-card-copy h3 {
+    font-size: 1.08rem;
+  }
+
+  .task-details-page__feedback-card-copy p {
+    font-size: 0.88rem;
+  }
+
+  .task-details-page__feedback-form-group textarea {
+    min-height: 180px;
+    padding: 14px 14px;
+    font-size: 0.92rem;
+  }
+
+  .task-details-page__feedback-actions {
+    flex-direction: column;
+  }
+
+  .task-details-page__feedback-cancel,
+  .task-details-page__feedback-submit {
+    width: 100%;
   }
 
   .task-details-page__confirm-modal {

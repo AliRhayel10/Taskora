@@ -256,6 +256,8 @@ export default function TaskDetailsPage({
   const [reassignFeedback, setReassignFeedback] = useState("");
   const [editFormState, setEditFormState] = useState(DEFAULT_EDIT_FORM);
   const [feedback, setFeedback] = useState(null);
+  const [taskFeedbackText, setTaskFeedbackText] = useState("");
+  const [isSubmittingTaskFeedback, setIsSubmittingTaskFeedback] = useState(false);
 
   useEffect(() => {
     setCurrentTask(task);
@@ -639,6 +641,35 @@ export default function TaskDetailsPage({
     }
   };
 
+  const handleTaskFeedbackCancel = () => {
+    if (isSubmittingTaskFeedback) return;
+    setTaskFeedbackText("");
+  };
+
+  const handleTaskFeedbackSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!taskFeedbackText.trim() || isSubmittingTaskFeedback) return;
+
+    setIsSubmittingTaskFeedback(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setTaskFeedbackText("");
+      setFeedback({
+        type: "success",
+        message: "Feedback submitted successfully.",
+      });
+    } catch {
+      setFeedback({
+        type: "error",
+        message: "Unable to submit feedback.",
+      });
+    } finally {
+      setIsSubmittingTaskFeedback(false);
+    }
+  };
+
   const handleSaveEdit = async (event) => {
     event.preventDefault();
 
@@ -838,103 +869,154 @@ export default function TaskDetailsPage({
         </div>
       ) : null}
 
-      <div className="task-details-page__single-card">
-        {canEdit ? (
-          <button
-            type="button"
-            className="task-details-page__edit-btn"
-            onClick={openEditModal}
-            aria-label="Edit task"
-            title="Edit task"
-          >
-            <FiEdit2 />
-          </button>
-        ) : null}
+      <div className="task-details-page__content-grid">
+        <div className="task-details-page__single-card">
+          {canEdit ? (
+            <button
+              type="button"
+              className="task-details-page__edit-btn"
+              onClick={openEditModal}
+              aria-label="Edit task"
+              title="Edit task"
+            >
+              <FiEdit2 />
+            </button>
+          ) : null}
 
-        <div className="task-details-page__top-block">
-          <h3>{title}</h3>
-          <p>{description}</p>
-        </div>
+          <div className="task-details-page__top-block">
+            <h3>{title}</h3>
+            <p>{description}</p>
+          </div>
 
-        <div className="task-details-page__divider" />
+          <div className="task-details-page__divider" />
 
-        <div className="task-details-page__assigned-section">
-          <h4>Assigned To</h4>
+          <div className="task-details-page__assigned-section">
+            <h4>Assigned To</h4>
 
-          <div className="task-details-page__assignee-row">
-            <div className="task-details-page__assignee-avatar">
-              {profileImage ? (
-                <img src={profileImage} alt={assignee.fullName} />
-              ) : (
-                <span>{getInitials(assignee.fullName)}</span>
-              )}
+            <div className="task-details-page__assignee-row">
+              <div className="task-details-page__assignee-avatar">
+                {profileImage ? (
+                  <img src={profileImage} alt={assignee.fullName} />
+                ) : (
+                  <span>{getInitials(assignee.fullName)}</span>
+                )}
+              </div>
+
+              <div className="task-details-page__assignee-copy">
+                <strong>{assignee.fullName}</strong>
+                <small>{assignee.email}</small>
+              </div>
+            </div>
+          </div>
+
+          <div className="task-details-page__divider" />
+
+          <div className="task-details-page__details-grid">
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiFlag />
+                <span>Priority</span>
+              </div>
+              <strong className={getPriorityClass(priority)}>{priority}</strong>
             </div>
 
-            <div className="task-details-page__assignee-copy">
-              <strong>{assignee.fullName}</strong>
-              <small>{assignee.email}</small>
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiLayers />
+                <span>Complexity</span>
+              </div>
+              <strong className={getComplexityClass(complexity)}>{complexity}</strong>
+            </div>
+
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiClock />
+                <span>Estimated Effort</span>
+              </div>
+              <strong>{effort > 0 ? `${effort} h` : "Not set"}</strong>
+            </div>
+
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiTarget />
+                <span>Weight</span>
+              </div>
+              <strong>{weight > 0 ? weight.toFixed(2) : "Not set"}</strong>
+            </div>
+
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiCalendar />
+                <span>Due Date</span>
+              </div>
+              <strong>{dueDateLabel}</strong>
+            </div>
+
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiCalendar />
+                <span>Start Date</span>
+              </div>
+              <strong>{startDateLabel}</strong>
+            </div>
+
+            <div className="task-details-page__detail-item">
+              <div className="task-details-page__label-row">
+                <FiUser />
+                <span>Status</span>
+              </div>
+              <strong className={getStatusClass(status)}>{status}</strong>
             </div>
           </div>
         </div>
 
-        <div className="task-details-page__divider" />
-
-        <div className="task-details-page__details-grid">
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiFlag />
-              <span>Priority</span>
+        <div className="task-details-page__feedback-card">
+          <div className="task-details-page__feedback-card-header">
+            <div className="task-details-page__feedback-card-icon">
+              <FiEdit2 />
             </div>
-            <strong className={getPriorityClass(priority)}>{priority}</strong>
+
+            <div className="task-details-page__feedback-card-copy">
+              <h3>Add Feedback</h3>
+              <p>Share your feedback, notes, or important updates about this task.</p>
+            </div>
           </div>
 
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiLayers />
-              <span>Complexity</span>
+          <form className="task-details-page__feedback-form" onSubmit={handleTaskFeedbackSubmit}>
+            <div className="task-details-page__feedback-form-group">
+              <label htmlFor="task-details-feedback">Feedback</label>
+              <textarea
+                id="task-details-feedback"
+                value={taskFeedbackText}
+                onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
+                placeholder="Write your feedback here..."
+                rows={8}
+                disabled={isSubmittingTaskFeedback}
+              />
+              <div className="task-details-page__feedback-count">
+                {taskFeedbackText.length} / 500
+              </div>
             </div>
-            <strong className={getComplexityClass(complexity)}>{complexity}</strong>
-          </div>
 
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiClock />
-              <span>Estimated Effort</span>
-            </div>
-            <strong>{effort > 0 ? `${effort} h` : "Not set"}</strong>
-          </div>
+            <div className="task-details-page__feedback-actions">
+              <button
+                type="button"
+                className="task-details-page__feedback-cancel"
+                onClick={handleTaskFeedbackCancel}
+                disabled={isSubmittingTaskFeedback || !taskFeedbackText.length}
+              >
+                Cancel
+              </button>
 
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiTarget />
-              <span>Weight</span>
+              <button
+                type="submit"
+                className="task-details-page__feedback-submit"
+                disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
+              >
+                {isSubmittingTaskFeedback ? "Submitting..." : "Submit Feedback"}
+              </button>
             </div>
-            <strong>{weight > 0 ? weight.toFixed(2) : "Not set"}</strong>
-          </div>
-
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiCalendar />
-              <span>Start Date</span>
-            </div>
-            <strong>{startDateLabel}</strong>
-          </div>
-
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiCalendar />
-              <span>Due Date</span>
-            </div>
-            <strong>{dueDateLabel}</strong>
-          </div>
-
-          <div className="task-details-page__detail-item">
-            <div className="task-details-page__label-row">
-              <FiUser />
-              <span>Status</span>
-            </div>
-            <strong className={getStatusClass(status)}>{status}</strong>
-          </div>
+          </form>
         </div>
       </div>
 
