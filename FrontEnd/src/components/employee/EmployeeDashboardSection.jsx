@@ -323,7 +323,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
               <FiAlertCircle />
             </div>
             <div>
-              <span>Pending Acknowledgements</span>
+              <span>Acknowledgements</span>
               <strong>{summaryStats.pendingAcknowledgements}</strong>
               <small>Waiting for your acknowledgement</small>
             </div>
