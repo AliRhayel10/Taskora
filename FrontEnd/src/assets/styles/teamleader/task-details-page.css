@@ -614,13 +614,11 @@
   gap: 14px;
   align-items: stretch;
   min-height: 0;
-  flex: 1;
   overflow: hidden;
 }
 
 .task-details-page__timeline-card,
-.task-details-page__history-card,
-.task-details-page__feedback-inline-card {
+.task-details-page__history-card {
   width: 100%;
   background: #ffffff;
   border: 1px solid #dbe3ef;
@@ -628,6 +626,17 @@
   padding: 18px 20px;
   box-sizing: border-box;
   box-shadow: none;
+}
+
+.task-details-page__feedback-inline-card {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: none;
+  transform: translateY(30px);
 }
 
 .task-details-page__timeline-card,
@@ -891,7 +900,7 @@
 }
 
 .task-details-page__feedback-inline-card {
-  padding: 14px 16px;
+  padding: 0;
 }
 
 .task-details-page__feedback-inline-form {
@@ -1096,10 +1105,14 @@
   }
 
   .task-details-page__timeline-card,
-  .task-details-page__history-card,
-  .task-details-page__feedback-inline-card {
+  .task-details-page__history-card {
     padding: 16px 14px;
     border-radius: 20px;
+  }
+
+  .task-details-page__feedback-inline-card {
+    padding: 0;
+    border-radius: 0;
   }
 
   .task-details-page__timeline-card,
