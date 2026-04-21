@@ -19,6 +19,31 @@ function SectionTitle({ title }) {
   );
 }
 
+function parseStoredJson(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error(`[TeamLeaderDashboard] Failed to parse "${key}"`, error);
+    return null;
+  }
+}
+
+function normalizeRole(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function isTeamLeader(user) {
+  const role =
+    user?.role ||
+    user?.Role ||
+    user?.user?.role ||
+    user?.user?.Role ||
+    "";
+
+  return normalizeRole(role) === "teamleader";
+}
+
 export default function TeamLeaderDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,10 +56,25 @@ export default function TeamLeaderDashboard() {
   const [searchValue, setSearchValue] = useState("");
 
   const [user, setUser] = useState(() => {
-    const routeUser = location.state?.user;
-    const savedUser = localStorage.getItem("user");
+    const routeUser = location.state?.user || null;
+    const authUser = parseStoredJson("authUser");
+    const legacyUser = parseStoredJson("user");
 
-    const currentUser = routeUser || (savedUser ? JSON.parse(savedUser) : null);
+    console.group("[TeamLeaderDashboard Init]");
+    console.log("location.state?.user:", routeUser);
+    console.log('localStorage "authUser":', authUser);
+    console.log('localStorage "user":', legacyUser);
+    console.groupEnd();
+
+    const currentUser = isTeamLeader(routeUser)
+      ? routeUser
+      : isTeamLeader(authUser)
+        ? authUser
+        : isTeamLeader(legacyUser)
+          ? legacyUser
+          : null;
+
+    console.log("[TeamLeaderDashboard] selected currentUser:", currentUser);
 
     if (!currentUser) return null;
 
@@ -42,7 +82,7 @@ export default function TeamLeaderDashboard() {
       userId: currentUser.userId,
       companyId: currentUser.companyId,
       companyName: currentUser.companyName || "",
-      fullName: currentUser.fullName || "Team Leader",
+      fullName: currentUser.fullName || currentUser.name || "Team Leader",
       email: currentUser.email || "",
       role: currentUser.role || "Team Leader",
       profileImageUrl: currentUser.profileImageUrl || "",
@@ -62,14 +102,17 @@ export default function TeamLeaderDashboard() {
 
   useEffect(() => {
     if (!user) {
+      console.warn("[TeamLeaderDashboard] No valid team leader user found. Redirecting to login.");
       navigate("/login", { replace: true });
       return;
     }
 
-    localStorage.setItem("user", JSON.stringify(user));
+    console.log("[TeamLeaderDashboard] Persisting authUser:", user);
+    localStorage.setItem("authUser", JSON.stringify(user));
   }, [user, navigate]);
 
   const handleLogout = () => {
+    localStorage.removeItem("authUser");
     localStorage.removeItem("user");
     navigate("/login", { replace: true });
   };
@@ -79,9 +122,7 @@ export default function TeamLeaderDashboard() {
       ? "Search"
       : activeItem === "Tasks"
         ? "Search tasks"
-        : activeItem === "Teams"
-          ? "Search"
-          : "Search";
+        : "Search";
 
   if (!user) {
     return null;
@@ -122,12 +163,10 @@ export default function TeamLeaderDashboard() {
               />
             </>
           ) : activeItem === "Tasks" ? (
-            <>
-              <TasksSection
-                searchValue={searchValue}
-                user={user}
-              />
-            </>
+            <TasksSection
+              searchValue={searchValue}
+              user={user}
+            />
           ) : activeItem === "Profile" ? (
             <TeamLeaderProfileSection user={user} setUser={setUser} />
           ) : (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiBell,
   FiChevronDown,
@@ -23,19 +23,29 @@ function getInitials(name) {
   return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
+function parseStoredUser(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 function getUserDisplayName(user) {
   return (
     user?.fullName ||
     user?.name ||
     user?.user?.fullName ||
     user?.user?.name ||
-    "Admin User"
+    "User"
   );
 }
 
 function getUserFirstName(user) {
   const fullName = getUserDisplayName(user).trim();
-  return fullName.split(/\s+/)[0] || "Admin";
+  return fullName.split(/\s+/)[0] || "User";
 }
 
 function getUserEmail(user) {
@@ -52,9 +62,7 @@ function getUserImage(user) {
     user?.user?.profileImage ||
     "";
 
-  if (!rawValue) {
-    return "";
-  }
+  if (!rawValue) return "";
 
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
     return rawValue;
@@ -82,10 +90,16 @@ export default function AppTopbar({
   const searchInputRef = useRef(null);
   const profileMenuRef = useRef(null);
 
-  const displayName = getUserDisplayName(user);
-  const firstName = getUserFirstName(user);
-  const email = getUserEmail(user);
-  const profileImage = getUserImage(user);
+  const effectiveUser = useMemo(() => {
+    const authUser = parseStoredUser("authUser");
+    const storedUser = parseStoredUser("user");
+    return user || authUser || storedUser || null;
+  }, [user]);
+
+  const displayName = getUserDisplayName(effectiveUser);
+  const firstName = getUserFirstName(effectiveUser);
+  const email = getUserEmail(effectiveUser);
+  const profileImage = getUserImage(effectiveUser);
   const initials = getInitials(displayName);
 
   useEffect(() => {
