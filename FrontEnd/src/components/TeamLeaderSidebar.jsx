@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   FiGrid,
-  FiUsers,
   FiCheckSquare,
   FiChevronLeft,
   FiChevronRight,
@@ -25,7 +24,6 @@ export default function TeamLeaderSidebar({
   const navItems = useMemo(
     () => [
       { name: "Dashboard", icon: <FiGrid /> },
-      { name: "Team", icon: <FiUsers /> },
       { name: "Tasks", icon: <FiCheckSquare /> },
     ],
     []
