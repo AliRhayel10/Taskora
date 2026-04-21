@@ -6,7 +6,9 @@
   gap: 14px;
   padding: 1px 0 0;
   margin: 0;
+  height: calc(100vh - 140px);
   min-height: calc(100vh - 140px);
+  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -246,7 +248,10 @@
   display: grid;
   grid-template-columns: minmax(320px, 410px) minmax(420px, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .task-details-page__single-card {
@@ -260,7 +265,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-self: flex-start;
+  align-self: stretch;
+  min-height: 0;
+  overflow: auto;
 }
 
 .task-details-page__edit-btn {
@@ -596,6 +603,9 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .task-details-page__top-panels {
@@ -603,6 +613,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   align-items: stretch;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .task-details-page__timeline-card,
@@ -614,21 +627,27 @@
   border-radius: 24px;
   padding: 18px 20px;
   box-sizing: border-box;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  box-shadow: none;
 }
 
 .task-details-page__timeline-card,
 .task-details-page__history-card {
-  height: 420px;
+  height: 460px;
+  max-height: 460px;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .task-details-page__card-scroll-area {
   flex: 1;
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   padding-right: 4px;
 }
 
@@ -846,6 +865,14 @@
   line-height: 1.35;
 }
 
+.task-details-page__timeline-heading .task-details-page__value--new { color: #2563eb !important; }
+.task-details-page__timeline-heading .task-details-page__value--acknowledged { color: #7c3aed !important; }
+.task-details-page__timeline-heading .task-details-page__value--pending { color: #d97706 !important; }
+.task-details-page__timeline-heading .task-details-page__value--done { color: #0891b2 !important; }
+.task-details-page__timeline-heading .task-details-page__value--approved { color: #16a34a !important; }
+.task-details-page__timeline-heading .task-details-page__value--rejected { color: #dc2626 !important; }
+.task-details-page__timeline-heading .task-details-page__value--archived { color: #64748b !important; }
+
 .task-details-page__timeline-meta {
   margin-top: 3px;
   color: #64748b;
@@ -964,7 +991,9 @@
 @media (max-width: 760px) {
   .task-details-page {
     gap: 14px;
+    height: auto;
     min-height: auto;
+    overflow: visible;
   }
 
   .task-details-page__toolbar {
@@ -997,6 +1026,9 @@
   .task-details-page__content-grid {
     grid-template-columns: 1fr;
     gap: 14px;
+    flex: initial;
+    min-height: auto;
+    overflow: visible;
   }
 
   .task-details-page__single-card {
@@ -1004,6 +1036,7 @@
     padding: 16px 14px;
     border-radius: 20px;
     gap: 16px;
+    overflow: visible;
   }
 
   .task-details-page__edit-btn {
@@ -1058,8 +1091,17 @@
     padding-left: 22px;
   }
 
+  .task-details-page__right-column {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
   .task-details-page__top-panels {
     grid-template-columns: 1fr;
+    flex: initial;
+    min-height: auto;
+    overflow: visible;
   }
 
   .task-details-page__timeline-card,

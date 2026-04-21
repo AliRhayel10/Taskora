@@ -1174,7 +1174,16 @@ export default function TaskDetailsPage({
                           }`}
                         />
                         <div className="task-details-page__timeline-content">
-                          <div className="task-details-page__timeline-heading">{item.timelineTitle}</div>
+                          <div className="task-details-page__timeline-heading">
+                            {item.hasStatusChanged ? (
+                              <>
+                                <span>Status changed to </span>
+                                <span className={getStatusClass(item.newStatusName)}>{item.newStatusName}</span>
+                              </>
+                            ) : (
+                              item.timelineTitle
+                            )}
+                          </div>
                           <div className="task-details-page__timeline-meta">
                             By {item.changedByName} • {item.changedAtLabel}
                           </div>
