@@ -254,7 +254,7 @@ const isFullMonthRange = (fromValue, toValue) => {
     fromValue.getMonth() === toValue.getMonth() &&
     fromValue.getDate() === 1 &&
     toValue.getDate() ===
-      new Date(toValue.getFullYear(), toValue.getMonth() + 1, 0).getDate()
+    new Date(toValue.getFullYear(), toValue.getMonth() + 1, 0).getDate()
   );
 };
 
@@ -1054,13 +1054,13 @@ export default function TasksSection({
 
         const mappedPriorityMultipliers =
           setupRulesData?.priorityMultipliers &&
-          typeof setupRulesData.priorityMultipliers === "object"
+            typeof setupRulesData.priorityMultipliers === "object"
             ? setupRulesData.priorityMultipliers
             : {};
 
         const mappedComplexityMultipliers =
           setupRulesData?.complexityMultipliers &&
-          typeof setupRulesData.complexityMultipliers === "object"
+            typeof setupRulesData.complexityMultipliers === "object"
             ? setupRulesData.complexityMultipliers
             : {};
 
@@ -1147,8 +1147,8 @@ export default function TasksSection({
 
     const baseMonth =
       selectedDashboardPreset === "custom" &&
-      dashboardCustomRange?.from instanceof Date &&
-      !Number.isNaN(dashboardCustomRange.from.getTime())
+        dashboardCustomRange?.from instanceof Date &&
+        !Number.isNaN(dashboardCustomRange.from.getTime())
         ? dashboardCustomRange.from
         : new Date();
 
@@ -1354,9 +1354,9 @@ export default function TasksSection({
     const nextRange =
       draftDashboardCustomRange?.from && draftDashboardCustomRange?.to
         ? {
-            from: startOfDay(draftDashboardCustomRange.from),
-            to: endOfDay(draftDashboardCustomRange.to),
-          }
+          from: startOfDay(draftDashboardCustomRange.from),
+          to: endOfDay(draftDashboardCustomRange.to),
+        }
         : getVisibleDashboardMonthRange();
 
     setSelectedDashboardPreset("custom");
@@ -1765,9 +1765,9 @@ export default function TasksSection({
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
-          selectedRange.to,
-          "dd/MM/yyyy",
-        )}`
+        selectedRange.to,
+        "dd/MM/yyyy",
+      )}`
       : "Select date range";
 
   const isDoneTask = (task) => normalizeStatus(task.effectiveStatus) === "done";
@@ -1858,9 +1858,9 @@ export default function TasksSection({
       if (!response.ok) {
         throw new Error(
           data?.message ||
-            data?.title ||
-            text ||
-            "Unable to update task status.",
+          data?.title ||
+          text ||
+          "Unable to update task status.",
         );
       }
 
@@ -2036,7 +2036,7 @@ export default function TasksSection({
       if (!deleteAttempt.ok) {
         throw new Error(
           deleteAttempt.message ||
-            "Unable to delete task because no backend delete endpoint responded successfully.",
+          "Unable to delete task because no backend delete endpoint responded successfully.",
         );
       }
 
@@ -2102,7 +2102,7 @@ export default function TasksSection({
       complexity: task.complexity || "",
       estimatedEffortHours:
         task.estimatedEffortHours === null ||
-        task.estimatedEffortHours === undefined
+          task.estimatedEffortHours === undefined
           ? ""
           : String(task.estimatedEffortHours),
       dueDate: task.dueDate || "",
@@ -2236,7 +2236,7 @@ export default function TasksSection({
       if (!updateAttempt.ok) {
         throw new Error(
           updateAttempt.message ||
-            "Unable to save task because no backend update endpoint responded successfully.",
+          "Unable to save task because no backend update endpoint responded successfully.",
         );
       }
 
@@ -2257,13 +2257,11 @@ export default function TasksSection({
   };
 
   const getSortIconClassName = (key) => {
-    return `tasks-section__sort-icon ${
-      sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
-    } ${
-      sortConfig.key === key && sortConfig.direction === "desc"
+    return `tasks-section__sort-icon ${sortConfig.key === key ? "tasks-section__sort-icon--active" : ""
+      } ${sortConfig.key === key && sortConfig.direction === "desc"
         ? "tasks-section__sort-icon--desc"
         : ""
-    }`;
+      }`;
   };
 
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
@@ -2319,11 +2317,10 @@ export default function TasksSection({
                   type="button"
                   role="tab"
                   aria-selected={draftDashboardPreset === "today"}
-                  className={`tasks-section__range-option ${
-                    draftDashboardPreset === "today"
+                  className={`tasks-section__range-option ${draftDashboardPreset === "today"
                       ? "tasks-section__range-option--active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => handleSelectDashboardPreset("today")}
                 >
                   Today
@@ -2333,11 +2330,10 @@ export default function TasksSection({
                   type="button"
                   role="tab"
                   aria-selected={draftDashboardPreset === "thisWeek"}
-                  className={`tasks-section__range-option ${
-                    draftDashboardPreset === "thisWeek"
+                  className={`tasks-section__range-option ${draftDashboardPreset === "thisWeek"
                       ? "tasks-section__range-option--active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => handleSelectDashboardPreset("thisWeek")}
                 >
                   This Week
@@ -2347,11 +2343,10 @@ export default function TasksSection({
                   type="button"
                   role="tab"
                   aria-selected={draftDashboardPreset === "custom"}
-                  className={`tasks-section__range-option ${
-                    draftDashboardPreset === "custom"
+                  className={`tasks-section__range-option ${draftDashboardPreset === "custom"
                       ? "tasks-section__range-option--active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => handleSelectDashboardPreset("custom")}
                 >
                   Custom
@@ -2457,11 +2452,10 @@ export default function TasksSection({
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${
-            feedback.type === "success"
+          className={`tasks-section__feedback ${feedback.type === "success"
               ? "tasks-section__feedback--success"
               : "tasks-section__feedback--error"
-          }`}
+            }`}
         >
           {feedback.message}
         </div>
@@ -2490,9 +2484,8 @@ export default function TasksSection({
             <div key={tab.key} className="tasks-section__tab-wrap">
               <button
                 type="button"
-                className={`tasks-section__tab ${
-                  activeTab === tab.key ? "tasks-section__tab--active" : ""
-                }`}
+                className={`tasks-section__tab ${activeTab === tab.key ? "tasks-section__tab--active" : ""
+                  }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <span className="tasks-section__tab-text">{tab.label}</span>
@@ -2717,8 +2710,8 @@ export default function TasksSection({
                                 ) : (
                                   getInitials(
                                     previewUser?.fullName ??
-                                      previewUser?.name ??
-                                      task.assignedUserName,
+                                    previewUser?.name ??
+                                    task.assignedUserName,
                                   )
                                 )}
                               </div>
@@ -2888,11 +2881,11 @@ export default function TasksSection({
                             <strong>
                               <span className="tasks-section__date-range-text">
                                 {editFormState?.startDate ||
-                                editFormState?.dueDate
+                                  editFormState?.dueDate
                                   ? formatDateRange(
-                                      editFormState.startDate,
-                                      editFormState.dueDate,
-                                    )
+                                    editFormState.startDate,
+                                    editFormState.dueDate,
+                                  )
                                   : "Select date range"}
                               </span>
                               <span
@@ -2911,109 +2904,109 @@ export default function TasksSection({
                       </td>
 
                       <td className="tasks-section__cell-actions">
-<div className="tasks-section__actions">
-  {isEditing ? (
-    <>
-      <button
-        type="button"
-        className="tasks-section__action-btn tasks-section__action-btn--danger"
-        title="Cancel"
-        onClick={cancelEditMode}
-        disabled={isSavingEdit}
-      >
-        <FiX />
-      </button>
+                        <div className="tasks-section__actions">
+                          {isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--danger"
+                                title="Cancel"
+                                onClick={cancelEditMode}
+                                disabled={isSavingEdit}
+                              >
+                                <FiX />
+                              </button>
 
-      <button
-        type="button"
-        className="tasks-section__action-btn tasks-section__action-btn--edit"
-        title="Save changes"
-        onClick={saveTaskChanges}
-        disabled={
-          isSavingEdit ||
-          !editFormState.title?.trim() ||
-          !editFormState.description?.trim() ||
-          !editFormState.assignedUserId ||
-          !editFormState.priority ||
-          !editFormState.complexity ||
-          !editFormState.estimatedEffortHours ||
-          !editFormState.startDate ||
-          !editFormState.dueDate ||
-          !computedEditTaskWeight
-        }
-      >
-        <FiCheck />
-      </button>
-    </>
-  ) : (
-    <>
-      <button
-        type="button"
-        className="tasks-section__action-btn tasks-section__action-btn--view"
-        title="View task"
-        onClick={() => setSelectedTaskForView(task)}
-      >
-        <FiEye />
-      </button>
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                title="Save changes"
+                                onClick={saveTaskChanges}
+                                disabled={
+                                  isSavingEdit ||
+                                  !editFormState.title?.trim() ||
+                                  !editFormState.description?.trim() ||
+                                  !editFormState.assignedUserId ||
+                                  !editFormState.priority ||
+                                  !editFormState.complexity ||
+                                  !editFormState.estimatedEffortHours ||
+                                  !editFormState.startDate ||
+                                  !editFormState.dueDate ||
+                                  !computedEditTaskWeight
+                                }
+                              >
+                                <FiCheck />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="tasks-section__action-btn tasks-section__action-btn--view"
+                                title="View task"
+                                onClick={() => setSelectedTaskForView(task)}
+                              >
+                                <FiEye />
+                              </button>
 
-      {(() => {
-        const status = String(task?.status || "").trim().toLowerCase();
-        const isEditableStatus =
-          status === "new" ||
-          status === "acknowledged" ||
-          status === "pending";
+                              {(() => {
+                                const status = String(task?.status || "").trim().toLowerCase();
+                                const isEditableStatus =
+                                  status === "new" ||
+                                  status === "acknowledged" ||
+                                  status === "pending";
 
-        if (isApprovedTask(task)) {
-          return (
-            <button
-              type="button"
-              className="tasks-section__action-btn tasks-section__action-btn--archive"
-              title="Move to archive"
-              onClick={() => archiveTask(task)}
-            >
-              <FiArchive />
-            </button>
-          );
-        }
+                                if (isApprovedTask(task)) {
+                                  return (
+                                    <button
+                                      type="button"
+                                      className="tasks-section__action-btn tasks-section__action-btn--archive"
+                                      title="Move to archive"
+                                      onClick={() => archiveTask(task)}
+                                    >
+                                      <FiArchive />
+                                    </button>
+                                  );
+                                }
 
-        if (isArchivedTask(task)) {
-          return null;
-        }
+                                if (isArchivedTask(task)) {
+                                  return null;
+                                }
 
-        if (isDoneTask(task)) {
-          return null;
-        }
+                                if (isDoneTask(task)) {
+                                  return null;
+                                }
 
-        if (isEditableStatus) {
-          return (
-            <>
-              <button
-                type="button"
-                className="tasks-section__action-btn tasks-section__action-btn--edit"
-                title="Edit task"
-                onClick={() => openEditMode(task)}
-              >
-                <FiEdit2 />
-              </button>
+                                if (isEditableStatus) {
+                                  return (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="tasks-section__action-btn tasks-section__action-btn--edit"
+                                        title="Edit task"
+                                        onClick={() => openEditMode(task)}
+                                      >
+                                        <FiEdit2 />
+                                      </button>
 
-              <button
-                type="button"
-                className="tasks-section__action-btn tasks-section__action-btn--danger"
-                title="Delete task"
-                onClick={() => setDeleteTaskId(task.id)}
-                disabled={isDeletingTask}
-              >
-                <FiTrash2 />
-              </button>
-            </>
-          );
-        }
+                                      <button
+                                        type="button"
+                                        className="tasks-section__action-btn tasks-section__action-btn--danger"
+                                        title="Delete task"
+                                        onClick={() => setDeleteTaskId(task.id)}
+                                        disabled={isDeletingTask}
+                                      >
+                                        <FiTrash2 />
+                                      </button>
+                                    </>
+                                  );
+                                }
 
-        return null;
-      })()}
-    </>
-  )}
-</div>
+                                return null;
+                              })()}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -3041,11 +3034,10 @@ export default function TasksSection({
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`tasks-section__page-btn tasks-section__page-btn--number ${
-                    currentPage === pageNumber
+                  className={`tasks-section__page-btn tasks-section__page-btn--number ${currentPage === pageNumber
                       ? "tasks-section__page-btn--active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => setCurrentPage(pageNumber)}
                 >
                   {pageNumber}
@@ -3097,18 +3089,16 @@ export default function TasksSection({
 
             <div className="tasks-section__stepper">
               <div
-                className={`tasks-section__step ${
-                  createStep === 1 ? "tasks-section__step--active" : ""
-                }`}
+                className={`tasks-section__step ${createStep === 1 ? "tasks-section__step--active" : ""
+                  }`}
               >
                 <span className="tasks-section__step-number">1</span>
                 <span className="tasks-section__step-label">Task Info</span>
               </div>
               <div className="tasks-section__step-line" />
               <div
-                className={`tasks-section__step ${
-                  createStep === 2 ? "tasks-section__step--active" : ""
-                }`}
+                className={`tasks-section__step ${createStep === 2 ? "tasks-section__step--active" : ""
+                  }`}
               >
                 <span className="tasks-section__step-number">2</span>
                 <span className="tasks-section__step-label">Details</span>
@@ -3194,11 +3184,10 @@ export default function TasksSection({
                               <button
                                 key={userId}
                                 type="button"
-                                className={`tasks-section__member-row ${
-                                  isSelected
+                                className={`tasks-section__member-row ${isSelected
                                     ? "tasks-section__member-row--selected"
                                     : ""
-                                }`}
+                                  }`}
                                 onClick={() =>
                                   handleFormChange(
                                     "assignedUserId",
@@ -3207,11 +3196,10 @@ export default function TasksSection({
                                 }
                               >
                                 <span
-                                  className={`tasks-section__member-check ${
-                                    isSelected
+                                  className={`tasks-section__member-check ${isSelected
                                       ? "tasks-section__member-check--selected"
                                       : ""
-                                  }`}
+                                    }`}
                                 >
                                   {isSelected ? "✓" : ""}
                                 </span>
@@ -3560,11 +3548,10 @@ export default function TasksSection({
                       <button
                         key={userId}
                         type="button"
-                        className={`tasks-section__member-row ${
-                          isSelected
+                        className={`tasks-section__member-row ${isSelected
                             ? "tasks-section__member-row--selected"
                             : ""
-                        }`}
+                          }`}
                         onClick={() => {
                           handleEditFormChange(
                             "assignedUserId",
@@ -3574,11 +3561,10 @@ export default function TasksSection({
                         }}
                       >
                         <span
-                          className={`tasks-section__member-check ${
-                            isSelected
+                          className={`tasks-section__member-check ${isSelected
                               ? "tasks-section__member-check--selected"
                               : ""
-                          }`}
+                            }`}
                         >
                           {isSelected ? "✓" : ""}
                         </span>
