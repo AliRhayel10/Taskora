@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiArchive,
   FiArrowLeft,
@@ -242,6 +242,9 @@ export default function TaskDetailsPage({
   const resolvedDeleteTaskEndpoint = deleteTaskEndpoint ?? `${API_BASE}/api/tasks/delete`;
 
   const [currentTask, setCurrentTask] = useState(task);
+  const resolvedHistoryEndpoint = currentTask?.id
+    ? `${API_BASE}/api/tasks/${currentTask.id}/history`
+    : "";
   const [backendStatuses, setBackendStatuses] = useState([]);
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -258,10 +261,52 @@ export default function TaskDetailsPage({
   const [feedback, setFeedback] = useState(null);
   const [taskFeedbackText, setTaskFeedbackText] = useState("");
   const [isSubmittingTaskFeedback, setIsSubmittingTaskFeedback] = useState(false);
+  const [taskHistory, setTaskHistory] = useState([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [showAllFeedbackHistory, setShowAllFeedbackHistory] = useState(false);
+  const [showAllTimeline, setShowAllTimeline] = useState(false);
 
   useEffect(() => {
     setCurrentTask(task);
   }, [task]);
+
+  const loadTaskHistory = useCallback(async () => {
+    if (!resolvedHistoryEndpoint) {
+      setTaskHistory([]);
+      return;
+    }
+
+    setIsHistoryLoading(true);
+
+    try {
+      const response = await fetch(resolvedHistoryEndpoint);
+      const payload = response.status === 204 ? null : await parseJsonSafe(response);
+
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.title || "Unable to load task history.");
+      }
+
+      const historyItems = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.history)
+          ? payload.history
+          : [];
+
+      setTaskHistory(historyItems);
+    } catch (error) {
+      setTaskHistory([]);
+      setFeedback((previous) => previous ?? {
+        type: "error",
+        message: error?.message || "Unable to load task history.",
+      });
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [resolvedHistoryEndpoint]);
+
+  useEffect(() => {
+    loadTaskHistory();
+  }, [loadTaskHistory]);
 
   useEffect(() => {
     let ignore = false;
@@ -359,6 +404,34 @@ export default function TaskDetailsPage({
   const startDateLabel = formatDateLabel(currentTask?.startDate);
   const dueDateLabel = formatDateLabel(currentTask?.dueDate);
   const normalizedCurrentStatus = normalizeStatus(status);
+  const formatDateTimeLabel = (value) => {
+    if (!value) return "Unknown time";
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return String(value);
+
+    const now = new Date();
+    const isSameDay = parsed.toDateString() === now.toDateString();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = parsed.toDateString() === yesterday.toDateString();
+    const timeLabel = parsed.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (isSameDay) return `Today, ${timeLabel}`;
+    if (isYesterday) return `Yesterday, ${timeLabel}`;
+
+    return parsed.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const currentStatusId = useMemo(() => {
     const directStatusId = Number(
       currentTask?.taskStatusId ?? currentTask?.statusId ?? currentTask?.TaskStatusId ?? 0,
@@ -372,6 +445,51 @@ export default function TaskDetailsPage({
 
     return Number(getBackendStatusId(matchedStatus) || 0);
   }, [backendStatuses, currentTask, normalizedCurrentStatus]);
+
+  const historyEntries = useMemo(() => {
+    return taskHistory.map((item, index) => {
+      const changedByName =
+        item?.changedByName || item?.ChangedByName || `User ${item?.changedByUserId || item?.ChangedByUserId || ""}`;
+      const oldStatusName = item?.oldStatusName || item?.OldStatusName || "";
+      const newStatusName = item?.newStatusName || item?.NewStatusName || "";
+      const feedbackText = String(item?.feedback || item?.Feedback || "").trim();
+      const changedAt = item?.changedAt || item?.ChangedAt || "";
+      const oldNormalized = normalizeStatus(oldStatusName);
+      const newNormalized = normalizeStatus(newStatusName);
+      const hasStatusChanged = !!newStatusName && oldNormalized !== newNormalized;
+
+      return {
+        id: item?.taskStatusHistoryId || item?.TaskStatusHistoryId || `${changedAt}-${index}`,
+        changedByName,
+        oldStatusName,
+        newStatusName,
+        feedbackText,
+        changedAt,
+        changedAtLabel: formatDateTimeLabel(changedAt),
+        hasStatusChanged,
+        timelineTitle: hasStatusChanged
+          ? `Status changed to ${newStatusName}`
+          : feedbackText
+            ? "Feedback added"
+            : `Status updated to ${newStatusName || "Unknown"}`,
+      };
+    });
+  }, [taskHistory]);
+
+  const feedbackHistoryEntries = useMemo(
+    () => historyEntries.filter((item) => item.feedbackText),
+    [historyEntries],
+  );
+
+  const visibleFeedbackHistoryEntries = useMemo(
+    () => (showAllFeedbackHistory ? feedbackHistoryEntries : feedbackHistoryEntries.slice(0, 3)),
+    [feedbackHistoryEntries, showAllFeedbackHistory],
+  );
+
+  const visibleTimelineEntries = useMemo(
+    () => (showAllTimeline ? historyEntries : historyEntries.slice(0, 5)),
+    [historyEntries, showAllTimeline],
+  );
 
   const resolveTeamIdForUser = (userId) => {
     const numericUserId = Number(userId);
@@ -496,6 +614,7 @@ export default function TaskDetailsPage({
       }
 
       refreshCurrentTask(patch);
+      await loadTaskHistory();
 
       if (successMessage) {
         setFeedback({ type: "success", message: successMessage });
@@ -701,6 +820,7 @@ export default function TaskDetailsPage({
         feedback: trimmedFeedback,
         lastFeedback: trimmedFeedback,
       });
+      await loadTaskHistory();
       setTaskFeedbackText("");
       setFeedback({
         type: "success",
@@ -1016,53 +1136,147 @@ export default function TaskDetailsPage({
           </div>
         </div>
 
-        <div className="task-details-page__feedback-card">
-          <div className="task-details-page__feedback-card-header">
-            <div className="task-details-page__feedback-card-icon">
-              <FiEdit2 />
-            </div>
+        <div className="task-details-page__right-column">
+          <div className="task-details-page__feedback-card">
+            <div className="task-details-page__feedback-card-header">
+              <div className="task-details-page__feedback-card-icon">
+                <FiEdit2 />
+              </div>
 
-            <div className="task-details-page__feedback-card-copy">
-              <h3>Add Feedback</h3>
-              <p>Share your feedback, notes, or important updates about this task.</p>
-            </div>
-          </div>
-
-          <form className="task-details-page__feedback-form" onSubmit={handleTaskFeedbackSubmit}>
-            <div className="task-details-page__feedback-form-group">
-              <label htmlFor="task-details-feedback">Feedback</label>
-              <textarea
-                id="task-details-feedback"
-                value={taskFeedbackText}
-                onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
-                placeholder="Write your feedback here..."
-                rows={8}
-                disabled={isSubmittingTaskFeedback}
-              />
-              <div className="task-details-page__feedback-count">
-                {taskFeedbackText.length} / 500
+              <div className="task-details-page__feedback-card-copy">
+                <h3>Add Feedback</h3>
+                <p>Share your feedback, notes, or important updates about this task.</p>
               </div>
             </div>
 
-            <div className="task-details-page__feedback-actions">
-              <button
-                type="button"
-                className="task-details-page__feedback-cancel"
-                onClick={handleTaskFeedbackCancel}
-                disabled={isSubmittingTaskFeedback || !taskFeedbackText.length}
-              >
-                Cancel
-              </button>
+            <form className="task-details-page__feedback-form" onSubmit={handleTaskFeedbackSubmit}>
+              <div className="task-details-page__feedback-form-group">
+                <label htmlFor="task-details-feedback">Feedback</label>
+                <textarea
+                  id="task-details-feedback"
+                  value={taskFeedbackText}
+                  onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
+                  placeholder="Write your feedback here..."
+                  rows={8}
+                  disabled={isSubmittingTaskFeedback}
+                />
+                <div className="task-details-page__feedback-count">
+                  {taskFeedbackText.length} / 500
+                </div>
+              </div>
 
-              <button
-                type="submit"
-                className="task-details-page__feedback-submit"
-                disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
-              >
-                {isSubmittingTaskFeedback ? "Submitting..." : "Submit Feedback"}
-              </button>
+              <div className="task-details-page__feedback-actions">
+                <button
+                  type="button"
+                  className="task-details-page__feedback-cancel"
+                  onClick={handleTaskFeedbackCancel}
+                  disabled={isSubmittingTaskFeedback || !taskFeedbackText.length}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="task-details-page__feedback-submit"
+                  disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
+                >
+                  {isSubmittingTaskFeedback ? "Submitting..." : "Submit Feedback"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="task-details-page__history-card">
+            <div className="task-details-page__section-header">
+              <div className="task-details-page__section-title-wrap">
+                <span className="task-details-page__section-icon">
+                  <FiEdit2 />
+                </span>
+                <h3>Feedback History</h3>
+              </div>
+
+              {feedbackHistoryEntries.length > 3 ? (
+                <button
+                  type="button"
+                  className="task-details-page__view-all-btn"
+                  onClick={() => setShowAllFeedbackHistory((previous) => !previous)}
+                >
+                  {showAllFeedbackHistory ? "Show less" : "View all"}
+                </button>
+              ) : null}
             </div>
-          </form>
+
+            {isHistoryLoading ? (
+              <div className="task-details-page__empty-state">Loading history...</div>
+            ) : visibleFeedbackHistoryEntries.length ? (
+              <div className="task-details-page__history-list">
+                {visibleFeedbackHistoryEntries.map((item, index) => (
+                  <div key={item.id} className="task-details-page__history-item">
+                    <div className="task-details-page__history-dot" />
+                    <div className="task-details-page__history-avatar">
+                      {getInitials(item.changedByName)}
+                    </div>
+                    <div className="task-details-page__history-content">
+                      <div className="task-details-page__history-meta">
+                        <strong>{item.changedByName}</strong>
+                        <span>{item.changedAtLabel}</span>
+                        {index === 0 ? (
+                          <span className="task-details-page__history-badge">Latest</span>
+                        ) : null}
+                      </div>
+                      <p>{item.feedbackText}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="task-details-page__empty-state">No feedback has been added yet.</div>
+            )}
+          </div>
+
+          <div className="task-details-page__timeline-card">
+            <div className="task-details-page__section-header">
+              <div className="task-details-page__section-title-wrap">
+                <span className="task-details-page__section-icon">
+                  <FiClock />
+                </span>
+                <h3>Activity Timeline</h3>
+              </div>
+
+              {historyEntries.length > 5 ? (
+                <button
+                  type="button"
+                  className="task-details-page__view-all-btn"
+                  onClick={() => setShowAllTimeline((previous) => !previous)}
+                >
+                  {showAllTimeline ? "Show less" : "View all"}
+                </button>
+              ) : null}
+            </div>
+
+            {isHistoryLoading ? (
+              <div className="task-details-page__empty-state">Loading timeline...</div>
+            ) : visibleTimelineEntries.length ? (
+              <div className="task-details-page__timeline-list">
+                {visibleTimelineEntries.map((item) => (
+                  <div key={item.id} className="task-details-page__timeline-item">
+                    <div className={`task-details-page__timeline-marker ${item.hasStatusChanged ? "task-details-page__timeline-marker--status" : "task-details-page__timeline-marker--feedback"}`} />
+                    <div className="task-details-page__timeline-content">
+                      <div className="task-details-page__timeline-heading">{item.timelineTitle}</div>
+                      <div className="task-details-page__timeline-meta">
+                        By {item.changedByName} • {item.changedAtLabel}
+                      </div>
+                      {item.feedbackText ? (
+                        <div className="task-details-page__timeline-note">“{item.feedbackText}”</div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="task-details-page__empty-state">No activity has been recorded yet.</div>
+            )}
+          </div>
         </div>
       </div>
 

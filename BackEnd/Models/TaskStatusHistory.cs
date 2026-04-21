@@ -16,6 +16,7 @@ namespace BackEnd.Models
         public int? OldTaskStatusId { get; set; }
 
         public int NewTaskStatusId { get; set; }
+        public string? Feedback { get; set; }
 
         public int ChangedByUserId { get; set; }
 
