@@ -1,17 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FiAlertCircle,
   FiCheckCircle,
+  FiCheckSquare,
+  FiChevronLeft,
+  FiChevronRight,
   FiClock,
   FiEye,
   FiFileText,
   FiMessageCircle,
-  FiCheckSquare,
 } from "react-icons/fi";
 import "../../assets/styles/employee/employee-dashboard-section.css";
+import "../../assets/styles/admin/users-section.css";
 import cloudBg from "../../assets/images/cloud.png";
 
 const API_BASE = "http://localhost:5000";
+const MIN_TASKS_PER_PAGE = 1;
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -156,6 +167,13 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
   const [activeTab, setActiveTab] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [tasksPerPage, setTasksPerPage] = useState(5);
+  const [tableMaxHeight, setTableMaxHeight] = useState(0);
+
+  const tableCardRef = useRef(null);
+  const tableHeadRef = useRef(null);
+  const paginationRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -171,10 +189,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
-          `${API_BASE}/api/tasks/company/${user.companyId}`
-        );
-
+        const response = await fetch(`${API_BASE}/api/tasks/company/${user.companyId}`);
         const rawText = await response.text();
         let data = {};
 
@@ -274,6 +289,98 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
     };
   }, [tasks]);
 
+  const calculateTasksPerPage = useCallback(() => {
+    if (!tableCardRef.current || !tableHeadRef.current) {
+      return;
+    }
+
+    const cardElement = tableCardRef.current;
+    const cardRect = cardElement.getBoundingClientRect();
+    const headRect = tableHeadRef.current.getBoundingClientRect();
+    const paginationHeight = paginationRef.current
+      ? paginationRef.current.getBoundingClientRect().height
+      : 58;
+
+    const firstBodyRow = cardElement.querySelector("tbody tr");
+    const rowHeight = firstBodyRow
+      ? firstBodyRow.getBoundingClientRect().height
+      : 92;
+
+    const cardStyle = window.getComputedStyle(cardElement);
+    const borderTop = parseFloat(cardStyle.borderTopWidth || "0");
+    const borderBottom = parseFloat(cardStyle.borderBottomWidth || "0");
+
+    const viewportHeight = window.innerHeight;
+    const bottomSpacing = 24;
+    const availableCardHeight = Math.max(
+      360,
+      Math.floor(viewportHeight - cardRect.top - bottomSpacing)
+    );
+
+    setTableMaxHeight(availableCardHeight);
+
+    const availableRowsHeight =
+      availableCardHeight -
+      headRect.height -
+      paginationHeight -
+      borderTop -
+      borderBottom;
+
+    const fittedRows = Math.max(
+      MIN_TASKS_PER_PAGE,
+      Math.floor((availableRowsHeight + rowHeight * 0.35) / rowHeight)
+    );
+
+    setTasksPerPage(fittedRows);
+  }, []);
+
+  useLayoutEffect(() => {
+    let frameId = 0;
+
+    const runCalculation = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        calculateTasksPerPage();
+      });
+    };
+
+    runCalculation();
+
+    const handleResize = () => {
+      runCalculation();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [calculateTasksPerPage, visibleTasks.length, isLoading]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchValue]);
+
+  useEffect(() => {
+    const totalPagesCount = Math.max(1, Math.ceil(visibleTasks.length / tasksPerPage));
+
+    if (currentPage > totalPagesCount) {
+      setCurrentPage(totalPagesCount);
+    }
+  }, [currentPage, visibleTasks.length, tasksPerPage]);
+
+  const totalVisibleTasks = visibleTasks.length;
+  const totalPages = Math.max(1, Math.ceil(totalVisibleTasks / tasksPerPage));
+  const startIndex = totalVisibleTasks === 0 ? 0 : (currentPage - 1) * tasksPerPage;
+  const endIndex = Math.min(startIndex + tasksPerPage, totalVisibleTasks);
+  const paginatedTasks = visibleTasks.slice(startIndex, endIndex);
+
+  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
+    Math.max(0, currentPage - 2),
+    Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
+  );
+
   const handleProgressAction = (taskId) => {
     setTasks((prev) =>
       prev.map((task) =>
@@ -297,11 +404,15 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
               👋 Good to see you,{" "}
               <span>{user?.fullName?.split(" ")[0] || "there"}!</span>
             </h3>
+
             <p className="employee-dashboard-section__hero-count">
-              You have <strong>{todayTasksCount}</strong> tasks for today.
+              You have <strong>{summaryStats.myTasks}</strong> assigned tasks.
             </p>
+
             <p className="employee-dashboard-section__hero-copy">
-              Stay focused and keep up the great work.
+              {todayTasksCount > 0
+                ? `${todayTasksCount} task${todayTasksCount > 1 ? "s are" : " is"} due today.`
+                : "No tasks are due today. Stay focused and keep up the great work."}
             </p>
           </div>
         </div>
@@ -359,9 +470,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
             <button
               type="button"
               className={`employee-dashboard-section__tab ${
-                activeTab === tab.key
-                  ? "employee-dashboard-section__tab--active"
-                  : ""
+                activeTab === tab.key ? "employee-dashboard-section__tab--active" : ""
               }`}
               onClick={() => setActiveTab(tab.key)}
             >
@@ -375,6 +484,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
                 {tab.label}
               </span>
             </button>
+
             <span className="employee-dashboard-section__tab-count">
               {tabCounts[tab.key]}
             </span>
@@ -382,7 +492,14 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
         ))}
       </div>
 
-      <div className="employee-dashboard-section__table-card">
+      <div
+        ref={tableCardRef}
+        className="employee-dashboard-section__table-card"
+        style={{
+          maxHeight: tableMaxHeight ? `${tableMaxHeight}px` : undefined,
+          height: tableMaxHeight ? `${tableMaxHeight}px` : undefined,
+        }}
+      >
         {isLoading ? (
           <div className="employee-dashboard-section__state-card">
             <div className="employee-dashboard-section__state-icon">
@@ -399,7 +516,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
             <h3>Could not load tasks</h3>
             <p>{errorMessage}</p>
           </div>
-        ) : visibleTasks.length === 0 ? (
+        ) : totalVisibleTasks === 0 ? (
           <div className="employee-dashboard-section__state-card">
             <div className="employee-dashboard-section__state-icon">
               <FiFileText />
@@ -411,7 +528,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
           <>
             <div className="employee-dashboard-section__table-wrap">
               <table className="employee-dashboard-section__table">
-                <thead>
+                <thead ref={tableHeadRef}>
                   <tr>
                     <th>Task Name</th>
                     <th>Priority</th>
@@ -424,7 +541,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
                 </thead>
 
                 <tbody>
-                  {visibleTasks.map((task, index) => (
+                  {paginatedTasks.map((task, index) => (
                     <tr
                       key={task.taskId}
                       className={
@@ -526,8 +643,45 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
               </table>
             </div>
 
-            <div className="employee-dashboard-section__footer">
-              Showing 1 to {visibleTasks.length} of {visibleTasks.length} tasks
+            <div ref={paginationRef} className="users-section__pagination">
+              <div className="users-section__pagination-info">
+                {startIndex + 1} - {endIndex} of {totalVisibleTasks} tasks
+              </div>
+
+              <div className="users-section__pagination-controls">
+                <button
+                  type="button"
+                  className="users-section__page-btn"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <FiChevronLeft />
+                </button>
+
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    className={`users-section__page-btn users-section__page-btn--number ${
+                      currentPage === page ? "users-section__page-btn--active" : ""
+                    }`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  className="users-section__page-btn"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  <FiChevronRight />
+                </button>
+              </div>
             </div>
           </>
         )}
