@@ -1,16 +1,27 @@
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 .teamleader-dashboard-section {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .teamleader-dashboard-section__toolbar {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .teamleader-dashboard-section__range-menu {
   position: relative;
+  flex-shrink: 0;
 }
 
 .teamleader-dashboard-section__range-dropdown {
@@ -24,6 +35,9 @@
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
   padding: 12px;
   z-index: 20;
+  max-height: min(calc(100vh - 120px), 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .teamleader-dashboard-section__range-tabs {
@@ -197,9 +211,7 @@
     transform 0.18s ease;
 }
 
-.teamleader-dashboard-section__day-picker
-  .rdp-day:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle)
-  .rdp-day_button {
+.teamleader-dashboard-section__day-picker .rdp-day:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle) .rdp-day_button {
   color: #334155 !important;
   background: transparent !important;
 }
@@ -268,30 +280,20 @@
   background: #eff6ff;
 }
 
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past
-  .rdp-day_button {
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past .rdp-day_button {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
-  .rdp-day_button {
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button {
   color: #9ca3af !important;
   background: transparent !important;
 }
 
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
-  .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
-  .rdp-day_button:focus,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
-  .rdp-day_button:focus-visible {
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button:focus,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button:focus-visible {
   color: #9ca3af !important;
   background: transparent !important;
   border: none !important;
@@ -300,24 +302,12 @@
   transform: none !important;
 }
 
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-selected
-  .rdp-day_button,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-range_start
-  .rdp-day_button,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-range_end
-  .rdp-day_button,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_selected
-  .rdp-day_button,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_range_start
-  .rdp-day_button,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_range_end
-  .rdp-day_button {
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-selected .rdp-day_button,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-range_start .rdp-day_button,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-range_end .rdp-day_button,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_selected .rdp-day_button,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_range_start .rdp-day_button,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_range_end .rdp-day_button {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
@@ -325,34 +315,18 @@
   box-shadow: none !important;
 }
 
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-range_middle
-  .rdp-day_button,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_range_middle
-  .rdp-day_button {
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-range_middle .rdp-day_button,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_range_middle .rdp-day_button {
   background: #e0e7ff !important;
   color: #334155 !important;
 }
 
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-selected
-  .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-range_start
-  .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-range_end
-  .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_selected
-  .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_range_start
-  .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker
-  .teamleader-dashboard-section__day--past.rdp-day_range_end
-  .rdp-day_button:hover {
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-selected .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-range_start .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-range_end .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_selected .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_range_start .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past.rdp-day_range_end .rdp-day_button:hover {
   background: #1d4ed8 !important;
   color: #ffffff !important;
   transform: scale(1.03);
@@ -432,6 +406,8 @@
   grid-template-columns: minmax(0, 760px) minmax(280px, 1fr);
   align-items: stretch;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
 }
 
 .teamleader-dashboard-section__card {
@@ -510,11 +486,14 @@
   overflow: hidden;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
   align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
 .teamleader-dashboard-section__requests-card {
   width: 100%;
-  min-height: 100%;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 16px;
@@ -523,6 +502,7 @@
   display: flex;
   flex-direction: column;
   align-self: stretch;
+  min-height: 0;
 }
 
 .teamleader-dashboard-section__requests-header {
@@ -540,13 +520,15 @@
 
 .teamleader-dashboard-section__table-wrap {
   width: 100%;
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .teamleader-dashboard-section__table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 760px;
   table-layout: fixed;
 }
 
@@ -559,6 +541,9 @@
   font-weight: 700;
   text-align: left;
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .teamleader-dashboard-section__table thead th:nth-child(1),
@@ -631,6 +616,8 @@
   vertical-align: middle;
   line-height: 1.35;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .teamleader-dashboard-section__table tbody tr:last-child td {
@@ -650,6 +637,7 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  min-height: 48px;
 }
 
 .teamleader-dashboard-section__avatar {
@@ -780,6 +768,8 @@
   padding: 14px 16px;
   border-top: 1px solid #e2e8f0;
   flex-wrap: wrap;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .teamleader-dashboard-section__pagination-info {
