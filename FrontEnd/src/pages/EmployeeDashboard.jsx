@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EmployeeSidebar from "../components/EmployeeSidebar";
 import AppTopbar from "../components/AppTopbar";
 import EmployeeDashboardSection from "../components/employee/EmployeeDashboardSection";
 import EmployeeProfileSection from "../components/employee/EmployeeProfileSection";
+import EmployeeTaskDetailsPage from "../components/employee/EmployeeTaskDetailsPage";
 import "../assets/styles/employee/employee-dashboard.css";
 
 function SectionTitle({ title }) {
@@ -45,6 +46,7 @@ function isEmployee(user) {
 export default function EmployeeDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { taskId } = useParams();
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("employee_theme") || "light";
@@ -99,10 +101,29 @@ export default function EmployeeDashboard() {
     localStorage.setItem("authUser", JSON.stringify(user));
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (taskId) {
+      setActiveItem("Dashboard");
+    }
+  }, [taskId]);
+
   const handleLogout = () => {
     localStorage.removeItem("authUser");
     localStorage.removeItem("user");
     navigate("/login", { replace: true });
+  };
+
+  const handleSidebarSelect = (item) => {
+    setActiveItem(item);
+
+    if (item === "Dashboard") {
+      navigate("/employee");
+      return;
+    }
+
+    if (taskId) {
+      navigate("/employee");
+    }
   };
 
   const searchPlaceholder = "Search";
@@ -115,7 +136,7 @@ export default function EmployeeDashboard() {
     <div className="admin-layout">
       <EmployeeSidebar
         activeItem={activeItem}
-        onSelect={setActiveItem}
+        onSelect={handleSidebarSelect}
         theme={theme}
       />
 
@@ -127,7 +148,12 @@ export default function EmployeeDashboard() {
           notificationCount={0}
           showSearch={true}
           searchPlaceholder={searchPlaceholder}
-          onOpenProfile={() => setActiveItem("Profile")}
+          onOpenProfile={() => {
+            setActiveItem("Profile");
+            if (taskId) {
+              navigate("/employee");
+            }
+          }}
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={() =>
@@ -136,7 +162,9 @@ export default function EmployeeDashboard() {
         />
 
         <section className="admin-main__content">
-          {activeItem === "Dashboard" ? (
+          {taskId ? (
+            <EmployeeTaskDetailsPage />
+          ) : activeItem === "Dashboard" ? (
             <>
               <SectionTitle title="Dashboard" />
               <EmployeeDashboardSection

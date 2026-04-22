@@ -9,14 +9,13 @@ import {
 import {
   FiAlertCircle,
   FiCheckCircle,
-  FiCheckSquare,
   FiChevronLeft,
   FiChevronRight,
   FiClock,
   FiEye,
   FiFileText,
-  FiMessageCircle,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import "../../assets/styles/employee/employee-dashboard-section.css";
 import "../../assets/styles/admin/users-section.css";
 import cloudBg from "../../assets/images/cloud.png";
@@ -47,14 +46,6 @@ function toEmployeeStatus(value) {
   return "new";
 }
 
-function toBackendStatus(value) {
-  if (value === "new") return "New";
-  if (value === "acknowledged") return "Acknowledged";
-  if (value === "pending") return "Pending";
-  if (value === "done") return "Done";
-  return "New";
-}
-
 function getPriorityClass(priority) {
   const normalized = String(priority || "").trim().toLowerCase();
 
@@ -69,17 +60,11 @@ function getPriorityClass(priority) {
 function getComplexityClass(complexity) {
   const normalized = String(complexity || "").trim().toLowerCase();
 
-  if (normalized === "simple") {
-    return "employee-dashboard-section__badge--simple";
-  }
-
+  if (normalized === "simple") return "employee-dashboard-section__badge--simple";
   if (normalized === "medium") {
     return "employee-dashboard-section__badge--medium-complexity";
   }
-
-  if (normalized === "complex") {
-    return "employee-dashboard-section__badge--complex";
-  }
+  if (normalized === "complex") return "employee-dashboard-section__badge--complex";
 
   return "employee-dashboard-section__badge--default";
 }
@@ -102,31 +87,10 @@ function getStatusLabel(status) {
 
 function getStatusIcon(status) {
   if (status === "new") return <FiFileText />;
-  if (status === "acknowledged") return <FiCheckSquare />;
+  if (status === "acknowledged") return <FiCheckCircle />;
   if (status === "pending") return <FiClock />;
   if (status === "done") return <FiCheckCircle />;
   return <FiFileText />;
-}
-
-function getActionLabel(status) {
-  if (status === "new") return "Acknowledge";
-  if (status === "acknowledged") return "Mark Pending";
-  if (status === "pending") return "Mark Done";
-  return "Completed";
-}
-
-function getActionVariant(status) {
-  if (status === "new") return "employee-dashboard-section__task-action--primary";
-  if (status === "acknowledged") return "employee-dashboard-section__task-action--warning";
-  if (status === "pending") return "employee-dashboard-section__task-action--success";
-  return "employee-dashboard-section__task-action--muted";
-}
-
-function getNextStatus(status) {
-  if (status === "new") return "acknowledged";
-  if (status === "acknowledged") return "pending";
-  if (status === "pending") return "done";
-  return "done";
 }
 
 function formatDate(value) {
@@ -170,7 +134,12 @@ function isDueSoon(value) {
   return diffDays >= 0 && diffDays <= 7;
 }
 
-export default function EmployeeDashboardSection({ user, searchValue = "" }) {
+export default function EmployeeDashboardSection({
+  user,
+  searchValue = "",
+}) {
+  const navigate = useNavigate();
+
   const [tasks, setTasks] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -178,7 +147,6 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(5);
   const [tableMaxHeight, setTableMaxHeight] = useState(0);
-  const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
   const tableCardRef = useRef(null);
   const tableHeadRef = useRef(null);
@@ -287,9 +255,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
   }, [tasks]);
 
   const calculateTasksPerPage = useCallback(() => {
-    if (!tableCardRef.current || !tableHeadRef.current) {
-      return;
-    }
+    if (!tableCardRef.current || !tableHeadRef.current) return;
 
     const cardElement = tableCardRef.current;
     const cardRect = cardElement.getBoundingClientRect();
@@ -301,7 +267,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
     const firstBodyRow = cardElement.querySelector("tbody tr");
     const rowHeight = firstBodyRow
       ? firstBodyRow.getBoundingClientRect().height
-      : 78;
+      : 72;
 
     const cardStyle = window.getComputedStyle(cardElement);
     const borderTop = parseFloat(cardStyle.borderTopWidth || "0");
@@ -343,9 +309,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
 
     runCalculation();
 
-    const handleResize = () => {
-      runCalculation();
-    };
+    const handleResize = () => runCalculation();
 
     window.addEventListener("resize", handleResize);
 
@@ -378,63 +342,6 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
     Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
   );
 
-  const updateTaskStatusInBackend = useCallback(async (taskId, nextStatus) => {
-    const response = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        status: toBackendStatus(nextStatus),
-      }),
-    });
-
-    const rawText = await response.text();
-    let data = {};
-
-    try {
-      data = rawText ? JSON.parse(rawText) : {};
-    } catch {
-      data = {};
-    }
-
-    if (!response.ok || data.success === false) {
-      throw new Error(data.message || "Failed to update task status.");
-    }
-
-    return data;
-  }, []);
-
-  const handleProgressAction = useCallback(
-    async (task) => {
-      if (!task?.taskId || task.status === "done" || updatingTaskId) {
-        return;
-      }
-
-      const nextStatus = getNextStatus(task.status);
-      const previousTasks = tasks;
-
-      try {
-        setUpdatingTaskId(task.taskId);
-        setErrorMessage("");
-
-        setTasks((prev) =>
-          prev.map((item) =>
-            item.taskId === task.taskId ? { ...item, status: nextStatus } : item
-          )
-        );
-
-        await updateTaskStatusInBackend(task.taskId, nextStatus);
-      } catch (error) {
-        setTasks(previousTasks);
-        setErrorMessage(error.message || "Failed to update task status.");
-      } finally {
-        setUpdatingTaskId(null);
-      }
-    },
-    [tasks, updateTaskStatusInBackend, updatingTaskId]
-  );
-
   return (
     <div className="employee-dashboard-section">
       <div className="employee-dashboard-section__top-layout">
@@ -445,8 +352,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
           <div className="employee-dashboard-section__hero-overlay" />
           <div className="employee-dashboard-section__hero-content">
             <h3>
-              👋 Good to see you,{" "}
-              <span>{user?.fullName?.split(" ")[0] || "there"}!</span>
+              👋 Good to see you, <span>{user?.fullName?.split(" ")[0] || "there"}!</span>
             </h3>
 
             <p className="employee-dashboard-section__hero-count">
@@ -513,17 +419,15 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
           <div key={tab.key} className="employee-dashboard-section__tab-group">
             <button
               type="button"
-              className={`employee-dashboard-section__tab ${
-                activeTab === tab.key ? "employee-dashboard-section__tab--active" : ""
-              }`}
+              className={`employee-dashboard-section__tab ${activeTab === tab.key ? "employee-dashboard-section__tab--active" : ""
+                }`}
               onClick={() => setActiveTab(tab.key)}
             >
               <span
-                className={`employee-dashboard-section__tab-label ${
-                  activeTab === tab.key
+                className={`employee-dashboard-section__tab-label ${activeTab === tab.key
                     ? "employee-dashboard-section__tab-label--active"
                     : ""
-                }`}
+                  }`}
               >
                 {tab.label}
               </span>
@@ -640,46 +544,24 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
 
                       <td className="employee-dashboard-section__cell-center">
                         <span
-                          className={`employee-dashboard-section__due-date ${
-                            isDueSoon(task.dueDate) && task.status !== "done"
+                          className={`employee-dashboard-section__due-date ${isDueSoon(task.dueDate) && task.status !== "done"
                               ? "employee-dashboard-section__due-date--soon"
                               : ""
-                          }`}
+                            }`}
                         >
                           {formatDate(task.dueDate)}
                         </span>
                       </td>
 
                       <td>
-                        <div className="employee-dashboard-section__actions">
+                        <div className="employee-dashboard-section__actions employee-dashboard-section__actions--single">
                           <button
                             type="button"
                             className="employee-dashboard-section__icon-btn"
                             title="View task"
+                            onClick={() => navigate(`/employee/tasks/${task.taskId}`)}
                           >
                             <FiEye />
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`employee-dashboard-section__task-action ${getActionVariant(
-                              task.status
-                            )}`}
-                            onClick={() => handleProgressAction(task)}
-                            disabled={task.status === "done" || updatingTaskId === task.taskId}
-                          >
-                            {updatingTaskId === task.taskId
-                              ? "Updating..."
-                              : getActionLabel(task.status)}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="employee-dashboard-section__task-action employee-dashboard-section__task-action--secondary"
-                            title="Request change"
-                          >
-                            <FiMessageCircle />
-                            <span>Request Change</span>
                           </button>
                         </div>
                       </td>
@@ -708,9 +590,8 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
                   <button
                     key={page}
                     type="button"
-                    className={`users-section__page-btn users-section__page-btn--number ${
-                      currentPage === page ? "users-section__page-btn--active" : ""
-                    }`}
+                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === page ? "users-section__page-btn--active" : ""
+                      }`}
                     onClick={() => setCurrentPage(page)}
                   >
                     {page}

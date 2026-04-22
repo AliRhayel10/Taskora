@@ -422,6 +422,10 @@
   flex-wrap: nowrap;
 }
 
+.employee-dashboard-section__actions--single {
+  justify-content: center;
+}
+
 .employee-dashboard-section__icon-btn {
   width: 36px;
   height: 36px;
@@ -445,87 +449,6 @@
   background: #eff6ff;
   border-color: #93c5fd;
   color: #1d4ed8;
-}
-
-.employee-dashboard-section__task-action {
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  padding: 0 12px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.employee-dashboard-section__task-action:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.employee-dashboard-section__task-action:disabled {
-  opacity: 0.72;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.employee-dashboard-section__task-action--primary {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #2563eb;
-}
-
-.employee-dashboard-section__task-action--primary:hover:not(:disabled) {
-  background: #dbeafe;
-  border-color: #93c5fd;
-}
-
-.employee-dashboard-section__task-action--warning {
-  background: #fff7ed;
-  border-color: #fed7aa;
-  color: #d97706;
-}
-
-.employee-dashboard-section__task-action--warning:hover:not(:disabled) {
-  background: #ffedd5;
-  border-color: #fdba74;
-}
-
-.employee-dashboard-section__task-action--success {
-  background: #ecfdf3;
-  border-color: #bbf7d0;
-  color: #15803d;
-}
-
-.employee-dashboard-section__task-action--success:hover:not(:disabled) {
-  background: #dcfce7;
-  border-color: #86efac;
-}
-
-.employee-dashboard-section__task-action--muted {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #64748b;
-}
-
-.employee-dashboard-section__task-action--secondary {
-  background: #faf5ff;
-  border-color: #d8b4fe;
-  color: #7c3aed;
-}
-
-.employee-dashboard-section__task-action--secondary:hover {
-  background: #f3e8ff;
-  border-color: #c084fc;
 }
 
 .employee-dashboard-section__state-card {

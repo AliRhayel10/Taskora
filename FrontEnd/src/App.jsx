@@ -21,7 +21,9 @@ export default function App() {
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
       <Route path="/teamleader" element={<TeamLeaderDashboard />} />
+
       <Route path="/employee" element={<EmployeeDashboard />} />
+      <Route path="/employee/tasks/:taskId" element={<EmployeeDashboard />} />
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
