@@ -496,15 +496,15 @@ body,
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
-  align-self: start;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  height: auto;
+  height: 100%;
+  min-height: 100%;
 }
 
 .teamleader-dashboard-section__requests-card {
   width: 100%;
-  min-height: 100%;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 16px;
@@ -513,6 +513,8 @@ body,
   display: flex;
   flex-direction: column;
   align-self: stretch;
+  height: 100%;
+  min-height: 100%;
 }
 
 .teamleader-dashboard-section__requests-header {
