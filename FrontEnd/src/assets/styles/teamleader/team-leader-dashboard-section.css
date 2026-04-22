@@ -1,7 +1,8 @@
 body,
 #root {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .teamleader-dashboard-section {
@@ -10,7 +11,8 @@ body,
   gap: 24px;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
+  padding-bottom: 24px;
 }
 
 .teamleader-dashboard-section__toolbar {
@@ -211,7 +213,9 @@ body,
     transform 0.18s ease;
 }
 
-.teamleader-dashboard-section__day-picker .rdp-day:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle) .rdp-day_button {
+.teamleader-dashboard-section__day-picker
+  .rdp-day:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle)
+  .rdp-day_button {
   color: #334155 !important;
   background: transparent !important;
 }
@@ -286,14 +290,22 @@ body,
   box-shadow: none !important;
 }
 
-.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button {
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button {
   color: #9ca3af !important;
   background: transparent !important;
 }
 
-.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button:hover,
-.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button:focus,
-.teamleader-dashboard-section__day-picker .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) .rdp-day_button:focus-visible {
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button:hover,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button:focus,
+.teamleader-dashboard-section__day-picker
+  .teamleader-dashboard-section__day--past:not(.rdp-selected):not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle):not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today)
+  .rdp-day_button:focus-visible {
   color: #9ca3af !important;
   background: transparent !important;
   border: none !important;
@@ -400,11 +412,10 @@ body,
   gap: 16px;
 }
 
-
 .teamleader-dashboard-section__content-grid {
   display: grid;
   grid-template-columns: minmax(0, 760px) minmax(280px, 1fr);
-  align-items: stretch;
+  align-items: start;
   gap: 16px;
   flex: 1;
   min-height: 0;
@@ -485,15 +496,15 @@ body,
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
-  align-self: stretch;
+  align-self: start;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  height: auto;
 }
 
 .teamleader-dashboard-section__requests-card {
   width: 100%;
+  min-height: 100%;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 16px;
@@ -502,7 +513,6 @@ body,
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  min-height: 0;
 }
 
 .teamleader-dashboard-section__requests-header {
@@ -520,10 +530,7 @@ body,
 
 .teamleader-dashboard-section__table-wrap {
   width: 100%;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .teamleader-dashboard-section__table {
@@ -541,9 +548,6 @@ body,
   font-weight: 700;
   text-align: left;
   white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 2;
 }
 
 .teamleader-dashboard-section__table thead th:nth-child(1),
@@ -767,9 +771,8 @@ body,
   gap: 16px;
   padding: 14px 16px;
   border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
   flex-wrap: wrap;
-  flex-shrink: 0;
-  margin-top: auto;
 }
 
 .teamleader-dashboard-section__pagination-info {

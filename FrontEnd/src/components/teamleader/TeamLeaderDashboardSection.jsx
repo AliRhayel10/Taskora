@@ -16,7 +16,7 @@ import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
 import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 5;
 const RANGE_STORAGE_KEY = "teamleader_dashboard_range";
 const API_BASE = "http://localhost:5000";
 
@@ -614,9 +614,11 @@ export default function TeamLeaderDashboardSection({
           throw new Error(`Failed to load tasks. (${tasksResponse.status})`);
         }
 
-        const teamsData = await parseJsonSafely(teamsResponse);
-        const membersData = await parseJsonSafely(membersResponse);
-        const tasksData = await parseJsonSafely(tasksResponse);
+        const [teamsData, membersData, tasksData] = await Promise.all([
+          parseJsonSafely(teamsResponse),
+          parseJsonSafely(membersResponse),
+          parseJsonSafely(tasksResponse),
+        ]);
 
         if (!Array.isArray(teamsData)) {
           throw new Error("Teams response format is invalid.");
@@ -628,15 +630,8 @@ export default function TeamLeaderDashboardSection({
 
         const resolvedTasks = extractTasksArray(tasksData);
 
-        const tasksResponseLooksValid =
-          Array.isArray(resolvedTasks) ||
-          tasksData?.success === true;
-
-        if (!tasksResponseLooksValid) {
-          console.log("Invalid tasks response:", tasksData);
-          throw new Error(
-            tasksData?.message || "Tasks response format is invalid."
-          );
+        if (!Array.isArray(resolvedTasks) && tasksData?.success !== true) {
+          throw new Error(tasksData?.message || "Tasks response format is invalid.");
         }
 
         const leaderTeams = resolveLeaderTeams(teamsData, user);
@@ -667,14 +662,8 @@ export default function TeamLeaderDashboardSection({
 
         const filteredMembers = membersData.filter((member) => {
           const memberId = getMemberId(member);
-          const isEmployee = isEmployeeMember(member);
-          const belongsToLeaderTeam = leaderMemberIds.includes(memberId);
-
-          return isEmployee && belongsToLeaderTeam;
+          return isEmployeeMember(member) && leaderMemberIds.includes(memberId);
         });
-
-        console.log("tasksData raw:", tasksData);
-        console.log("resolvedTasks:", resolvedTasks);
 
         const filteredTasks = resolvedTasks.filter((task) => {
           const belongsToLeaderTeam = leaderTeamIds.includes(
@@ -733,7 +722,8 @@ export default function TeamLeaderDashboardSection({
 
       const totalTasks = memberTasks.length;
       const totalEffort = memberTasks.reduce(
-        (sum, task) => sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
+        (sum, task) =>
+          sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
         0
       );
       const totalWeight = memberTasks.reduce(
@@ -813,7 +803,8 @@ export default function TeamLeaderDashboardSection({
   const summaryCards = useMemo(() => {
     const totalTasks = tasks.length;
     const totalEffort = tasks.reduce(
-      (sum, task) => sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
+      (sum, task) =>
+        sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
       0
     );
     const totalWeight = tasks.reduce(
@@ -907,10 +898,6 @@ export default function TeamLeaderDashboardSection({
       to: null,
     });
 
-    if (preset === "custom") {
-      setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
-    }
-
     setSelectedPreset(preset);
     setCustomRange({
       from: nextRange.start,
@@ -950,6 +937,8 @@ export default function TeamLeaderDashboardSection({
   };
 
   const handleApplyCustomRange = () => {
+    const monthRange = getMonthRange(draftCalendarMonth);
+
     const nextRange =
       draftCustomRange?.from instanceof Date &&
       draftCustomRange?.to instanceof Date
@@ -958,8 +947,8 @@ export default function TeamLeaderDashboardSection({
             to: endOfDay(draftCustomRange.to),
           }
         : {
-            from: getMonthRange(draftCalendarMonth).start,
-            to: getMonthRange(draftCalendarMonth).end,
+            from: monthRange.start,
+            to: monthRange.end,
           };
 
     setSelectedPreset("custom");
@@ -1345,51 +1334,55 @@ export default function TeamLeaderDashboardSection({
                 </table>
               </div>
 
-              <div className="teamleader-dashboard-section__pagination">
-                <span className="teamleader-dashboard-section__pagination-info">
-                  {paginationInfo}
-                </span>
+              {totalPages > 1 && (
+                <div className="teamleader-dashboard-section__pagination">
+                  <span className="teamleader-dashboard-section__pagination-info">
+                    {paginationInfo}
+                  </span>
 
-                <div className="teamleader-dashboard-section__pagination-controls">
-                  <button
-                    type="button"
-                    className="teamleader-dashboard-section__page-btn"
-                    onClick={() => setCurrentPage((prev) => prev - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <FiChevronLeft />
-                  </button>
-
-                  {pageNumbers.map((page) => (
+                  <div className="teamleader-dashboard-section__pagination-controls">
                     <button
-                      key={page}
                       type="button"
-                      className={`teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
-                        currentPage === page
-                          ? "teamleader-dashboard-section__page-btn--active"
-                          : ""
-                      }`}
-                      onClick={() => setCurrentPage(page)}
+                      className="teamleader-dashboard-section__page-btn"
+                      onClick={() => setCurrentPage((prev) => prev - 1)}
+                      disabled={currentPage === 1}
                     >
-                      {page}
+                      <FiChevronLeft />
                     </button>
-                  ))}
 
-                  <button
-                    type="button"
-                    className="teamleader-dashboard-section__page-btn"
-                    onClick={() => setCurrentPage((prev) => prev + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    <FiChevronRight />
-                  </button>
+                    {pageNumbers.map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        className={`teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
+                          currentPage === page
+                            ? "teamleader-dashboard-section__page-btn--active"
+                            : ""
+                        }`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      className="teamleader-dashboard-section__page-btn"
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <FiChevronRight />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <aside className="teamleader-dashboard-section__requests-card">
               <div className="teamleader-dashboard-section__requests-header">
-                <h3 className="teamleader-dashboard-section__requests-title">Requests</h3>
+                <h3 className="teamleader-dashboard-section__requests-title">
+                  Requests
+                </h3>
               </div>
             </aside>
           </div>
