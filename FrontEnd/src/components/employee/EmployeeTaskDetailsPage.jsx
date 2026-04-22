@@ -4,8 +4,6 @@ import {
   FiCheckCircle,
   FiChevronDown,
   FiClock,
-  FiEdit2,
-  FiFileText,
   FiFlag,
   FiLayers,
   FiMessageCircle,
@@ -594,23 +592,19 @@ export default function EmployeeTaskDetailsPage() {
       </div>
 
       <div className="employee-task-details-page__content-grid">
-        <div className="employee-task-details-page__left-card">
-          <button type="button" className="employee-task-details-page__edit-btn">
-            <FiEdit2 />
-          </button>
-
-          <div className="employee-task-details-page__task-head">
+        <div className="employee-task-details-page__single-card">
+          <div className="employee-task-details-page__top-block">
             <h3>{task.title}</h3>
             <p>{task.description || "No description available."}</p>
           </div>
 
           <div className="employee-task-details-page__divider" />
 
-          <div className="employee-task-details-page__assigned-block">
+          <div className="employee-task-details-page__assigned-section">
             <h4>Assigned To</h4>
 
             <div className="employee-task-details-page__assignee-row">
-              <div className="employee-task-details-page__avatar">
+              <div className="employee-task-details-page__assignee-avatar">
                 {initialsFromName(task.assignedToName)}
               </div>
 
@@ -687,20 +681,20 @@ export default function EmployeeTaskDetailsPage() {
         </div>
 
         <div className="employee-task-details-page__right-column">
-          <div className="employee-task-details-page__panels-row">
-            <div className="employee-task-details-page__panel">
-              <div className="employee-task-details-page__panel-header">
-                <div className="employee-task-details-page__panel-title">
-                  <span className="employee-task-details-page__panel-icon">
+          <div className="employee-task-details-page__top-panels">
+            <div className="employee-task-details-page__timeline-card">
+              <div className="employee-task-details-page__section-header">
+                <div className="employee-task-details-page__section-title-wrap">
+                  <div className="employee-task-details-page__section-icon">
                     <FiClock />
-                  </span>
+                  </div>
                   <h3>Activity Timeline</h3>
                 </div>
               </div>
 
-              <div className="employee-task-details-page__panel-body">
+              <div className="employee-task-details-page__card-scroll-area">
                 {timelineItems.length === 0 ? (
-                  <div className="employee-task-details-page__empty-box">
+                  <div className="employee-task-details-page__empty-state">
                     No activity has been recorded yet.
                   </div>
                 ) : (
@@ -710,10 +704,21 @@ export default function EmployeeTaskDetailsPage() {
                         key={item.id}
                         className="employee-task-details-page__timeline-item"
                       >
-                        <div className="employee-task-details-page__timeline-dot" />
+                        <div
+                          className={`employee-task-details-page__timeline-marker ${
+                            item.type === "feedback"
+                              ? "employee-task-details-page__timeline-marker--feedback"
+                              : "employee-task-details-page__timeline-marker--status"
+                          }`}
+                        />
+
                         <div className="employee-task-details-page__timeline-content">
-                          <strong>{item.title}</strong>
-                          <small>{formatDateTime(item.createdAt)}</small>
+                          <div className="employee-task-details-page__timeline-heading">
+                            {item.title}
+                          </div>
+                          <div className="employee-task-details-page__timeline-meta">
+                            {formatDateTime(item.createdAt)}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -722,73 +727,81 @@ export default function EmployeeTaskDetailsPage() {
               </div>
             </div>
 
-            <div className="employee-task-details-page__panel">
-              <div className="employee-task-details-page__panel-header">
-                <div className="employee-task-details-page__panel-title">
-                  <span className="employee-task-details-page__panel-icon">
+            <div className="employee-task-details-page__history-card">
+              <div className="employee-task-details-page__section-header">
+                <div className="employee-task-details-page__section-title-wrap">
+                  <div className="employee-task-details-page__section-icon">
                     <FiMessageCircle />
-                  </span>
+                  </div>
                   <h3>Feedback Summary</h3>
                 </div>
               </div>
 
-              <div className="employee-task-details-page__panel-body">
-                <div className="employee-task-details-page__summary-grid">
-                  <div className="employee-task-details-page__summary-box">
-                    <span>Total Feedback</span>
-                    <strong>{task.feedback?.length || 0}</strong>
+              <div className="employee-task-details-page__card-scroll-area">
+                <div className="employee-task-details-page__summary-card">
+                  <div className="employee-task-details-page__summary-stats">
+                    <div className="employee-task-details-page__summary-stat">
+                      <span>Total Feedback</span>
+                      <strong>{task.feedback?.length || 0}</strong>
+                    </div>
+
+                    <div className="employee-task-details-page__summary-stat">
+                      <span>Latest Update</span>
+                      <strong>{latestUpdateText}</strong>
+                    </div>
                   </div>
 
-                  <div className="employee-task-details-page__summary-box">
-                    <span>Latest Update</span>
-                    <strong>{latestUpdateText}</strong>
-                  </div>
+                  {task.feedback?.length ? (
+                    <div className="employee-task-details-page__feedback-list">
+                      {task.feedback.slice(0, 5).map((item, index) => (
+                        <div
+                          key={`${item.createdAt}-${index}`}
+                          className="employee-task-details-page__feedback-item"
+                        >
+                          <p>{item.message || item.text}</p>
+                          <small>{formatDateTime(item.createdAt || item.date)}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="employee-task-details-page__empty-state">
+                      No feedback has been added yet.
+                    </div>
+                  )}
                 </div>
-
-                {task.feedback?.length ? (
-                  <div className="employee-task-details-page__feedback-list">
-                    {task.feedback.slice(0, 5).map((item, index) => (
-                      <div
-                        key={`${item.createdAt}-${index}`}
-                        className="employee-task-details-page__feedback-item"
-                      >
-                        <p>{item.message || item.text}</p>
-                        <small>{formatDateTime(item.createdAt || item.date)}</small>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="employee-task-details-page__empty-box">
-                    No feedback has been added yet.
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
-          <form
-            className="employee-task-details-page__feedback-form"
-            onSubmit={handleSubmitFeedback}
-          >
-            <div className="employee-task-details-page__feedback-input-wrap">
-              <input
-                type="text"
-                placeholder="Add feedback and send it..."
-                value={feedbackText}
-                onChange={(event) => setFeedbackText(event.target.value.slice(0, 500))}
-              />
-              <span>{feedbackText.length}/500</span>
-            </div>
-
-            <button
-              type="submit"
-              className="employee-task-details-page__send-btn"
-              disabled={isSubmittingFeedback || !feedbackText.trim()}
+          <div className="employee-task-details-page__feedback-inline-card">
+            <form
+              className="employee-task-details-page__feedback-inline-form"
+              onSubmit={handleSubmitFeedback}
             >
-              <FiSend />
-              <span>{isSubmittingFeedback ? "Sending..." : "Send"}</span>
-            </button>
-          </form>
+              <div className="employee-task-details-page__feedback-inline-main">
+                <div className="employee-task-details-page__feedback-inline-input-wrap">
+                  <input
+                    type="text"
+                    placeholder="Add feedback and send it..."
+                    value={feedbackText}
+                    onChange={(event) => setFeedbackText(event.target.value.slice(0, 500))}
+                  />
+                  <span className="employee-task-details-page__feedback-inline-count">
+                    {feedbackText.length}/500
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="employee-task-details-page__feedback-inline-submit"
+                disabled={isSubmittingFeedback || !feedbackText.trim()}
+              >
+                <FiSend />
+                <span>{isSubmittingFeedback ? "Sending..." : "Send"}</span>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
