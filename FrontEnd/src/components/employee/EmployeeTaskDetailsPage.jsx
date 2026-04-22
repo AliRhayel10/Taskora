@@ -29,7 +29,8 @@ function mapStatusLabel(status) {
   if (normalized === "acknowledged") return "Acknowledged";
   if (normalized === "pending") return "Pending";
   if (normalized === "done" || normalized === "completed") return "Done";
-  return "New";
+
+  return status || "New";
 }
 
 function getNextStatus(status) {
@@ -38,6 +39,7 @@ function getNextStatus(status) {
   if (normalized === "new") return "Acknowledged";
   if (normalized === "acknowledged") return "Pending";
   if (normalized === "pending") return "Done";
+
   return "Done";
 }
 
@@ -47,36 +49,42 @@ function getStatusActionLabel(status) {
   if (normalized === "new") return "Acknowledge";
   if (normalized === "acknowledged") return "Mark as Pending";
   if (normalized === "pending") return "Mark as Done";
+
   return "Completed";
 }
 
 function getPriorityClass(value) {
   const normalized = normalizeStatus(value);
 
-  if (normalized === "low") return "task-details-page__value--low";
-  if (normalized === "medium") return "task-details-page__value--medium-priority";
-  if (normalized === "high") return "task-details-page__value--high";
-  if (normalized === "critical") return "task-details-page__value--critical";
-  return "task-details-page__value--default";
+  if (normalized === "low") return "employee-task-details-page__value--low";
+  if (normalized === "medium") return "employee-task-details-page__value--medium-priority";
+  if (normalized === "high") return "employee-task-details-page__value--high";
+  if (normalized === "critical") return "employee-task-details-page__value--critical";
+
+  return "employee-task-details-page__value--default";
 }
 
 function getComplexityClass(value) {
   const normalized = normalizeStatus(value);
 
-  if (normalized === "simple") return "task-details-page__value--simple";
-  if (normalized === "medium") return "task-details-page__value--medium-complexity";
-  if (normalized === "complex") return "task-details-page__value--complex";
-  return "task-details-page__value--default";
+  if (normalized === "simple") return "employee-task-details-page__value--simple";
+  if (normalized === "medium") return "employee-task-details-page__value--medium-complexity";
+  if (normalized === "complex") return "employee-task-details-page__value--complex";
+
+  return "employee-task-details-page__value--default";
 }
 
 function getStatusClass(value) {
   const normalized = normalizeStatus(value);
 
-  if (normalized === "new") return "task-details-page__value--new";
-  if (normalized === "acknowledged") return "task-details-page__value--acknowledged";
-  if (normalized === "pending") return "task-details-page__value--pending";
-  if (normalized === "done" || normalized === "completed") return "task-details-page__value--done";
-  return "task-details-page__value--default";
+  if (normalized === "new") return "employee-task-details-page__value--new";
+  if (normalized === "acknowledged") return "employee-task-details-page__value--acknowledged";
+  if (normalized === "pending") return "employee-task-details-page__value--pending";
+  if (normalized === "done" || normalized === "completed") {
+    return "employee-task-details-page__value--done";
+  }
+
+  return "employee-task-details-page__value--default";
 }
 
 function formatDate(value) {
@@ -118,6 +126,16 @@ function initialsFromName(name) {
     .join("");
 }
 
+function getStoredEmployee() {
+  try {
+    const authUser = localStorage.getItem("authUser");
+    const user = localStorage.getItem("user");
+    return authUser ? JSON.parse(authUser) : user ? JSON.parse(user) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function EmployeeTaskDetailsPage() {
   const navigate = useNavigate();
   const { taskId } = useParams();
@@ -140,21 +158,60 @@ export default function EmployeeTaskDetailsPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(`${API_BASE}/api/tasks/${taskId}`);
-        const rawText = await response.text();
-        let data = {};
+        let rawTask = null;
+
+        const directResponse = await fetch(`${API_BASE}/api/tasks/${taskId}`);
+        const directText = await directResponse.text();
+        let directData = {};
 
         try {
-          data = rawText ? JSON.parse(rawText) : {};
+          directData = directText ? JSON.parse(directText) : {};
         } catch {
-          throw new Error("Invalid server response.");
+          directData = {};
         }
 
-        if (!response.ok || data.success === false) {
-          throw new Error(data.message || "Failed to load task details.");
+        if (directResponse.ok && directData.success !== false) {
+          rawTask = directData.task || directData.data || directData;
         }
 
-        const rawTask = data.task || data.data || data;
+        if (!rawTask) {
+          const storedUser = getStoredEmployee();
+
+          if (!storedUser?.companyId) {
+            throw new Error("Failed to load task details.");
+          }
+
+          const companyResponse = await fetch(
+            `${API_BASE}/api/tasks/company/${storedUser.companyId}`
+          );
+          const companyText = await companyResponse.text();
+          let companyData = {};
+
+          try {
+            companyData = companyText ? JSON.parse(companyText) : {};
+          } catch {
+            companyData = {};
+          }
+
+          if (!companyResponse.ok || companyData.success === false) {
+            throw new Error(companyData.message || "Failed to load task details.");
+          }
+
+          const taskList = Array.isArray(companyData.tasks)
+            ? companyData.tasks
+            : Array.isArray(companyData.data)
+              ? companyData.data
+              : Array.isArray(companyData)
+                ? companyData
+                : [];
+
+          rawTask =
+            taskList.find((item) => String(item.taskId) === String(taskId)) || null;
+        }
+
+        if (!rawTask) {
+          throw new Error("Failed to load task details.");
+        }
 
         const mappedTask = {
           taskId: rawTask.taskId,
@@ -162,17 +219,29 @@ export default function EmployeeTaskDetailsPage() {
           description: rawTask.description || "",
           priority: rawTask.priority || "-",
           complexity: rawTask.complexity || "-",
-          effort: rawTask.effort ?? rawTask.estimatedEffortHours ?? rawTask.estimatedEffort ?? 0,
+          effort:
+            rawTask.effort ??
+            rawTask.estimatedEffortHours ??
+            rawTask.estimatedEffort ??
+            0,
           weight: rawTask.weight ?? rawTask.taskWeight ?? 0,
           dueDate: rawTask.dueDate || rawTask.endDate || rawTask.deadline || "",
           startDate: rawTask.startDate || rawTask.createdAt || "",
           status: rawTask.status || "New",
           assignedToName:
-            rawTask.assignedToName || rawTask.assignedUserName || "Assigned user",
+            rawTask.assignedToName ||
+            rawTask.assignedUserName ||
+            rawTask.employeeName ||
+            "Assigned user",
           assignedToEmail:
-            rawTask.assignedToEmail || rawTask.assignedUserEmail || "",
+            rawTask.assignedToEmail ||
+            rawTask.assignedUserEmail ||
+            rawTask.employeeEmail ||
+            "",
           feedback: Array.isArray(rawTask.feedback) ? rawTask.feedback : [],
-          requestChanges: Array.isArray(rawTask.requestChanges) ? rawTask.requestChanges : [],
+          requestChanges: Array.isArray(rawTask.requestChanges)
+            ? rawTask.requestChanges
+            : [],
           updatedAt: rawTask.updatedAt || rawTask.lastUpdated || rawTask.createdAt || "",
         };
 
@@ -223,9 +292,9 @@ export default function EmployeeTaskDetailsPage() {
       createdAt: item.createdAt || item.date || "",
     }));
 
-    return [...feedbackEvents, ...requestEvents, ...statusEvents].sort((a, b) => {
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-    });
+    return [...feedbackEvents, ...requestEvents, ...statusEvents].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }, [task]);
 
   const latestUpdateText = useMemo(() => {
@@ -251,16 +320,21 @@ export default function EmployeeTaskDetailsPage() {
 
     const nextStatus = getNextStatus(task.status);
     const previousStatus = task.status;
+    const nextUpdatedAt = new Date().toISOString();
 
     try {
       setIsUpdatingStatus(true);
       setErrorMessage("");
 
-      setTask((prev) => ({
-        ...prev,
-        status: nextStatus,
-        updatedAt: new Date().toISOString(),
-      }));
+      setTask((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: nextStatus,
+              updatedAt: nextUpdatedAt,
+            }
+          : prev
+      );
 
       const response = await fetch(`${API_BASE}/api/tasks/${task.taskId}`, {
         method: "PUT",
@@ -285,10 +359,14 @@ export default function EmployeeTaskDetailsPage() {
         throw new Error(data.message || "Failed to update task status.");
       }
     } catch (error) {
-      setTask((prev) => ({
-        ...prev,
-        status: previousStatus,
-      }));
+      setTask((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: previousStatus,
+            }
+          : prev
+      );
       setErrorMessage(error.message || "Failed to update task status.");
     } finally {
       setIsUpdatingStatus(false);
@@ -310,11 +388,15 @@ export default function EmployeeTaskDetailsPage() {
       setIsSubmittingFeedback(true);
       setErrorMessage("");
 
-      setTask((prev) => ({
-        ...prev,
-        feedback: nextFeedback,
-        updatedAt: newItem.createdAt,
-      }));
+      setTask((prev) =>
+        prev
+          ? {
+              ...prev,
+              feedback: nextFeedback,
+              updatedAt: newItem.createdAt,
+            }
+          : prev
+      );
 
       const response = await fetch(`${API_BASE}/api/tasks/${task.taskId}`, {
         method: "PUT",
@@ -361,11 +443,15 @@ export default function EmployeeTaskDetailsPage() {
       setIsSubmittingRequest(true);
       setErrorMessage("");
 
-      setTask((prev) => ({
-        ...prev,
-        requestChanges: nextRequests,
-        updatedAt: newItem.createdAt,
-      }));
+      setTask((prev) =>
+        prev
+          ? {
+              ...prev,
+              requestChanges: nextRequests,
+              updatedAt: newItem.createdAt,
+            }
+          : prev
+      );
 
       const response = await fetch(`${API_BASE}/api/tasks/${task.taskId}`, {
         method: "PUT",
@@ -401,16 +487,20 @@ export default function EmployeeTaskDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="task-details-page">
-        <div className="task-details-page__title-row">
-          <button type="button" className="task-details-page__back-btn" onClick={() => navigate(-1)}>
+      <div className="employee-task-details-page">
+        <div className="employee-task-details-page__title-row">
+          <button
+            type="button"
+            className="employee-task-details-page__back-btn"
+            onClick={() => navigate("/employee")}
+          >
             ←
           </button>
           <h2>Task Details</h2>
-          <div className="task-details-page__title-line" />
+          <div className="employee-task-details-page__title-line" />
         </div>
 
-        <div className="task-details-page__empty-state-card">
+        <div className="employee-task-details-page__empty-state-card">
           Loading task details...
         </div>
       </div>
@@ -419,16 +509,20 @@ export default function EmployeeTaskDetailsPage() {
 
   if (errorMessage && !task) {
     return (
-      <div className="task-details-page">
-        <div className="task-details-page__title-row">
-          <button type="button" className="task-details-page__back-btn" onClick={() => navigate(-1)}>
+      <div className="employee-task-details-page">
+        <div className="employee-task-details-page__title-row">
+          <button
+            type="button"
+            className="employee-task-details-page__back-btn"
+            onClick={() => navigate("/employee")}
+          >
             ←
           </button>
           <h2>Task Details</h2>
-          <div className="task-details-page__title-line" />
+          <div className="employee-task-details-page__title-line" />
         </div>
 
-        <div className="task-details-page__empty-state-card">
+        <div className="employee-task-details-page__empty-state-card">
           {errorMessage}
         </div>
       </div>
@@ -436,27 +530,27 @@ export default function EmployeeTaskDetailsPage() {
   }
 
   return (
-    <div className="task-details-page">
-      <div className="task-details-page__title-row">
+    <div className="employee-task-details-page">
+      <div className="employee-task-details-page__title-row">
         <button
           type="button"
-          className="task-details-page__back-btn"
+          className="employee-task-details-page__back-btn"
           onClick={() => navigate("/employee")}
         >
           ←
         </button>
         <h2>Task Details</h2>
-        <div className="task-details-page__title-line" />
+        <div className="employee-task-details-page__title-line" />
       </div>
 
       {errorMessage ? (
-        <div className="task-details-page__top-error">{errorMessage}</div>
+        <div className="employee-task-details-page__top-error">{errorMessage}</div>
       ) : null}
 
-      <div className="task-details-page__toolbar">
+      <div className="employee-task-details-page__toolbar">
         <button
           type="button"
-          className="task-details-page__status-btn"
+          className="employee-task-details-page__status-btn"
           onClick={handleStatusUpdate}
           disabled={isUpdatingStatus || normalizeStatus(task.status) === "done"}
         >
@@ -466,10 +560,10 @@ export default function EmployeeTaskDetailsPage() {
           </span>
         </button>
 
-        <div className="task-details-page__request-wrap">
+        <div className="employee-task-details-page__request-wrap">
           <button
             type="button"
-            className="task-details-page__request-btn"
+            className="employee-task-details-page__request-btn"
             onClick={() => setShowRequestMenu((prev) => !prev)}
           >
             <FiMessageCircle />
@@ -478,15 +572,17 @@ export default function EmployeeTaskDetailsPage() {
           </button>
 
           {showRequestMenu ? (
-            <div className="task-details-page__request-dropdown">
+            <div className="employee-task-details-page__request-dropdown">
               <textarea
                 value={requestChangeText}
-                onChange={(event) => setRequestChangeText(event.target.value.slice(0, 300))}
+                onChange={(event) =>
+                  setRequestChangeText(event.target.value.slice(0, 300))
+                }
                 placeholder="Write the requested change..."
               />
               <button
                 type="button"
-                className="task-details-page__request-submit"
+                className="employee-task-details-page__request-submit"
                 onClick={handleRequestChange}
                 disabled={isSubmittingRequest || !requestChangeText.trim()}
               >
@@ -497,47 +593,47 @@ export default function EmployeeTaskDetailsPage() {
         </div>
       </div>
 
-      <div className="task-details-page__content-grid">
-        <div className="task-details-page__left-card">
-          <button type="button" className="task-details-page__edit-btn">
+      <div className="employee-task-details-page__content-grid">
+        <div className="employee-task-details-page__left-card">
+          <button type="button" className="employee-task-details-page__edit-btn">
             <FiEdit2 />
           </button>
 
-          <div className="task-details-page__task-head">
+          <div className="employee-task-details-page__task-head">
             <h3>{task.title}</h3>
             <p>{task.description || "No description available."}</p>
           </div>
 
-          <div className="task-details-page__divider" />
+          <div className="employee-task-details-page__divider" />
 
-          <div className="task-details-page__assigned-block">
+          <div className="employee-task-details-page__assigned-block">
             <h4>Assigned To</h4>
 
-            <div className="task-details-page__assignee-row">
-              <div className="task-details-page__avatar">
+            <div className="employee-task-details-page__assignee-row">
+              <div className="employee-task-details-page__avatar">
                 {initialsFromName(task.assignedToName)}
               </div>
 
-              <div className="task-details-page__assignee-copy">
+              <div className="employee-task-details-page__assignee-copy">
                 <strong>{task.assignedToName}</strong>
                 <small>{task.assignedToEmail || "No email available"}</small>
               </div>
             </div>
           </div>
 
-          <div className="task-details-page__divider" />
+          <div className="employee-task-details-page__divider" />
 
-          <div className="task-details-page__details-grid">
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+          <div className="employee-task-details-page__details-grid">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiFlag />
                 <span>Priority</span>
               </div>
               <strong className={getPriorityClass(task.priority)}>{task.priority}</strong>
             </div>
 
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiLayers />
                 <span>Complexity</span>
               </div>
@@ -546,40 +642,40 @@ export default function EmployeeTaskDetailsPage() {
               </strong>
             </div>
 
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiClock />
                 <span>Estimated Effort</span>
               </div>
               <strong>{task.effort} h</strong>
             </div>
 
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiTarget />
                 <span>Weight</span>
               </div>
               <strong>{Number(task.weight || 0).toFixed(2)}</strong>
             </div>
 
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiCalendar />
                 <span>Due Date</span>
               </div>
               <strong>{formatDate(task.dueDate)}</strong>
             </div>
 
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiCalendar />
                 <span>Start Date</span>
               </div>
               <strong>{formatDate(task.startDate)}</strong>
             </div>
 
-            <div className="task-details-page__detail-item">
-              <div className="task-details-page__label-row">
+            <div className="employee-task-details-page__detail-item">
+              <div className="employee-task-details-page__label-row">
                 <FiUser />
                 <span>Status</span>
               </div>
@@ -590,29 +686,32 @@ export default function EmployeeTaskDetailsPage() {
           </div>
         </div>
 
-        <div className="task-details-page__right-column">
-          <div className="task-details-page__panels-row">
-            <div className="task-details-page__panel">
-              <div className="task-details-page__panel-header">
-                <div className="task-details-page__panel-title">
-                  <span className="task-details-page__panel-icon">
+        <div className="employee-task-details-page__right-column">
+          <div className="employee-task-details-page__panels-row">
+            <div className="employee-task-details-page__panel">
+              <div className="employee-task-details-page__panel-header">
+                <div className="employee-task-details-page__panel-title">
+                  <span className="employee-task-details-page__panel-icon">
                     <FiClock />
                   </span>
                   <h3>Activity Timeline</h3>
                 </div>
               </div>
 
-              <div className="task-details-page__panel-body">
+              <div className="employee-task-details-page__panel-body">
                 {timelineItems.length === 0 ? (
-                  <div className="task-details-page__empty-box">
+                  <div className="employee-task-details-page__empty-box">
                     No activity has been recorded yet.
                   </div>
                 ) : (
-                  <div className="task-details-page__timeline-list">
+                  <div className="employee-task-details-page__timeline-list">
                     {timelineItems.map((item) => (
-                      <div key={item.id} className="task-details-page__timeline-item">
-                        <div className="task-details-page__timeline-dot" />
-                        <div className="task-details-page__timeline-content">
+                      <div
+                        key={item.id}
+                        className="employee-task-details-page__timeline-item"
+                      >
+                        <div className="employee-task-details-page__timeline-dot" />
+                        <div className="employee-task-details-page__timeline-content">
                           <strong>{item.title}</strong>
                           <small>{formatDateTime(item.createdAt)}</small>
                         </div>
@@ -623,40 +722,43 @@ export default function EmployeeTaskDetailsPage() {
               </div>
             </div>
 
-            <div className="task-details-page__panel">
-              <div className="task-details-page__panel-header">
-                <div className="task-details-page__panel-title">
-                  <span className="task-details-page__panel-icon">
+            <div className="employee-task-details-page__panel">
+              <div className="employee-task-details-page__panel-header">
+                <div className="employee-task-details-page__panel-title">
+                  <span className="employee-task-details-page__panel-icon">
                     <FiMessageCircle />
                   </span>
                   <h3>Feedback Summary</h3>
                 </div>
               </div>
 
-              <div className="task-details-page__panel-body">
-                <div className="task-details-page__summary-grid">
-                  <div className="task-details-page__summary-box">
+              <div className="employee-task-details-page__panel-body">
+                <div className="employee-task-details-page__summary-grid">
+                  <div className="employee-task-details-page__summary-box">
                     <span>Total Feedback</span>
                     <strong>{task.feedback?.length || 0}</strong>
                   </div>
 
-                  <div className="task-details-page__summary-box">
+                  <div className="employee-task-details-page__summary-box">
                     <span>Latest Update</span>
                     <strong>{latestUpdateText}</strong>
                   </div>
                 </div>
 
                 {task.feedback?.length ? (
-                  <div className="task-details-page__feedback-list">
+                  <div className="employee-task-details-page__feedback-list">
                     {task.feedback.slice(0, 5).map((item, index) => (
-                      <div key={`${item.createdAt}-${index}`} className="task-details-page__feedback-item">
+                      <div
+                        key={`${item.createdAt}-${index}`}
+                        className="employee-task-details-page__feedback-item"
+                      >
                         <p>{item.message || item.text}</p>
                         <small>{formatDateTime(item.createdAt || item.date)}</small>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="task-details-page__empty-box">
+                  <div className="employee-task-details-page__empty-box">
                     No feedback has been added yet.
                   </div>
                 )}
@@ -664,8 +766,11 @@ export default function EmployeeTaskDetailsPage() {
             </div>
           </div>
 
-          <form className="task-details-page__feedback-form" onSubmit={handleSubmitFeedback}>
-            <div className="task-details-page__feedback-input-wrap">
+          <form
+            className="employee-task-details-page__feedback-form"
+            onSubmit={handleSubmitFeedback}
+          >
+            <div className="employee-task-details-page__feedback-input-wrap">
               <input
                 type="text"
                 placeholder="Add feedback and send it..."
@@ -677,7 +782,7 @@ export default function EmployeeTaskDetailsPage() {
 
             <button
               type="submit"
-              className="task-details-page__send-btn"
+              className="employee-task-details-page__send-btn"
               disabled={isSubmittingFeedback || !feedbackText.trim()}
             >
               <FiSend />
