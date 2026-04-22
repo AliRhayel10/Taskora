@@ -47,6 +47,14 @@ function toEmployeeStatus(value) {
   return "new";
 }
 
+function toBackendStatus(value) {
+  if (value === "new") return "New";
+  if (value === "acknowledged") return "Acknowledged";
+  if (value === "pending") return "Pending";
+  if (value === "done") return "Done";
+  return "New";
+}
+
 function getPriorityClass(priority) {
   const normalized = String(priority || "").trim().toLowerCase();
 
@@ -102,8 +110,8 @@ function getStatusIcon(status) {
 
 function getActionLabel(status) {
   if (status === "new") return "Acknowledge";
-  if (status === "acknowledged") return "Mark as Pending";
-  if (status === "pending") return "Mark as Done";
+  if (status === "acknowledged") return "Mark Pending";
+  if (status === "pending") return "Mark Done";
   return "Completed";
 }
 
@@ -170,80 +178,69 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(5);
   const [tableMaxHeight, setTableMaxHeight] = useState(0);
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
   const tableCardRef = useRef(null);
   const tableHeadRef = useRef(null);
   const paginationRef = useRef(null);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadTasks() {
-      if (!user?.companyId || !user?.userId) {
-        setTasks([]);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setErrorMessage("");
-
-        const response = await fetch(`${API_BASE}/api/tasks/company/${user.companyId}`);
-        const rawText = await response.text();
-        let data = {};
-
-        try {
-          data = rawText ? JSON.parse(rawText) : {};
-        } catch {
-          throw new Error("Invalid server response.");
-        }
-
-        if (!response.ok || data.success === false) {
-          throw new Error(data.message || "Failed to load tasks.");
-        }
-
-        const rawTasks = Array.isArray(data.tasks)
-          ? data.tasks
-          : Array.isArray(data.data)
-            ? data.data
-            : Array.isArray(data)
-              ? data
-              : [];
-
-        const onlyLoggedInUserTasks = rawTasks
-          .filter((task) => Number(task.assignedToUserId) === Number(user.userId))
-          .map((task) => ({
-            taskId: task.taskId,
-            title: task.title || "Untitled Task",
-            description: task.description || "",
-            priority: task.priority || "-",
-            complexity: task.complexity || "-",
-            effort: task.effort ?? task.estimatedEffortHours ?? 0,
-            dueDate: task.dueDate || task.endDate || task.deadline || "",
-            status: toEmployeeStatus(task.status),
-          }));
-
-        if (isMounted) {
-          setTasks(onlyLoggedInUserTasks);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setErrorMessage(error.message || "Failed to load tasks.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+  const loadTasks = useCallback(async () => {
+    if (!user?.companyId || !user?.userId) {
+      setTasks([]);
+      setIsLoading(false);
+      return;
     }
 
-    loadTasks();
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
 
-    return () => {
-      isMounted = false;
-    };
+      const response = await fetch(`${API_BASE}/api/tasks/company/${user.companyId}`);
+      const rawText = await response.text();
+      let data = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        throw new Error("Invalid server response.");
+      }
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Failed to load tasks.");
+      }
+
+      const rawTasks = Array.isArray(data.tasks)
+        ? data.tasks
+        : Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data)
+            ? data
+            : [];
+
+      const onlyLoggedInUserTasks = rawTasks
+        .filter((task) => Number(task.assignedToUserId) === Number(user.userId))
+        .map((task) => ({
+          taskId: task.taskId,
+          title: task.title || "Untitled Task",
+          description: task.description || "",
+          priority: task.priority || "-",
+          complexity: task.complexity || "-",
+          effort: task.effort ?? task.estimatedEffortHours ?? 0,
+          dueDate: task.dueDate || task.endDate || task.deadline || "",
+          status: toEmployeeStatus(task.status),
+        }));
+
+      setTasks(onlyLoggedInUserTasks);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to load tasks.");
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   const filteredBySearch = useMemo(() => {
     const query = String(searchValue || "").trim().toLowerCase();
@@ -304,7 +301,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
     const firstBodyRow = cardElement.querySelector("tbody tr");
     const rowHeight = firstBodyRow
       ? firstBodyRow.getBoundingClientRect().height
-      : 92;
+      : 78;
 
     const cardStyle = window.getComputedStyle(cardElement);
     const borderTop = parseFloat(cardStyle.borderTopWidth || "0");
@@ -328,7 +325,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
 
     const fittedRows = Math.max(
       MIN_TASKS_PER_PAGE,
-      Math.floor((availableRowsHeight + rowHeight * 0.35) / rowHeight)
+      Math.floor((availableRowsHeight + rowHeight * 0.25) / rowHeight)
     );
 
     setTasksPerPage(fittedRows);
@@ -381,15 +378,62 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
     Math.min(totalPages, Math.max(0, currentPage - 2) + 5)
   );
 
-  const handleProgressAction = (taskId) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.taskId === taskId
-          ? { ...task, status: getNextStatus(task.status) }
-          : task
-      )
-    );
-  };
+  const updateTaskStatusInBackend = useCallback(async (taskId, nextStatus) => {
+    const response = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: toBackendStatus(nextStatus),
+      }),
+    });
+
+    const rawText = await response.text();
+    let data = {};
+
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || "Failed to update task status.");
+    }
+
+    return data;
+  }, []);
+
+  const handleProgressAction = useCallback(
+    async (task) => {
+      if (!task?.taskId || task.status === "done" || updatingTaskId) {
+        return;
+      }
+
+      const nextStatus = getNextStatus(task.status);
+      const previousTasks = tasks;
+
+      try {
+        setUpdatingTaskId(task.taskId);
+        setErrorMessage("");
+
+        setTasks((prev) =>
+          prev.map((item) =>
+            item.taskId === task.taskId ? { ...item, status: nextStatus } : item
+          )
+        );
+
+        await updateTaskStatusInBackend(task.taskId, nextStatus);
+      } catch (error) {
+        setTasks(previousTasks);
+        setErrorMessage(error.message || "Failed to update task status.");
+      } finally {
+        setUpdatingTaskId(null);
+      }
+    },
+    [tasks, updateTaskStatusInBackend, updatingTaskId]
+  );
 
   return (
     <div className="employee-dashboard-section">
@@ -508,7 +552,7 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
             <h3>Loading tasks...</h3>
             <p>Please wait while we load your assigned tasks.</p>
           </div>
-        ) : errorMessage ? (
+        ) : errorMessage && tasks.length === 0 ? (
           <div className="employee-dashboard-section__state-card employee-dashboard-section__state-card--error">
             <div className="employee-dashboard-section__state-icon employee-dashboard-section__state-icon--error">
               <FiAlertCircle />
@@ -621,10 +665,12 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
                             className={`employee-dashboard-section__task-action ${getActionVariant(
                               task.status
                             )}`}
-                            onClick={() => handleProgressAction(task.taskId)}
-                            disabled={task.status === "done"}
+                            onClick={() => handleProgressAction(task)}
+                            disabled={task.status === "done" || updatingTaskId === task.taskId}
                           >
-                            {getActionLabel(task.status)}
+                            {updatingTaskId === task.taskId
+                              ? "Updating..."
+                              : getActionLabel(task.status)}
                           </button>
 
                           <button
@@ -683,6 +729,12 @@ export default function EmployeeDashboardSection({ user, searchValue = "" }) {
                 </button>
               </div>
             </div>
+
+            {errorMessage ? (
+              <div className="employee-dashboard-section__inline-error">
+                {errorMessage}
+              </div>
+            ) : null}
           </>
         )}
       </div>
