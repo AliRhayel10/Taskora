@@ -766,6 +766,7 @@ body,
   padding: 28px 20px !important;
 }
 
+.users-section__pagination,
 .teamleader-dashboard-section__pagination {
   display: flex;
   align-items: center;
@@ -777,12 +778,14 @@ body,
   flex-wrap: wrap;
 }
 
+.users-section__pagination-info,
 .teamleader-dashboard-section__pagination-info {
   color: #475467;
   font-size: 0.92rem;
   font-weight: 500;
 }
 
+.users-section__pagination-controls,
 .teamleader-dashboard-section__pagination-controls {
   display: flex;
   align-items: center;
@@ -790,6 +793,7 @@ body,
   flex-wrap: wrap;
 }
 
+.users-section__page-btn,
 .teamleader-dashboard-section__page-btn {
   min-width: 36px;
   height: 36px;
@@ -804,28 +808,49 @@ body,
   gap: 6px;
   cursor: pointer;
   font-weight: 600;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
+  transition: none;
+  transform: none;
+  box-shadow: none;
 }
 
-.teamleader-dashboard-section__page-btn:hover:not(:disabled) {
-  background: #eff6ff;
-  border-color: #93c5fd;
+.users-section__page-btn:hover:not(:disabled),
+.users-section__page-btn:focus:not(:disabled),
+.users-section__page-btn:active:not(:disabled),
+.teamleader-dashboard-section__page-btn:hover:not(:disabled),
+.teamleader-dashboard-section__page-btn:focus:not(:disabled),
+.teamleader-dashboard-section__page-btn:active:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+  transform: none;
+  box-shadow: none;
 }
 
+.users-section__page-btn:disabled,
 .teamleader-dashboard-section__page-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
+.users-section__page-btn--number,
 .teamleader-dashboard-section__page-btn--number {
   width: 36px;
   padding: 0;
 }
 
+.users-section__page-btn--active,
 .teamleader-dashboard-section__page-btn--active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.users-section__page-btn--active:hover:not(:disabled),
+.users-section__page-btn--active:focus:not(:disabled),
+.users-section__page-btn--active:active:not(:disabled),
+.teamleader-dashboard-section__page-btn--active:hover:not(:disabled),
+.teamleader-dashboard-section__page-btn--active:focus:not(:disabled),
+.teamleader-dashboard-section__page-btn--active:active:not(:disabled) {
   background: #2563eb;
   border-color: #2563eb;
   color: #ffffff;

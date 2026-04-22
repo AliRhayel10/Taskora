@@ -1335,16 +1335,16 @@ export default function TeamLeaderDashboardSection({
               </div>
 
               {totalPages > 1 && (
-                <div className="teamleader-dashboard-section__pagination">
-                  <span className="teamleader-dashboard-section__pagination-info">
+                <div className="users-section__pagination teamleader-dashboard-section__pagination">
+                  <div className="users-section__pagination-info teamleader-dashboard-section__pagination-info">
                     {paginationInfo}
-                  </span>
+                  </div>
 
-                  <div className="teamleader-dashboard-section__pagination-controls">
+                  <div className="users-section__pagination-controls teamleader-dashboard-section__pagination-controls">
                     <button
                       type="button"
-                      className="teamleader-dashboard-section__page-btn"
-                      onClick={() => setCurrentPage((prev) => prev - 1)}
+                      className="users-section__page-btn teamleader-dashboard-section__page-btn"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
                     >
                       <FiChevronLeft />
@@ -1354,9 +1354,9 @@ export default function TeamLeaderDashboardSection({
                       <button
                         key={page}
                         type="button"
-                        className={`teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
+                        className={`users-section__page-btn users-section__page-btn--number teamleader-dashboard-section__page-btn teamleader-dashboard-section__page-btn--number ${
                           currentPage === page
-                            ? "teamleader-dashboard-section__page-btn--active"
+                            ? "users-section__page-btn--active teamleader-dashboard-section__page-btn--active"
                             : ""
                         }`}
                         onClick={() => setCurrentPage(page)}
@@ -1367,8 +1367,10 @@ export default function TeamLeaderDashboardSection({
 
                     <button
                       type="button"
-                      className="teamleader-dashboard-section__page-btn"
-                      onClick={() => setCurrentPage((prev) => prev + 1)}
+                      className="users-section__page-btn teamleader-dashboard-section__page-btn"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
                       disabled={currentPage === totalPages}
                     >
                       <FiChevronRight />
