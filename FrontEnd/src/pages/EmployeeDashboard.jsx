@@ -8,7 +8,7 @@ import "../assets/styles/employee/employee-dashboard.css";
 
 function SectionTitle({ title }) {
   return (
-    <div className="users-section">
+    <div className="users-section users-section--title-only employee-dashboard__title-section">
       <div className="users-section__title-row">
         <h2>{title}</h2>
         <div className="users-section__title-line"></div>

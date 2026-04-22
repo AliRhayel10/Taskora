@@ -8,6 +8,18 @@
     overflow: hidden;
 }
 
+
+.users-section--title-only {
+    flex: 0 0 auto;
+    min-height: auto;
+    gap: 0;
+    overflow: visible;
+}
+
+.users-section--title-only .users-section__title-row {
+    margin-bottom: 0;
+}
+
 .users-section__title-row {
     display: flex;
     align-items: center;
