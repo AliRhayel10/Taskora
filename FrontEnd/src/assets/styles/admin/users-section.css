@@ -1,8 +1,11 @@
 .users-section {
     width: 100%;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 18px;
+    overflow: hidden;
 }
 
 .users-section__title-row {
@@ -118,6 +121,45 @@
     color: #b42318;
 }
 
+.users-section__feedback--floating {
+    position: fixed;
+    top: 16px;
+    left: calc(280px + ((100vw - 280px) / 2));
+    transform: translateX(-50%);
+    z-index: 10001;
+    width: min(1100px, calc(100vw - 280px - 32px));
+    min-height: 56px;
+    padding: 14px 22px;
+    border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.users-section__feedback--floating svg {
+    font-size: 1.55rem;
+    flex-shrink: 0;
+}
+
+.users-section__feedback--floating span {
+    line-height: 1.2;
+}
+
+.users-section__feedback--floating-success {
+    background: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    color: #2e7d32;
+}
+
+.users-section__feedback--floating-error {
+    background: #fff4f4;
+    border: 1px solid #fecaca;
+    color: #b42318;
+}
+
 .users-section__state-card {
     background: #f8fafc;
     border: 1px solid #cbd5e1;
@@ -175,11 +217,18 @@
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .users-section__table-wrap {
     width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-x: auto;
+    overflow-y: auto;
 }
 
 .users-section__table {
@@ -198,6 +247,9 @@
     font-weight: 700;
     text-align: left;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .users-section__sort-btn {
@@ -752,6 +804,9 @@
     padding: 14px 16px;
     border-top: 1px solid #e2e8f0;
     flex-wrap: wrap;
+    flex-shrink: 0;
+    margin-top: auto;
+    background: #f8fafc;
 }
 
 .users-section__pagination-info {
@@ -975,6 +1030,17 @@
 }
 
 @media (max-width: 560px) {
+    .users-section__feedback--floating {
+        top: 12px;
+        left: 16px;
+        right: 16px;
+        width: auto;
+        transform: none;
+        min-width: 0;
+        max-width: none;
+        padding: 12px 16px;
+    }
+
     .users-section__modal {
         padding: 20px 16px;
         border-radius: 20px;

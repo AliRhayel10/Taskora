@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+    FiAlertCircle,
+    FiCheckCircle,
     FiChevronLeft,
     FiChevronRight,
     FiPlus,
@@ -843,8 +845,16 @@ export default function UsersSection({
             </div>
 
             {createSuccess && (
-                <div className="users-section__feedback users-section__feedback--success">
-                    {createSuccess}
+                <div className="users-section__feedback users-section__feedback--floating users-section__feedback--floating-success" role="status" aria-live="polite">
+                    <FiCheckCircle />
+                    <span>{createSuccess}</span>
+                </div>
+            )}
+
+            {createError && (
+                <div className="users-section__feedback users-section__feedback--floating users-section__feedback--floating-error" role="alert" aria-live="assertive">
+                    <FiAlertCircle />
+                    <span>{createError}</span>
                 </div>
             )}
 
@@ -1103,12 +1113,6 @@ export default function UsersSection({
                                 <FiX />
                             </button>
                         </div>
-
-                        {createError && (
-                            <div className="users-section__feedback users-section__feedback--error">
-                                {createError}
-                            </div>
-                        )}
 
                         <form className="users-section__form" onSubmit={handleCreateUser}>
                             <div className="users-section__form-group">
