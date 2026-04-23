@@ -29,6 +29,9 @@ function mapStatusLabel(status) {
   if (normalized === "acknowledged") return "Acknowledged";
   if (normalized === "pending") return "Pending";
   if (normalized === "done" || normalized === "completed") return "Done";
+  if (normalized === "approved") return "Approved";
+  if (normalized === "rejected") return "Rejected";
+  if (normalized === "archived") return "Archived";
 
   return status || "New";
 }
@@ -90,41 +93,6 @@ function getStatusClass(value) {
   return "employee-task-details-page__value--default";
 }
 
-function getTimelineStatusClass(value) {
-  const normalized = normalizeStatus(value);
-
-  if (normalized === "new") return "employee-task-details-page__timeline-status--new";
-  if (normalized === "acknowledged") {
-    return "employee-task-details-page__timeline-status--acknowledged";
-  }
-  if (normalized === "pending") return "employee-task-details-page__timeline-status--pending";
-  if (normalized === "done" || normalized === "completed") {
-    return "employee-task-details-page__timeline-status--done";
-  }
-  if (normalized === "approved") return "employee-task-details-page__timeline-status--approved";
-  if (normalized === "rejected") return "employee-task-details-page__timeline-status--rejected";
-  if (normalized === "archived") return "employee-task-details-page__timeline-status--archived";
-
-  return "employee-task-details-page__value--default";
-}
-
-
-function renderTimelineTitle(item) {
-  if (item.type !== "status") {
-    return item.title;
-  }
-
-  const statusLabel = mapStatusLabel(item.statusName);
-  const isChanged = Boolean(item.newStatusName);
-
-  return (
-    <>
-      {isChanged ? "Status changed to " : "Task status is "}
-      <span className={getTimelineStatusClass(item.statusName)}>{statusLabel}</span>
-    </>
-  );
-}
-
 function formatDate(value) {
   if (!value) return "Not available";
 
@@ -146,10 +114,11 @@ function formatDateTime(value) {
 
   return date.toLocaleString("en-GB", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -187,6 +156,27 @@ function getStoredEmployeeId() {
   );
 }
 
+function getProfileImage(user = {}) {
+  const rawValue =
+    user.profileImageUrl ||
+    user.ProfileImageUrl ||
+    user.imageUrl ||
+    user.ImageUrl ||
+    user.avatar ||
+    user.assignedUserAvatar ||
+    user.changedByProfileImageUrl ||
+    user.changedByAvatar ||
+    "";
+
+  const value = String(rawValue || "").trim();
+
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/")) return `${API_BASE}${value}`;
+
+  return `${API_BASE}/${value}`;
+}
+
 async function parseJsonResponse(response) {
   const rawText = await response.text();
 
@@ -210,6 +200,8 @@ export default function EmployeeTaskDetailsPage() {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [showAllFeedbackHistory, setShowAllFeedbackHistory] = useState(false);
+  const [showAllTimeline, setShowAllTimeline] = useState(false);
   const [toast, setToast] = useState({ show: false, type: "success", message: "" });
   const toastTimeoutRef = useRef(null);
 
@@ -319,12 +311,16 @@ export default function EmployeeTaskDetailsPage() {
         }
 
         const feedbackEntries = historyItems
-          .filter((item) => String(item.feedback || "").trim())
+          .filter((item) => String(item.feedback || item.Feedback || "").trim())
           .map((item, index) => ({
-            id: item.taskStatusHistoryId || `feedback-history-${index}`,
-            message: item.feedback,
-            createdAt: item.changedAt,
-            changedByName: item.changedByName || "",
+            id: item.taskStatusHistoryId || item.TaskStatusHistoryId || `feedback-history-${index}`,
+            message: item.feedback || item.Feedback,
+            feedbackText: item.feedback || item.Feedback,
+            createdAt: item.changedAt || item.ChangedAt,
+            changedAt: item.changedAt || item.ChangedAt,
+            changedAtLabel: formatDateTime(item.changedAt || item.ChangedAt),
+            changedByName: item.changedByName || item.ChangedByName || "",
+            changedByProfileImage: getProfileImage(item),
           }));
 
         const requestChangeEntries = feedbackEntries.filter((item) =>
@@ -343,45 +339,55 @@ export default function EmployeeTaskDetailsPage() {
           pureFeedbackEntries.unshift({
             id: "task-feedback-current",
             message: rawTask.feedback,
+            feedbackText: rawTask.feedback,
             createdAt: rawTask.updatedAt || rawTask.createdAt || "",
+            changedAt: rawTask.updatedAt || rawTask.createdAt || "",
+            changedAtLabel: formatDateTime(rawTask.updatedAt || rawTask.createdAt || ""),
             changedByName: "",
+            changedByProfileImage: "",
           });
         }
 
         const mappedTask = {
-          taskId: rawTask.taskId,
-          companyId: rawTask.companyId || storedUser?.companyId || 0,
-          title: rawTask.title || "Untitled Task",
-          description: rawTask.description || "",
-          priority: rawTask.priority || "-",
-          complexity: rawTask.complexity || "-",
+          taskId: rawTask.taskId || rawTask.TaskId,
+          companyId: rawTask.companyId || rawTask.CompanyId || storedUser?.companyId || 0,
+          title: rawTask.title || rawTask.Title || "Untitled Task",
+          description: rawTask.description || rawTask.Description || "",
+          priority: rawTask.priority || rawTask.Priority || "-",
+          complexity: rawTask.complexity || rawTask.Complexity || "-",
           effort:
             rawTask.effort ??
+            rawTask.Effort ??
             rawTask.estimatedEffortHours ??
             rawTask.estimatedEffort ??
             0,
-          weight: rawTask.weight ?? rawTask.taskWeight ?? 0,
-          dueDate: rawTask.dueDate || rawTask.endDate || rawTask.deadline || "",
-          startDate: rawTask.startDate || rawTask.createdAt || "",
+          weight: rawTask.weight ?? rawTask.Weight ?? rawTask.taskWeight ?? 0,
+          dueDate: rawTask.dueDate || rawTask.DueDate || rawTask.endDate || rawTask.deadline || "",
+          startDate: rawTask.startDate || rawTask.StartDate || rawTask.createdAt || rawTask.CreatedAt || "",
           status:
             rawTask.taskStatusName ||
+            rawTask.TaskStatusName ||
             rawTask.status ||
+            rawTask.Status ||
             rawTask.taskStatus?.statusName ||
             "New",
-          taskStatusId: rawTask.taskStatusId || rawTask.statusId || 0,
+          taskStatusId: rawTask.taskStatusId || rawTask.TaskStatusId || rawTask.statusId || rawTask.StatusId || 0,
           assignedToName:
             rawTask.assignedToName ||
+            rawTask.AssignedToName ||
             rawTask.assignedUserName ||
             rawTask.employeeName ||
             "Assigned user",
           assignedToEmail:
             rawTask.assignedToEmail ||
+            rawTask.AssignedToEmail ||
             rawTask.assignedUserEmail ||
             rawTask.employeeEmail ||
             "",
+          assignedToProfileImage: getProfileImage(rawTask),
           feedback: pureFeedbackEntries,
           requestChanges: requestChangeEntries,
-          updatedAt: rawTask.updatedAt || rawTask.lastUpdated || rawTask.createdAt || "",
+          updatedAt: rawTask.updatedAt || rawTask.UpdatedAt || rawTask.lastUpdated || rawTask.createdAt || rawTask.CreatedAt || "",
           history: historyItems,
           availableStatuses,
         };
@@ -399,6 +405,7 @@ export default function EmployeeTaskDetailsPage() {
         }
       }
     }
+
     loadTask();
 
     return () => {
@@ -409,43 +416,88 @@ export default function EmployeeTaskDetailsPage() {
   const timelineItems = useMemo(() => {
     if (!task) return [];
 
-    const historyStatusEvents = (task.history || []).map((item, index) => ({
-      id: item.taskStatusHistoryId || `history-status-${index}`,
-      type: String(item.feedback || "").trim() ? "feedback" : "status",
-      title: item.newStatusName
-        ? `Status changed to ${mapStatusLabel(item.newStatusName)}`
-        : `Task status is ${mapStatusLabel(task.status)}`,
-      createdAt: item.changedAt || "",
-      feedback: item.feedback || "",
-      changedByName: item.changedByName || "",
-      statusName: item.newStatusName || task.status || "",
-    }));
+    const historyEntries = (task.history || []).map((item, index) => {
+      const feedbackValue = String(item.feedback || item.Feedback || "").trim();
+      const oldStatusName = item.oldStatusName || item.OldStatusName || "";
+      const newStatusName = item.newStatusName || item.NewStatusName || "";
+      const changedByName = item.changedByName || item.ChangedByName || "";
+      const changedAt = item.changedAt || item.ChangedAt || "";
+      const oldNormalized = normalizeStatus(oldStatusName);
+      const newNormalized = normalizeStatus(newStatusName);
+      const hasStatusChanged = Boolean(newStatusName) && oldNormalized !== newNormalized;
 
-    const fallbackStatusEvent = historyStatusEvents.length
+      return {
+        id:
+          item.taskStatusHistoryId ||
+          item.TaskStatusHistoryId ||
+          `history-item-${index}`,
+        type: hasStatusChanged ? "status" : "feedback",
+        hasStatusChanged,
+        title: hasStatusChanged
+          ? `Status changed to ${mapStatusLabel(newStatusName)}`
+          : "Feedback added",
+        createdAt: changedAt,
+        changedAtLabel: formatDateTime(changedAt),
+        feedbackText: feedbackValue,
+        changedByName,
+        changedByProfileImage: getProfileImage(item),
+        statusName: newStatusName,
+        newStatusName,
+      };
+    });
+
+    const fallbackStatusEvent = historyEntries.length
       ? []
       : [
           {
             id: `status-${task.taskId}`,
             type: "status",
-            title: `Task status is ${mapStatusLabel(task.status)}`,
+            hasStatusChanged: true,
+            title: `Status changed to ${mapStatusLabel(task.status)}`,
             createdAt: task.updatedAt || task.startDate,
-            feedback: "",
+            changedAtLabel: formatDateTime(task.updatedAt || task.startDate),
+            feedbackText: "",
             changedByName: "",
+            changedByProfileImage: "",
             statusName: task.status,
+            newStatusName: task.status,
           },
         ];
 
-    return [...historyStatusEvents, ...fallbackStatusEvent].sort(
+    return [...historyEntries, ...fallbackStatusEvent].sort(
       (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     );
   }, [task]);
+
+  const feedbackHistoryEntries = useMemo(() => {
+    if (!task?.feedback?.length) return [];
+
+    return [...task.feedback].sort(
+      (a, b) =>
+        new Date(b.createdAt || b.changedAt || 0).getTime() -
+        new Date(a.createdAt || a.changedAt || 0).getTime()
+    );
+  }, [task]);
+
+  const visibleTimelineEntries = useMemo(
+    () => (showAllTimeline ? timelineItems : timelineItems.slice(0, 5)),
+    [timelineItems, showAllTimeline]
+  );
+
+  const visibleFeedbackHistoryEntries = useMemo(
+    () =>
+      showAllFeedbackHistory
+        ? feedbackHistoryEntries
+        : feedbackHistoryEntries.slice(0, 3),
+    [feedbackHistoryEntries, showAllFeedbackHistory]
+  );
 
   const latestUpdateText = useMemo(() => {
     if (!task) return "No updates yet";
 
     const dates = [
       task.updatedAt,
-      ...(task.history || []).map((item) => item.changedAt),
+      ...(task.history || []).map((item) => item.changedAt || item.ChangedAt),
       ...(task.feedback || []).map((item) => item.createdAt || item.date),
       ...(task.requestChanges || []).map((item) => item.createdAt || item.date),
     ].filter(Boolean);
@@ -462,13 +514,13 @@ export default function EmployeeTaskDetailsPage() {
   function getNextStatusData(currentTask) {
     const availableStatuses = Array.isArray(currentTask?.availableStatuses)
       ? [...currentTask.availableStatuses].sort(
-          (a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0)
+          (a, b) => Number(a.displayOrder || a.DisplayOrder || 0) - Number(b.displayOrder || b.DisplayOrder || 0)
         )
       : [];
 
     if (availableStatuses.length && currentTask?.taskStatusId) {
       const currentIndex = availableStatuses.findIndex(
-        (item) => Number(item.taskStatusId) === Number(currentTask.taskStatusId)
+        (item) => Number(item.taskStatusId || item.TaskStatusId) === Number(currentTask.taskStatusId)
       );
 
       if (currentIndex >= 0 && currentIndex < availableStatuses.length - 1) {
@@ -480,7 +532,7 @@ export default function EmployeeTaskDetailsPage() {
 
     return (
       availableStatuses.find(
-        (item) => normalizeStatus(item.statusName) === normalizeStatus(fallbackNextLabel)
+        (item) => normalizeStatus(item.statusName || item.StatusName) === normalizeStatus(fallbackNextLabel)
       ) || null
     );
   }
@@ -497,19 +549,21 @@ export default function EmployeeTaskDetailsPage() {
       return;
     }
 
-    if (!nextStatusData?.taskStatusId) {
-      const message = normalizeStatus(task.status) === "done"
-        ? "This task is already completed."
-        : "No next status is available for this task.";
+    if (!nextStatusData?.taskStatusId && !nextStatusData?.TaskStatusId) {
+      const message =
+        normalizeStatus(task.status) === "done"
+          ? "This task is already completed."
+          : "No next status is available for this task.";
       setErrorMessage(message);
       showToast(message, "error");
       return;
     }
 
+    const nextStatusId = Number(nextStatusData.taskStatusId || nextStatusData.TaskStatusId);
+    const nextStatus = nextStatusData.statusName || nextStatusData.StatusName || getNextStatus(task.status);
     const previousStatus = task.status;
     const previousStatusId = task.taskStatusId;
     const previousHistory = task.history || [];
-    const nextStatus = nextStatusData.statusName || getNextStatus(task.status);
     const nextUpdatedAt = new Date().toISOString();
 
     try {
@@ -521,15 +575,16 @@ export default function EmployeeTaskDetailsPage() {
           ? {
               ...prev,
               status: nextStatus,
-              taskStatusId: nextStatusData.taskStatusId,
+              taskStatusId: nextStatusId,
               updatedAt: nextUpdatedAt,
               history: [
                 {
                   taskStatusHistoryId: `history-status-local-${nextUpdatedAt}`,
+                  oldStatusName: prev.status,
                   newStatusName: nextStatus,
                   feedback: "",
                   changedAt: nextUpdatedAt,
-                  changedByName: "You",
+                  changedByName: prev.assignedToName || "",
                 },
                 ...(prev.history || []),
               ],
@@ -543,9 +598,10 @@ export default function EmployeeTaskDetailsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          taskId: task.taskId,
-          newTaskStatusId: nextStatusData.taskStatusId,
-          changedByUserId,
+          TaskId: Number(task.taskId),
+          NewTaskStatusId: nextStatusId,
+          ChangedByUserId: Number(changedByUserId),
+          Feedback: "",
         }),
       });
 
@@ -555,7 +611,7 @@ export default function EmployeeTaskDetailsPage() {
         throw new Error(data.message || "Failed to update task status.");
       }
 
-      showToast(data.message || "Task status updated successfully.");
+      showToast(`Task status updated to ${mapStatusLabel(nextStatus)}.`, "success");
     } catch (error) {
       setTask((prev) =>
         prev
@@ -576,22 +632,33 @@ export default function EmployeeTaskDetailsPage() {
 
   async function handleSubmitFeedback(event) {
     event.preventDefault();
-    if (!task || !feedbackText.trim()) return;
+
+    if (!task) return;
+
+    const trimmedFeedback = feedbackText.trim();
+    if (!trimmedFeedback || isSubmittingFeedback) return;
 
     const changedByUserId = getStoredEmployeeId();
-    const trimmedFeedback = feedbackText.trim();
+    const currentStatusId = Number(task.taskStatusId || 0);
     const createdAt = new Date().toISOString();
+
     const newItem = {
       id: `feedback-local-${createdAt}`,
       message: trimmedFeedback,
+      feedbackText: trimmedFeedback,
       createdAt,
-      changedByName: "You",
+      changedAt: createdAt,
+      changedAtLabel: formatDateTime(createdAt),
+      changedByName: task.assignedToName || "",
+      changedByProfileImage: task.assignedToProfileImage || "",
     };
+
     const previousFeedback = task.feedback || [];
     const previousHistory = task.history || [];
+    const previousUpdatedAt = task.updatedAt;
 
-    if (!changedByUserId || !task.taskStatusId) {
-      const message = "Unable to submit feedback for this task.";
+    if (!changedByUserId || !currentStatusId) {
+      const message = "Unable to submit feedback right now.";
       setErrorMessage(message);
       showToast(message, "error");
       return;
@@ -600,6 +667,7 @@ export default function EmployeeTaskDetailsPage() {
     try {
       setIsSubmittingFeedback(true);
       setErrorMessage("");
+      setFeedbackText("");
 
       setTask((prev) =>
         prev
@@ -608,11 +676,12 @@ export default function EmployeeTaskDetailsPage() {
               feedback: [newItem, ...(prev.feedback || [])],
               history: [
                 {
-                  taskStatusHistoryId: `history-local-${createdAt}`,
+                  taskStatusHistoryId: `history-feedback-local-${createdAt}`,
+                  oldStatusName: prev.status,
                   newStatusName: prev.status,
                   feedback: trimmedFeedback,
                   changedAt: createdAt,
-                  changedByName: "You",
+                  changedByName: prev.assignedToName || "",
                 },
                 ...(prev.history || []),
               ],
@@ -627,21 +696,20 @@ export default function EmployeeTaskDetailsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          taskId: task.taskId,
-          newTaskStatusId: task.taskStatusId,
-          changedByUserId,
-          feedback: trimmedFeedback,
+          TaskId: Number(task.taskId),
+          NewTaskStatusId: currentStatusId,
+          ChangedByUserId: Number(changedByUserId),
+          Feedback: trimmedFeedback,
         }),
       });
 
       const data = await parseJsonResponse(response);
 
       if (!response.ok || data.success === false) {
-        throw new Error(data.message || "Failed to submit feedback.");
+        throw new Error(data.message || "Unable to submit feedback.");
       }
 
-      setFeedbackText("");
-      showToast(data.message || "Feedback submitted successfully.");
+      showToast("Feedback submitted successfully.", "success");
     } catch (error) {
       setTask((prev) =>
         prev
@@ -649,34 +717,31 @@ export default function EmployeeTaskDetailsPage() {
               ...prev,
               feedback: previousFeedback,
               history: previousHistory,
+              updatedAt: previousUpdatedAt,
             }
           : prev
       );
-      setErrorMessage(error.message || "Failed to submit feedback.");
-      showToast(error.message || "Failed to submit feedback.", "error");
+      setFeedbackText(trimmedFeedback);
+      setErrorMessage(error.message || "Unable to submit feedback.");
+      showToast(error.message || "Unable to submit feedback.", "error");
     } finally {
       setIsSubmittingFeedback(false);
     }
   }
 
-  async function handleRequestChange() {
+  async function handleRequestChangeSubmit(event) {
+    event.preventDefault();
+
     if (!task || !requestChangeText.trim()) return;
 
     const changedByUserId = getStoredEmployeeId();
-    const trimmedRequest = requestChangeText.trim();
-    const requestFeedback = `Request change: ${trimmedRequest}`;
+    const requestFeedback = `Request change: ${requestChangeText.trim()}`;
     const createdAt = new Date().toISOString();
-    const newItem = {
-      id: `request-local-${createdAt}`,
-      message: requestFeedback,
-      createdAt,
-      changedByName: "You",
-    };
-    const previousRequests = task.requestChanges || [];
     const previousHistory = task.history || [];
+    const previousUpdatedAt = task.updatedAt;
 
     if (!changedByUserId || !task.taskStatusId) {
-      const message = "Unable to send the change request for this task.";
+      const message = "Unable to submit request change.";
       setErrorMessage(message);
       showToast(message, "error");
       return;
@@ -690,14 +755,23 @@ export default function EmployeeTaskDetailsPage() {
         prev
           ? {
               ...prev,
-              requestChanges: [newItem, ...(prev.requestChanges || [])],
+              requestChanges: [
+                {
+                  id: `request-local-${createdAt}`,
+                  message: requestFeedback,
+                  createdAt,
+                  changedByName: prev.assignedToName || "",
+                },
+                ...(prev.requestChanges || []),
+              ],
               history: [
                 {
                   taskStatusHistoryId: `history-request-${createdAt}`,
+                  oldStatusName: prev.status,
                   newStatusName: prev.status,
                   feedback: requestFeedback,
                   changedAt: createdAt,
-                  changedByName: "You",
+                  changedByName: prev.assignedToName || "",
                 },
                 ...(prev.history || []),
               ],
@@ -712,34 +786,34 @@ export default function EmployeeTaskDetailsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          taskId: task.taskId,
-          newTaskStatusId: task.taskStatusId,
-          changedByUserId,
-          feedback: requestFeedback,
+          TaskId: Number(task.taskId),
+          NewTaskStatusId: Number(task.taskStatusId),
+          ChangedByUserId: Number(changedByUserId),
+          Feedback: requestFeedback,
         }),
       });
 
       const data = await parseJsonResponse(response);
 
       if (!response.ok || data.success === false) {
-        throw new Error(data.message || "Failed to request change.");
+        throw new Error(data.message || "Failed to submit request change.");
       }
 
       setRequestChangeText("");
       setShowRequestMenu(false);
-      showToast(data.message || "Change request sent successfully.");
+      showToast("Request change sent successfully.", "success");
     } catch (error) {
       setTask((prev) =>
         prev
           ? {
               ...prev,
-              requestChanges: previousRequests,
               history: previousHistory,
+              updatedAt: previousUpdatedAt,
             }
           : prev
       );
-      setErrorMessage(error.message || "Failed to request change.");
-      showToast(error.message || "Failed to request change.", "error");
+      setErrorMessage(error.message || "Failed to submit request change.");
+      showToast(error.message || "Failed to submit request change.", "error");
     } finally {
       setIsSubmittingRequest(false);
     }
@@ -748,19 +822,6 @@ export default function EmployeeTaskDetailsPage() {
   if (isLoading) {
     return (
       <div className="employee-task-details-page">
-        <div className="employee-task-details-page__title-row">
-          <button
-            type="button"
-            className="employee-task-details-page__back-btn"
-            onClick={() => navigate("/employee")}
-            aria-label="Go back"
-          >
-            <FiArrowLeft />
-          </button>
-          <h2>Task Details</h2>
-          <div className="employee-task-details-page__title-line" />
-        </div>
-
         <div className="employee-task-details-page__empty-state-card">
           Loading task details...
         </div>
@@ -771,73 +832,55 @@ export default function EmployeeTaskDetailsPage() {
   if (errorMessage && !task) {
     return (
       <div className="employee-task-details-page">
-        <div className="employee-task-details-page__title-row">
-          <button
-            type="button"
-            className="employee-task-details-page__back-btn"
-            onClick={() => navigate("/employee")}
-            aria-label="Go back"
-          >
-            <FiArrowLeft />
-          </button>
-          <h2>Task Details</h2>
-          <div className="employee-task-details-page__title-line" />
-        </div>
+        <div className="employee-task-details-page__top-error">{errorMessage}</div>
+      </div>
+    );
+  }
 
+  if (!task) {
+    return (
+      <div className="employee-task-details-page">
         <div className="employee-task-details-page__empty-state-card">
-          {errorMessage}
+          Task not found.
         </div>
       </div>
     );
   }
 
+  const nextStatusActionLabel = getStatusActionLabel(task.status);
+  const isTaskDone = normalizeStatus(task.status) === "done";
+
   return (
     <div className="employee-task-details-page">
-      <div className="employee-task-details-page__title-row">
-        <button
-          type="button"
-          className="employee-task-details-page__back-btn"
-          onClick={() => navigate("/employee")}
-          aria-label="Go back"
-        >
-          <FiArrowLeft />
-        </button>
-        <h2>Task Details</h2>
-        <div className="employee-task-details-page__title-line" />
-      </div>
-
       {toast.show ? (
         <div
           className={`employee-task-details-page__toast employee-task-details-page__toast--${toast.type}`}
-          role="status"
-          aria-live="polite"
         >
           {toast.message}
         </div>
       ) : null}
 
-      {errorMessage ? (
-        <div className="employee-task-details-page__top-error">{errorMessage}</div>
-      ) : null}
-
-      <div className="employee-task-details-page__toolbar">
+      <div className="employee-task-details-page__title-row">
         <button
           type="button"
-          className="employee-task-details-page__status-btn"
-          onClick={handleStatusUpdate}
-          disabled={isUpdatingStatus || normalizeStatus(task.status) === "done"}
+          className="employee-task-details-page__back-btn"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
         >
-          <FiCheckCircle />
-          <span>
-            {isUpdatingStatus ? "Updating..." : getStatusActionLabel(task.status)}
-          </span>
+          <FiArrowLeft />
         </button>
 
+        <h2>Employee Task Details</h2>
+        <div className="employee-task-details-page__title-line" />
+      </div>
+
+      <div className="employee-task-details-page__toolbar">
         <div className="employee-task-details-page__request-wrap">
           <button
             type="button"
             className="employee-task-details-page__request-btn"
             onClick={() => setShowRequestMenu((prev) => !prev)}
+            disabled={isSubmittingRequest}
           >
             <FiMessageCircle />
             <span>Request Change</span>
@@ -845,25 +888,35 @@ export default function EmployeeTaskDetailsPage() {
           </button>
 
           {showRequestMenu ? (
-            <div className="employee-task-details-page__request-dropdown">
+            <form
+              className="employee-task-details-page__request-dropdown"
+              onSubmit={handleRequestChangeSubmit}
+            >
               <textarea
                 value={requestChangeText}
-                onChange={(event) =>
-                  setRequestChangeText(event.target.value.slice(0, 300))
-                }
-                placeholder="Write the requested change..."
+                onChange={(event) => setRequestChangeText(event.target.value.slice(0, 500))}
+                placeholder="Explain what should be changed..."
               />
               <button
-                type="button"
+                type="submit"
                 className="employee-task-details-page__request-submit"
-                onClick={handleRequestChange}
                 disabled={isSubmittingRequest || !requestChangeText.trim()}
               >
                 {isSubmittingRequest ? "Sending..." : "Send Request"}
               </button>
-            </div>
+            </form>
           ) : null}
         </div>
+
+        <button
+          type="button"
+          className="employee-task-details-page__status-btn"
+          onClick={handleStatusUpdate}
+          disabled={isUpdatingStatus || isTaskDone}
+        >
+          <FiCheckCircle />
+          <span>{isUpdatingStatus ? "Updating..." : nextStatusActionLabel}</span>
+        </button>
       </div>
 
       <div className="employee-task-details-page__content-grid">
@@ -880,7 +933,14 @@ export default function EmployeeTaskDetailsPage() {
 
             <div className="employee-task-details-page__assignee-row">
               <div className="employee-task-details-page__assignee-avatar">
-                {initialsFromName(task.assignedToName)}
+                {task.assignedToProfileImage ? (
+                  <img
+                    src={task.assignedToProfileImage}
+                    alt={task.assignedToName}
+                  />
+                ) : (
+                  initialsFromName(task.assignedToName)
+                )}
               </div>
 
               <div className="employee-task-details-page__assignee-copy">
@@ -965,41 +1025,62 @@ export default function EmployeeTaskDetailsPage() {
                   </div>
                   <h3>Activity Timeline</h3>
                 </div>
+
+                {timelineItems.length > 4 ? (
+                  <button
+                    type="button"
+                    className="employee-task-details-page__view-all-btn"
+                    onClick={() => setShowAllTimeline((previous) => !previous)}
+                  >
+                    {showAllTimeline ? "Show less" : "View all"}
+                  </button>
+                ) : null}
               </div>
 
               <div className="employee-task-details-page__card-scroll-area">
-                {timelineItems.length === 0 ? (
+                {visibleTimelineEntries.length === 0 ? (
                   <div className="employee-task-details-page__empty-state">
                     No activity has been recorded yet.
                   </div>
                 ) : (
                   <div className="employee-task-details-page__timeline-list">
-                    {timelineItems.map((item) => (
+                    {visibleTimelineEntries.map((item) => (
                       <div
                         key={item.id}
                         className="employee-task-details-page__timeline-item"
                       >
                         <div
                           className={`employee-task-details-page__timeline-marker ${
-                            item.type === "feedback"
-                              ? "employee-task-details-page__timeline-marker--feedback"
-                              : "employee-task-details-page__timeline-marker--status"
+                            item.hasStatusChanged
+                              ? "employee-task-details-page__timeline-marker--status"
+                              : "employee-task-details-page__timeline-marker--feedback"
                           }`}
                         />
 
                         <div className="employee-task-details-page__timeline-content">
                           <div className="employee-task-details-page__timeline-heading">
-                            {renderTimelineTitle(item)}
+                            {item.hasStatusChanged ? (
+                              <>
+                                <span>Status changed to </span>
+                                <span className={getStatusClass(item.newStatusName)}>
+                                  {mapStatusLabel(item.newStatusName)}
+                                </span>
+                              </>
+                            ) : (
+                              "Feedback added"
+                            )}
                           </div>
-                          {item.feedback ? (
-                            <div className="employee-task-details-page__timeline-meta">
-                              {item.feedback}
+
+                          <div className="employee-task-details-page__timeline-meta">
+                            {item.changedByName ? `By ${item.changedByName} • ` : ""}
+                            {item.changedAtLabel}
+                          </div>
+
+                          {!item.hasStatusChanged && item.feedbackText ? (
+                            <div className="employee-task-details-page__timeline-note">
+                              “{item.feedbackText}”
                             </div>
                           ) : null}
-                          <div className="employee-task-details-page__timeline-meta">
-                            {formatDateTime(item.createdAt)}
-                            {item.changedByName ? ` • ${item.changedByName}` : ""}
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -1008,48 +1089,83 @@ export default function EmployeeTaskDetailsPage() {
               </div>
             </div>
 
-            <div className="employee-task-details-page__history-card">
-              <div className="employee-task-details-page__section-header employee-task-details-page__section-header--feedback">
+            <div className="employee-task-details-page__history-card employee-task-details-page__summary-card">
+              <div className="employee-task-details-page__section-header">
                 <div className="employee-task-details-page__section-title-wrap">
                   <div className="employee-task-details-page__section-icon">
                     <FiMessageSquare />
                   </div>
                   <h3>Feedback Summary</h3>
                 </div>
+
+                {feedbackHistoryEntries.length > 2 ? (
+                  <button
+                    type="button"
+                    className="employee-task-details-page__view-all-btn"
+                    onClick={() => setShowAllFeedbackHistory((previous) => !previous)}
+                  >
+                    {showAllFeedbackHistory ? "Show less" : "View all"}
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="employee-task-details-page__summary-stats">
+                <div className="employee-task-details-page__summary-stat">
+                  <span>Total Feedback</span>
+                  <strong>{feedbackHistoryEntries.length}</strong>
+                </div>
+
+                <div className="employee-task-details-page__summary-stat">
+                  <span>Latest Update</span>
+                  <strong>
+                    {feedbackHistoryEntries.length
+                      ? feedbackHistoryEntries[0].changedAtLabel
+                      : latestUpdateText}
+                  </strong>
+                </div>
               </div>
 
               <div className="employee-task-details-page__card-scroll-area">
-                <div className="employee-task-details-page__summary-card">
-                  <div className="employee-task-details-page__summary-stats">
-                    <div className="employee-task-details-page__summary-stat">
-                      <span>Total Feedback</span>
-                      <strong>{task.feedback?.length || 0}</strong>
-                    </div>
+                {visibleFeedbackHistoryEntries.length ? (
+                  <div className="employee-task-details-page__history-list">
+                    {visibleFeedbackHistoryEntries.map((item, index) => (
+                      <div
+                        key={item.id || `${item.createdAt}-${index}`}
+                        className="employee-task-details-page__history-item"
+                      >
+                        <div className="employee-task-details-page__history-dot" />
 
-                    <div className="employee-task-details-page__summary-stat">
-                      <span>Latest Update</span>
-                      <strong>{latestUpdateText}</strong>
-                    </div>
-                  </div>
-
-                  {task.feedback?.length ? (
-                    <div className="employee-task-details-page__feedback-list">
-                      {task.feedback.slice(0, 5).map((item, index) => (
-                        <div
-                          key={`${item.createdAt}-${index}`}
-                          className="employee-task-details-page__feedback-item"
-                        >
-                          <p>{item.message || item.text}</p>
-                          <small>{formatDateTime(item.createdAt || item.date)}</small>
+                        <div className="employee-task-details-page__history-avatar">
+                          {item.changedByProfileImage ? (
+                            <img
+                              src={item.changedByProfileImage}
+                              alt={item.changedByName || "User"}
+                            />
+                          ) : (
+                            initialsFromName(item.changedByName || task.assignedToName)
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="employee-task-details-page__empty-state">
-                      No feedback has been added yet.
-                    </div>
-                  )}
-                </div>
+
+                        <div className="employee-task-details-page__history-content">
+                          <div className="employee-task-details-page__history-meta">
+                            <strong>{item.changedByName || task.assignedToName}</strong>
+                            <span>{item.changedAtLabel || formatDateTime(item.createdAt)}</span>
+                            {index === 0 ? (
+                              <span className="employee-task-details-page__history-badge">
+                                Latest
+                              </span>
+                            ) : null}
+                          </div>
+                          <p>{item.feedbackText || item.message || item.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="employee-task-details-page__empty-state">
+                    No feedback has been added yet.
+                  </div>
+                )}
               </div>
             </div>
           </div>
