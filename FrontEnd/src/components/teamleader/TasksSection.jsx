@@ -239,6 +239,35 @@ const getRangeLabel = (preset) => {
   }
 };
 
+
+const buildPageNumbers = (totalPages, currentPage) => {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, 5];
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
+  }
+
+  return [
+    currentPage - 2,
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    currentPage + 2,
+  ];
+};
+
 const formatDateText = (value) => format(value, "dd/MM/yyyy");
 
 const formatMonthYearText = (value) => format(value, "MMMM yyyy");
@@ -714,7 +743,7 @@ export default function TasksSection({
   membersEndpoint,
   updateTaskEndpoint,
   deleteTaskEndpoint,
-  pageSize = 10,
+  pageSize = 6,
   searchValue = "",
 }) {
   const storedUser = getStoredUser();
@@ -1703,9 +1732,26 @@ export default function TasksSection({
     return sortedTasks.slice(startIndex, startIndex + pageSize);
   }, [sortedTasks, currentPage, pageSize]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    activeTab,
+    searchValue,
+    selectedDashboardPreset,
+    dashboardCustomRange?.from,
+    dashboardCustomRange?.to,
+    sortConfig,
+  ]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const pageNumbers = useMemo(() => {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }, [totalPages]);
+    return buildPageNumbers(totalPages, currentPage);
+  }, [totalPages, currentPage]);
 
   const computedTaskWeight = useMemo(() => {
     const baseEffort = Number(formState.estimatedEffortHours);
