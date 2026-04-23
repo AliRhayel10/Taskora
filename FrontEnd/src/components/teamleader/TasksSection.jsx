@@ -289,7 +289,13 @@ const isFullMonthRange = (fromValue, toValue) => {
 
 const getStoredUser = () => {
   try {
-    return JSON.parse(localStorage.getItem("user") || "{}");
+    const authUser = localStorage.getItem("authUser");
+    const user = localStorage.getItem("user");
+
+    if (authUser) return JSON.parse(authUser);
+    if (user) return JSON.parse(user);
+
+    return {};
   } catch {
     return {};
   }
@@ -746,16 +752,22 @@ export default function TasksSection({
   pageSize = 6,
   searchValue = "",
 }) {
-  const storedUser = getStoredUser();
+const storedUser = getStoredUser();
 
-  const resolvedCompanyId =
-    companyId ?? storedUser?.companyId ?? storedUser?.CompanyId ?? null;
-  const resolvedCurrentUserId =
-    storedUser?.userId ??
-    storedUser?.UserId ??
-    storedUser?.id ??
-    storedUser?.Id ??
-    null;
+const resolvedCompanyId =
+  companyId ??
+  storedUser?.companyId ??
+  storedUser?.CompanyId ??
+  storedUser?.company?.companyId ??
+  storedUser?.company?.CompanyId ??
+  null;
+
+const resolvedCurrentUserId =
+  storedUser?.userId ??
+  storedUser?.UserId ??
+  storedUser?.id ??
+  storedUser?.Id ??
+  null;
   const storedUserTeamId =
     storedUser?.teamId ??
     storedUser?.TeamId ??

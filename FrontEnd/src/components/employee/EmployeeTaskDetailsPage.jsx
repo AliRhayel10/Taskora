@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     FiArrowLeft,
     FiCalendar,
@@ -172,6 +172,38 @@ function getStoredEmployeeId() {
     );
 }
 
+function getStoredEmployeeName() {
+    const storedUser = getStoredEmployee();
+
+    return (
+        storedUser?.fullName ||
+        storedUser?.FullName ||
+        storedUser?.name ||
+        storedUser?.Name ||
+        storedUser?.userName ||
+        storedUser?.UserName ||
+        storedUser?.employeeName ||
+        storedUser?.EmployeeName ||
+        ""
+    );
+}
+
+function resolveChangedByName(item = {}) {
+    return (
+        item.changedByName ||
+        item.ChangedByName ||
+        item.changedByUserName ||
+        item.ChangedByUserName ||
+        item.userName ||
+        item.UserName ||
+        item.fullName ||
+        item.FullName ||
+        item.name ||
+        item.Name ||
+        ""
+    );
+}
+
 function getProfileImage(user = {}) {
     const rawValue =
         user.profileImageUrl ||
@@ -241,193 +273,212 @@ export default function EmployeeTaskDetailsPage() {
         }, 3000);
     }
 
-    useEffect(() => {
-        let isMounted = true;
+    const loadTaskDetails = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setErrorMessage("");
 
-        async function loadTask() {
-            try {
-                setIsLoading(true);
-                setErrorMessage("");
+            const storedUser = getStoredEmployee();
+            let rawTask = null;
+            let historyItems = [];
+            let availableStatuses = [];
 
-                const storedUser = getStoredEmployee();
-                let rawTask = null;
-                let historyItems = [];
-                let availableStatuses = [];
+            const byIdResponse = await fetch(`${API_BASE}/api/tasks/by-id/${taskId}`, {
+                cache: "no-store",
+            });
+            const byIdData = await parseJsonResponse(byIdResponse);
 
-                const byIdResponse = await fetch(`${API_BASE}/api/tasks/by-id/${taskId}`);
-                const byIdData = await parseJsonResponse(byIdResponse);
+            if (byIdResponse.ok && byIdData.success !== false) {
+                rawTask = byIdData.task || byIdData.data || byIdData;
+            }
 
-                if (byIdResponse.ok && byIdData.success !== false) {
-                    rawTask = byIdData.task || byIdData.data || byIdData;
+            if (!rawTask) {
+                const directResponse = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
+                    cache: "no-store",
+                });
+                const directData = await parseJsonResponse(directResponse);
+
+                if (directResponse.ok && directData.success !== false) {
+                    rawTask = directData.task || directData.data || directData;
                 }
+            }
 
-                if (!rawTask) {
-                    const directResponse = await fetch(`${API_BASE}/api/tasks/${taskId}`);
-                    const directData = await parseJsonResponse(directResponse);
-
-                    if (directResponse.ok && directData.success !== false) {
-                        rawTask = directData.task || directData.data || directData;
-                    }
-                }
-
-                if (!rawTask) {
-                    if (!storedUser?.companyId) {
-                        throw new Error("Failed to load task details.");
-                    }
-
-                    const companyResponse = await fetch(
-                        `${API_BASE}/api/tasks/company/${storedUser.companyId}`
-                    );
-                    const companyData = await parseJsonResponse(companyResponse);
-
-                    if (!companyResponse.ok || companyData.success === false) {
-                        throw new Error(companyData.message || "Failed to load task details.");
-                    }
-
-                    const taskList = Array.isArray(companyData.tasks)
-                        ? companyData.tasks
-                        : Array.isArray(companyData.data)
-                            ? companyData.data
-                            : Array.isArray(companyData)
-                                ? companyData
-                                : [];
-
-                    rawTask =
-                        taskList.find((item) => String(item.taskId) === String(taskId)) || null;
-                }
-
-                if (!rawTask) {
+            if (!rawTask) {
+                if (!storedUser?.companyId) {
                     throw new Error("Failed to load task details.");
                 }
 
-                if (storedUser?.companyId) {
-                    const [historyResponse, statusesResponse] = await Promise.all([
-                        fetch(`${API_BASE}/api/tasks/${taskId}/history`),
-                        fetch(`${API_BASE}/api/tasks/statuses/${storedUser.companyId}`),
-                    ]);
-
-                    const historyData = await parseJsonResponse(historyResponse);
-                    const statusesData = await parseJsonResponse(statusesResponse);
-
-                    if (historyResponse.ok && historyData.success !== false) {
-                        historyItems = Array.isArray(historyData.data)
-                            ? historyData.data
-                            : Array.isArray(historyData.history)
-                                ? historyData.history
-                                : [];
-                    }
-
-                    if (statusesResponse.ok && statusesData.success !== false) {
-                        availableStatuses = Array.isArray(statusesData.statuses)
-                            ? statusesData.statuses
-                            : Array.isArray(statusesData.data)
-                                ? statusesData.data
-                                : [];
-                    }
-                }
-
-                const feedbackEntries = historyItems
-                    .filter((item) => String(item.feedback || item.Feedback || "").trim())
-                    .map((item, index) => ({
-                        id: item.taskStatusHistoryId || item.TaskStatusHistoryId || `feedback-history-${index}`,
-                        message: item.feedback || item.Feedback,
-                        feedbackText: item.feedback || item.Feedback,
-                        createdAt: item.changedAt || item.ChangedAt,
-                        changedAt: item.changedAt || item.ChangedAt,
-                        changedAtLabel: formatDateTime(item.changedAt || item.ChangedAt),
-                        changedByName: item.changedByName || item.ChangedByName || "",
-                        changedByProfileImage: getProfileImage(item),
-                    }));
-
-                const requestChangeEntries = feedbackEntries.filter((item) =>
-                    String(item.message).trim().toLowerCase().startsWith("request change:")
+                const companyResponse = await fetch(
+                    `${API_BASE}/api/tasks/company/${storedUser.companyId}`,
+                    { cache: "no-store" }
                 );
+                const companyData = await parseJsonResponse(companyResponse);
 
-                const pureFeedbackEntries = feedbackEntries.filter(
-                    (item) => !String(item.message).trim().toLowerCase().startsWith("request change:")
-                );
-
-                if (
-                    !feedbackEntries.length &&
-                    rawTask.feedback &&
-                    String(rawTask.feedback).trim()
-                ) {
-                    pureFeedbackEntries.unshift({
-                        id: "task-feedback-current",
-                        message: rawTask.feedback,
-                        feedbackText: rawTask.feedback,
-                        createdAt: rawTask.updatedAt || rawTask.createdAt || "",
-                        changedAt: rawTask.updatedAt || rawTask.createdAt || "",
-                        changedAtLabel: formatDateTime(rawTask.updatedAt || rawTask.createdAt || ""),
-                        changedByName: "",
-                        changedByProfileImage: "",
-                    });
+                if (!companyResponse.ok || companyData.success === false) {
+                    throw new Error(companyData.message || "Failed to load task details.");
                 }
 
-                const mappedTask = {
-                    taskId: rawTask.taskId || rawTask.TaskId,
-                    companyId: rawTask.companyId || rawTask.CompanyId || storedUser?.companyId || 0,
-                    title: rawTask.title || rawTask.Title || "Untitled Task",
-                    description: rawTask.description || rawTask.Description || "",
-                    priority: rawTask.priority || rawTask.Priority || "-",
-                    complexity: rawTask.complexity || rawTask.Complexity || "-",
-                    effort:
-                        rawTask.effort ??
-                        rawTask.Effort ??
-                        rawTask.estimatedEffortHours ??
-                        rawTask.estimatedEffort ??
-                        0,
-                    weight: rawTask.weight ?? rawTask.Weight ?? rawTask.taskWeight ?? 0,
-                    dueDate: rawTask.dueDate || rawTask.DueDate || rawTask.endDate || rawTask.deadline || "",
-                    startDate: rawTask.startDate || rawTask.StartDate || rawTask.createdAt || rawTask.CreatedAt || "",
-                    status:
-                        rawTask.taskStatusName ||
-                        rawTask.TaskStatusName ||
-                        rawTask.status ||
-                        rawTask.Status ||
-                        rawTask.taskStatus?.statusName ||
-                        "New",
-                    taskStatusId: rawTask.taskStatusId || rawTask.TaskStatusId || rawTask.statusId || rawTask.StatusId || 0,
-                    assignedToName:
-                        rawTask.assignedToName ||
-                        rawTask.AssignedToName ||
-                        rawTask.assignedUserName ||
-                        rawTask.employeeName ||
-                        "Assigned user",
-                    assignedToEmail:
-                        rawTask.assignedToEmail ||
-                        rawTask.AssignedToEmail ||
-                        rawTask.assignedUserEmail ||
-                        rawTask.employeeEmail ||
-                        "",
-                    assignedToProfileImage: getProfileImage(rawTask),
-                    feedback: pureFeedbackEntries,
-                    requestChanges: requestChangeEntries,
-                    updatedAt: rawTask.updatedAt || rawTask.UpdatedAt || rawTask.lastUpdated || rawTask.createdAt || rawTask.CreatedAt || "",
-                    history: historyItems,
-                    availableStatuses,
-                };
+                const taskList = Array.isArray(companyData.tasks)
+                    ? companyData.tasks
+                    : Array.isArray(companyData.data)
+                        ? companyData.data
+                        : Array.isArray(companyData)
+                            ? companyData
+                            : [];
 
-                if (isMounted) {
-                    setTask(mappedTask);
+                rawTask =
+                    taskList.find((item) => String(item.taskId || item.TaskId) === String(taskId)) || null;
+            }
+
+            if (!rawTask) {
+                throw new Error("Failed to load task details.");
+            }
+
+            if (storedUser?.companyId) {
+                const [historyResponse, statusesResponse] = await Promise.all([
+                    fetch(`${API_BASE}/api/tasks/${taskId}/history`, { cache: "no-store" }),
+                    fetch(`${API_BASE}/api/tasks/statuses/${storedUser.companyId}`, { cache: "no-store" }),
+                ]);
+
+                const historyData = await parseJsonResponse(historyResponse);
+                const statusesData = await parseJsonResponse(statusesResponse);
+
+                if (historyResponse.ok && historyData.success !== false) {
+                    historyItems = Array.isArray(historyData.data)
+                        ? historyData.data
+                        : Array.isArray(historyData.history)
+                            ? historyData.history
+                            : [];
                 }
-            } catch (error) {
-                if (isMounted) {
-                    setErrorMessage(error.message || "Failed to load task details.");
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
+
+                if (statusesResponse.ok && statusesData.success !== false) {
+                    availableStatuses = Array.isArray(statusesData.statuses)
+                        ? statusesData.statuses
+                        : Array.isArray(statusesData.data)
+                            ? statusesData.data
+                            : [];
                 }
             }
-        }
 
-        loadTask();
+            const feedbackEntries = historyItems
+                .filter((item) => String(item.feedback || item.Feedback || "").trim())
+                .map((item, index) => ({
+                    id: item.taskStatusHistoryId || item.TaskStatusHistoryId || `feedback-history-${index}`,
+                    message: item.feedback || item.Feedback,
+                    feedbackText: item.feedback || item.Feedback,
+                    createdAt: item.changedAt || item.ChangedAt,
+                    changedAt: item.changedAt || item.ChangedAt,
+                    changedAtLabel: formatDateTime(item.changedAt || item.ChangedAt),
+                    changedByName: resolveChangedByName(item),
+                    changedByProfileImage: getProfileImage(item),
+                }));
+
+            const requestChangeEntries = feedbackEntries.filter((item) =>
+                String(item.message).trim().toLowerCase().startsWith("request change:")
+            );
+
+            const pureFeedbackEntries = feedbackEntries.filter(
+                (item) => !String(item.message).trim().toLowerCase().startsWith("request change:")
+            );
+
+            if (
+                !feedbackEntries.length &&
+                rawTask.feedback &&
+                String(rawTask.feedback).trim()
+            ) {
+                pureFeedbackEntries.unshift({
+                    id: "task-feedback-current",
+                    message: rawTask.feedback,
+                    feedbackText: rawTask.feedback,
+                    createdAt: rawTask.updatedAt || rawTask.createdAt || "",
+                    changedAt: rawTask.updatedAt || rawTask.createdAt || "",
+                    changedAtLabel: formatDateTime(rawTask.updatedAt || rawTask.createdAt || ""),
+                    changedByName: "",
+                    changedByProfileImage: "",
+                });
+            }
+
+            const mappedTask = {
+                taskId: rawTask.taskId || rawTask.TaskId,
+                companyId: rawTask.companyId || rawTask.CompanyId || storedUser?.companyId || 0,
+                title: rawTask.title || rawTask.Title || "Untitled Task",
+                description: rawTask.description || rawTask.Description || "",
+                priority: rawTask.priority || rawTask.Priority || "-",
+                complexity: rawTask.complexity || rawTask.Complexity || "-",
+                effort:
+                    rawTask.effort ??
+                    rawTask.Effort ??
+                    rawTask.estimatedEffortHours ??
+                    rawTask.estimatedEffort ??
+                    0,
+                weight: rawTask.weight ?? rawTask.Weight ?? rawTask.taskWeight ?? 0,
+                dueDate: rawTask.dueDate || rawTask.DueDate || rawTask.endDate || rawTask.deadline || "",
+                startDate: rawTask.startDate || rawTask.StartDate || rawTask.createdAt || rawTask.CreatedAt || "",
+                status:
+                    rawTask.taskStatusName ||
+                    rawTask.TaskStatusName ||
+                    rawTask.status ||
+                    rawTask.Status ||
+                    rawTask.taskStatus?.statusName ||
+                    "New",
+                taskStatusId: rawTask.taskStatusId || rawTask.TaskStatusId || rawTask.statusId || rawTask.StatusId || 0,
+                assignedToName:
+                    rawTask.assignedToName ||
+                    rawTask.AssignedToName ||
+                    rawTask.assignedUserName ||
+                    rawTask.employeeName ||
+                    "Assigned user",
+                assignedToEmail:
+                    rawTask.assignedToEmail ||
+                    rawTask.AssignedToEmail ||
+                    rawTask.assignedUserEmail ||
+                    rawTask.employeeEmail ||
+                    "",
+                assignedToProfileImage: getProfileImage(rawTask),
+                feedback: pureFeedbackEntries,
+                requestChanges: requestChangeEntries,
+                updatedAt:
+                    rawTask.updatedAt ||
+                    rawTask.UpdatedAt ||
+                    rawTask.lastUpdated ||
+                    rawTask.createdAt ||
+                    rawTask.CreatedAt ||
+                    "",
+                history: historyItems,
+                availableStatuses,
+            };
+
+            setTask(mappedTask);
+        } catch (error) {
+            setErrorMessage(error.message || "Failed to load task details.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [taskId]);
+
+    useEffect(() => {
+        loadTaskDetails();
+    }, [loadTaskDetails]);
+
+    useEffect(() => {
+        const handleWindowFocus = () => {
+            loadTaskDetails();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                loadTaskDetails();
+            }
+        };
+
+        window.addEventListener("focus", handleWindowFocus);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => {
-            isMounted = false;
+            window.removeEventListener("focus", handleWindowFocus);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [taskId]);
+    }, [loadTaskDetails]);
 
     const timelineItems = useMemo(() => {
         if (!task) return [];
@@ -436,7 +487,7 @@ export default function EmployeeTaskDetailsPage() {
             const feedbackValue = String(item.feedback || item.Feedback || "").trim();
             const oldStatusName = item.oldStatusName || item.OldStatusName || "";
             const newStatusName = item.newStatusName || item.NewStatusName || "";
-            const changedByName = item.changedByName || item.ChangedByName || "";
+            const changedByName = resolveChangedByName(item);
             const changedAt = item.changedAt || item.ChangedAt || "";
             const oldNormalized = normalizeStatus(oldStatusName);
             const newNormalized = normalizeStatus(newStatusName);
@@ -530,13 +581,17 @@ export default function EmployeeTaskDetailsPage() {
     function getNextStatusData(currentTask) {
         const availableStatuses = Array.isArray(currentTask?.availableStatuses)
             ? [...currentTask.availableStatuses].sort(
-                (a, b) => Number(a.displayOrder || a.DisplayOrder || 0) - Number(b.displayOrder || b.DisplayOrder || 0)
+                (a, b) =>
+                    Number(a.displayOrder || a.DisplayOrder || 0) -
+                    Number(b.displayOrder || b.DisplayOrder || 0)
             )
             : [];
 
         if (availableStatuses.length && currentTask?.taskStatusId) {
             const currentIndex = availableStatuses.findIndex(
-                (item) => Number(item.taskStatusId || item.TaskStatusId) === Number(currentTask.taskStatusId)
+                (item) =>
+                    Number(item.taskStatusId || item.TaskStatusId) ===
+                    Number(currentTask.taskStatusId)
             );
 
             if (currentIndex >= 0 && currentIndex < availableStatuses.length - 1) {
@@ -548,7 +603,9 @@ export default function EmployeeTaskDetailsPage() {
 
         return (
             availableStatuses.find(
-                (item) => normalizeStatus(item.statusName || item.StatusName) === normalizeStatus(fallbackNextLabel)
+                (item) =>
+                    normalizeStatus(item.statusName || item.StatusName) ===
+                    normalizeStatus(fallbackNextLabel)
             ) || null
         );
     }
@@ -557,6 +614,7 @@ export default function EmployeeTaskDetailsPage() {
         if (!task) return;
 
         const changedByUserId = getStoredEmployeeId();
+        const currentUserName = getStoredEmployeeName();
         const nextStatusData = getNextStatusData(task);
 
         if (!changedByUserId) {
@@ -576,10 +634,12 @@ export default function EmployeeTaskDetailsPage() {
         }
 
         const nextStatusId = Number(nextStatusData.taskStatusId || nextStatusData.TaskStatusId);
-        const nextStatus = nextStatusData.statusName || nextStatusData.StatusName || getNextStatus(task.status);
-        const previousStatus = task.status;
-        const previousStatusId = task.taskStatusId;
-        const previousHistory = task.history || [];
+        const nextStatus =
+            nextStatusData.statusName ||
+            nextStatusData.StatusName ||
+            getNextStatus(task.status);
+
+        const previousTask = task;
         const nextUpdatedAt = new Date().toISOString();
 
         try {
@@ -600,7 +660,7 @@ export default function EmployeeTaskDetailsPage() {
                                 newStatusName: nextStatus,
                                 feedback: "",
                                 changedAt: nextUpdatedAt,
-                                changedByName: prev.assignedToName || "",
+                                changedByName: currentUserName || "",
                             },
                             ...(prev.history || []),
                         ],
@@ -627,18 +687,10 @@ export default function EmployeeTaskDetailsPage() {
                 throw new Error(data.message || "Failed to update task status.");
             }
 
+            await loadTaskDetails();
             showToast(`Task status updated to ${mapStatusLabel(nextStatus)}.`, "success");
         } catch (error) {
-            setTask((prev) =>
-                prev
-                    ? {
-                        ...prev,
-                        status: previousStatus,
-                        taskStatusId: previousStatusId,
-                        history: previousHistory,
-                    }
-                    : prev
-            );
+            setTask(previousTask);
             setErrorMessage(error.message || "Failed to update task status.");
             showToast(error.message || "Failed to update task status.", "error");
         } finally {
@@ -657,21 +709,8 @@ export default function EmployeeTaskDetailsPage() {
         const changedByUserId = getStoredEmployeeId();
         const currentStatusId = Number(task.taskStatusId || 0);
         const createdAt = new Date().toISOString();
-
-        const newItem = {
-            id: `feedback-local-${createdAt}`,
-            message: trimmedFeedback,
-            feedbackText: trimmedFeedback,
-            createdAt,
-            changedAt: createdAt,
-            changedAtLabel: formatDateTime(createdAt),
-            changedByName: task.assignedToName || "",
-            changedByProfileImage: task.assignedToProfileImage || "",
-        };
-
-        const previousFeedback = task.feedback || [];
-        const previousHistory = task.history || [];
-        const previousUpdatedAt = task.updatedAt;
+        const currentUserName = getStoredEmployeeName();
+        const previousTask = task;
 
         if (!changedByUserId || !currentStatusId) {
             const message = "Unable to submit feedback right now.";
@@ -689,7 +728,19 @@ export default function EmployeeTaskDetailsPage() {
                 prev
                     ? {
                         ...prev,
-                        feedback: [newItem, ...(prev.feedback || [])],
+                        feedback: [
+                            {
+                                id: `feedback-local-${createdAt}`,
+                                message: trimmedFeedback,
+                                feedbackText: trimmedFeedback,
+                                createdAt,
+                                changedAt: createdAt,
+                                changedAtLabel: formatDateTime(createdAt),
+                                changedByName: currentUserName || "",
+                                changedByProfileImage: "",
+                            },
+                            ...(prev.feedback || []),
+                        ],
                         history: [
                             {
                                 taskStatusHistoryId: `history-feedback-local-${createdAt}`,
@@ -697,7 +748,7 @@ export default function EmployeeTaskDetailsPage() {
                                 newStatusName: prev.status,
                                 feedback: trimmedFeedback,
                                 changedAt: createdAt,
-                                changedByName: prev.assignedToName || "",
+                                changedByName: currentUserName || "",
                             },
                             ...(prev.history || []),
                         ],
@@ -725,18 +776,10 @@ export default function EmployeeTaskDetailsPage() {
                 throw new Error(data.message || "Unable to submit feedback.");
             }
 
+            await loadTaskDetails();
             showToast("Feedback submitted successfully.", "success");
         } catch (error) {
-            setTask((prev) =>
-                prev
-                    ? {
-                        ...prev,
-                        feedback: previousFeedback,
-                        history: previousHistory,
-                        updatedAt: previousUpdatedAt,
-                    }
-                    : prev
-            );
+            setTask(previousTask);
             setFeedbackText(trimmedFeedback);
             setErrorMessage(error.message || "Unable to submit feedback.");
             showToast(error.message || "Unable to submit feedback.", "error");
@@ -753,8 +796,7 @@ export default function EmployeeTaskDetailsPage() {
         const changedByUserId = getStoredEmployeeId();
         const requestFeedback = `Request change: ${requestChangeText.trim()}`;
         const createdAt = new Date().toISOString();
-        const previousHistory = task.history || [];
-        const previousUpdatedAt = task.updatedAt;
+        const previousTask = task;
 
         if (!changedByUserId || !task.taskStatusId) {
             const message = "Unable to submit request change.";
@@ -776,7 +818,7 @@ export default function EmployeeTaskDetailsPage() {
                                 id: `request-local-${createdAt}`,
                                 message: requestFeedback,
                                 createdAt,
-                                changedByName: prev.assignedToName || "",
+                                changedByName: getStoredEmployeeName() || "",
                             },
                             ...(prev.requestChanges || []),
                         ],
@@ -787,7 +829,7 @@ export default function EmployeeTaskDetailsPage() {
                                 newStatusName: prev.status,
                                 feedback: requestFeedback,
                                 changedAt: createdAt,
-                                changedByName: prev.assignedToName || "",
+                                changedByName: getStoredEmployeeName() || "",
                             },
                             ...(prev.history || []),
                         ],
@@ -817,17 +859,10 @@ export default function EmployeeTaskDetailsPage() {
 
             setRequestChangeText("");
             setShowRequestMenu(false);
+            await loadTaskDetails();
             showToast("Request change sent successfully.", "success");
         } catch (error) {
-            setTask((prev) =>
-                prev
-                    ? {
-                        ...prev,
-                        history: previousHistory,
-                        updatedAt: previousUpdatedAt,
-                    }
-                    : prev
-            );
+            setTask(previousTask);
             setErrorMessage(error.message || "Failed to submit request change.");
             showToast(error.message || "Failed to submit request change.", "error");
         } finally {
@@ -910,7 +945,9 @@ export default function EmployeeTaskDetailsPage() {
                         >
                             <textarea
                                 value={requestChangeText}
-                                onChange={(event) => setRequestChangeText(event.target.value.slice(0, 500))}
+                                onChange={(event) =>
+                                    setRequestChangeText(event.target.value.slice(0, 500))
+                                }
                                 placeholder="Explain what should be changed..."
                             />
                             <button
@@ -974,7 +1011,9 @@ export default function EmployeeTaskDetailsPage() {
                                 <FiFlag />
                                 <span>Priority</span>
                             </div>
-                            <strong className={getPriorityClass(task.priority)}>{task.priority}</strong>
+                            <strong className={getPriorityClass(task.priority)}>
+                                {task.priority}
+                            </strong>
                         </div>
 
                         <div className="employee-task-details-page__detail-item">
@@ -1066,10 +1105,11 @@ export default function EmployeeTaskDetailsPage() {
                                                 className="employee-task-details-page__timeline-item"
                                             >
                                                 <div
-                                                    className={`employee-task-details-page__timeline-marker ${item.hasStatusChanged
-                                                        ? "employee-task-details-page__timeline-marker--status"
-                                                        : "employee-task-details-page__timeline-marker--feedback"
-                                                        }`}
+                                                    className={`employee-task-details-page__timeline-marker ${
+                                                        item.hasStatusChanged
+                                                            ? "employee-task-details-page__timeline-marker--status"
+                                                            : "employee-task-details-page__timeline-marker--feedback"
+                                                    }`}
                                                 />
 
                                                 <div className="employee-task-details-page__timeline-content">
@@ -1117,7 +1157,9 @@ export default function EmployeeTaskDetailsPage() {
                                     <button
                                         type="button"
                                         className="employee-task-details-page__view-all-btn"
-                                        onClick={() => setShowAllFeedbackHistory((previous) => !previous)}
+                                        onClick={() =>
+                                            setShowAllFeedbackHistory((previous) => !previous)
+                                        }
                                     >
                                         {showAllFeedbackHistory ? "Show less" : "View all"}
                                     </button>
@@ -1157,14 +1199,19 @@ export default function EmployeeTaskDetailsPage() {
                                                             alt={item.changedByName || "User"}
                                                         />
                                                     ) : (
-                                                        initialsFromName(item.changedByName || task.assignedToName)
+                                                        initialsFromName(item.changedByName || "User")
                                                     )}
                                                 </div>
 
                                                 <div className="employee-task-details-page__history-content">
                                                     <div className="employee-task-details-page__history-meta">
-                                                        <strong>{item.changedByName || task.assignedToName}</strong>
-                                                        <span>{item.changedAtLabel || formatDateTime(item.createdAt)}</span>
+                                                        <strong>
+                                                            {item.changedByName || "Unknown user"}
+                                                        </strong>
+                                                        <span>
+                                                            {item.changedAtLabel ||
+                                                                formatDateTime(item.createdAt)}
+                                                        </span>
                                                         {index === 0 ? (
                                                             <span className="employee-task-details-page__history-badge">
                                                                 Latest
@@ -1196,7 +1243,9 @@ export default function EmployeeTaskDetailsPage() {
                                         type="text"
                                         placeholder="Add feedback and send it..."
                                         value={feedbackText}
-                                        onChange={(event) => setFeedbackText(event.target.value.slice(0, 500))}
+                                        onChange={(event) =>
+                                            setFeedbackText(event.target.value.slice(0, 500))
+                                        }
                                     />
                                     <span className="employee-task-details-page__feedback-inline-count">
                                         {feedbackText.length}/500

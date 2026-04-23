@@ -35,6 +35,7 @@ const DEFAULT_EDIT_FORM = {
 const getStoredUser = () => {
   try {
     const raw =
+      localStorage.getItem("authUser") ||
       localStorage.getItem("user") ||
       localStorage.getItem("currentUser") ||
       localStorage.getItem("loggedInUser");
@@ -222,7 +223,13 @@ export default function TaskDetailsPage({
   const resolvedCompanyId =
     companyId ?? storedUser?.companyId ?? storedUser?.CompanyId ?? null;
   const resolvedCurrentUserId =
-    storedUser?.userId ?? storedUser?.UserId ?? storedUser?.id ?? storedUser?.Id ?? null;
+    storedUser?.userId ??
+    storedUser?.UserId ??
+    storedUser?.id ??
+    storedUser?.Id ??
+    storedUser?.employeeId ??
+    storedUser?.EmployeeId ??
+    null;
 
   const resolvedStatusesEndpoint =
     statusesEndpoint ??
@@ -546,7 +553,7 @@ export default function TaskDetailsPage({
       complexity: currentTask?.complexity || complexityOptions[0] || "Simple",
       estimatedEffortHours:
         currentTask?.estimatedEffortHours === null ||
-        currentTask?.estimatedEffortHours === undefined
+          currentTask?.estimatedEffortHours === undefined
           ? ""
           : String(currentTask.estimatedEffortHours),
       startDate: toIsoDate(currentTask?.startDate || ""),
@@ -1168,11 +1175,10 @@ export default function TaskDetailsPage({
                     {visibleTimelineEntries.map((item) => (
                       <div key={item.id} className="task-details-page__timeline-item">
                         <div
-                          className={`task-details-page__timeline-marker ${
-                            item.hasStatusChanged
+                          className={`task-details-page__timeline-marker ${item.hasStatusChanged
                               ? "task-details-page__timeline-marker--status"
                               : "task-details-page__timeline-marker--feedback"
-                          }`}
+                            }`}
                         />
                         <div className="task-details-page__timeline-content">
                           <div className="task-details-page__timeline-heading">
@@ -1267,36 +1273,36 @@ export default function TaskDetailsPage({
             </div>
           </div>
 
-<div className="task-details-page__feedback-inline-card">
-  <form className="task-details-page__feedback-inline-form" onSubmit={handleTaskFeedbackSubmit}>
-    <div className="task-details-page__feedback-inline-main">
-      <div className="task-details-page__feedback-inline-input-wrap">
-        <input
-          id="task-details-feedback"
-          type="text"
-          value={taskFeedbackText}
-          onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
-          placeholder="Add feedback and send it..."
-          disabled={isSubmittingTaskFeedback}
-          maxLength={500}
-        />
-        <div className="task-details-page__feedback-inline-count">
-          {taskFeedbackText.length}/500
-        </div>
-      </div>
-    </div>
+          <div className="task-details-page__feedback-inline-card">
+            <form className="task-details-page__feedback-inline-form" onSubmit={handleTaskFeedbackSubmit}>
+              <div className="task-details-page__feedback-inline-main">
+                <div className="task-details-page__feedback-inline-input-wrap">
+                  <input
+                    id="task-details-feedback"
+                    type="text"
+                    value={taskFeedbackText}
+                    onChange={(event) => setTaskFeedbackText(event.target.value.slice(0, 500))}
+                    placeholder="Add feedback and send it..."
+                    disabled={isSubmittingTaskFeedback}
+                    maxLength={500}
+                  />
+                  <div className="task-details-page__feedback-inline-count">
+                    {taskFeedbackText.length}/500
+                  </div>
+                </div>
+              </div>
 
-    <button
-      type="submit"
-      className="task-details-page__feedback-inline-submit"
-      disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
-      aria-label="Send feedback"
-    >
-      <FiSend />
-      <span>{isSubmittingTaskFeedback ? "Sending..." : "Send"}</span>
-    </button>
-  </form>
-</div>
+              <button
+                type="submit"
+                className="task-details-page__feedback-inline-submit"
+                disabled={isSubmittingTaskFeedback || !taskFeedbackText.trim()}
+                aria-label="Send feedback"
+              >
+                <FiSend />
+                <span>{isSubmittingTaskFeedback ? "Sending..." : "Send"}</span>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -1620,11 +1626,10 @@ export default function TaskDetailsPage({
 
                   <button
                     type="button"
-                    className={`task-details-page__confirm-submit ${
-                      confirmAction === "approve"
+                    className={`task-details-page__confirm-submit ${confirmAction === "approve"
                         ? "task-details-page__confirm-submit--approve"
                         : "task-details-page__confirm-submit--reject"
-                    }`}
+                      }`}
                     onClick={handleConfirmAction}
                     disabled={
                       isUpdatingStatus ||
