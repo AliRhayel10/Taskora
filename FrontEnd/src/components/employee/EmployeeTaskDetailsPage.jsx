@@ -921,7 +921,7 @@ export default function EmployeeTaskDetailsPage() {
                     <FiArrowLeft />
                 </button>
 
-                <h2>Employee Task Details</h2>
+                <h2>Task Details</h2>
                 <div className="employee-task-details-page__title-line" />
             </div>
 
