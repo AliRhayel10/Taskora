@@ -12,6 +12,7 @@ import {
     FiTarget,
     FiUser,
     FiX,
+    FiMoreHorizontal,
 } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import "../../assets/styles/employee/employee-task-details-page.css";
@@ -19,11 +20,30 @@ import "../../assets/styles/employee/employee-task-details-page.css";
 const API_BASE = "http://localhost:5000";
 
 const REQUEST_CHANGE_OPTIONS = [
-    { value: "", label: "Select the type of change" },
-    { value: "dueDateChange", label: "Due Date Change" },
-    { value: "estimatedEffortChange", label: "Estimated Effort Change" },
-    { value: "assigneeChange", label: "Assignee Change" },
-    { value: "other", label: "Other" },
+    {
+        value: "dueDateChange",
+        label: "Due Date Change",
+        icon: FiCalendar,
+        iconClass: "employee-task-details-page__change-type-icon--purple",
+    },
+    {
+        value: "estimatedEffortChange",
+        label: "Estimated Effort Change",
+        icon: FiClock,
+        iconClass: "employee-task-details-page__change-type-icon--blue",
+    },
+    {
+        value: "assigneeChange",
+        label: "Assignee Change",
+        icon: FiUser,
+        iconClass: "employee-task-details-page__change-type-icon--green",
+    },
+    {
+        value: "other",
+        label: "Other",
+        icon: FiMoreHorizontal,
+        iconClass: "employee-task-details-page__change-type-icon--purple",
+    },
 ];
 
 function normalizeStatus(value) {
@@ -313,6 +333,21 @@ export default function EmployeeTaskDetailsPage() {
         setRequestNewEffort("");
         setRequestReason("");
     }
+
+    const isRequestFormValid = useMemo(() => {
+        const hasReason = requestReason.trim().length > 0;
+        if (!requestChangeType || !hasReason) return false;
+
+        if (requestChangeType === "dueDateChange") {
+            return Boolean(requestNewDate);
+        }
+
+        if (requestChangeType === "estimatedEffortChange") {
+            return Boolean(String(requestNewEffort).trim());
+        }
+
+        return true;
+    }, [requestChangeType, requestNewDate, requestNewEffort, requestReason]);
 
     const loadTaskDetails = useCallback(async () => {
         try {
@@ -1013,25 +1048,43 @@ Reason: ${requestReason.trim()}`;
                         <form onSubmit={handleRequestChangeSubmit}>
                             <div className="employee-task-details-page__modal-body">
                                 <div className="employee-task-details-page__request-field">
-                                    <label htmlFor="requestChangeType">
+                                    <label>
                                         Change Type <span>*</span>
                                     </label>
-                                    <select
-                                        id="requestChangeType"
-                                        value={requestChangeType}
-                                        onChange={(event) => {
-                                            const nextType = event.target.value;
-                                            setRequestChangeType(nextType);
-                                            setRequestNewDate("");
-                                            setRequestNewEffort("");
-                                        }}
-                                    >
-                                        {REQUEST_CHANGE_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
+
+                                    <div className="employee-task-details-page__change-type-grid">
+                                        {REQUEST_CHANGE_OPTIONS.map((option) => {
+                                            const IconComponent = option.icon;
+                                            const isActive = requestChangeType === option.value;
+
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    className={`employee-task-details-page__change-type-card ${
+                                                        isActive
+                                                            ? "employee-task-details-page__change-type-card--active"
+                                                            : ""
+                                                    }`}
+                                                    onClick={() => {
+                                                        setRequestChangeType(option.value);
+                                                        setRequestNewDate("");
+                                                        setRequestNewEffort("");
+                                                    }}
+                                                >
+                                                    <span
+                                                        className={`employee-task-details-page__change-type-icon ${option.iconClass}`}
+                                                    >
+                                                        <IconComponent />
+                                                    </span>
+
+                                                    <span className="employee-task-details-page__change-type-card-label">
+                                                        {option.label}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 {requestChangeType === "dueDateChange" ? (
@@ -1114,15 +1167,17 @@ Reason: ${requestReason.trim()}`;
                                     }}
                                     disabled={isSubmittingRequest}
                                 >
-                                    Cancel
+                                    <FiX />
+                                    <span>Cancel</span>
                                 </button>
 
                                 <button
                                     type="submit"
                                     className="employee-task-details-page__request-submit"
-                                    disabled={isSubmittingRequest}
+                                    disabled={isSubmittingRequest || !isRequestFormValid}
                                 >
-                                    {isSubmittingRequest ? "Sending..." : "Send Request"}
+                                    <FiSend />
+                                    <span>{isSubmittingRequest ? "Sending..." : "Send Request"}</span>
                                 </button>
                             </div>
                         </form>
@@ -1159,7 +1214,8 @@ Reason: ${requestReason.trim()}`;
                                 onClick={() => setShowStatusConfirmModal(false)}
                                 disabled={isUpdatingStatus}
                             >
-                                Cancel
+                                <FiX />
+                                <span>Cancel</span>
                             </button>
 
                             <button

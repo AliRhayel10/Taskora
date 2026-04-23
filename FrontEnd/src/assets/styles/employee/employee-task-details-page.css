@@ -161,6 +161,7 @@
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
 }
 
 .employee-task-details-page__request-wrap {
@@ -820,15 +821,15 @@
 }
 
 .employee-task-details-page__modal-icon {
-    width: 76px;
-    height: 76px;
-    border-radius: 20px;
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
     background: #f3e8ff;
     color: #7c3aed;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+    font-size: 1.45rem;
     flex-shrink: 0;
 }
 
@@ -891,7 +892,6 @@
     color: #ef4444;
 }
 
-.employee-task-details-page__request-field select,
 .employee-task-details-page__request-field input,
 .employee-task-details-page__request-field textarea {
     width: 100%;
@@ -905,7 +905,6 @@
     outline: none;
 }
 
-.employee-task-details-page__request-field select,
 .employee-task-details-page__request-field input {
     min-height: 56px;
 }
@@ -915,7 +914,6 @@
     resize: none;
 }
 
-.employee-task-details-page__request-field select:focus,
 .employee-task-details-page__request-field input:focus,
 .employee-task-details-page__request-field textarea:focus {
     border-color: #2563eb;
@@ -939,6 +937,73 @@
     font-size: 0.8rem;
     font-weight: 700;
     margin-top: -2px;
+}
+
+.employee-task-details-page__change-type-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.employee-task-details-page__change-type-card {
+    min-height: 82px;
+    border: 1px solid #dbe3ef;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+    text-align: center;
+}
+
+.employee-task-details-page__change-type-card:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.employee-task-details-page__change-type-card--active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.employee-task-details-page__change-type-icon {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.employee-task-details-page__change-type-icon--purple {
+    color: #7c3aed;
+}
+
+.employee-task-details-page__change-type-icon--blue {
+    color: #2563eb;
+}
+
+.employee-task-details-page__change-type-icon--green {
+    color: #16a34a;
+}
+
+.employee-task-details-page__change-type-card-label {
+    color: #0f172a;
+    font-size: 0.83rem;
+    font-weight: 700;
+    line-height: 1.25;
 }
 
 .employee-task-details-page__confirm-icon {
@@ -1179,14 +1244,27 @@
     }
 
     .employee-task-details-page__modal-icon {
-        width: 58px;
-        height: 58px;
-        border-radius: 16px;
-        font-size: 1.5rem;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        font-size: 1.2rem;
     }
 
     .employee-task-details-page__request-values-grid {
         grid-template-columns: 1fr;
+    }
+
+    .employee-task-details-page__change-type-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .employee-task-details-page__change-type-card {
+        min-height: 74px;
+        padding: 10px 8px;
+    }
+
+    .employee-task-details-page__change-type-card-label {
+        font-size: 0.8rem;
     }
 
     .employee-task-details-page__modal-footer,
