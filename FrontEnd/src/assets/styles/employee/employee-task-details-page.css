@@ -348,7 +348,7 @@
 
 .employee-task-details-page__value--default { color: #1e293b !important; }
 .employee-task-details-page__value--low { color: #1d4ed8 !important; }
-.employee-task-details-page__value--medium-priority { color: #c2410c !important; }
+.employee-task-details-page__value--medium-priority { color: #ff5900 !important; }
 .employee-task-details-page__value--high { color: #eb1b1b !important; }
 .employee-task-details-page__value--critical { color: #991b1b !important; }
 .employee-task-details-page__value--simple { color: #1d4ed8 !important; }

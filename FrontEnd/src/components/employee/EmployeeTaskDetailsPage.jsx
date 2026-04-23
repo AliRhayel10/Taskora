@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  FiArrowLeft,
   FiCalendar,
   FiCheckCircle,
   FiChevronDown,
@@ -492,8 +493,9 @@ export default function EmployeeTaskDetailsPage() {
             type="button"
             className="employee-task-details-page__back-btn"
             onClick={() => navigate("/employee")}
+            aria-label="Go back"
           >
-            ←
+            <FiArrowLeft />
           </button>
           <h2>Task Details</h2>
           <div className="employee-task-details-page__title-line" />
@@ -514,8 +516,9 @@ export default function EmployeeTaskDetailsPage() {
             type="button"
             className="employee-task-details-page__back-btn"
             onClick={() => navigate("/employee")}
+            aria-label="Go back"
           >
-            ←
+            <FiArrowLeft />
           </button>
           <h2>Task Details</h2>
           <div className="employee-task-details-page__title-line" />
@@ -535,8 +538,9 @@ export default function EmployeeTaskDetailsPage() {
           type="button"
           className="employee-task-details-page__back-btn"
           onClick={() => navigate("/employee")}
+          aria-label="Go back"
         >
-          ←
+          <FiArrowLeft />
         </button>
         <h2>Task Details</h2>
         <div className="employee-task-details-page__title-line" />
