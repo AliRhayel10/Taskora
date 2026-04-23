@@ -86,7 +86,8 @@
 .employee-task-details-page__status-btn,
 .employee-task-details-page__request-btn,
 .employee-task-details-page__request-submit,
-.employee-task-details-page__feedback-inline-submit {
+.employee-task-details-page__feedback-inline-submit,
+.employee-task-details-page__request-cancel {
     min-height: 42px;
     border-radius: 12px;
     padding: 0 14px;
@@ -130,20 +131,33 @@
 }
 
 .employee-task-details-page__request-submit {
-    border: 1px solid #7c3aed;
-    background: #7c3aed;
+    border: 1px solid #2563eb;
+    background: #2563eb;
     color: #ffffff;
+    min-width: 170px;
 }
 
 .employee-task-details-page__request-submit:hover:not(:disabled) {
-    background: #6d28d9;
-    border-color: #6d28d9;
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.employee-task-details-page__request-cancel {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #1e293b;
+    min-width: 140px;
+}
+
+.employee-task-details-page__request-cancel:hover:not(:disabled) {
+    background: #f8fafc;
 }
 
 .employee-task-details-page__status-btn:disabled,
 .employee-task-details-page__request-btn:disabled,
 .employee-task-details-page__request-submit:disabled,
-.employee-task-details-page__feedback-inline-submit:disabled {
+.employee-task-details-page__feedback-inline-submit:disabled,
+.employee-task-details-page__request-cancel:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -151,41 +165,6 @@
 
 .employee-task-details-page__request-wrap {
     position: relative;
-}
-
-.employee-task-details-page__request-dropdown {
-    position: absolute;
-    top: calc(100% + 10px);
-    right: 0;
-    min-width: 280px;
-    padding: 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 16px;
-    background: #f8fafc;
-    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
-    z-index: 30;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.employee-task-details-page__request-dropdown textarea {
-    width: 100%;
-    min-height: 110px;
-    border: 1px solid #cbd5e1;
-    border-radius: 14px;
-    background: #ffffff;
-    color: #1e293b;
-    font-size: 0.95rem;
-    padding: 12px 14px;
-    resize: vertical;
-    box-sizing: border-box;
-    outline: none;
-}
-
-.employee-task-details-page__request-dropdown textarea:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .employee-task-details-page__content-grid {
@@ -587,8 +566,8 @@
     padding: 10px 0;
 }
 
-.employee-task-details-page__history-item+.employee-task-details-page__history-item,
-.employee-task-details-page__timeline-item+.employee-task-details-page__timeline-item {
+.employee-task-details-page__history-item + .employee-task-details-page__history-item,
+.employee-task-details-page__timeline-item + .employee-task-details-page__timeline-item {
     border-top: 1px solid #eef2f7;
 }
 
@@ -796,12 +775,211 @@
     cursor: not-allowed;
 }
 
+.employee-task-details-page__modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2500;
+    padding: 20px;
+}
+
+.employee-task-details-page__modal {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
+    border-radius: 28px;
+    box-shadow: 0 30px 60px rgba(15, 23, 42, 0.18);
+    overflow: hidden;
+}
+
+.employee-task-details-page__modal--request {
+    max-width: 980px;
+}
+
+.employee-task-details-page__modal--confirm {
+    max-width: 420px;
+    padding: 28px 24px;
+    text-align: center;
+}
+
+.employee-task-details-page__modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 28px 32px 20px;
+}
+
+.employee-task-details-page__modal-title-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.employee-task-details-page__modal-icon {
+    width: 76px;
+    height: 76px;
+    border-radius: 20px;
+    background: #f3e8ff;
+    color: #7c3aed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.employee-task-details-page__modal-title-wrap h3 {
+    margin: 0 0 8px;
+    color: #0f172a;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.employee-task-details-page__modal-title-wrap p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.employee-task-details-page__modal-close {
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+}
+
+.employee-task-details-page__modal-close:hover {
+    color: #1e293b;
+}
+
+.employee-task-details-page__modal-body {
+    padding: 0 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.employee-task-details-page__modal-footer {
+    border-top: 1px solid #e2e8f0;
+    padding: 20px 32px 28px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 14px;
+}
+
+.employee-task-details-page__request-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.employee-task-details-page__request-field label {
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.employee-task-details-page__request-field label span {
+    color: #ef4444;
+}
+
+.employee-task-details-page__request-field select,
+.employee-task-details-page__request-field input,
+.employee-task-details-page__request-field textarea {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.95rem;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.employee-task-details-page__request-field select,
+.employee-task-details-page__request-field input {
+    min-height: 56px;
+}
+
+.employee-task-details-page__request-field textarea {
+    min-height: 170px;
+    resize: none;
+}
+
+.employee-task-details-page__request-field select:focus,
+.employee-task-details-page__request-field input:focus,
+.employee-task-details-page__request-field textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.employee-task-details-page__request-readonly {
+    background: #f8fafc !important;
+    color: #64748b !important;
+}
+
+.employee-task-details-page__request-values-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.employee-task-details-page__request-counter {
+    align-self: flex-end;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-top: -2px;
+}
+
+.employee-task-details-page__confirm-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 14px;
+    border-radius: 18px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+}
+
+.employee-task-details-page__modal--confirm h3 {
+    margin: 0 0 10px;
+    color: #0f172a;
+    font-size: 1.08rem;
+    font-weight: 800;
+}
+
+.employee-task-details-page__modal--confirm p {
+    margin: 0 0 20px;
+    color: #64748b;
+    font-size: 0.94rem;
+    line-height: 1.5;
+}
+
+.employee-task-details-page__confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
 .employee-task-details-page__toast {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 2000;
+    z-index: 2600;
     min-width: 280px;
     max-width: min(92vw, 560px);
     padding: 14px 18px;
@@ -835,9 +1013,10 @@
 
     .employee-task-details-page__toolbar {
         width: 100%;
-        min-height: 42px;
+        min-height: auto;
         justify-content: flex-end;
         margin-top: 0;
+        flex-wrap: wrap;
     }
 
     .employee-task-details-page__title-row {
@@ -973,11 +1152,52 @@
         width: 100%;
     }
 
-    .employee-task-details-page__request-dropdown {
-        right: 0;
-        left: auto;
-        min-width: 200px;
-        width: min(320px, 90vw);
+    .employee-task-details-page__modal-overlay {
+        padding: 12px;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+
+    .employee-task-details-page__modal--request,
+    .employee-task-details-page__modal--confirm {
+        max-width: 100%;
+    }
+
+    .employee-task-details-page__modal-header,
+    .employee-task-details-page__modal-body,
+    .employee-task-details-page__modal-footer {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .employee-task-details-page__modal-header {
+        padding-top: 18px;
+    }
+
+    .employee-task-details-page__modal-title-wrap {
+        gap: 12px;
+    }
+
+    .employee-task-details-page__modal-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        font-size: 1.5rem;
+    }
+
+    .employee-task-details-page__request-values-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-task-details-page__modal-footer,
+    .employee-task-details-page__confirm-actions {
+        flex-direction: column;
+    }
+
+    .employee-task-details-page__request-cancel,
+    .employee-task-details-page__request-submit,
+    .employee-task-details-page__status-btn {
+        width: 100%;
     }
 
     .employee-task-details-page__toast {

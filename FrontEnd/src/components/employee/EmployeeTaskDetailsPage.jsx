@@ -3,7 +3,6 @@ import {
     FiArrowLeft,
     FiCalendar,
     FiCheckCircle,
-    FiChevronDown,
     FiClock,
     FiFlag,
     FiLayers,
@@ -12,11 +11,20 @@ import {
     FiSend,
     FiTarget,
     FiUser,
+    FiX,
 } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import "../../assets/styles/employee/employee-task-details-page.css";
 
 const API_BASE = "http://localhost:5000";
+
+const REQUEST_CHANGE_OPTIONS = [
+    { value: "", label: "Select the type of change" },
+    { value: "dueDateChange", label: "Due Date Change" },
+    { value: "estimatedEffortChange", label: "Estimated Effort Change" },
+    { value: "assigneeChange", label: "Assignee Change" },
+    { value: "other", label: "Other" },
+];
 
 function normalizeStatus(value) {
     return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
@@ -56,6 +64,22 @@ function getStatusActionLabel(status) {
     return "Completed";
 }
 
+function getStatusClass(value) {
+    const normalized = normalizeStatus(value);
+
+    if (normalized === "new") return "employee-task-details-page__value--new";
+    if (normalized === "acknowledged") return "employee-task-details-page__value--acknowledged";
+    if (normalized === "pending") return "employee-task-details-page__value--pending";
+    if (normalized === "done" || normalized === "completed") {
+        return "employee-task-details-page__value--done";
+    }
+    if (normalized === "approved") return "employee-task-details-page__value--approved";
+    if (normalized === "rejected") return "employee-task-details-page__value--rejected";
+    if (normalized === "archived") return "employee-task-details-page__value--archived";
+
+    return "employee-task-details-page__value--default";
+}
+
 function getPriorityClass(value) {
     const normalized = normalizeStatus(value);
 
@@ -77,22 +101,6 @@ function getComplexityClass(value) {
     return "employee-task-details-page__value--default";
 }
 
-function getStatusClass(value) {
-    const normalized = normalizeStatus(value);
-
-    if (normalized === "new") return "employee-task-details-page__value--new";
-    if (normalized === "acknowledged") return "employee-task-details-page__value--acknowledged";
-    if (normalized === "pending") return "employee-task-details-page__value--pending";
-    if (normalized === "done" || normalized === "completed") {
-        return "employee-task-details-page__value--done";
-    }
-    if (normalized === "approved") return "employee-task-details-page__value--approved";
-    if (normalized === "rejected") return "employee-task-details-page__value--rejected";
-    if (normalized === "archived") return "employee-task-details-page__value--archived";
-
-    return "employee-task-details-page__value--default";
-}
-
 function formatDate(value) {
     if (!value) return "Not available";
 
@@ -104,6 +112,18 @@ function formatDate(value) {
         month: "2-digit",
         year: "numeric",
     });
+}
+
+function formatDateForInput(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
 }
 
 function formatDateTime(value) {
@@ -225,6 +245,12 @@ function getProfileImage(user = {}) {
     return `${API_BASE}/${value}`;
 }
 
+function getRequestChangeTypeLabel(value) {
+    return (
+        REQUEST_CHANGE_OPTIONS.find((option) => option.value === value)?.label || "Other"
+    );
+}
+
 async function parseJsonResponse(response) {
     const rawText = await response.text();
 
@@ -243,14 +269,22 @@ export default function EmployeeTaskDetailsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [feedbackText, setFeedbackText] = useState("");
-    const [requestChangeText, setRequestChangeText] = useState("");
-    const [showRequestMenu, setShowRequestMenu] = useState(false);
+
+    const [showRequestModal, setShowRequestModal] = useState(false);
+    const [requestChangeType, setRequestChangeType] = useState("");
+    const [requestNewDate, setRequestNewDate] = useState("");
+    const [requestNewEffort, setRequestNewEffort] = useState("");
+    const [requestReason, setRequestReason] = useState("");
+
+    const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
     const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
     const [showAllFeedbackHistory, setShowAllFeedbackHistory] = useState(false);
     const [showAllTimeline, setShowAllTimeline] = useState(false);
     const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+
     const toastTimeoutRef = useRef(null);
 
     useEffect(() => {
@@ -271,6 +305,13 @@ export default function EmployeeTaskDetailsPage() {
         toastTimeoutRef.current = setTimeout(() => {
             setToast((prev) => ({ ...prev, show: false }));
         }, 3000);
+    }
+
+    function resetRequestChangeForm() {
+        setRequestChangeType("");
+        setRequestNewDate("");
+        setRequestNewEffort("");
+        setRequestReason("");
     }
 
     const loadTaskDetails = useCallback(async () => {
@@ -380,23 +421,6 @@ export default function EmployeeTaskDetailsPage() {
             const pureFeedbackEntries = feedbackEntries.filter(
                 (item) => !String(item.message).trim().toLowerCase().startsWith("request change:")
             );
-
-            if (
-                !feedbackEntries.length &&
-                rawTask.feedback &&
-                String(rawTask.feedback).trim()
-            ) {
-                pureFeedbackEntries.unshift({
-                    id: "task-feedback-current",
-                    message: rawTask.feedback,
-                    feedbackText: rawTask.feedback,
-                    createdAt: rawTask.updatedAt || rawTask.createdAt || "",
-                    changedAt: rawTask.updatedAt || rawTask.createdAt || "",
-                    changedAtLabel: formatDateTime(rawTask.updatedAt || rawTask.createdAt || ""),
-                    changedByName: "",
-                    changedByProfileImage: "",
-                });
-            }
 
             const mappedTask = {
                 taskId: rawTask.taskId || rawTask.TaskId,
@@ -610,11 +634,10 @@ export default function EmployeeTaskDetailsPage() {
         );
     }
 
-    async function handleStatusUpdate() {
+    async function handleConfirmedStatusUpdate() {
         if (!task) return;
 
         const changedByUserId = getStoredEmployeeId();
-        const currentUserName = getStoredEmployeeName();
         const nextStatusData = getNextStatusData(task);
 
         if (!changedByUserId) {
@@ -645,6 +668,7 @@ export default function EmployeeTaskDetailsPage() {
         try {
             setIsUpdatingStatus(true);
             setErrorMessage("");
+            setShowStatusConfirmModal(false);
 
             setTask((prev) =>
                 prev
@@ -660,7 +684,7 @@ export default function EmployeeTaskDetailsPage() {
                                 newStatusName: nextStatus,
                                 feedback: "",
                                 changedAt: nextUpdatedAt,
-                                changedByName: currentUserName || "",
+                                changedByName: getStoredEmployeeName() || "",
                             },
                             ...(prev.history || []),
                         ],
@@ -709,7 +733,6 @@ export default function EmployeeTaskDetailsPage() {
         const changedByUserId = getStoredEmployeeId();
         const currentStatusId = Number(task.taskStatusId || 0);
         const createdAt = new Date().toISOString();
-        const currentUserName = getStoredEmployeeName();
         const previousTask = task;
 
         if (!changedByUserId || !currentStatusId) {
@@ -736,7 +759,7 @@ export default function EmployeeTaskDetailsPage() {
                                 createdAt,
                                 changedAt: createdAt,
                                 changedAtLabel: formatDateTime(createdAt),
-                                changedByName: currentUserName || "",
+                                changedByName: getStoredEmployeeName() || "",
                                 changedByProfileImage: "",
                             },
                             ...(prev.feedback || []),
@@ -748,7 +771,7 @@ export default function EmployeeTaskDetailsPage() {
                                 newStatusName: prev.status,
                                 feedback: trimmedFeedback,
                                 changedAt: createdAt,
-                                changedByName: currentUserName || "",
+                                changedByName: getStoredEmployeeName() || "",
                             },
                             ...(prev.history || []),
                         ],
@@ -791,10 +814,22 @@ export default function EmployeeTaskDetailsPage() {
     async function handleRequestChangeSubmit(event) {
         event.preventDefault();
 
-        if (!task || !requestChangeText.trim()) return;
+        if (!task || !requestChangeType || !requestReason.trim()) {
+            showToast("Please select a change type and add the reason of change.", "error");
+            return;
+        }
+
+        if (requestChangeType === "dueDateChange" && !requestNewDate) {
+            showToast("Please choose the new due date.", "error");
+            return;
+        }
+
+        if (requestChangeType === "estimatedEffortChange" && !String(requestNewEffort).trim()) {
+            showToast("Please enter the new estimated effort.", "error");
+            return;
+        }
 
         const changedByUserId = getStoredEmployeeId();
-        const requestFeedback = `Request change: ${requestChangeText.trim()}`;
         const createdAt = new Date().toISOString();
         const previousTask = task;
 
@@ -804,6 +839,24 @@ export default function EmployeeTaskDetailsPage() {
             showToast(message, "error");
             return;
         }
+
+        let requestFeedback = `Request change:
+Type: ${getRequestChangeTypeLabel(requestChangeType)}`;
+
+        if (requestChangeType === "dueDateChange") {
+            requestFeedback += `
+Current Due Date: ${formatDate(task.dueDate)}
+Requested Due Date: ${formatDate(requestNewDate)}`;
+        }
+
+        if (requestChangeType === "estimatedEffortChange") {
+            requestFeedback += `
+Current Estimated Effort: ${task.effort} h
+Requested Estimated Effort: ${requestNewEffort} h`;
+        }
+
+        requestFeedback += `
+Reason: ${requestReason.trim()}`;
 
         try {
             setIsSubmittingRequest(true);
@@ -857,8 +910,8 @@ export default function EmployeeTaskDetailsPage() {
                 throw new Error(data.message || "Failed to submit request change.");
             }
 
-            setRequestChangeText("");
-            setShowRequestMenu(false);
+            resetRequestChangeForm();
+            setShowRequestModal(false);
             await loadTaskDetails();
             showToast("Request change sent successfully.", "success");
         } catch (error) {
@@ -900,6 +953,10 @@ export default function EmployeeTaskDetailsPage() {
 
     const nextStatusActionLabel = getStatusActionLabel(task.status);
     const isTaskDone = normalizeStatus(task.status) === "done";
+    const nextStatusData = getNextStatusData(task);
+    const nextStatusLabel = nextStatusData
+        ? mapStatusLabel(nextStatusData.statusName || nextStatusData.StatusName || getNextStatus(task.status))
+        : getNextStatus(task.status);
 
     return (
         <div className="employee-task-details-page">
@@ -908,6 +965,213 @@ export default function EmployeeTaskDetailsPage() {
                     className={`employee-task-details-page__toast employee-task-details-page__toast--${toast.type}`}
                 >
                     {toast.message}
+                </div>
+            ) : null}
+
+            {showRequestModal ? (
+                <div
+                    className="employee-task-details-page__modal-overlay"
+                    onClick={() => {
+                        if (!isSubmittingRequest) {
+                            resetRequestChangeForm();
+                            setShowRequestModal(false);
+                        }
+                    }}
+                >
+                    <div
+                        className="employee-task-details-page__modal employee-task-details-page__modal--request"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="employee-task-details-page__modal-header">
+                            <div className="employee-task-details-page__modal-title-wrap">
+                                <div className="employee-task-details-page__modal-icon">
+                                    <FiMessageCircle />
+                                </div>
+                                <div>
+                                    <h3>Request Change</h3>
+                                    <p>
+                                        Let the team leader know what change you are requesting for this task.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="employee-task-details-page__modal-close"
+                                onClick={() => {
+                                    if (!isSubmittingRequest) {
+                                        resetRequestChangeForm();
+                                        setShowRequestModal(false);
+                                    }
+                                }}
+                                aria-label="Close request change form"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleRequestChangeSubmit}>
+                            <div className="employee-task-details-page__modal-body">
+                                <div className="employee-task-details-page__request-field">
+                                    <label htmlFor="requestChangeType">
+                                        Change Type <span>*</span>
+                                    </label>
+                                    <select
+                                        id="requestChangeType"
+                                        value={requestChangeType}
+                                        onChange={(event) => {
+                                            const nextType = event.target.value;
+                                            setRequestChangeType(nextType);
+                                            setRequestNewDate("");
+                                            setRequestNewEffort("");
+                                        }}
+                                    >
+                                        {REQUEST_CHANGE_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {requestChangeType === "dueDateChange" ? (
+                                    <div className="employee-task-details-page__request-values-grid">
+                                        <div className="employee-task-details-page__request-field">
+                                            <label>Original Due Date</label>
+                                            <input
+                                                type="text"
+                                                value={formatDate(task.dueDate)}
+                                                readOnly
+                                                className="employee-task-details-page__request-readonly"
+                                            />
+                                        </div>
+
+                                        <div className="employee-task-details-page__request-field">
+                                            <label htmlFor="requestNewDate">New Due Date</label>
+                                            <input
+                                                id="requestNewDate"
+                                                type="date"
+                                                value={requestNewDate}
+                                                min={formatDateForInput(new Date())}
+                                                onChange={(event) => setRequestNewDate(event.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {requestChangeType === "estimatedEffortChange" ? (
+                                    <div className="employee-task-details-page__request-values-grid">
+                                        <div className="employee-task-details-page__request-field">
+                                            <label>Original Estimated Effort</label>
+                                            <input
+                                                type="text"
+                                                value={`${task.effort} h`}
+                                                readOnly
+                                                className="employee-task-details-page__request-readonly"
+                                            />
+                                        </div>
+
+                                        <div className="employee-task-details-page__request-field">
+                                            <label htmlFor="requestNewEffort">New Estimated Effort</label>
+                                            <input
+                                                id="requestNewEffort"
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                placeholder="Enter new effort in hours"
+                                                value={requestNewEffort}
+                                                onChange={(event) => setRequestNewEffort(event.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                <div className="employee-task-details-page__request-field">
+                                    <label htmlFor="requestReason">
+                                        Reason for Change <span>*</span>
+                                    </label>
+                                    <textarea
+                                        id="requestReason"
+                                        value={requestReason}
+                                        onChange={(event) => setRequestReason(event.target.value.slice(0, 500))}
+                                        placeholder="Explain what needs to be changed and why..."
+                                    />
+                                    <div className="employee-task-details-page__request-counter">
+                                        {requestReason.length}/500
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="employee-task-details-page__modal-footer">
+                                <button
+                                    type="button"
+                                    className="employee-task-details-page__request-cancel"
+                                    onClick={() => {
+                                        if (!isSubmittingRequest) {
+                                            resetRequestChangeForm();
+                                            setShowRequestModal(false);
+                                        }
+                                    }}
+                                    disabled={isSubmittingRequest}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    className="employee-task-details-page__request-submit"
+                                    disabled={isSubmittingRequest}
+                                >
+                                    {isSubmittingRequest ? "Sending..." : "Send Request"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            ) : null}
+
+            {showStatusConfirmModal ? (
+                <div
+                    className="employee-task-details-page__modal-overlay"
+                    onClick={() => {
+                        if (!isUpdatingStatus) {
+                            setShowStatusConfirmModal(false);
+                        }
+                    }}
+                >
+                    <div
+                        className="employee-task-details-page__modal employee-task-details-page__modal--confirm"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="employee-task-details-page__confirm-icon">
+                            <FiCheckCircle />
+                        </div>
+
+                        <h3>Confirm Status Change</h3>
+                        <p>
+                            Are you sure you want to change this task status to <strong>{nextStatusLabel}</strong>?
+                        </p>
+
+                        <div className="employee-task-details-page__confirm-actions">
+                            <button
+                                type="button"
+                                className="employee-task-details-page__request-cancel"
+                                onClick={() => setShowStatusConfirmModal(false)}
+                                disabled={isUpdatingStatus}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                className="employee-task-details-page__status-btn"
+                                onClick={handleConfirmedStatusUpdate}
+                                disabled={isUpdatingStatus}
+                            >
+                                {isUpdatingStatus ? "Updating..." : "Confirm"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             ) : null}
 
@@ -921,50 +1185,25 @@ export default function EmployeeTaskDetailsPage() {
                     <FiArrowLeft />
                 </button>
 
-                <h2>Task Details</h2>
+                <h2>Employee Task Details</h2>
                 <div className="employee-task-details-page__title-line" />
             </div>
 
             <div className="employee-task-details-page__toolbar">
-                <div className="employee-task-details-page__request-wrap">
-                    <button
-                        type="button"
-                        className="employee-task-details-page__request-btn"
-                        onClick={() => setShowRequestMenu((prev) => !prev)}
-                        disabled={isSubmittingRequest}
-                    >
-                        <FiMessageCircle />
-                        <span>Request Change</span>
-                        <FiChevronDown />
-                    </button>
-
-                    {showRequestMenu ? (
-                        <form
-                            className="employee-task-details-page__request-dropdown"
-                            onSubmit={handleRequestChangeSubmit}
-                        >
-                            <textarea
-                                value={requestChangeText}
-                                onChange={(event) =>
-                                    setRequestChangeText(event.target.value.slice(0, 500))
-                                }
-                                placeholder="Explain what should be changed..."
-                            />
-                            <button
-                                type="submit"
-                                className="employee-task-details-page__request-submit"
-                                disabled={isSubmittingRequest || !requestChangeText.trim()}
-                            >
-                                {isSubmittingRequest ? "Sending..." : "Send Request"}
-                            </button>
-                        </form>
-                    ) : null}
-                </div>
+                <button
+                    type="button"
+                    className="employee-task-details-page__request-btn"
+                    onClick={() => setShowRequestModal(true)}
+                    disabled={isSubmittingRequest}
+                >
+                    <FiMessageCircle />
+                    <span>Request Change</span>
+                </button>
 
                 <button
                     type="button"
                     className="employee-task-details-page__status-btn"
-                    onClick={handleStatusUpdate}
+                    onClick={() => setShowStatusConfirmModal(true)}
                     disabled={isUpdatingStatus || isTaskDone}
                 >
                     <FiCheckCircle />
