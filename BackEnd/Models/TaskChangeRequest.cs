@@ -7,6 +7,7 @@ namespace BackEnd.Models
     public class TaskChangeRequest
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int TaskChangeRequestId { get; set; }
 
         public int CompanyId { get; set; }
