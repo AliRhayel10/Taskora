@@ -158,7 +158,7 @@
 .employee-dashboard-section__tabs {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
@@ -173,7 +173,7 @@
 .employee-dashboard-section__tab-group {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 0 0 auto;
 }
 
@@ -270,6 +270,39 @@
   font-weight: 700;
   text-align: left;
   white-space: nowrap;
+}
+
+.employee-dashboard-section__sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.employee-dashboard-section__sort-icon {
+  font-size: 0.92rem;
+  color: #64748b;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.employee-dashboard-section__sort-icon--active {
+  color: #1e293b;
+}
+
+.employee-dashboard-section__sort-icon--desc {
+  transform: rotate(180deg);
+}
+
+.employee-dashboard-section__sort-btn:hover .employee-dashboard-section__sort-icon {
+  color: #1e293b;
 }
 
 .employee-dashboard-section__table tbody td {
@@ -406,12 +439,8 @@
 
 .employee-dashboard-section__due-date {
   font-weight: 600;
-  color: #475467;
+  color: #1e293b;
   font-size: 0.95rem;
-}
-
-.employee-dashboard-section__due-date--soon {
-  color: #ea580c;
 }
 
 .employee-dashboard-section__actions {
@@ -607,7 +636,11 @@
   .employee-dashboard-section__tabs {
     margin-left: 0;
     padding-right: 0;
-    gap: 12px;
+    gap: 14px;
+  }
+
+  .employee-dashboard-section__tab-group {
+    gap: 9px;
   }
 
   .employee-dashboard-section__table {

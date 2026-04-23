@@ -9,6 +9,7 @@ import {
 import {
   FiAlertCircle,
   FiCheckCircle,
+  FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
   FiClock,
@@ -134,6 +135,20 @@ function isDueSoon(value) {
   return diffDays >= 0 && diffDays <= 7;
 }
 
+function compareValues(a, b, direction = "asc") {
+  if (a == null && b == null) return 0;
+  if (a == null) return direction === "asc" ? -1 : 1;
+  if (b == null) return direction === "asc" ? 1 : -1;
+
+  const multiplier = direction === "asc" ? 1 : -1;
+
+  if (typeof a === "number" && typeof b === "number") {
+    return (a - b) * multiplier;
+  }
+
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" }) * multiplier;
+}
+
 export default function EmployeeDashboardSection({
   user,
   searchValue = "",
@@ -147,6 +162,10 @@ export default function EmployeeDashboardSection({
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(5);
   const [tableMaxHeight, setTableMaxHeight] = useState(0);
+  const [sortConfig, setSortConfig] = useState({
+    key: "dueDate",
+    direction: "asc",
+  });
 
   const tableCardRef = useRef(null);
   const tableHeadRef = useRef(null);
@@ -241,6 +260,34 @@ export default function EmployeeDashboardSection({
     return filteredBySearch.filter((task) => task.status === activeTab);
   }, [activeTab, filteredBySearch]);
 
+  const sortedTasks = useMemo(() => {
+    const items = [...visibleTasks];
+
+    items.sort((a, b) => {
+      switch (sortConfig.key) {
+        case "title":
+          return compareValues(a.title, b.title, sortConfig.direction);
+        case "priority":
+          return compareValues(a.priority, b.priority, sortConfig.direction);
+        case "complexity":
+          return compareValues(a.complexity, b.complexity, sortConfig.direction);
+        case "effort":
+          return compareValues(Number(a.effort || 0), Number(b.effort || 0), sortConfig.direction);
+        case "status":
+          return compareValues(getStatusLabel(a.status), getStatusLabel(b.status), sortConfig.direction);
+        case "dueDate": {
+          const aTime = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          const bTime = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          return compareValues(aTime, bTime, sortConfig.direction);
+        }
+        default:
+          return 0;
+      }
+    });
+
+    return items;
+  }, [visibleTasks, sortConfig]);
+
   const todayTasksCount = useMemo(() => {
     return tasks.filter((task) => isDueToday(task.dueDate)).length;
   }, [tasks]);
@@ -321,21 +368,53 @@ export default function EmployeeDashboardSection({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, searchValue]);
+  }, [activeTab, searchValue, sortConfig]);
 
   useEffect(() => {
-    const totalPagesCount = Math.max(1, Math.ceil(visibleTasks.length / tasksPerPage));
+    const totalPagesCount = Math.max(1, Math.ceil(sortedTasks.length / tasksPerPage));
 
     if (currentPage > totalPagesCount) {
       setCurrentPage(totalPagesCount);
     }
-  }, [currentPage, visibleTasks.length, tasksPerPage]);
+  }, [currentPage, sortedTasks.length, tasksPerPage]);
 
-  const totalVisibleTasks = visibleTasks.length;
+  const toggleSort = useCallback((key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return {
+        key,
+        direction: "asc",
+      };
+    });
+  }, []);
+
+  const getSortIconClass = useCallback(
+    (key) => {
+      const classes = ["employee-dashboard-section__sort-icon"];
+
+      if (sortConfig.key === key) {
+        classes.push("employee-dashboard-section__sort-icon--active");
+        if (sortConfig.direction === "desc") {
+          classes.push("employee-dashboard-section__sort-icon--desc");
+        }
+      }
+
+      return classes.join(" ");
+    },
+    [sortConfig]
+  );
+
+  const totalVisibleTasks = sortedTasks.length;
   const totalPages = Math.max(1, Math.ceil(totalVisibleTasks / tasksPerPage));
   const startIndex = totalVisibleTasks === 0 ? 0 : (currentPage - 1) * tasksPerPage;
   const endIndex = Math.min(startIndex + tasksPerPage, totalVisibleTasks);
-  const paginatedTasks = visibleTasks.slice(startIndex, endIndex);
+  const paginatedTasks = sortedTasks.slice(startIndex, endIndex);
 
   const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1).slice(
     Math.max(0, currentPage - 2),
@@ -361,7 +440,7 @@ export default function EmployeeDashboardSection({
 
             <p className="employee-dashboard-section__hero-copy">
               {todayTasksCount > 0
-                ? `${todayTasksCount} task${todayTasksCount > 1 ? "s are" : " is"} due today.`
+                ? `${todayTasksCount} task${todayTasksCount > 1 ? "s are" : "is"} due today.`
                 : "No tasks are due today. Stay focused and keep up the great work."}
             </p>
           </div>
@@ -419,15 +498,17 @@ export default function EmployeeDashboardSection({
           <div key={tab.key} className="employee-dashboard-section__tab-group">
             <button
               type="button"
-              className={`employee-dashboard-section__tab ${activeTab === tab.key ? "employee-dashboard-section__tab--active" : ""
-                }`}
+              className={`employee-dashboard-section__tab ${
+                activeTab === tab.key ? "employee-dashboard-section__tab--active" : ""
+              }`}
               onClick={() => setActiveTab(tab.key)}
             >
               <span
-                className={`employee-dashboard-section__tab-label ${activeTab === tab.key
+                className={`employee-dashboard-section__tab-label ${
+                  activeTab === tab.key
                     ? "employee-dashboard-section__tab-label--active"
                     : ""
-                  }`}
+                }`}
               >
                 {tab.label}
               </span>
@@ -478,12 +559,66 @@ export default function EmployeeDashboardSection({
               <table className="employee-dashboard-section__table">
                 <thead ref={tableHeadRef}>
                   <tr>
-                    <th>Task Name</th>
-                    <th>Priority</th>
-                    <th>Complexity</th>
-                    <th>Effort (hrs)</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
+                    <th>
+                      <button
+                        type="button"
+                        className="employee-dashboard-section__sort-btn"
+                        onClick={() => toggleSort("title")}
+                      >
+                        <span>Task Name</span>
+                        <FiChevronDown className={getSortIconClass("title")} />
+                      </button>
+                    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="employee-dashboard-section__sort-btn"
+                        onClick={() => toggleSort("priority")}
+                      >
+                        <span>Priority</span>
+                        <FiChevronDown className={getSortIconClass("priority")} />
+                      </button>
+                    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="employee-dashboard-section__sort-btn"
+                        onClick={() => toggleSort("complexity")}
+                      >
+                        <span>Complexity</span>
+                        <FiChevronDown className={getSortIconClass("complexity")} />
+                      </button>
+                    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="employee-dashboard-section__sort-btn"
+                        onClick={() => toggleSort("effort")}
+                      >
+                        <span>Effort</span>
+                        <FiChevronDown className={getSortIconClass("effort")} />
+                      </button>
+                    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="employee-dashboard-section__sort-btn"
+                        onClick={() => toggleSort("status")}
+                      >
+                        <span>Status</span>
+                        <FiChevronDown className={getSortIconClass("status")} />
+                      </button>
+                    </th>
+                    <th>
+                      <button
+                        type="button"
+                        className="employee-dashboard-section__sort-btn"
+                        onClick={() => toggleSort("dueDate")}
+                      >
+                        <span>Due Date</span>
+                        <FiChevronDown className={getSortIconClass("dueDate")} />
+                      </button>
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -526,7 +661,7 @@ export default function EmployeeDashboardSection({
                       </td>
 
                       <td className="employee-dashboard-section__cell-center">
-                        {task.effort}
+                        {task.effort}h
                       </td>
 
                       <td>
@@ -543,12 +678,7 @@ export default function EmployeeDashboardSection({
                       </td>
 
                       <td className="employee-dashboard-section__cell-center">
-                        <span
-                          className={`employee-dashboard-section__due-date ${isDueSoon(task.dueDate) && task.status !== "done"
-                              ? "employee-dashboard-section__due-date--soon"
-                              : ""
-                            }`}
-                        >
+                        <span className="employee-dashboard-section__due-date">
                           {formatDate(task.dueDate)}
                         </span>
                       </td>
@@ -590,8 +720,9 @@ export default function EmployeeDashboardSection({
                   <button
                     key={page}
                     type="button"
-                    className={`users-section__page-btn users-section__page-btn--number ${currentPage === page ? "users-section__page-btn--active" : ""
-                      }`}
+                    className={`users-section__page-btn users-section__page-btn--number ${
+                      currentPage === page ? "users-section__page-btn--active" : ""
+                    }`}
                     onClick={() => setCurrentPage(page)}
                   >
                     {page}
