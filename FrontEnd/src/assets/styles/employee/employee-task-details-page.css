@@ -1,944 +1,988 @@
 .employee-task-details-page {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 1px 0 0;
-  margin: 0;
-  height: calc(100vh - 140px);
-  min-height: calc(100vh - 140px);
-  overflow: hidden;
-  box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 1px 0 0;
+    margin: 0;
+    height: calc(100vh - 140px);
+    min-height: calc(100vh - 140px);
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .employee-task-details-page__title-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
 }
 
 .employee-task-details-page__title-row h2 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 1.45rem;
-  font-weight: 800;
-  white-space: nowrap;
+    margin: 0;
+    color: #1e293b;
+    font-size: 1.45rem;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
 .employee-task-details-page__title-line {
-  flex: 1;
-  height: 1px;
-  background: #cbd5e1;
+    flex: 1;
+    height: 1px;
+    background: #cbd5e1;
 }
 
 .employee-task-details-page__toolbar {
-  width: 100%;
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: -4px;
-  padding-right: 0;
-  box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: -4px;
+    padding-right: 0;
+    box-sizing: border-box;
 }
 
 .employee-task-details-page__back-btn {
-  width: 44px;
-  height: 44px;
-  border: 1px solid #2563eb;
-  background: #f8fafc;
-  color: #2563eb;
-  border-radius: 12px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  line-height: 1;
-  font-weight: 400;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
-  flex-shrink: 0;
-  box-shadow: none;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #2563eb;
+    background: #f8fafc;
+    color: #2563eb;
+    border-radius: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    line-height: 1;
+    font-weight: 400;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+    flex-shrink: 0;
+    box-shadow: none;
 }
 
 .employee-task-details-page__back-btn:hover {
-  background: #eff6ff;
-  border-color: #1d4ed8;
-  color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #1d4ed8;
+    color: #1d4ed8;
 }
 
 .employee-task-details-page__top-error,
 .employee-task-details-page__empty-state-card {
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  padding: 16px;
-  text-align: center;
-  color: #64748b;
-  font-size: 0.9rem;
-  background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+    background: #f8fafc;
 }
 
 .employee-task-details-page__status-btn,
 .employee-task-details-page__request-btn,
 .employee-task-details-page__request-submit,
 .employee-task-details-page__feedback-inline-submit {
-  min-height: 42px;
-  border-radius: 12px;
-  padding: 0 14px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    min-height: 42px;
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .employee-task-details-page__status-btn {
-  border: 1px solid #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+    border: 1px solid #2563eb;
+    background: #2563eb;
+    color: #ffffff;
 }
 
 .employee-task-details-page__status-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
 }
 
 .employee-task-details-page__request-btn {
-  border: 1px solid #d8b4fe;
-  background: #faf5ff;
-  color: #7c3aed;
+    border: 1px solid #d8b4fe;
+    background: #faf5ff;
+    color: #7c3aed;
 }
 
 .employee-task-details-page__request-btn:hover:not(:disabled) {
-  background: #f3e8ff;
-  border-color: #c084fc;
-  transform: translateY(-1px);
+    background: #f3e8ff;
+    border-color: #c084fc;
+    transform: translateY(-1px);
 }
 
 .employee-task-details-page__request-submit {
-  border: 1px solid #7c3aed;
-  background: #7c3aed;
-  color: #ffffff;
+    border: 1px solid #7c3aed;
+    background: #7c3aed;
+    color: #ffffff;
 }
 
 .employee-task-details-page__request-submit:hover:not(:disabled) {
-  background: #6d28d9;
-  border-color: #6d28d9;
+    background: #6d28d9;
+    border-color: #6d28d9;
 }
 
 .employee-task-details-page__status-btn:disabled,
 .employee-task-details-page__request-btn:disabled,
 .employee-task-details-page__request-submit:disabled,
 .employee-task-details-page__feedback-inline-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .employee-task-details-page__request-wrap {
-  position: relative;
+    position: relative;
 }
 
 .employee-task-details-page__request-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  min-width: 280px;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 16px;
-  background: #f8fafc;
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 280px;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    background: #f8fafc;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .employee-task-details-page__request-dropdown textarea {
-  width: 100%;
-  min-height: 110px;
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  background: #ffffff;
-  color: #1e293b;
-  font-size: 0.95rem;
-  padding: 12px 14px;
-  resize: vertical;
-  box-sizing: border-box;
-  outline: none;
+    width: 100%;
+    min-height: 110px;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.95rem;
+    padding: 12px 14px;
+    resize: vertical;
+    box-sizing: border-box;
+    outline: none;
 }
 
 .employee-task-details-page__request-dropdown textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .employee-task-details-page__content-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(320px, 410px) minmax(420px, 1fr);
-  gap: 20px;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(320px, 410px) minmax(420px, 1fr);
+    gap: 20px;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .employee-task-details-page__single-card {
-  position: relative;
-  width: min(100%, 410px);
-  background: #ffffff;
-  border: 1px solid #dbe3ef;
-  border-radius: 24px;
-  padding: 18px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-self: stretch;
-  min-height: 0;
-  overflow: auto;
+    position: relative;
+    width: min(100%, 410px);
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
+    border-radius: 24px;
+    padding: 18px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-self: stretch;
+    min-height: 0;
+    overflow: auto;
 }
 
 .employee-task-details-page__top-block {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 8px;
-  min-height: 132px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 132px;
 }
 
 .employee-task-details-page__top-block h3 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 1.55rem;
-  font-weight: 800;
-  line-height: 1.2;
-  word-break: break-word;
+    margin: 0;
+    color: #1e293b;
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.2;
+    word-break: break-word;
 }
 
 .employee-task-details-page__top-block p {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.93rem;
-  font-weight: 500;
-  line-height: 1.5;
-  word-break: break-word;
-  white-space: pre-wrap;
+    margin: 0;
+    color: #64748b;
+    font-size: 0.93rem;
+    font-weight: 500;
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .employee-task-details-page__divider {
-  width: 100%;
-  height: 1px;
-  background: #dbe3ef;
-  flex-shrink: 0;
+    width: 100%;
+    height: 1px;
+    background: #dbe3ef;
+    flex-shrink: 0;
 }
 
 .employee-task-details-page__assigned-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .employee-task-details-page__assigned-section h4 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 1rem;
-  font-weight: 800;
+    margin: 0;
+    color: #1e293b;
+    font-size: 1rem;
+    font-weight: 800;
 }
 
 .employee-task-details-page__assignee-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
 }
 
 .employee-task-details-page__assignee-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #dbeafe;
-  color: #2563eb;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  font-weight: 800;
-  overflow: hidden;
-  flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #dbeafe;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 800;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .employee-task-details-page__assignee-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .employee-task-details-page__assignee-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .employee-task-details-page__assignee-copy strong {
-  color: #1e293b;
-  font-size: 0.95rem;
-  font-weight: 800;
-  line-height: 1.3;
-  word-break: break-word;
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.3;
+    word-break: break-word;
 }
 
 .employee-task-details-page__assignee-copy small {
-  color: #64748b;
-  font-size: 0.86rem;
-  line-height: 1.4;
-  word-break: break-word;
+    color: #64748b;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
 .employee-task-details-page__details-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 10px;
-  align-content: start;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 10px;
+    align-content: start;
 }
 
 .employee-task-details-page__detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
 }
 
 .employee-task-details-page__label-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #64748b;
-  font-size: 0.85rem;
-  font-weight: 700;
-  line-height: 1.25;
-  min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.25;
+    min-width: 0;
 }
 
 .employee-task-details-page__label-row svg {
-  color: #2563eb;
-  font-size: 0.92rem;
-  flex-shrink: 0;
+    color: #2563eb;
+    font-size: 0.92rem;
+    flex-shrink: 0;
 }
 
 .employee-task-details-page__detail-item strong {
-  color: #1e293b;
-  font-size: 0.92rem;
-  font-weight: 800;
-  line-height: 1.35;
-  word-break: break-word;
-  padding-left: 20px;
+    color: #1e293b;
+    font-size: 0.92rem;
+    font-weight: 800;
+    line-height: 1.35;
+    word-break: break-word;
+    padding-left: 20px;
 }
 
-.employee-task-details-page__value--default { color: #1e293b !important; }
-.employee-task-details-page__value--low { color: #1d4ed8 !important; }
-.employee-task-details-page__value--medium-priority { color: #ff5900 !important; }
-.employee-task-details-page__value--high { color: #eb1b1b !important; }
-.employee-task-details-page__value--critical { color: #991b1b !important; }
-.employee-task-details-page__value--simple { color: #1d4ed8 !important; }
-.employee-task-details-page__value--medium-complexity { color: #ff5900 !important; }
-.employee-task-details-page__value--complex { color: #eb1b1b !important; }
-.employee-task-details-page__value--new { color: #2563eb !important; }
-.employee-task-details-page__value--acknowledged { color: #7c3aed !important; }
-.employee-task-details-page__value--pending { color: #d97706 !important; }
-.employee-task-details-page__value--done { color: #0891b2 !important; }
-.employee-task-details-page__value--approved { color: #16a34a !important; }
-.employee-task-details-page__value--rejected { color: #dc2626 !important; }
-.employee-task-details-page__value--archived { color: #64748b !important; }
+.employee-task-details-page__value--default {
+    color: #1e293b !important;
+}
+
+.employee-task-details-page__value--low {
+    color: #1d4ed8 !important;
+}
+
+.employee-task-details-page__value--medium-priority {
+    color: #ff5900 !important;
+}
+
+.employee-task-details-page__value--high {
+    color: #eb1b1b !important;
+}
+
+.employee-task-details-page__value--critical {
+    color: #991b1b !important;
+}
+
+.employee-task-details-page__value--simple {
+    color: #1d4ed8 !important;
+}
+
+.employee-task-details-page__value--medium-complexity {
+    color: #ff5900 !important;
+}
+
+.employee-task-details-page__value--complex {
+    color: #eb1b1b !important;
+}
+
+.employee-task-details-page__value--new {
+    color: #2563eb !important;
+}
+
+.employee-task-details-page__value--acknowledged {
+    color: #7c3aed !important;
+}
+
+.employee-task-details-page__value--pending {
+    color: #d97706 !important;
+}
+
+.employee-task-details-page__value--done {
+    color: #0891b2 !important;
+}
+
+.employee-task-details-page__value--approved {
+    color: #16a34a !important;
+}
+
+.employee-task-details-page__value--rejected {
+    color: #dc2626 !important;
+}
+
+.employee-task-details-page__value--archived {
+    color: #64748b !important;
+}
 
 .employee-task-details-page__right-column {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 .employee-task-details-page__top-panels {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  align-items: stretch;
-  min-height: 0;
-  overflow: hidden;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: stretch;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .employee-task-details-page__timeline-card,
 .employee-task-details-page__history-card {
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #dbe3ef;
-  border-radius: 24px;
-  padding: 18px 20px;
-  box-sizing: border-box;
-  box-shadow: none;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
+    border-radius: 24px;
+    padding: 18px 20px;
+    box-sizing: border-box;
+    box-shadow: none;
 }
 
 .employee-task-details-page__feedback-inline-card {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  box-sizing: border-box;
-  box-shadow: none;
-  transform: translateY(30px);
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-sizing: border-box;
+    box-shadow: none;
+    transform: translateY(30px);
 }
 
 .employee-task-details-page__timeline-card,
 .employee-task-details-page__history-card {
-  height: 460px;
-  max-height: 460px;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+    height: 460px;
+    max-height: 460px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .employee-task-details-page__card-scroll-area {
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  padding-right: 4px;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding-right: 4px;
 }
 
 .employee-task-details-page__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .employee-task-details-page__section-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
 }
 
 .employee-task-details-page__section-title-wrap h3 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 1.02rem;
-  font-weight: 800;
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.02rem;
+    font-weight: 800;
 }
 
 .employee-task-details-page__section-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  background: #eff6ff;
-  color: #2563eb;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .employee-task-details-page__view-all-btn {
-  border: none;
-  background: transparent;
-  color: #2563eb;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
 }
 
 .employee-task-details-page__view-all-btn:hover {
-  color: #1d4ed8;
+    color: #1d4ed8;
 }
 
 .employee-task-details-page__summary-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
 }
 
 .employee-task-details-page__summary-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .employee-task-details-page__summary-stat {
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
 }
 
 .employee-task-details-page__summary-stat span {
-  color: #64748b;
-  font-size: 0.8rem;
-  font-weight: 700;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
 }
 
 .employee-task-details-page__summary-stat strong {
-  color: #1e293b;
-  font-size: 0.9rem;
-  font-weight: 800;
-  line-height: 1.4;
-  word-break: break-word;
+    color: #1e293b;
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
 .employee-task-details-page__empty-state {
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  padding: 16px;
-  text-align: center;
-  color: #64748b;
-  font-size: 0.9rem;
-  background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+    background: #f8fafc;
 }
 
 .employee-task-details-page__history-list,
 .employee-task-details-page__timeline-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 .employee-task-details-page__history-item {
-  display: grid;
-  grid-template-columns: 8px 38px minmax(0, 1fr);
-  align-items: start;
-  gap: 10px;
-  padding: 10px 0;
+    display: grid;
+    grid-template-columns: 8px 38px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    padding: 10px 0;
 }
 
-.employee-task-details-page__history-item + .employee-task-details-page__history-item,
-.employee-task-details-page__timeline-item + .employee-task-details-page__timeline-item {
-  border-top: 1px solid #eef2f7;
+.employee-task-details-page__history-item+.employee-task-details-page__history-item,
+.employee-task-details-page__timeline-item+.employee-task-details-page__timeline-item {
+    border-top: 1px solid #eef2f7;
 }
 
 .employee-task-details-page__history-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #2563eb;
-  margin-top: 15px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #2563eb;
+    margin-top: 15px;
 }
 
 .employee-task-details-page__history-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #dbeafe;
-  color: #2563eb;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-  font-weight: 800;
-  overflow: hidden;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #dbeafe;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 800;
+    overflow: hidden;
 }
 
 .employee-task-details-page__history-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .employee-task-details-page__history-content {
-  min-width: 0;
+    min-width: 0;
 }
 
 .employee-task-details-page__history-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
 }
 
 .employee-task-details-page__history-meta strong {
-  color: #1e293b;
-  font-size: 0.9rem;
-  font-weight: 800;
+    color: #1e293b;
+    font-size: 0.9rem;
+    font-weight: 800;
 }
 
 .employee-task-details-page__history-meta span {
-  color: #64748b;
-  font-size: 0.8rem;
+    color: #64748b;
+    font-size: 0.8rem;
 }
 
 .employee-task-details-page__history-badge {
-  margin-left: auto;
-  border-radius: 999px;
-  padding: 3px 9px;
-  background: #eaf7ef;
-  color: #15803d !important;
-  font-size: 0.74rem !important;
-  font-weight: 800;
+    margin-left: auto;
+    border-radius: 999px;
+    padding: 3px 9px;
+    background: #eaf7ef;
+    color: #15803d !important;
+    font-size: 0.74rem !important;
+    font-weight: 800;
 }
 
 .employee-task-details-page__history-content p {
-  margin: 0;
-  color: #475569;
-  font-size: 0.88rem;
-  line-height: 1.45;
+    margin: 0;
+    color: #475569;
+    font-size: 0.88rem;
+    line-height: 1.45;
 }
 
 .employee-task-details-page__timeline-item {
-  display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  gap: 12px;
-  padding: 10px 0;
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 0;
 }
 
 .employee-task-details-page__timeline-marker {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 5px;
 }
 
 .employee-task-details-page__timeline-marker--status {
-  background: #16a34a;
+    background: #16a34a;
 }
 
 .employee-task-details-page__timeline-marker--feedback {
-  background: #2563eb;
+    background: #2563eb;
 }
 
 .employee-task-details-page__timeline-content {
-  min-width: 0;
+    min-width: 0;
 }
 
 .employee-task-details-page__timeline-heading {
-  color: #1e293b;
-  font-size: 0.92rem;
-  font-weight: 800;
-  line-height: 1.35;
+    color: #1e293b;
+    font-size: 0.92rem;
+    font-weight: 800;
+    line-height: 1.35;
 }
 
 .employee-task-details-page__timeline-meta {
-  margin-top: 3px;
-  color: #64748b;
-  font-size: 0.8rem;
-  line-height: 1.4;
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
 
 .employee-task-details-page__timeline-note {
-  margin-top: 8px;
-  border-radius: 12px;
-  background: #f3f7ff;
-  color: #334155;
-  font-size: 0.86rem;
-  line-height: 1.45;
-  padding: 8px 10px;
+    margin-top: 8px;
+    border-radius: 12px;
+    background: #f3f7ff;
+    color: #334155;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    padding: 8px 10px;
 }
 
 .employee-task-details-page__feedback-inline-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
 }
 
 .employee-task-details-page__feedback-inline-main {
-  min-width: 0;
+    min-width: 0;
 }
 
 .employee-task-details-page__feedback-inline-input-wrap {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 16px;
-  background: #ffffff;
-  padding: 0 12px;
-  min-height: 52px;
-  min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 0 12px;
+    min-height: 52px;
+    min-width: 0;
 }
 
 .employee-task-details-page__feedback-inline-input-wrap input {
-  width: 100%;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: #1e293b;
-  font-size: 0.94rem;
-  line-height: 1.4;
-  padding: 0;
+    width: 100%;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #1e293b;
+    font-size: 0.94rem;
+    line-height: 1.4;
+    padding: 0;
 }
 
 .employee-task-details-page__feedback-inline-input-wrap input::placeholder {
-  color: #94a3b8;
+    color: #94a3b8;
 }
 
 .employee-task-details-page__feedback-inline-input-wrap:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .employee-task-details-page__feedback-inline-count {
-  color: #64748b;
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .employee-task-details-page__feedback-inline-submit {
-  min-height: 52px;
-  border-radius: 16px;
-  border: 1px solid #2563eb;
-  background: #2563eb;
-  color: #ffffff;
-  padding: 0 18px;
-  font-size: 0.92rem;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    min-height: 52px;
+    border-radius: 16px;
+    border: 1px solid #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+    padding: 0 18px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .employee-task-details-page__feedback-inline-submit:hover:not(:disabled) {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
 }
 
 .employee-task-details-page__feedback-inline-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .employee-task-details-page__toast {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000;
-  min-width: 280px;
-  max-width: min(92vw, 560px);
-  padding: 14px 18px;
-  border-radius: 14px;
-  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.18);
-  text-align: center;
-  font-size: 0.95rem;
-  font-weight: 700;
-  backdrop-filter: blur(10px);
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    min-width: 280px;
+    max-width: min(92vw, 560px);
+    padding: 14px 18px;
+    border-radius: 14px;
+    box-shadow: 0 18px 35px rgba(15, 23, 42, 0.18);
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+    backdrop-filter: blur(10px);
 }
 
 .employee-task-details-page__toast--success {
-  background: rgba(22, 163, 74, 0.96);
-  color: #ffffff;
-  border: 1px solid rgba(22, 163, 74, 0.98);
+    background: rgba(22, 163, 74, 0.96);
+    color: #ffffff;
+    border: 1px solid rgba(22, 163, 74, 0.98);
 }
 
 .employee-task-details-page__toast--error {
-  background: rgba(220, 38, 38, 0.96);
-  color: #ffffff;
-  border: 1px solid rgba(220, 38, 38, 0.98);
+    background: rgba(220, 38, 38, 0.96);
+    color: #ffffff;
+    border: 1px solid rgba(220, 38, 38, 0.98);
 }
 
 @media (max-width: 760px) {
-  .employee-task-details-page {
-    gap: 14px;
-    height: auto;
-    min-height: auto;
-    overflow: visible;
-  }
+    .employee-task-details-page {
+        gap: 14px;
+        height: auto;
+        min-height: auto;
+        overflow: visible;
+    }
 
-  .employee-task-details-page__toolbar {
-    width: 100%;
-    min-height: 42px;
-    justify-content: flex-end;
-    margin-top: 0;
-  }
+    .employee-task-details-page__toolbar {
+        width: 100%;
+        min-height: 42px;
+        justify-content: flex-end;
+        margin-top: 0;
+    }
 
-  .employee-task-details-page__title-row {
-    gap: 12px;
-  }
+    .employee-task-details-page__title-row {
+        gap: 12px;
+    }
 
-  .employee-task-details-page__title-row h2 {
-    font-size: 1.2rem;
-  }
+    .employee-task-details-page__title-row h2 {
+        font-size: 1.2rem;
+    }
 
-  .employee-task-details-page__back-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-  }
+    .employee-task-details-page__back-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+    }
 
-  .employee-task-details-page__content-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    flex: initial;
-    min-height: auto;
-    overflow: visible;
-  }
+    .employee-task-details-page__content-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        flex: initial;
+        min-height: auto;
+        overflow: visible;
+    }
 
-  .employee-task-details-page__single-card {
-    width: 100%;
-    padding: 16px 14px;
-    border-radius: 20px;
-    gap: 16px;
-    overflow: visible;
-  }
+    .employee-task-details-page__single-card {
+        width: 100%;
+        padding: 16px 14px;
+        border-radius: 20px;
+        gap: 16px;
+        overflow: visible;
+    }
 
-  .employee-task-details-page__top-block {
-    min-height: 132px;
-  }
+    .employee-task-details-page__top-block {
+        min-height: 132px;
+    }
 
-  .employee-task-details-page__top-block h3 {
-    font-size: 1.4rem;
-  }
+    .employee-task-details-page__top-block h3 {
+        font-size: 1.4rem;
+    }
 
-  .employee-task-details-page__top-block p {
-    font-size: 0.91rem;
-  }
+    .employee-task-details-page__top-block p {
+        font-size: 0.91rem;
+    }
 
-  .employee-task-details-page__assigned-section h4 {
-    font-size: 0.96rem;
-  }
+    .employee-task-details-page__assigned-section h4 {
+        font-size: 0.96rem;
+    }
 
-  .employee-task-details-page__assignee-avatar {
-    width: 48px;
-    height: 48px;
-  }
+    .employee-task-details-page__assignee-avatar {
+        width: 48px;
+        height: 48px;
+    }
 
-  .employee-task-details-page__assignee-copy strong {
-    font-size: 0.93rem;
-  }
+    .employee-task-details-page__assignee-copy strong {
+        font-size: 0.93rem;
+    }
 
-  .employee-task-details-page__assignee-copy small {
-    font-size: 0.83rem;
-  }
+    .employee-task-details-page__assignee-copy small {
+        font-size: 0.83rem;
+    }
 
-  .employee-task-details-page__details-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
+    .employee-task-details-page__details-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
 
-  .employee-task-details-page__label-row {
-    font-size: 0.84rem;
-  }
+    .employee-task-details-page__label-row {
+        font-size: 0.84rem;
+    }
 
-  .employee-task-details-page__detail-item strong {
-    font-size: 0.91rem;
-    padding-left: 22px;
-  }
+    .employee-task-details-page__detail-item strong {
+        font-size: 0.91rem;
+        padding-left: 22px;
+    }
 
-  .employee-task-details-page__right-column {
-    height: auto;
-    min-height: auto;
-    overflow: visible;
-  }
+    .employee-task-details-page__right-column {
+        height: auto;
+        min-height: auto;
+        overflow: visible;
+    }
 
-  .employee-task-details-page__top-panels {
-    grid-template-columns: 1fr;
-    flex: initial;
-    min-height: auto;
-    overflow: visible;
-  }
+    .employee-task-details-page__top-panels {
+        grid-template-columns: 1fr;
+        flex: initial;
+        min-height: auto;
+        overflow: visible;
+    }
 
-  .employee-task-details-page__timeline-card,
-  .employee-task-details-page__history-card {
-    padding: 16px 14px;
-    border-radius: 20px;
-  }
+    .employee-task-details-page__timeline-card,
+    .employee-task-details-page__history-card {
+        padding: 16px 14px;
+        border-radius: 20px;
+    }
 
-  .employee-task-details-page__feedback-inline-card {
-    padding: 0;
-    border-radius: 0;
-    transform: none;
-  }
+    .employee-task-details-page__feedback-inline-card {
+        padding: 0;
+        border-radius: 0;
+        transform: none;
+    }
 
-  .employee-task-details-page__timeline-card,
-  .employee-task-details-page__history-card {
-    height: auto;
-    max-height: none;
-  }
+    .employee-task-details-page__timeline-card,
+    .employee-task-details-page__history-card {
+        height: auto;
+        max-height: none;
+    }
 
-  .employee-task-details-page__card-scroll-area {
-    overflow: visible;
-    padding-right: 0;
-  }
+    .employee-task-details-page__card-scroll-area {
+        overflow: visible;
+        padding-right: 0;
+    }
 
-  .employee-task-details-page__summary-stats {
-    grid-template-columns: 1fr;
-  }
+    .employee-task-details-page__summary-stats {
+        grid-template-columns: 1fr;
+    }
 
-  .employee-task-details-page__feedback-inline-form {
-    grid-template-columns: 1fr;
-  }
+    .employee-task-details-page__feedback-inline-form {
+        grid-template-columns: 1fr;
+    }
 
-  .employee-task-details-page__feedback-inline-input-wrap {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 0 12px;
-  }
+    .employee-task-details-page__feedback-inline-input-wrap {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 0 12px;
+    }
 
-  .employee-task-details-page__feedback-inline-count {
-    grid-column: 1 / -1;
-    justify-self: end;
-    margin-top: -2px;
-  }
+    .employee-task-details-page__feedback-inline-count {
+        grid-column: 1 / -1;
+        justify-self: end;
+        margin-top: -2px;
+    }
 
-  .employee-task-details-page__feedback-inline-submit {
-    width: 100%;
-  }
+    .employee-task-details-page__feedback-inline-submit {
+        width: 100%;
+    }
 
-  .employee-task-details-page__request-dropdown {
-    right: 0;
-    left: auto;
-    min-width: 200px;
-    width: min(320px, 90vw);
-  }
+    .employee-task-details-page__request-dropdown {
+        right: 0;
+        left: auto;
+        min-width: 200px;
+        width: min(320px, 90vw);
+    }
 
-  .employee-task-details-page__toast {
-    top: 14px;
-    min-width: 0;
-    width: calc(100vw - 24px);
-  }
+    .employee-task-details-page__toast {
+        top: 14px;
+        min-width: 0;
+        width: calc(100vw - 24px);
+    }
 }
