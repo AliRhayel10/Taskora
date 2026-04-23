@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   FiArrowLeft,
   FiChevronLeft,
@@ -280,6 +281,8 @@ export default function TeamDetailsPage({
   searchValue,
   onSearchChange,
 }) {
+  const { teamId } = useParams();
+
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
 
@@ -288,6 +291,7 @@ export default function TeamDetailsPage({
   const [companyTasks, setCompanyTasks] = useState([]);
   const [members, setMembers] = useState([]);
   const [teamState, setTeamState] = useState(team || null);
+  const [notFound, setNotFound] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
@@ -350,6 +354,40 @@ export default function TeamDetailsPage({
     setTeamState(team || null);
     setCurrentPage(1);
   }, [team]);
+
+  useEffect(() => {
+    if (!companyId || allTeams.length === 0) {
+      return;
+    }
+
+    const routeTeamId = String(teamId || "");
+    if (!routeTeamId) {
+      setNotFound(false);
+      return;
+    }
+
+    const matchedTeam = allTeams.find(
+      (item) => String(item?.teamId || item?.id || "") === routeTeamId
+    );
+
+    if (!matchedTeam) {
+      setNotFound(true);
+      setTeamState(null);
+      setMembers([]);
+      return;
+    }
+
+    setNotFound(false);
+    setTeamState((prev) => ({
+      ...prev,
+      ...matchedTeam,
+      memberIds: Array.isArray(matchedTeam.memberIds) ? matchedTeam.memberIds : [],
+      teamLeaderId:
+        matchedTeam.teamLeaderId ?? matchedTeam.teamLeaderUserId ?? null,
+      teamLeaderUserId:
+        matchedTeam.teamLeaderUserId ?? matchedTeam.teamLeaderId ?? null,
+    }));
+  }, [teamId, allTeams, companyId]);
 
   useEffect(() => {
     const currentTeamId = String(teamState?.teamId || team?.teamId || "");
@@ -481,14 +519,14 @@ export default function TeamDetailsPage({
   }, [companyId]);
 
   useEffect(() => {
-    const teamId = teamState?.teamId;
+    const teamIdValue = teamState?.teamId;
     const activeMemberIds = Array.isArray(teamState?.memberIds)
       ? teamState.memberIds
       : [];
     const assignedLeaderId = String(
       teamState?.teamLeaderId || teamState?.teamLeaderUserId || ""
     );
-    const cachedMembers = readCachedTeamMembers(teamId);
+    const cachedMembers = readCachedTeamMembers(teamIdValue);
     const availableMembers = Array.isArray(companyMembers)
       ? companyMembers.filter(
           (member) => (member?.userId ?? member?.UserId ?? member?.id) != null
@@ -611,7 +649,7 @@ export default function TeamDetailsPage({
     });
 
     setMembers(resolvedMembers);
-    writeCachedTeamMembers(teamId, resolvedMembers);
+    writeCachedTeamMembers(teamIdValue, resolvedMembers);
   }, [teamState, companyMembers]);
 
   useEffect(() => {
@@ -1539,6 +1577,32 @@ export default function TeamDetailsPage({
     memberManagementMode === "members"
       ? "Search and add members to this team."
       : "Choose the team leader for this team.";
+
+  if (notFound) {
+    return (
+      <section className="team-details-page">
+        <div className="team-details-page__title-row">
+          {typeof onBack === "function" && (
+            <button
+              type="button"
+              className="team-details-back-btn"
+              onClick={onBack}
+              aria-label="Go back"
+            >
+              <FiArrowLeft />
+            </button>
+          )}
+          <h2>Team not found</h2>
+          <div className="team-details-page__title-line"></div>
+        </div>
+
+        <div className="team-details-page__empty" style={{ marginTop: "32px" }}>
+          <FiUser />
+          <span>This team does not exist.</span>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="team-details-page">

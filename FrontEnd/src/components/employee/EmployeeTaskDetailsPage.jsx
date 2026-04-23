@@ -234,6 +234,8 @@ function resolveChangedByName(item = {}) {
         item.ChangedByName ||
         item.changedByUserName ||
         item.ChangedByUserName ||
+        item.requestedByName ||
+        item.RequestedByName ||
         item.userName ||
         item.UserName ||
         item.fullName ||
@@ -254,6 +256,8 @@ function getProfileImage(user = {}) {
         user.assignedUserAvatar ||
         user.changedByProfileImageUrl ||
         user.changedByAvatar ||
+        user.requestedByProfileImageUrl ||
+        user.requestedByAvatar ||
         "";
 
     const value = String(rawValue || "").trim();
@@ -358,6 +362,7 @@ export default function EmployeeTaskDetailsPage() {
             let rawTask = null;
             let historyItems = [];
             let availableStatuses = [];
+            let changeRequests = [];
 
             const byIdResponse = await fetch(`${API_BASE}/api/tasks/by-id/${taskId}`, {
                 cache: "no-store",
@@ -411,13 +416,15 @@ export default function EmployeeTaskDetailsPage() {
             }
 
             if (storedUser?.companyId) {
-                const [historyResponse, statusesResponse] = await Promise.all([
+                const [historyResponse, statusesResponse, requestChangesResponse] = await Promise.all([
                     fetch(`${API_BASE}/api/tasks/${taskId}/history`, { cache: "no-store" }),
                     fetch(`${API_BASE}/api/tasks/statuses/${storedUser.companyId}`, { cache: "no-store" }),
+                    fetch(`${API_BASE}/api/tasks/${taskId}/change-requests`, { cache: "no-store" }),
                 ]);
 
                 const historyData = await parseJsonResponse(historyResponse);
                 const statusesData = await parseJsonResponse(statusesResponse);
+                const requestChangesData = await parseJsonResponse(requestChangesResponse);
 
                 if (historyResponse.ok && historyData.success !== false) {
                     historyItems = Array.isArray(historyData.data)
@@ -432,6 +439,14 @@ export default function EmployeeTaskDetailsPage() {
                         ? statusesData.statuses
                         : Array.isArray(statusesData.data)
                             ? statusesData.data
+                            : [];
+                }
+
+                if (requestChangesResponse.ok && requestChangesData.success !== false) {
+                    changeRequests = Array.isArray(requestChangesData.data)
+                        ? requestChangesData.data
+                        : Array.isArray(requestChangesData.requests)
+                            ? requestChangesData.requests
                             : [];
                 }
             }
@@ -449,13 +464,23 @@ export default function EmployeeTaskDetailsPage() {
                     changedByProfileImage: getProfileImage(item),
                 }));
 
-            const requestChangeEntries = feedbackEntries.filter((item) =>
-                String(item.message).trim().toLowerCase().startsWith("request change:")
-            );
+            const requestChangeEntries = changeRequests.map((item, index) => ({
+                id: item.taskChangeRequestId || item.TaskChangeRequestId || `request-change-${index}`,
+                changeType: item.changeType || item.ChangeType || "other",
+                changeTypeLabel: getRequestChangeTypeLabel(item.changeType || item.ChangeType || "other"),
+                oldValue: item.oldValue || item.OldValue || "",
+                newValue: item.newValue || item.NewValue || "",
+                reason: item.reason || item.Reason || "",
+                requestStatus: item.requestStatus || item.RequestStatus || "Pending",
+                createdAt: item.createdAt || item.CreatedAt || "",
+                changedAt: item.createdAt || item.CreatedAt || "",
+                changedAtLabel: formatDateTime(item.createdAt || item.CreatedAt || ""),
+                changedByName: resolveChangedByName(item),
+                changedByProfileImage: getProfileImage(item),
+                message: item.reason || item.Reason || "",
+            }));
 
-            const pureFeedbackEntries = feedbackEntries.filter(
-                (item) => !String(item.message).trim().toLowerCase().startsWith("request change:")
-            );
+            const pureFeedbackEntries = feedbackEntries;
 
             const mappedTask = {
                 taskId: rawTask.taskId || rawTask.TaskId,
@@ -572,6 +597,21 @@ export default function EmployeeTaskDetailsPage() {
             };
         });
 
+        const requestEntries = (task.requestChanges || []).map((item, index) => ({
+            id: item.id || `timeline-request-${index}`,
+            type: "request",
+            hasStatusChanged: false,
+            isRequestChange: true,
+            title: "Change request made",
+            createdAt: item.createdAt || item.changedAt || "",
+            changedAtLabel:
+                item.changedAtLabel || formatDateTime(item.createdAt || item.changedAt || ""),
+            changedByName: item.changedByName || "",
+            changedByProfileImage: item.changedByProfileImage || "",
+            requestTypeLabel:
+                item.changeTypeLabel || getRequestChangeTypeLabel(item.changeType || "other"),
+        }));
+
         const fallbackStatusEvent = historyEntries.length
             ? []
             : [
@@ -590,7 +630,7 @@ export default function EmployeeTaskDetailsPage() {
                 },
             ];
 
-        return [...historyEntries, ...fallbackStatusEvent].sort(
+        return [...historyEntries, ...requestEntries, ...fallbackStatusEvent].sort(
             (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
         );
     }, [task]);
@@ -886,12 +926,6 @@ export default function EmployeeTaskDetailsPage() {
             newValue = `${requestNewEffort} h`;
         }
 
-        const requestPreview = `Request change:
-Type: ${getRequestChangeTypeLabel(requestChangeType)}${oldValue ? `
-Old Value: ${oldValue}` : ""}${newValue ? `
-New Value: ${newValue}` : ""}
-Reason: ${requestReason.trim()}`;
-
         try {
             setIsSubmittingRequest(true);
             setErrorMessage("");
@@ -903,9 +937,16 @@ Reason: ${requestReason.trim()}`;
                         requestChanges: [
                             {
                                 id: `request-local-${createdAt}`,
-                                message: requestPreview,
+                                changeType: requestChangeType,
+                                changeTypeLabel: getRequestChangeTypeLabel(requestChangeType),
+                                oldValue,
+                                newValue,
+                                reason: requestReason.trim(),
                                 createdAt,
+                                changedAt: createdAt,
+                                changedAtLabel: formatDateTime(createdAt),
                                 changedByName: getStoredEmployeeName() || "",
+                                changedByProfileImage: "",
                             },
                             ...(prev.requestChanges || []),
                         ],
@@ -936,6 +977,7 @@ Reason: ${requestReason.trim()}`;
 
             resetRequestChangeForm();
             setShowRequestModal(false);
+            await loadTaskDetails();
             showToast("Request change sent successfully.", "success");
         } catch (error) {
             setTask(previousTask);
@@ -1049,11 +1091,10 @@ Reason: ${requestReason.trim()}`;
                                                 <button
                                                     key={option.value}
                                                     type="button"
-                                                    className={`employee-task-details-page__change-type-card ${
-                                                        isActive
+                                                    className={`employee-task-details-page__change-type-card ${isActive
                                                             ? "employee-task-details-page__change-type-card--active"
                                                             : ""
-                                                    }`}
+                                                        }`}
                                                     onClick={() => {
                                                         setRequestChangeType(option.value);
                                                         setRequestNewDate("");
@@ -1388,22 +1429,25 @@ Reason: ${requestReason.trim()}`;
                                                 className="employee-task-details-page__timeline-item"
                                             >
                                                 <div
-                                                    className={`employee-task-details-page__timeline-marker ${
-                                                        item.hasStatusChanged
+                                                    className={`employee-task-details-page__timeline-marker ${item.type === "status"
                                                             ? "employee-task-details-page__timeline-marker--status"
-                                                            : "employee-task-details-page__timeline-marker--feedback"
-                                                    }`}
+                                                            : item.type === "request"
+                                                                ? "employee-task-details-page__timeline-marker--request"
+                                                                : "employee-task-details-page__timeline-marker--feedback"
+                                                        }`}
                                                 />
 
                                                 <div className="employee-task-details-page__timeline-content">
                                                     <div className="employee-task-details-page__timeline-heading">
-                                                        {item.hasStatusChanged ? (
+                                                        {item.type === "status" ? (
                                                             <>
                                                                 <span>Status changed to </span>
                                                                 <span className={getStatusClass(item.newStatusName)}>
                                                                     {mapStatusLabel(item.newStatusName)}
                                                                 </span>
                                                             </>
+                                                        ) : item.type === "request" ? (
+                                                            "Change request made"
                                                         ) : (
                                                             "Feedback added"
                                                         )}
@@ -1414,7 +1458,11 @@ Reason: ${requestReason.trim()}`;
                                                         {item.changedAtLabel}
                                                     </div>
 
-                                                    {!item.hasStatusChanged && item.feedbackText ? (
+                                                    {item.type === "request" ? (
+                                                        <div className="employee-task-details-page__timeline-request-note">
+                                                            <strong>Type:</strong> {item.requestTypeLabel}
+                                                        </div>
+                                                    ) : !item.hasStatusChanged && item.feedbackText ? (
                                                         <div className="employee-task-details-page__timeline-note">
                                                             “{item.feedbackText}”
                                                         </div>
