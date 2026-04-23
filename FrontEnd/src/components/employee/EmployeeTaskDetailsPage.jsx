@@ -7,6 +7,7 @@ import {
   FiFlag,
   FiLayers,
   FiMessageCircle,
+  FiMessageSquare,
   FiSend,
   FiTarget,
   FiUser,
@@ -731,7 +732,7 @@ export default function EmployeeTaskDetailsPage() {
               <div className="employee-task-details-page__section-header">
                 <div className="employee-task-details-page__section-title-wrap">
                   <div className="employee-task-details-page__section-icon">
-                    <FiMessageCircle />
+                    <FiMessageSquare />
                   </div>
                   <h3>Feedback Summary</h3>
                 </div>
