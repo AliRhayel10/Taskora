@@ -47,6 +47,20 @@ function toEmployeeStatus(value) {
   return "new";
 }
 
+function resolveTaskStatus(task) {
+  return toEmployeeStatus(
+    task.taskStatusName ||
+      task.TaskStatusName ||
+      task.statusName ||
+      task.StatusName ||
+      task.taskStatus?.statusName ||
+      task.taskStatus?.StatusName ||
+      task.status ||
+      task.Status ||
+      ""
+  );
+}
+
 function getPriorityClass(priority) {
   const normalized = String(priority || "").trim().toLowerCase();
 
@@ -146,7 +160,12 @@ function compareValues(a, b, direction = "asc") {
     return (a - b) * multiplier;
   }
 
-  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" }) * multiplier;
+  return (
+    String(a).localeCompare(String(b), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }) * multiplier
+  );
 }
 
 export default function EmployeeDashboardSection({
@@ -182,7 +201,10 @@ export default function EmployeeDashboardSection({
       setIsLoading(true);
       setErrorMessage("");
 
-      const response = await fetch(`${API_BASE}/api/tasks/company/${user.companyId}`);
+      const response = await fetch(`${API_BASE}/api/tasks/company/${user.companyId}`, {
+        cache: "no-store",
+      });
+
       const rawText = await response.text();
       let data = {};
 
@@ -205,16 +227,41 @@ export default function EmployeeDashboardSection({
             : [];
 
       const onlyLoggedInUserTasks = rawTasks
-        .filter((task) => Number(task.assignedToUserId) === Number(user.userId))
+        .filter((task) => {
+          const assignedUserId =
+            task.assignedToUserId ??
+            task.AssignedToUserId ??
+            task.assignedUserId ??
+            task.userId;
+
+          return Number(assignedUserId) === Number(user.userId);
+        })
         .map((task) => ({
-          taskId: task.taskId,
-          title: task.title || "Untitled Task",
-          description: task.description || "",
-          priority: task.priority || "-",
-          complexity: task.complexity || "-",
-          effort: task.effort ?? task.estimatedEffortHours ?? 0,
-          dueDate: task.dueDate || task.endDate || task.deadline || "",
-          status: toEmployeeStatus(task.status),
+          taskId: task.taskId || task.TaskId,
+          title: task.title || task.Title || "Untitled Task",
+          description: task.description || task.Description || "",
+          priority: task.priority || task.Priority || "-",
+          complexity: task.complexity || task.Complexity || "-",
+          effort:
+            task.effort ??
+            task.Effort ??
+            task.estimatedEffortHours ??
+            task.estimatedEffort ??
+            0,
+          dueDate:
+            task.dueDate ||
+            task.DueDate ||
+            task.endDate ||
+            task.EndDate ||
+            task.deadline ||
+            "",
+          status: resolveTaskStatus(task),
+          updatedAt:
+            task.updatedAt ||
+            task.UpdatedAt ||
+            task.lastUpdated ||
+            task.LastUpdated ||
+            "",
         }));
 
       setTasks(onlyLoggedInUserTasks);
@@ -227,6 +274,26 @@ export default function EmployeeDashboardSection({
 
   useEffect(() => {
     loadTasks();
+  }, [loadTasks]);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      loadTasks();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadTasks();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [loadTasks]);
 
   const filteredBySearch = useMemo(() => {
@@ -272,9 +339,17 @@ export default function EmployeeDashboardSection({
         case "complexity":
           return compareValues(a.complexity, b.complexity, sortConfig.direction);
         case "effort":
-          return compareValues(Number(a.effort || 0), Number(b.effort || 0), sortConfig.direction);
+          return compareValues(
+            Number(a.effort || 0),
+            Number(b.effort || 0),
+            sortConfig.direction
+          );
         case "status":
-          return compareValues(getStatusLabel(a.status), getStatusLabel(b.status), sortConfig.direction);
+          return compareValues(
+            getStatusLabel(a.status),
+            getStatusLabel(b.status),
+            sortConfig.direction
+          );
         case "dueDate": {
           const aTime = a.dueDate ? new Date(a.dueDate).getTime() : 0;
           const bTime = b.dueDate ? new Date(b.dueDate).getTime() : 0;
@@ -626,7 +701,7 @@ export default function EmployeeDashboardSection({
                 <tbody>
                   {paginatedTasks.map((task, index) => (
                     <tr
-                      key={task.taskId}
+                      key={`${task.taskId}-${task.status}-${task.updatedAt || ""}`}
                       className={
                         index % 2 === 0
                           ? "employee-dashboard-section__row--odd"
