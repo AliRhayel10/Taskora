@@ -864,33 +864,32 @@ export default function EmployeeTaskDetailsPage() {
             return;
         }
 
-        const changedByUserId = getStoredEmployeeId();
+        const requestedByUserId = getStoredEmployeeId();
         const createdAt = new Date().toISOString();
         const previousTask = task;
 
-        if (!changedByUserId || !task.taskStatusId) {
+        if (!requestedByUserId || !task.taskStatusId) {
             const message = "Unable to submit request change.";
             setErrorMessage(message);
             showToast(message, "error");
             return;
         }
 
-        let requestFeedback = `Request change:
-Type: ${getRequestChangeTypeLabel(requestChangeType)}`;
+        let oldValue = null;
+        let newValue = null;
 
         if (requestChangeType === "dueDateChange") {
-            requestFeedback += `
-Current Due Date: ${formatDate(task.dueDate)}
-Requested Due Date: ${formatDate(requestNewDate)}`;
+            oldValue = formatDate(task.dueDate);
+            newValue = formatDate(requestNewDate);
+        } else if (requestChangeType === "estimatedEffortChange") {
+            oldValue = `${task.effort} h`;
+            newValue = `${requestNewEffort} h`;
         }
 
-        if (requestChangeType === "estimatedEffortChange") {
-            requestFeedback += `
-Current Estimated Effort: ${task.effort} h
-Requested Estimated Effort: ${requestNewEffort} h`;
-        }
-
-        requestFeedback += `
+        const requestPreview = `Request change:
+Type: ${getRequestChangeTypeLabel(requestChangeType)}${oldValue ? `
+Old Value: ${oldValue}` : ""}${newValue ? `
+New Value: ${newValue}` : ""}
 Reason: ${requestReason.trim()}`;
 
         try {
@@ -904,38 +903,28 @@ Reason: ${requestReason.trim()}`;
                         requestChanges: [
                             {
                                 id: `request-local-${createdAt}`,
-                                message: requestFeedback,
+                                message: requestPreview,
                                 createdAt,
                                 changedByName: getStoredEmployeeName() || "",
                             },
                             ...(prev.requestChanges || []),
                         ],
-                        history: [
-                            {
-                                taskStatusHistoryId: `history-request-${createdAt}`,
-                                oldStatusName: prev.status,
-                                newStatusName: prev.status,
-                                feedback: requestFeedback,
-                                changedAt: createdAt,
-                                changedByName: getStoredEmployeeName() || "",
-                            },
-                            ...(prev.history || []),
-                        ],
-                        updatedAt: createdAt,
                     }
                     : prev
             );
 
-            const response = await fetch(`${API_BASE}/api/tasks/update-status`, {
-                method: "PUT",
+            const response = await fetch(`${API_BASE}/api/tasks/${task.taskId}/change-requests`, {
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    TaskId: Number(task.taskId),
-                    NewTaskStatusId: Number(task.taskStatusId),
-                    ChangedByUserId: Number(changedByUserId),
-                    Feedback: requestFeedback,
+                    taskId: Number(task.taskId),
+                    requestedByUserId: Number(requestedByUserId),
+                    changeType: requestChangeType,
+                    oldValue,
+                    newValue,
+                    reason: requestReason.trim(),
                 }),
             });
 
@@ -947,7 +936,6 @@ Reason: ${requestReason.trim()}`;
 
             resetRequestChangeForm();
             setShowRequestModal(false);
-            await loadTaskDetails();
             showToast("Request change sent successfully.", "success");
         } catch (error) {
             setTask(previousTask);

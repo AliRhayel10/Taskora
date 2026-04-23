@@ -1375,5 +1375,203 @@ namespace BackEnd.Controllers
                     : "Task status updated successfully."
             });
         }
+
+        [HttpPost("{taskId:int}/change-requests")]
+public async Task<IActionResult> CreateTaskChangeRequest(int taskId, [FromBody] CreateTaskChangeRequestRequest request)
+{
+    if (request == null)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Invalid request."
+        });
+    }
+
+    if (taskId <= 0 || request.TaskId <= 0 || taskId != request.TaskId)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Invalid task id."
+        });
+    }
+
+    if (request.RequestedByUserId <= 0)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "RequestedBy user is required."
+        });
+    }
+
+    if (string.IsNullOrWhiteSpace(request.ChangeType))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Change type is required."
+        });
+    }
+
+    if (string.IsNullOrWhiteSpace(request.Reason))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Reason is required."
+        });
+    }
+
+    var task = await _context.Tasks
+        .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+    if (task == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "Task not found."
+        });
+    }
+
+    var requestedByUser = await _context.Users
+        .FirstOrDefaultAsync(u =>
+            u.UserId == request.RequestedByUserId &&
+            u.CompanyId == task.CompanyId);
+
+    if (requestedByUser == null)
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "RequestedBy user is invalid."
+        });
+    }
+
+    var normalizedChangeType = request.ChangeType.Trim();
+
+    var allowedTypes = new[]
+    {
+        "dueDateChange",
+        "estimatedEffortChange",
+        "assigneeChange",
+        "other"
+    };
+
+    if (!allowedTypes.Contains(normalizedChangeType))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "Invalid change type."
+        });
+    }
+
+    if (normalizedChangeType == "dueDateChange" && string.IsNullOrWhiteSpace(request.NewValue))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "New due date is required."
+        });
+    }
+
+    if (normalizedChangeType == "estimatedEffortChange" && string.IsNullOrWhiteSpace(request.NewValue))
+    {
+        return BadRequest(new
+        {
+            success = false,
+            message = "New estimated effort is required."
+        });
+    }
+
+    var changeRequest = new TaskChangeRequest
+    {
+        CompanyId = task.CompanyId,
+        TaskId = task.TaskId,
+        RequestedByUserId = request.RequestedByUserId,
+        ChangeType = normalizedChangeType,
+        OldTaskStatusId = task.TaskStatusId,
+        NewTaskStatusId = task.TaskStatusId,
+        OldValue = string.IsNullOrWhiteSpace(request.OldValue) ? null : request.OldValue.Trim(),
+        NewValue = string.IsNullOrWhiteSpace(request.NewValue) ? null : request.NewValue.Trim(),
+        Reason = request.Reason.Trim(),
+        RequestStatus = "Pending",
+        ReviewedByUserId = null,
+        CreatedAt = DateTime.Now,
+        ReviewedAt = null
+    };
+
+    _context.TaskChangeRequests.Add(changeRequest);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        success = true,
+        message = "Request change submitted successfully.",
+        data = new
+        {
+            changeRequest.TaskChangeRequestId,
+            changeRequest.TaskId,
+            changeRequest.ChangeType,
+            changeRequest.OldValue,
+            changeRequest.NewValue,
+            changeRequest.Reason,
+            changeRequest.RequestStatus,
+            changeRequest.CreatedAt
+        }
+    });
+}
+
+[HttpGet("{taskId:int}/change-requests")]
+public async Task<IActionResult> GetTaskChangeRequests(int taskId)
+{
+    var task = await _context.Tasks
+        .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+    if (task == null)
+    {
+        return NotFound(new
+        {
+            success = false,
+            message = "Task not found."
+        });
+    }
+
+    var requests = await _context.TaskChangeRequests
+        .Where(r => r.TaskId == taskId)
+        .OrderByDescending(r => r.CreatedAt)
+        .Select(r => new
+        {
+            r.TaskChangeRequestId,
+            r.TaskId,
+            r.ChangeType,
+            r.OldValue,
+            r.NewValue,
+            r.Reason,
+            r.RequestStatus,
+            r.RequestedByUserId,
+            RequestedByName = _context.Users
+                .Where(u => u.UserId == r.RequestedByUserId)
+                .Select(u => u.FullName)
+                .FirstOrDefault(),
+            r.ReviewedByUserId,
+            ReviewedByName = _context.Users
+                .Where(u => u.UserId == r.ReviewedByUserId)
+                .Select(u => u.FullName)
+                .FirstOrDefault(),
+            r.CreatedAt,
+            r.ReviewedAt
+        })
+        .ToListAsync();
+
+    return Ok(new
+    {
+        success = true,
+        data = requests
+    });
+}
     }
 }

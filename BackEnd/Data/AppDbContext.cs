@@ -20,6 +20,7 @@ namespace BackEnd.Data
         public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<BackEnd.Models.TaskStatus> TaskStatuses { get; set; }
         public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
+        public DbSet<TaskChangeRequest> TaskChangeRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -135,58 +136,58 @@ namespace BackEnd.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-modelBuilder.Entity<TaskItem>(entity =>
-{
-    entity.ToTable("Tasks");
+            modelBuilder.Entity<TaskItem>(entity =>
+            {
+                entity.ToTable("Tasks");
 
-    entity.HasKey(t => t.TaskId);
+                entity.HasKey(t => t.TaskId);
 
-    entity.Property(t => t.Title)
-        .IsRequired()
-        .HasMaxLength(200);
+                entity.Property(t => t.Title)
+                    .IsRequired()
+                    .HasMaxLength(200);
 
-    entity.Property(t => t.Description);
+                entity.Property(t => t.Description);
 
-    entity.Property(t => t.Priority)
-        .IsRequired()
-        .HasMaxLength(20);
+                entity.Property(t => t.Priority)
+                    .IsRequired()
+                    .HasMaxLength(20);
 
-    entity.Property(t => t.Complexity)
-        .IsRequired()
-        .HasMaxLength(20);
+                entity.Property(t => t.Complexity)
+                    .IsRequired()
+                    .HasMaxLength(20);
 
-    entity.Property(t => t.EstimatedEffortHours)
-        .HasPrecision(10, 2);
+                entity.Property(t => t.EstimatedEffortHours)
+                    .HasPrecision(10, 2);
 
-    entity.Property(t => t.Weight)
-        .HasPrecision(10, 2);
+                entity.Property(t => t.Weight)
+                    .HasPrecision(10, 2);
 
-    entity.HasOne<Company>()
-        .WithMany()
-        .HasForeignKey(t => t.CompanyId)
-        .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Company>()
+                    .WithMany()
+                    .HasForeignKey(t => t.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-    entity.HasOne<Team>()
-        .WithMany()
-        .HasForeignKey(t => t.TeamId)
-        .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Team>()
+                    .WithMany()
+                    .HasForeignKey(t => t.TeamId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-    entity.HasOne(t => t.AssignedToUser)
-        .WithMany()
-        .HasForeignKey(t => t.AssignedToUserId)
-        .IsRequired(false)
-        .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.AssignedToUser)
+                    .WithMany()
+                    .HasForeignKey(t => t.AssignedToUserId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-    entity.HasOne(t => t.CreatedByUser)
-        .WithMany()
-        .HasForeignKey(t => t.CreatedByUserId)
-        .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(t => t.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-    entity.HasOne(t => t.TaskStatus)
-        .WithMany(ts => ts.Tasks)
-        .HasForeignKey(t => t.TaskStatusId)
-        .OnDelete(DeleteBehavior.Restrict);
-});
+                entity.HasOne(t => t.TaskStatus)
+                    .WithMany(ts => ts.Tasks)
+                    .HasForeignKey(t => t.TaskStatusId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<BackEnd.Models.TaskStatus>(entity =>
             {
@@ -251,6 +252,71 @@ modelBuilder.Entity<TaskItem>(entity =>
                     .WithMany()
                     .HasForeignKey(tsh => tsh.NewTaskStatusId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<TaskChangeRequest>(entity =>
+            {
+                entity.ToTable("TaskChangeRequests");
+
+                entity.HasKey(tcr => tcr.TaskChangeRequestId);
+
+                entity.Property(tcr => tcr.ChangeType)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(tcr => tcr.OldValue)
+                    .HasMaxLength(500);
+
+                entity.Property(tcr => tcr.NewValue)
+                    .HasMaxLength(500);
+
+                entity.Property(tcr => tcr.RequestStatus)
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Pending");
+
+                entity.Property(tcr => tcr.Reason)
+                    .HasMaxLength(1000);
+
+                entity.Property(tcr => tcr.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne<Company>()
+                    .WithMany()
+                    .HasForeignKey(tcr => tcr.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<TaskItem>()
+                    .WithMany()
+                    .HasForeignKey(tcr => tcr.TaskId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(tcr => tcr.RequestedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(tcr => tcr.ReviewedByUserId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<BackEnd.Models.TaskStatus>()
+                    .WithMany()
+                    .HasForeignKey(tcr => tcr.OldTaskStatusId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<BackEnd.Models.TaskStatus>()
+                    .WithMany()
+                    .HasForeignKey(tcr => tcr.NewTaskStatusId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(tcr => new { tcr.CompanyId, tcr.TaskId });
+                entity.HasIndex(tcr => new { tcr.TaskId, tcr.RequestStatus });
+                entity.HasIndex(tcr => new { tcr.RequestedByUserId, tcr.CreatedAt });
             });
 
             modelBuilder.Entity<Team>(entity =>
