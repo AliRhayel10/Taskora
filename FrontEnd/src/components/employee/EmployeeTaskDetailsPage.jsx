@@ -729,7 +729,7 @@ export default function EmployeeTaskDetailsPage() {
             </div>
 
             <div className="employee-task-details-page__history-card">
-              <div className="employee-task-details-page__section-header">
+              <div className="employee-task-details-page__section-header employee-task-details-page__section-header--feedback">
                 <div className="employee-task-details-page__section-title-wrap">
                   <div className="employee-task-details-page__section-icon">
                     <FiMessageSquare />
