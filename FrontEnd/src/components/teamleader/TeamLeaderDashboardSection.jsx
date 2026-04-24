@@ -10,7 +10,6 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiCalendar,
-  FiEye,
   FiEdit3,
   FiUser,
   FiInfo,
@@ -456,12 +455,14 @@ function getTaskTitle(task) {
 
 function getChangeTypeLabel(changeType) {
   const normalized = String(changeType || "").trim();
+  const normalizedLower = normalized.toLowerCase();
 
   if (normalized === "dueDateChange") return "Due Date Change";
   if (normalized === "estimatedEffortChange") return "Effort Change";
   if (normalized === "assigneeChange") return "Assignee Change";
+  if (normalizedLower === "other" || normalizedLower === "others") return "Other Request";
 
-  return "Task Change";
+  return "Other Request";
 }
 
 function formatRequestTime(dateValue) {
@@ -1453,7 +1454,9 @@ export default function TeamLeaderDashboardSection({
     "";
   const reviewCreatedAt = reviewRequest?.createdAt ?? reviewRequest?.CreatedAt;
   const reviewValueLabels = getRequestValueLabels(reviewChangeType);
-  const isAssigneeReview = getChangeTypeKey(reviewChangeType) === "assigneeChange";
+  const reviewChangeTypeKey = getChangeTypeKey(reviewChangeType);
+  const isAssigneeReview = reviewChangeTypeKey === "assigneeChange";
+  const isOtherReview = ["other", "others"].includes(reviewChangeTypeKey.toLowerCase());
 
   const selectedReviewAssignee = useMemo(
     () =>
@@ -1477,6 +1480,11 @@ export default function TeamLeaderDashboardSection({
 
   return (
     <section className="teamleader-dashboard-section">
+      <div className="teamleader-dashboard-section__title-row">
+        <h2>Dashboard</h2>
+        <span className="teamleader-dashboard-section__title-line"></span>
+      </div>
+
       {reviewMessage && (
         <div
           className={`teamleader-dashboard-section__review-toast teamleader-dashboard-section__review-toast--${reviewMessage.type}`}
@@ -1990,15 +1998,6 @@ export default function TeamLeaderDashboardSection({
                           >
                             <FiEdit3 />
                           </button>
-
-                          <button
-                            type="button"
-                            className="teamleader-dashboard-section__request-btn teamleader-dashboard-section__request-btn--view"
-                            aria-label="View request"
-                            title="View request"
-                          >
-                            <FiEye />
-                          </button>
                         </div>
                       </article>
                     );
@@ -2118,50 +2117,68 @@ export default function TeamLeaderDashboardSection({
                 </div>
 
                 <div className="teamleader-dashboard-section__review-details-card">
-                  <div className="teamleader-dashboard-section__review-change-row">
-                    <div className="teamleader-dashboard-section__review-change-block">
-                      <span>{reviewValueLabels.current}</span>
-                      <div>
-                        <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--current">
-                          {getRequestTypeIcon(reviewChangeType)}
-                        </i>
-                        <strong>{formatReviewValue(reviewRequest, getRequestOldValue(reviewRequest), reviewChangeType, "current")}</strong>
-                      </div>
-                    </div>
-
-                    <div className="teamleader-dashboard-section__review-arrow">
-                      <FiArrowRight />
-                    </div>
-
-                    <div className="teamleader-dashboard-section__review-change-block">
-                      <span>{reviewValueLabels.requested}</span>
-                      {isAssigneeReview ? (
-                        <button
-                          type="button"
-                          className={
-                            selectedReviewAssignee
-                              ? "teamleader-dashboard-section__review-change-value teamleader-dashboard-section__review-change-value--button"
-                              : "teamleader-dashboard-section__review-change-value teamleader-dashboard-section__review-change-value--button teamleader-dashboard-section__review-change-value--empty"
-                          }
-                          onClick={openAssigneePicker}
-                        >
-                          <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
-                            {getRequestTypeIcon(reviewChangeType)}
-                          </i>
-                          <strong>{selectedReviewAssignee?.employee || "Select new assignee"}</strong>
-                        </button>
-                      ) : (
-                        <div className="teamleader-dashboard-section__review-change-value">
-                          <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
-                            {getRequestTypeIcon(reviewChangeType)}
-                          </i>
-                          <strong>{formatReviewValue(reviewRequest, getRequestNewValue(reviewRequest), reviewChangeType, "requested")}</strong>
+                  {!isOtherReview && (
+                    <>
+                      <div className="teamleader-dashboard-section__review-change-row">
+                        <div className="teamleader-dashboard-section__review-change-block">
+                          <span>{reviewValueLabels.current}</span>
+                          <div>
+                            <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--current">
+                              {getRequestTypeIcon(reviewChangeType)}
+                            </i>
+                            <strong>{formatReviewValue(reviewRequest, getRequestOldValue(reviewRequest), reviewChangeType, "current")}</strong>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="teamleader-dashboard-section__review-divider"></div>
+                        <div className="teamleader-dashboard-section__review-arrow">
+                          <FiArrowRight />
+                        </div>
+
+                        <div className="teamleader-dashboard-section__review-change-block">
+                          <span>{reviewValueLabels.requested}</span>
+                          {isAssigneeReview ? (
+                            <button
+                              type="button"
+                              className={
+                                selectedReviewAssignee
+                                  ? "teamleader-dashboard-section__review-change-value teamleader-dashboard-section__review-change-value--button"
+                                  : "teamleader-dashboard-section__review-change-value teamleader-dashboard-section__review-change-value--button teamleader-dashboard-section__review-change-value--empty"
+                              }
+                              onClick={openAssigneePicker}
+                            >
+                              {selectedReviewAssignee ? (
+                                <>
+                                  <span className="teamleader-dashboard-section__review-assignee-selected-avatar">
+                                    {getInitials(selectedReviewAssignee.employee)}
+                                  </span>
+                                  <span className="teamleader-dashboard-section__review-assignee-selected-info">
+                                    <strong>{selectedReviewAssignee.employee}</strong>
+                                    <small>{selectedReviewAssignee.email || "No email"}</small>
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
+                                    {getRequestTypeIcon(reviewChangeType)}
+                                  </i>
+                                  <strong>Select new assignee</strong>
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <div className="teamleader-dashboard-section__review-change-value">
+                              <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
+                                {getRequestTypeIcon(reviewChangeType)}
+                              </i>
+                              <strong>{formatReviewValue(reviewRequest, getRequestNewValue(reviewRequest), reviewChangeType, "requested")}</strong>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="teamleader-dashboard-section__review-divider"></div>
+                    </>
+                  )}
 
                   <div className="teamleader-dashboard-section__review-field">
                     <label>Reason for Change</label>
