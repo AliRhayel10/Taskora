@@ -671,6 +671,7 @@ export default function TeamLeaderDashboardSection({
   const [reviewMessage, setReviewMessage] = useState(null);
   const [assigneeSearchValue, setAssigneeSearchValue] = useState("");
   const [selectedReviewAssigneeId, setSelectedReviewAssigneeId] = useState(null);
+  const [draftReviewAssigneeId, setDraftReviewAssigneeId] = useState(null);
   const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
 
   const [selectedPreset, setSelectedPreset] = useState(
@@ -1263,16 +1264,11 @@ export default function TeamLeaderDashboardSection({
   };
 
   const openReviewForm = (request) => {
-    const initialAssigneeId = Number(request?.newValue ?? request?.NewValue ?? 0);
-
     setReviewRequest(request);
     setReviewNote("");
     setAssigneeSearchValue("");
-    setSelectedReviewAssigneeId(
-      Number.isFinite(initialAssigneeId) && initialAssigneeId > 0
-        ? initialAssigneeId
-        : null
-    );
+    setSelectedReviewAssigneeId(null);
+    setDraftReviewAssigneeId(null);
     setIsAssigneePickerOpen(false);
   };
 
@@ -1283,6 +1279,7 @@ export default function TeamLeaderDashboardSection({
     setReviewNote("");
     setAssigneeSearchValue("");
     setSelectedReviewAssigneeId(null);
+    setDraftReviewAssigneeId(null);
     setPendingReviewDecision(null);
     setIsAssigneePickerOpen(false);
   };
@@ -1290,16 +1287,23 @@ export default function TeamLeaderDashboardSection({
   const openAssigneePicker = () => {
     if (!isAssigneeReview || isReviewSubmitting) return;
     setAssigneeSearchValue("");
+    setDraftReviewAssigneeId(selectedReviewAssigneeId);
     setIsAssigneePickerOpen(true);
   };
 
   const closeAssigneePicker = () => {
     if (isReviewSubmitting) return;
+    setDraftReviewAssigneeId(selectedReviewAssigneeId);
     setIsAssigneePickerOpen(false);
   };
 
   const handleSelectReviewAssignee = (userId) => {
-    setSelectedReviewAssigneeId(Number(userId));
+    setDraftReviewAssigneeId(Number(userId));
+  };
+
+  const confirmAssigneePicker = () => {
+    if (!draftReviewAssigneeId) return;
+    setSelectedReviewAssigneeId(Number(draftReviewAssigneeId));
     setIsAssigneePickerOpen(false);
   };
 
@@ -1432,6 +1436,7 @@ export default function TeamLeaderDashboardSection({
       setReviewNote("");
       setAssigneeSearchValue("");
       setSelectedReviewAssigneeId(null);
+      setDraftReviewAssigneeId(null);
       setPendingReviewDecision(null);
     } catch (error) {
       setReviewMessage({
@@ -1457,6 +1462,7 @@ export default function TeamLeaderDashboardSection({
   const reviewChangeTypeKey = getChangeTypeKey(reviewChangeType);
   const isAssigneeReview = reviewChangeTypeKey === "assigneeChange";
   const isOtherReview = ["other", "others"].includes(reviewChangeTypeKey.toLowerCase());
+  const isApproveDisabled = isReviewSubmitting || (isAssigneeReview && !selectedReviewAssigneeId);
 
   const selectedReviewAssignee = useMemo(
     () =>
@@ -1468,15 +1474,22 @@ export default function TeamLeaderDashboardSection({
 
   const filteredReviewAssigneeRows = useMemo(() => {
     const search = assigneeSearchValue.trim().toLowerCase();
+    const requestedByUserId = Number(
+      reviewRequest?.requestedByUserId ?? reviewRequest?.RequestedByUserId ?? 0
+    );
 
-    if (!search) return workloadRows;
+    const rowsWithoutRequester = workloadRows.filter(
+      (row) => Number(row.userId) !== requestedByUserId
+    );
 
-    return workloadRows.filter(
+    if (!search) return rowsWithoutRequester;
+
+    return rowsWithoutRequester.filter(
       (row) =>
         String(row.employee || "").toLowerCase().includes(search) ||
         String(row.email || "").toLowerCase().includes(search)
     );
-  }, [workloadRows, assigneeSearchValue]);
+  }, [workloadRows, assigneeSearchValue, reviewRequest]);
 
   return (
     <section className="teamleader-dashboard-section">
@@ -2078,9 +2091,6 @@ export default function TeamLeaderDashboardSection({
                       Requested By
                     </span>
                     <div className="teamleader-dashboard-section__review-requester-row">
-                      <span className="teamleader-dashboard-section__review-requester-avatar">
-                        {getInitials(reviewRequestedByName)}
-                      </span>
                       <div>
                         <strong>{reviewRequestedByName}</strong>
                         {reviewRequestedByEmail && <small>{reviewRequestedByEmail}</small>}
@@ -2221,7 +2231,7 @@ export default function TeamLeaderDashboardSection({
               <button
                 type="button"
                 className="teamleader-dashboard-section__review-decision-btn teamleader-dashboard-section__review-decision-btn--approve"
-                disabled={isReviewSubmitting}
+                disabled={isApproveDisabled}
                 onClick={() => handleReviewDecision("Approved")}
               >
                 <FiCheckCircle />
@@ -2243,7 +2253,7 @@ export default function TeamLeaderDashboardSection({
           <div className="teamleader-dashboard-section__assignee-picker-card">
             <div className="teamleader-dashboard-section__assignee-picker-header">
               <div>
-                <h3 id="teamleader-assignee-picker-title">Select New Assignee</h3>
+                <h3 id="teamleader-assignee-picker-title">Select New Assignee <span aria-hidden="true">*</span></h3>
                 <p>Choose a team member based on their current workload.</p>
               </div>
 
@@ -2283,7 +2293,7 @@ export default function TeamLeaderDashboardSection({
                 </div>
               ) : (
                 filteredReviewAssigneeRows.map((row) => {
-                  const isSelected = Number(selectedReviewAssigneeId) === Number(row.userId);
+                  const isSelected = Number(draftReviewAssigneeId) === Number(row.userId);
 
                   return (
                     <button
@@ -2300,7 +2310,15 @@ export default function TeamLeaderDashboardSection({
                     >
                       <span className="teamleader-dashboard-section__assignee-member">
                         <span className="teamleader-dashboard-section__assignee-avatar">
-                          {getInitials(row.employee)}
+                          {row.profileImageUrl ? (
+                            <img
+                              src={getProfileImageUrl(row.profileImageUrl)}
+                              alt={row.employee}
+                              className="teamleader-dashboard-section__assignee-avatar-image"
+                            />
+                          ) : (
+                            getInitials(row.employee)
+                          )}
                         </span>
                         <span className="teamleader-dashboard-section__assignee-member-text">
                           <strong>{row.employee}</strong>
@@ -2311,9 +2329,12 @@ export default function TeamLeaderDashboardSection({
                       <span>{row.effort}</span>
                       <span>{row.weight}</span>
                       <span>
-                        <em className={`teamleader-dashboard-section__assignee-status ${getStatusClass(row.status)}`}>
+                        <span className={`teamleader-dashboard-section__status ${getStatusClass(row.status)}`}>
+                          <span className="teamleader-dashboard-section__status-icon">
+                            {getStatusIcon(row.status)}
+                          </span>
                           {row.status}
-                        </em>
+                        </span>
                       </span>
                       <span className="teamleader-dashboard-section__assignee-radio">
                         <i></i>
@@ -2322,6 +2343,24 @@ export default function TeamLeaderDashboardSection({
                   );
                 })
               )}
+            </div>
+
+            <div className="teamleader-dashboard-section__assignee-picker-actions">
+              <button
+                type="button"
+                className="teamleader-dashboard-section__assignee-picker-btn teamleader-dashboard-section__assignee-picker-btn--cancel"
+                onClick={closeAssigneePicker}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="teamleader-dashboard-section__assignee-picker-btn teamleader-dashboard-section__assignee-picker-btn--confirm"
+                disabled={!draftReviewAssigneeId}
+                onClick={confirmAssigneePicker}
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>
