@@ -12,6 +12,10 @@ import {
   FiCalendar,
   FiEye,
   FiEdit3,
+  FiUser,
+  FiInfo,
+  FiX,
+  FiArrowRight,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
 import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
@@ -484,6 +488,158 @@ function formatRequestTime(dateValue) {
   return format(createdAt, "dd/MM/yyyy");
 }
 
+
+function getChangeTypeKey(changeType) {
+  return String(changeType || "").trim();
+}
+
+function getRequestTypeIcon(changeType) {
+  const normalized = getChangeTypeKey(changeType);
+
+  if (normalized === "dueDateChange") return <FiCalendar />;
+  if (normalized === "estimatedEffortChange") return <FiClock />;
+  if (normalized === "assigneeChange") return <FiUser />;
+
+  return <FiEdit3 />;
+}
+
+function getRequestValueLabels(changeType) {
+  const normalized = getChangeTypeKey(changeType);
+
+  if (normalized === "dueDateChange") {
+    return {
+      current: "Current Due Date",
+      requested: "Requested Due Date",
+    };
+  }
+
+  if (normalized === "estimatedEffortChange") {
+    return {
+      current: "Current Effort",
+      requested: "Requested Effort",
+    };
+  }
+
+  if (normalized === "assigneeChange") {
+    return {
+      current: "Current Assignee",
+      requested: "Requested Assignee",
+    };
+  }
+
+  return {
+    current: "Current Value",
+    requested: "Requested Value",
+  };
+}
+
+function formatRequestValue(value, changeType) {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) return "Not set";
+
+  if (getChangeTypeKey(changeType) === "dueDateChange") {
+    const parsed = new Date(raw);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return format(parsed, "MMM d, yyyy");
+    }
+  }
+
+  if (getChangeTypeKey(changeType) === "estimatedEffortChange") {
+    const numeric = Number(raw);
+
+    if (!Number.isNaN(numeric)) {
+      return `${Number(numeric.toFixed(2))}h`;
+    }
+  }
+
+  return raw;
+}
+
+function formatRequestDateTime(dateValue) {
+  if (!dateValue) return "";
+
+  const parsed = new Date(dateValue);
+
+  if (Number.isNaN(parsed.getTime())) return "";
+
+  return format(parsed, "MMM d, yyyy • h:mm a");
+}
+
+function getRequestId(request) {
+  return request?.taskChangeRequestId ?? request?.TaskChangeRequestId ?? "";
+}
+
+function getRequestOldValue(request) {
+  return request?.oldValue ?? request?.OldValue ?? "";
+}
+
+function getRequestNewValue(request) {
+  return request?.newValue ?? request?.NewValue ?? "";
+}
+
+function getRequestReason(request) {
+  return request?.reason ?? request?.Reason ?? "No reason provided.";
+}
+
+function getRequestTaskId(request) {
+  return Number(request?.taskId ?? request?.TaskId ?? 0);
+}
+
+function getReviewDecisionLabel(decision) {
+  return decision === "Approved" ? "approve" : "reject";
+}
+
+function getBackendMessage(data, fallback) {
+  if (data && typeof data === "object" && data.message) return data.message;
+  if (typeof data === "string" && data.trim()) return data.trim();
+  return fallback;
+}
+
+function getUpdatedTaskFromResponse(data) {
+  return (
+    data?.data?.updatedTask ??
+    data?.data?.UpdatedTask ??
+    data?.updatedTask ??
+    data?.UpdatedTask ??
+    null
+  );
+}
+
+function normalizeAssigneeName(value, request, fallbackName) {
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) return fallbackName || "Not set";
+
+  return (
+    request?.requestedAssigneeName ??
+    request?.RequestedAssigneeName ??
+    request?.newAssigneeName ??
+    request?.NewAssigneeName ??
+    fallbackName ??
+    normalized
+  );
+}
+
+function formatReviewValue(request, value, changeType, valueSide) {
+  if (getChangeTypeKey(changeType) === "assigneeChange") {
+    if (valueSide === "current") {
+      return (
+        request?.requestedByName ??
+        request?.RequestedByName ??
+        request?.currentAssigneeName ??
+        request?.CurrentAssigneeName ??
+        "Not set"
+      );
+    }
+
+    return normalizeAssigneeName(value, request, "Requested assignee");
+  }
+
+  return formatRequestValue(value, changeType);
+}
+
 function normalizeTaskRequestsResponse(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
@@ -506,6 +662,11 @@ export default function TeamLeaderDashboardSection({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [reviewRequest, setReviewRequest] = useState(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [pendingReviewDecision, setPendingReviewDecision] = useState(null);
+  const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState(null);
 
   const [selectedPreset, setSelectedPreset] = useState(
     initialRangeState.selectedPreset
@@ -566,6 +727,16 @@ export default function TeamLeaderDashboardSection({
     syncDraftWithAppliedState();
     setIsRangeMenuOpen(false);
   };
+
+  useEffect(() => {
+    if (!reviewMessage) return;
+
+    const reviewMessageTimer = window.setTimeout(() => {
+      setReviewMessage(null);
+    }, 3500);
+
+    return () => window.clearTimeout(reviewMessageTimer);
+  }, [reviewMessage]);
 
   useEffect(() => {
     if (!isRangeMenuOpen) return;
@@ -749,11 +920,37 @@ export default function TeamLeaderDashboardSection({
               const requestData = await parseJsonSafely(requestResponse);
               const taskRequestsList = normalizeTaskRequestsResponse(requestData);
 
-              return taskRequestsList.map((request) => ({
-                ...request,
-                taskTitle: getTaskTitle(task),
-                taskId,
-              }));
+              return taskRequestsList.map((request) => {
+                const newAssigneeId = Number(request?.newValue ?? request?.NewValue ?? 0);
+                const requestedAssignee = membersData.find(
+                  (member) => Number(member?.userId ?? member?.UserId ?? 0) === newAssigneeId
+                );
+
+                return {
+                  ...request,
+                  taskTitle: getTaskTitle(task),
+                  taskId,
+                  currentAssigneeName:
+                    request?.requestedByName ??
+                    request?.RequestedByName ??
+                    task?.assignedUserName ??
+                    task?.AssignedUserName ??
+                    "Not set",
+                  currentAssigneeEmail:
+                    request?.requestedByEmail ??
+                    request?.RequestedByEmail ??
+                    task?.assignedUserEmail ??
+                    task?.AssignedUserEmail ??
+                    "",
+                  requestedAssigneeName:
+                    requestedAssignee?.fullName ??
+                    requestedAssignee?.name ??
+                    requestedAssignee?.FullName ??
+                    request?.newValue ??
+                    request?.NewValue ??
+                    "Not set",
+                };
+              });
             } catch {
               return [];
             }
@@ -1060,8 +1257,162 @@ export default function TeamLeaderDashboardSection({
     setIsRangeMenuOpen(false);
   };
 
+  const openReviewForm = (request) => {
+    setReviewRequest(request);
+    setReviewNote("");
+  };
+
+  const closeReviewForm = () => {
+    if (isReviewSubmitting) return;
+
+    setReviewRequest(null);
+    setReviewNote("");
+    setPendingReviewDecision(null);
+  };
+
+  const handleReviewDecision = (decision) => {
+    if (!reviewRequest || isReviewSubmitting) return;
+    setPendingReviewDecision(decision);
+  };
+
+  const closeReviewConfirmation = () => {
+    if (isReviewSubmitting) return;
+    setPendingReviewDecision(null);
+  };
+
+  const applyUpdatedTaskToState = (updatedTask) => {
+    if (!updatedTask) return;
+
+    const updatedTaskId = Number(updatedTask.taskId ?? updatedTask.TaskId ?? 0);
+    if (!updatedTaskId) return;
+
+    setTasks((previousTasks) =>
+      previousTasks.map((task) => {
+        if (getTaskId(task) !== updatedTaskId) return task;
+
+        return {
+          ...task,
+          assignedToUserId:
+            updatedTask.assignedToUserId ??
+            updatedTask.AssignedToUserId ??
+            task.assignedToUserId ??
+            task.AssignedToUserId,
+          estimatedEffortHours:
+            updatedTask.estimatedEffortHours ??
+            updatedTask.EstimatedEffortHours ??
+            task.estimatedEffortHours ??
+            task.EstimatedEffortHours,
+          weight:
+            updatedTask.weight ??
+            updatedTask.Weight ??
+            task.weight ??
+            task.Weight,
+          dueDate:
+            updatedTask.dueDate ??
+            updatedTask.DueDate ??
+            task.dueDate ??
+            task.DueDate,
+        };
+      })
+    );
+  };
+
+  const confirmReviewDecision = async () => {
+    if (!reviewRequest || !pendingReviewDecision || isReviewSubmitting) return;
+
+    const reviewedRequestId = Number(getRequestId(reviewRequest));
+    const reviewedTaskId = getRequestTaskId(reviewRequest);
+    const reviewerUserId = Number(user?.userId ?? user?.UserId ?? 0);
+
+    if (!reviewedRequestId || !reviewedTaskId || !reviewerUserId) {
+      setReviewMessage({
+        type: "error",
+        text: "Missing request or reviewer information.",
+      });
+      return;
+    }
+
+    try {
+      setIsReviewSubmitting(true);
+
+      const response = await fetch(
+        API_BASE + "/api/tasks/" + encodeURIComponent(reviewedTaskId) + "/change-requests/" + encodeURIComponent(reviewedRequestId) + "/review",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reviewedByUserId: reviewerUserId,
+            decision: pendingReviewDecision,
+            reviewNote: reviewNote.trim(),
+          }),
+        }
+      );
+
+      const responseData = await parseJsonSafely(response);
+
+      if (!response.ok || responseData?.success === false) {
+        throw new Error(
+          getBackendMessage(
+            responseData,
+            "Failed to " + getReviewDecisionLabel(pendingReviewDecision) + " request."
+          )
+        );
+      }
+
+      setTaskRequests((previousRequests) =>
+        previousRequests.filter((request) => Number(getRequestId(request)) !== reviewedRequestId)
+      );
+
+      applyUpdatedTaskToState(getUpdatedTaskFromResponse(responseData));
+
+      setReviewMessage({
+        type: "success",
+        text: getBackendMessage(
+          responseData,
+          pendingReviewDecision === "Approved"
+            ? "Change request approved successfully."
+            : "Change request rejected successfully."
+        ),
+      });
+
+      setReviewRequest(null);
+      setReviewNote("");
+      setPendingReviewDecision(null);
+    } catch (error) {
+      setReviewMessage({
+        type: "error",
+        text: error.message || "Failed to review request.",
+      });
+    } finally {
+      setIsReviewSubmitting(false);
+    }
+  };
+
+  const reviewChangeType = reviewRequest?.changeType ?? reviewRequest?.ChangeType;
+  const reviewRequestedByName =
+    reviewRequest?.requestedByName ??
+    reviewRequest?.RequestedByName ??
+    "Unknown user";
+  const reviewRequestedByEmail =
+    reviewRequest?.requestedByEmail ??
+    reviewRequest?.RequestedByEmail ??
+    "";
+  const reviewCreatedAt = reviewRequest?.createdAt ?? reviewRequest?.CreatedAt;
+  const reviewValueLabels = getRequestValueLabels(reviewChangeType);
+
   return (
     <section className="teamleader-dashboard-section">
+      {reviewMessage && (
+        <div
+          className={`teamleader-dashboard-section__review-toast teamleader-dashboard-section__review-toast--${reviewMessage.type}`}
+          role="status"
+        >
+          {reviewMessage.type === "success" ? <FiCheckCircle /> : <FiAlertTriangle />}
+          <span>{reviewMessage.text}</span>
+        </div>
+      )}
       <div className="teamleader-dashboard-section__toolbar">
         <div
           className="teamleader-dashboard-section__range-menu"
@@ -1523,7 +1874,7 @@ export default function TeamLeaderDashboardSection({
                         <div className="teamleader-dashboard-section__request-accent"></div>
 
                         <div className="teamleader-dashboard-section__request-icon">
-                          <FiCalendar />
+                          {getRequestTypeIcon(changeType)}
                         </div>
 
                         <div className="teamleader-dashboard-section__request-main">
@@ -1562,6 +1913,7 @@ export default function TeamLeaderDashboardSection({
                             className="teamleader-dashboard-section__request-btn teamleader-dashboard-section__request-btn--review"
                             aria-label="Review request"
                             title="Review request"
+                            onClick={() => openReviewForm(request)}
                           >
                             <FiEdit3 />
                           </button>
@@ -1584,6 +1936,238 @@ export default function TeamLeaderDashboardSection({
           </div>
         </>
       )}
+
+      {reviewRequest && (
+        <div
+          className="teamleader-dashboard-section__review-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="teamleader-review-title"
+        >
+          <div className="teamleader-dashboard-section__review-modal">
+            <div className="teamleader-dashboard-section__review-header">
+              <div className="teamleader-dashboard-section__review-heading">
+                <div className="teamleader-dashboard-section__review-heading-icon">
+                  <FiEdit3 />
+                </div>
+
+                <div>
+                  <h2 id="teamleader-review-title">Review Request</h2>
+                  <p>Please review the request details carefully before making a decision.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="teamleader-dashboard-section__review-close"
+                aria-label="Close review form"
+                onClick={closeReviewForm}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="teamleader-dashboard-section__review-body">
+              <aside className="teamleader-dashboard-section__review-sidebar">
+                <div className="teamleader-dashboard-section__review-meta-item">
+                  <span className="teamleader-dashboard-section__review-meta-icon">
+                    {getRequestTypeIcon(reviewChangeType)}
+                  </span>
+                  <div>
+                    <span className="teamleader-dashboard-section__review-meta-label">
+                      Request Type
+                    </span>
+                    <strong className="teamleader-dashboard-section__review-type-pill">
+                      {getChangeTypeLabel(reviewChangeType)}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="teamleader-dashboard-section__review-meta-item">
+                  <span className="teamleader-dashboard-section__review-meta-icon">
+                    <FiClipboard />
+                  </span>
+                  <div>
+                    <span className="teamleader-dashboard-section__review-meta-label">
+                      Task
+                    </span>
+                    <strong className="teamleader-dashboard-section__review-meta-value">
+                      {reviewRequest.taskTitle || "Untitled task"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="teamleader-dashboard-section__review-meta-item">
+                  <span className="teamleader-dashboard-section__review-meta-icon">
+                    <FiUser />
+                  </span>
+                  <div className="teamleader-dashboard-section__review-requester">
+                    <span className="teamleader-dashboard-section__review-meta-label">
+                      Requested By
+                    </span>
+                    <div className="teamleader-dashboard-section__review-requester-row">
+                      <span className="teamleader-dashboard-section__review-requester-avatar">
+                        {getInitials(reviewRequestedByName)}
+                      </span>
+                      <div>
+                        <strong>{reviewRequestedByName}</strong>
+                        {reviewRequestedByEmail && <small>{reviewRequestedByEmail}</small>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="teamleader-dashboard-section__review-meta-item">
+                  <span className="teamleader-dashboard-section__review-meta-icon">
+                    <FiClock />
+                  </span>
+                  <div>
+                    <span className="teamleader-dashboard-section__review-meta-label">
+                      Requested At
+                    </span>
+                    <strong className="teamleader-dashboard-section__review-meta-value">
+                      {formatRequestTime(reviewCreatedAt)}
+                    </strong>
+                    <small className="teamleader-dashboard-section__review-meta-subvalue">
+                      {formatRequestDateTime(reviewCreatedAt)}
+                    </small>
+                  </div>
+                </div>
+              </aside>
+
+              <main className="teamleader-dashboard-section__review-content">
+                <div className="teamleader-dashboard-section__review-alert">
+                  <FiInfo />
+                  <div>
+                    <strong>Please review the requested change details carefully.</strong>
+                    <span>You can approve the change or reject it with a comment.</span>
+                  </div>
+                </div>
+
+                <div className="teamleader-dashboard-section__review-details-card">
+                  <div className="teamleader-dashboard-section__review-change-row">
+                    <div className="teamleader-dashboard-section__review-change-block">
+                      <span>{reviewValueLabels.current}</span>
+                      <div>
+                        <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--current">
+                          {getRequestTypeIcon(reviewChangeType)}
+                        </i>
+                        <strong>{formatReviewValue(reviewRequest, getRequestOldValue(reviewRequest), reviewChangeType, "current")}</strong>
+                      </div>
+                    </div>
+
+                    <div className="teamleader-dashboard-section__review-arrow">
+                      <FiArrowRight />
+                    </div>
+
+                    <div className="teamleader-dashboard-section__review-change-block">
+                      <span>{reviewValueLabels.requested}</span>
+                      <div>
+                        <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
+                          {getRequestTypeIcon(reviewChangeType)}
+                        </i>
+                        <strong>{formatReviewValue(reviewRequest, getRequestNewValue(reviewRequest), reviewChangeType, "requested")}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="teamleader-dashboard-section__review-divider"></div>
+
+                  <div className="teamleader-dashboard-section__review-field">
+                    <label>Reason for Change</label>
+                    <div className="teamleader-dashboard-section__review-reason">
+                      {getRequestReason(reviewRequest)}
+                    </div>
+                  </div>
+
+                  <div className="teamleader-dashboard-section__review-field">
+                    <label htmlFor="teamleader-review-note">Additional Notes (Optional)</label>
+                    <div className="teamleader-dashboard-section__review-note-wrap">
+                      <textarea
+                        id="teamleader-review-note"
+                        className="teamleader-dashboard-section__review-note"
+                        value={reviewNote}
+                        maxLength={250}
+                        placeholder="Add a note or comment (optional)..."
+                        onChange={(event) => setReviewNote(event.target.value)}
+                      />
+                      <span>{reviewNote.length} / 250</span>
+                    </div>
+                  </div>
+                </div>
+              </main>
+            </div>
+
+            <div className="teamleader-dashboard-section__review-actions">
+              <button
+                type="button"
+                className="teamleader-dashboard-section__review-decision-btn teamleader-dashboard-section__review-decision-btn--reject"
+                disabled={isReviewSubmitting}
+                onClick={() => handleReviewDecision("Rejected")}
+              >
+                <FiX />
+                <span>Reject</span>
+              </button>
+
+              <button
+                type="button"
+                className="teamleader-dashboard-section__review-decision-btn teamleader-dashboard-section__review-decision-btn--approve"
+                disabled={isReviewSubmitting}
+                onClick={() => handleReviewDecision("Approved")}
+              >
+                <FiCheckCircle />
+                <span>Approve</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {pendingReviewDecision && reviewRequest && (
+        <div className="teamleader-dashboard-section__confirm-overlay" role="dialog" aria-modal="true">
+          <div className="teamleader-dashboard-section__confirm-card">
+            <div className="teamleader-dashboard-section__confirm-icon">
+              {pendingReviewDecision === "Approved" ? <FiCheckCircle /> : <FiX />}
+            </div>
+            <h3>
+              {pendingReviewDecision === "Approved" ? "Approve request?" : "Reject request?"}
+            </h3>
+            <p>
+              {pendingReviewDecision === "Approved"
+                ? "This will apply the requested change to the task in the backend."
+                : "This will reject the request and keep the task unchanged."}
+            </p>
+            <div className="teamleader-dashboard-section__confirm-actions">
+              <button
+                type="button"
+                className="teamleader-dashboard-section__confirm-btn teamleader-dashboard-section__confirm-btn--cancel"
+                disabled={isReviewSubmitting}
+                onClick={closeReviewConfirmation}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`teamleader-dashboard-section__confirm-btn ${
+                  pendingReviewDecision === "Approved"
+                    ? "teamleader-dashboard-section__confirm-btn--approve"
+                    : "teamleader-dashboard-section__confirm-btn--reject"
+                }`}
+                disabled={isReviewSubmitting}
+                onClick={confirmReviewDecision}
+              >
+                {isReviewSubmitting
+                  ? "Saving..."
+                  : pendingReviewDecision === "Approved"
+                    ? "Yes, approve"
+                    : "Yes, reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }

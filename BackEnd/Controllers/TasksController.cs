@@ -1570,6 +1570,10 @@ public async Task<IActionResult> GetTaskChangeRequests(int taskId)
                 .Where(u => u.UserId == r.RequestedByUserId)
                 .Select(u => u.FullName)
                 .FirstOrDefault(),
+            RequestedByEmail = _context.Users
+                .Where(u => u.UserId == r.RequestedByUserId)
+                .Select(u => u.Email)
+                .FirstOrDefault(),
             r.ReviewedByUserId,
             ReviewedByName = _context.Users
                 .Where(u => u.UserId == r.ReviewedByUserId)
@@ -1586,5 +1590,234 @@ public async Task<IActionResult> GetTaskChangeRequests(int taskId)
         data = requests
     });
 }
+
+        [HttpPut("{taskId:int}/change-requests/{requestId:int}/review")]
+        public async Task<IActionResult> ReviewTaskChangeRequest(
+            int taskId,
+            int requestId,
+            [FromBody] ReviewTaskChangeRequestRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid request."
+                    });
+                }
+
+                if (request.ReviewedByUserId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "ReviewedBy user is required."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Decision))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Decision is required."
+                    });
+                }
+
+                var normalizedDecision = request.Decision.Trim();
+
+                if (normalizedDecision != "Approved" && normalizedDecision != "Rejected")
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Decision must be Approved or Rejected."
+                    });
+                }
+
+                var changeRequest = await _context.TaskChangeRequests
+                    .FirstOrDefaultAsync(r =>
+                        r.TaskChangeRequestId == requestId &&
+                        r.TaskId == taskId);
+
+                if (changeRequest == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Change request not found."
+                    });
+                }
+
+                if (!string.Equals(changeRequest.RequestStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "This request has already been reviewed."
+                    });
+                }
+
+                var task = await _context.Tasks
+                    .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+                if (task == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Task not found."
+                    });
+                }
+
+                var reviewer = await _context.Users
+                    .FirstOrDefaultAsync(u =>
+                        u.UserId == request.ReviewedByUserId &&
+                        u.CompanyId == task.CompanyId);
+
+                if (reviewer == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Reviewer is invalid."
+                    });
+                }
+
+                changeRequest.RequestStatus = normalizedDecision;
+                changeRequest.ReviewedByUserId = request.ReviewedByUserId;
+                changeRequest.ReviewedAt = DateTime.Now;
+                changeRequest.ReviewNote = string.IsNullOrWhiteSpace(request.ReviewNote)
+                    ? null
+                    : request.ReviewNote.Trim();
+
+                if (normalizedDecision == "Approved")
+                {
+                    var changeType = changeRequest.ChangeType?.Trim();
+
+                    if (changeType == "dueDateChange")
+                    {
+                        if (!DateTime.TryParse(changeRequest.NewValue, out var newDueDate))
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Invalid requested due date."
+                            });
+                        }
+
+                        task.DueDate = newDueDate;
+                    }
+                    else if (changeType == "estimatedEffortChange")
+                    {
+                        if (!decimal.TryParse(changeRequest.NewValue, out var newEstimatedEffort))
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Invalid requested estimated effort."
+                            });
+                        }
+
+                        task.EstimatedEffortHours = newEstimatedEffort;
+
+                        var priorityMultiplier = await _context.PriorityMultipliers
+                            .Where(p =>
+                                p.CompanyId == task.CompanyId &&
+                                p.PriorityName == task.Priority)
+                            .Select(p => p.Multiplier)
+                            .FirstOrDefaultAsync();
+
+                        var complexityMultiplier = await _context.ComplexityMultipliers
+                            .Where(c =>
+                                c.CompanyId == task.CompanyId &&
+                                c.ComplexityName == task.Complexity)
+                            .Select(c => c.Multiplier)
+                            .FirstOrDefaultAsync();
+
+                        if (priorityMultiplier <= 0 || complexityMultiplier <= 0)
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Task weight cannot be recalculated because priority or complexity multiplier is missing."
+                            });
+                        }
+
+                        task.Weight = newEstimatedEffort * priorityMultiplier * complexityMultiplier;
+                    }
+                    else if (changeType == "assigneeChange")
+                    {
+                        if (!int.TryParse(changeRequest.NewValue, out var newAssigneeUserId))
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Invalid requested assignee."
+                            });
+                        }
+
+                        var newAssignee = await _context.Users
+                            .FirstOrDefaultAsync(u =>
+                                u.UserId == newAssigneeUserId &&
+                                u.CompanyId == task.CompanyId);
+
+                        if (newAssignee == null)
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Requested assignee was not found."
+                            });
+                        }
+
+                        task.AssignedToUserId = newAssigneeUserId;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = normalizedDecision == "Approved"
+                        ? "Change request approved successfully."
+                        : "Change request rejected successfully.",
+                    data = new
+                    {
+                        changeRequest.TaskChangeRequestId,
+                        changeRequest.TaskId,
+                        changeRequest.ChangeType,
+                        changeRequest.OldValue,
+                        changeRequest.NewValue,
+                        changeRequest.RequestStatus,
+                        changeRequest.ReviewedByUserId,
+                        changeRequest.ReviewedAt,
+                        changeRequest.ReviewNote,
+                        UpdatedTask = new
+                        {
+                            task.TaskId,
+                            task.AssignedToUserId,
+                            task.EstimatedEffortHours,
+                            task.Weight,
+                            task.DueDate
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Failed to review task change request.",
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message
+                });
+            }
+        }
+
     }
 }

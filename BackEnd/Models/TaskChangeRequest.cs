@@ -41,6 +41,9 @@ namespace BackEnd.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        [StringLength(1000)]
+        public string? ReviewNote { get; set; }
+
         public DateTime? ReviewedAt { get; set; }
     }
 }
