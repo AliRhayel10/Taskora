@@ -353,6 +353,35 @@ export default function EmployeeTaskDetailsPage() {
         return true;
     }, [requestChangeType, requestNewDate, requestNewEffort, requestReason]);
 
+    const currentStatusNormalized = useMemo(
+        () => normalizeStatus(task?.status),
+        [task?.status]
+    );
+
+    const pendingRequestChange = useMemo(() => {
+        if (!Array.isArray(task?.requestChanges)) return null;
+
+        return (
+            task.requestChanges.find(
+                (request) => normalizeStatus(request?.requestStatus) === "pending"
+            ) || null
+        );
+    }, [task?.requestChanges]);
+
+    const canRequestChange = currentStatusNormalized === "new" && !pendingRequestChange;
+
+    const requestChangeAvailabilityMessage = useMemo(() => {
+        if (pendingRequestChange) {
+            return "A request change is pending and being processed by your team leader.";
+        }
+
+        if (currentStatusNormalized && currentStatusNormalized !== "new") {
+            return "Request changes are only available while the task status is New.";
+        }
+
+        return "";
+    }, [currentStatusNormalized, pendingRequestChange]);
+
     const loadTaskDetails = useCallback(async () => {
         try {
             setIsLoading(true);
@@ -889,6 +918,14 @@ export default function EmployeeTaskDetailsPage() {
     async function handleRequestChangeSubmit(event) {
         event.preventDefault();
 
+        if (!canRequestChange) {
+            showToast(
+                requestChangeAvailabilityMessage || "Request changes are not available for this task right now.",
+                "error"
+            );
+            return;
+        }
+
         if (!task || !requestChangeType || !requestReason.trim()) {
             showToast("Please select a change type and add the reason of change.", "error");
             return;
@@ -942,6 +979,7 @@ export default function EmployeeTaskDetailsPage() {
                                 oldValue,
                                 newValue,
                                 reason: requestReason.trim(),
+                                requestStatus: "Pending",
                                 createdAt,
                                 changedAt: createdAt,
                                 changedAtLabel: formatDateTime(createdAt),
@@ -1033,7 +1071,7 @@ export default function EmployeeTaskDetailsPage() {
                 </div>
             ) : null}
 
-            {showRequestModal ? (
+            {showRequestModal && canRequestChange ? (
                 <div
                     className="employee-task-details-page__modal-overlay"
                     onClick={() => {
@@ -1275,15 +1313,22 @@ export default function EmployeeTaskDetailsPage() {
             </div>
 
             <div className="employee-task-details-page__toolbar">
-                <button
-                    type="button"
-                    className="employee-task-details-page__request-btn"
-                    onClick={() => setShowRequestModal(true)}
-                    disabled={isSubmittingRequest}
-                >
-                    <FiMessageCircle />
-                    <span>Request Change</span>
-                </button>
+                {canRequestChange ? (
+                    <button
+                        type="button"
+                        className="employee-task-details-page__request-btn"
+                        onClick={() => setShowRequestModal(true)}
+                        disabled={isSubmittingRequest}
+                    >
+                        <FiMessageCircle />
+                        <span>Request Change</span>
+                    </button>
+                ) : requestChangeAvailabilityMessage ? (
+                    <div className="employee-task-details-page__request-unavailable" role="status">
+                        <FiMessageCircle />
+                        <span>{requestChangeAvailabilityMessage}</span>
+                    </div>
+                ) : null}
 
                 <button
                     type="button"
