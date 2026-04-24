@@ -448,27 +448,27 @@ export default function EmployeeTaskDetailsPage() {
         });
     }, [latestReviewedRequestMessageKey]);
 
-const latestReviewedRequestMessage = useMemo(() => {
-    if (!latestReviewedRequestChange) return "";
+    const latestReviewedRequestMessage = useMemo(() => {
+        if (!latestReviewedRequestChange) return "";
 
-    const status = normalizeStatus(latestReviewedRequestChange?.requestStatus);
+        const status = normalizeStatus(latestReviewedRequestChange?.requestStatus);
 
-    const typeLabel =
-        latestReviewedRequestChange?.changeTypeLabel ||
-        getRequestChangeTypeLabel(latestReviewedRequestChange?.changeType || "other");
+        const typeLabel =
+            latestReviewedRequestChange?.changeTypeLabel ||
+            getRequestChangeTypeLabel(latestReviewedRequestChange?.changeType || "other");
 
-    const taskTitle = task?.title || "this task";
+        const taskTitle = task?.title || "this task";
 
-    if (status === "approved") {
-        return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was approved by your team leader.`;
-    }
+        if (status === "approved") {
+            return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was approved by your team leader.`;
+        }
 
-    if (status === "rejected") {
-        return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was rejected by your team leader.`;
-    }
+        if (status === "rejected") {
+            return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was rejected by your team leader.`;
+        }
 
-    return "";
-}, [latestReviewedRequestChange, task?.title]);
+        return "";
+    }, [latestReviewedRequestChange, task?.title]);
 
     const canRequestChange = currentStatusNormalized === "new" && !pendingRequestChange;
 
@@ -1250,8 +1250,8 @@ const latestReviewedRequestMessage = useMemo(() => {
                                                     key={option.value}
                                                     type="button"
                                                     className={`employee-task-details-page__change-type-card ${isActive
-                                                            ? "employee-task-details-page__change-type-card--active"
-                                                            : ""
+                                                        ? "employee-task-details-page__change-type-card--active"
+                                                        : ""
                                                         }`}
                                                     onClick={() => {
                                                         setRequestChangeType(option.value);
@@ -1616,10 +1616,10 @@ const latestReviewedRequestMessage = useMemo(() => {
                                             >
                                                 <div
                                                     className={`employee-task-details-page__timeline-marker ${item.type === "status"
-                                                            ? "employee-task-details-page__timeline-marker--status"
-                                                            : item.type === "request"
-                                                                ? "employee-task-details-page__timeline-marker--request"
-                                                                : "employee-task-details-page__timeline-marker--feedback"
+                                                        ? "employee-task-details-page__timeline-marker--status"
+                                                        : item.type === "request"
+                                                            ? "employee-task-details-page__timeline-marker--request"
+                                                            : "employee-task-details-page__timeline-marker--feedback"
                                                         }`}
                                                 />
 
