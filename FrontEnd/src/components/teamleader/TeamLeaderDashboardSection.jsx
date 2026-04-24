@@ -16,6 +16,7 @@ import {
   FiInfo,
   FiX,
   FiArrowRight,
+  FiSearch,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
 import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
@@ -667,6 +668,9 @@ export default function TeamLeaderDashboardSection({
   const [pendingReviewDecision, setPendingReviewDecision] = useState(null);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState(null);
+  const [assigneeSearchValue, setAssigneeSearchValue] = useState("");
+  const [selectedReviewAssigneeId, setSelectedReviewAssigneeId] = useState(null);
+  const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
 
   const [selectedPreset, setSelectedPreset] = useState(
     initialRangeState.selectedPreset
@@ -1258,8 +1262,17 @@ export default function TeamLeaderDashboardSection({
   };
 
   const openReviewForm = (request) => {
+    const initialAssigneeId = Number(request?.newValue ?? request?.NewValue ?? 0);
+
     setReviewRequest(request);
     setReviewNote("");
+    setAssigneeSearchValue("");
+    setSelectedReviewAssigneeId(
+      Number.isFinite(initialAssigneeId) && initialAssigneeId > 0
+        ? initialAssigneeId
+        : null
+    );
+    setIsAssigneePickerOpen(false);
   };
 
   const closeReviewForm = () => {
@@ -1267,7 +1280,26 @@ export default function TeamLeaderDashboardSection({
 
     setReviewRequest(null);
     setReviewNote("");
+    setAssigneeSearchValue("");
+    setSelectedReviewAssigneeId(null);
     setPendingReviewDecision(null);
+    setIsAssigneePickerOpen(false);
+  };
+
+  const openAssigneePicker = () => {
+    if (!isAssigneeReview || isReviewSubmitting) return;
+    setAssigneeSearchValue("");
+    setIsAssigneePickerOpen(true);
+  };
+
+  const closeAssigneePicker = () => {
+    if (isReviewSubmitting) return;
+    setIsAssigneePickerOpen(false);
+  };
+
+  const handleSelectReviewAssignee = (userId) => {
+    setSelectedReviewAssigneeId(Number(userId));
+    setIsAssigneePickerOpen(false);
   };
 
   const handleReviewDecision = (decision) => {
@@ -1332,8 +1364,30 @@ export default function TeamLeaderDashboardSection({
       return;
     }
 
+    const isApprovingAssigneeChange =
+      pendingReviewDecision === "Approved" &&
+      getChangeTypeKey(reviewRequest?.changeType ?? reviewRequest?.ChangeType) === "assigneeChange";
+
+    if (isApprovingAssigneeChange && !selectedReviewAssigneeId) {
+      setReviewMessage({
+        type: "error",
+        text: "Please select a new assignee before approving this request.",
+      });
+      return;
+    }
+
     try {
       setIsReviewSubmitting(true);
+
+      const reviewPayload = {
+        reviewedByUserId: reviewerUserId,
+        decision: pendingReviewDecision,
+        reviewNote: reviewNote.trim(),
+      };
+
+      if (isApprovingAssigneeChange) {
+        reviewPayload.requestedAssigneeUserId = selectedReviewAssigneeId;
+      }
 
       const response = await fetch(
         API_BASE + "/api/tasks/" + encodeURIComponent(reviewedTaskId) + "/change-requests/" + encodeURIComponent(reviewedRequestId) + "/review",
@@ -1342,11 +1396,7 @@ export default function TeamLeaderDashboardSection({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            reviewedByUserId: reviewerUserId,
-            decision: pendingReviewDecision,
-            reviewNote: reviewNote.trim(),
-          }),
+          body: JSON.stringify(reviewPayload),
         }
       );
 
@@ -1379,6 +1429,8 @@ export default function TeamLeaderDashboardSection({
 
       setReviewRequest(null);
       setReviewNote("");
+      setAssigneeSearchValue("");
+      setSelectedReviewAssigneeId(null);
       setPendingReviewDecision(null);
     } catch (error) {
       setReviewMessage({
@@ -1401,6 +1453,27 @@ export default function TeamLeaderDashboardSection({
     "";
   const reviewCreatedAt = reviewRequest?.createdAt ?? reviewRequest?.CreatedAt;
   const reviewValueLabels = getRequestValueLabels(reviewChangeType);
+  const isAssigneeReview = getChangeTypeKey(reviewChangeType) === "assigneeChange";
+
+  const selectedReviewAssignee = useMemo(
+    () =>
+      workloadRows.find(
+        (row) => Number(row.userId) === Number(selectedReviewAssigneeId)
+      ) || null,
+    [workloadRows, selectedReviewAssigneeId]
+  );
+
+  const filteredReviewAssigneeRows = useMemo(() => {
+    const search = assigneeSearchValue.trim().toLowerCase();
+
+    if (!search) return workloadRows;
+
+    return workloadRows.filter(
+      (row) =>
+        String(row.employee || "").toLowerCase().includes(search) ||
+        String(row.email || "").toLowerCase().includes(search)
+    );
+  }, [workloadRows, assigneeSearchValue]);
 
   return (
     <section className="teamleader-dashboard-section">
@@ -2062,12 +2135,29 @@ export default function TeamLeaderDashboardSection({
 
                     <div className="teamleader-dashboard-section__review-change-block">
                       <span>{reviewValueLabels.requested}</span>
-                      <div>
-                        <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
-                          {getRequestTypeIcon(reviewChangeType)}
-                        </i>
-                        <strong>{formatReviewValue(reviewRequest, getRequestNewValue(reviewRequest), reviewChangeType, "requested")}</strong>
-                      </div>
+                      {isAssigneeReview ? (
+                        <button
+                          type="button"
+                          className={
+                            selectedReviewAssignee
+                              ? "teamleader-dashboard-section__review-change-value teamleader-dashboard-section__review-change-value--button"
+                              : "teamleader-dashboard-section__review-change-value teamleader-dashboard-section__review-change-value--button teamleader-dashboard-section__review-change-value--empty"
+                          }
+                          onClick={openAssigneePicker}
+                        >
+                          <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
+                            {getRequestTypeIcon(reviewChangeType)}
+                          </i>
+                          <strong>{selectedReviewAssignee?.employee || "Select new assignee"}</strong>
+                        </button>
+                      ) : (
+                        <div className="teamleader-dashboard-section__review-change-value">
+                          <i className="teamleader-dashboard-section__review-value-icon teamleader-dashboard-section__review-value-icon--requested">
+                            {getRequestTypeIcon(reviewChangeType)}
+                          </i>
+                          <strong>{formatReviewValue(reviewRequest, getRequestNewValue(reviewRequest), reviewChangeType, "requested")}</strong>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2079,6 +2169,8 @@ export default function TeamLeaderDashboardSection({
                       {getRequestReason(reviewRequest)}
                     </div>
                   </div>
+
+
 
                   <div className="teamleader-dashboard-section__review-field">
                     <label htmlFor="teamleader-review-note">Additional Notes (Optional)</label>
@@ -2118,6 +2210,101 @@ export default function TeamLeaderDashboardSection({
                 <FiCheckCircle />
                 <span>Approve</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {isAssigneePickerOpen && reviewRequest && (
+        <div
+          className="teamleader-dashboard-section__assignee-picker-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="teamleader-assignee-picker-title"
+        >
+          <div className="teamleader-dashboard-section__assignee-picker-card">
+            <div className="teamleader-dashboard-section__assignee-picker-header">
+              <div>
+                <h3 id="teamleader-assignee-picker-title">Select New Assignee</h3>
+                <p>Choose a team member based on their current workload.</p>
+              </div>
+
+              <button
+                type="button"
+                className="teamleader-dashboard-section__assignee-picker-close"
+                aria-label="Close assignee picker"
+                onClick={closeAssigneePicker}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="teamleader-dashboard-section__assignee-search">
+              <input
+                type="search"
+                value={assigneeSearchValue}
+                placeholder="Search team members..."
+                onChange={(event) => setAssigneeSearchValue(event.target.value)}
+              />
+              <FiSearch />
+            </div>
+
+            <div className="teamleader-dashboard-section__assignee-table" role="radiogroup" aria-label="Select new assignee">
+              <div className="teamleader-dashboard-section__assignee-table-head">
+                <span>Team Member</span>
+                <span>Tasks</span>
+                <span>Effort</span>
+                <span>Weight</span>
+                <span>Workload</span>
+                <span></span>
+              </div>
+
+              {filteredReviewAssigneeRows.length === 0 ? (
+                <div className="teamleader-dashboard-section__assignee-empty">
+                  No team members found.
+                </div>
+              ) : (
+                filteredReviewAssigneeRows.map((row) => {
+                  const isSelected = Number(selectedReviewAssigneeId) === Number(row.userId);
+
+                  return (
+                    <button
+                      key={row.userId}
+                      type="button"
+                      className={
+                        isSelected
+                          ? "teamleader-dashboard-section__assignee-row teamleader-dashboard-section__assignee-row--selected"
+                          : "teamleader-dashboard-section__assignee-row"
+                      }
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => handleSelectReviewAssignee(row.userId)}
+                    >
+                      <span className="teamleader-dashboard-section__assignee-member">
+                        <span className="teamleader-dashboard-section__assignee-avatar">
+                          {getInitials(row.employee)}
+                        </span>
+                        <span className="teamleader-dashboard-section__assignee-member-text">
+                          <strong>{row.employee}</strong>
+                          <small>{row.email || "No email"}</small>
+                        </span>
+                      </span>
+                      <span>{row.tasks}</span>
+                      <span>{row.effort}</span>
+                      <span>{row.weight}</span>
+                      <span>
+                        <em className={`teamleader-dashboard-section__assignee-status ${getStatusClass(row.status)}`}>
+                          {row.status}
+                        </em>
+                      </span>
+                      <span className="teamleader-dashboard-section__assignee-radio">
+                        <i></i>
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

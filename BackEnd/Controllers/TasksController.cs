@@ -1750,30 +1750,51 @@ public async Task<IActionResult> GetTaskChangeRequests(int taskId)
                     }
                     else if (changeType == "assigneeChange")
                     {
-                        if (!int.TryParse(changeRequest.NewValue, out var newAssigneeUserId))
+                        User? newAssignee = null;
+
+                        if (request.RequestedAssigneeUserId.HasValue && request.RequestedAssigneeUserId.Value > 0)
                         {
-                            return BadRequest(new
-                            {
-                                success = false,
-                                message = "Invalid requested assignee."
-                            });
+                            newAssignee = await _context.Users
+                                .FirstOrDefaultAsync(u =>
+                                    u.UserId == request.RequestedAssigneeUserId.Value &&
+                                    u.CompanyId == task.CompanyId);
                         }
 
-                        var newAssignee = await _context.Users
-                            .FirstOrDefaultAsync(u =>
-                                u.UserId == newAssigneeUserId &&
-                                u.CompanyId == task.CompanyId);
+                        if (newAssignee == null)
+                        {
+                            var requestedAssigneeValue = (changeRequest.NewValue ?? "").Trim();
+
+                            if (int.TryParse(requestedAssigneeValue, out var newAssigneeUserId))
+                            {
+                                newAssignee = await _context.Users
+                                    .FirstOrDefaultAsync(u =>
+                                        u.UserId == newAssigneeUserId &&
+                                        u.CompanyId == task.CompanyId);
+                            }
+
+                            if (newAssignee == null && !string.IsNullOrWhiteSpace(requestedAssigneeValue))
+                            {
+                                newAssignee = await _context.Users
+                                    .FirstOrDefaultAsync(u =>
+                                        u.CompanyId == task.CompanyId &&
+                                        (
+                                            u.FullName == requestedAssigneeValue ||
+                                            u.Email == requestedAssigneeValue
+                                        ));
+                            }
+                        }
 
                         if (newAssignee == null)
                         {
                             return BadRequest(new
                             {
                                 success = false,
-                                message = "Requested assignee was not found."
+                                message = "Please select a valid requested assignee."
                             });
                         }
 
-                        task.AssignedToUserId = newAssigneeUserId;
+                        task.AssignedToUserId = newAssignee.UserId;
+                        changeRequest.NewValue = newAssignee.UserId.ToString();
                     }
                 }
 
