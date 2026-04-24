@@ -12,12 +12,14 @@ import {
     FiTarget,
     FiUser,
     FiX,
+    FiAlertTriangle,
     FiMoreHorizontal,
 } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import "../../assets/styles/employee/employee-task-details-page.css";
 
 const API_BASE = "http://localhost:5000";
+const DISMISSED_REVIEW_MESSAGES_KEY = "employee_task_details_dismissed_review_messages";
 
 const REQUEST_CHANGE_OPTIONS = [
     {
@@ -48,6 +50,28 @@ const REQUEST_CHANGE_OPTIONS = [
 
 function normalizeStatus(value) {
     return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function loadDismissedReviewMessageKeys() {
+    try {
+        const rawValue = localStorage.getItem(DISMISSED_REVIEW_MESSAGES_KEY);
+        const parsedValue = rawValue ? JSON.parse(rawValue) : [];
+
+        return Array.isArray(parsedValue) ? parsedValue.map(String) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveDismissedReviewMessageKeys(keys) {
+    try {
+        localStorage.setItem(
+            DISMISSED_REVIEW_MESSAGES_KEY,
+            JSON.stringify(Array.from(new Set(keys.map(String))))
+        );
+    } catch {
+        // Local storage is optional. If unavailable, the message still dismisses for this session.
+    }
 }
 
 function mapStatusLabel(status) {
@@ -308,6 +332,9 @@ export default function EmployeeTaskDetailsPage() {
     const [showAllFeedbackHistory, setShowAllFeedbackHistory] = useState(false);
     const [showAllTimeline, setShowAllTimeline] = useState(false);
     const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+    const [dismissedReviewMessageKeys, setDismissedReviewMessageKeys] = useState(() =>
+        loadDismissedReviewMessageKeys()
+    );
 
     const toastTimeoutRef = useRef(null);
 
@@ -368,6 +395,81 @@ export default function EmployeeTaskDetailsPage() {
         );
     }, [task?.requestChanges]);
 
+    const latestReviewedRequestChange = useMemo(() => {
+        if (!Array.isArray(task?.requestChanges)) return null;
+
+        return (
+            [...task.requestChanges]
+                .filter((request) => {
+                    const status = normalizeStatus(request?.requestStatus);
+                    return status === "approved" || status === "rejected";
+                })
+                .sort((first, second) => {
+                    const firstDate = new Date(
+                        first?.reviewedAt || first?.ReviewedAt || first?.createdAt || first?.changedAt || 0
+                    ).getTime();
+                    const secondDate = new Date(
+                        second?.reviewedAt || second?.ReviewedAt || second?.createdAt || second?.changedAt || 0
+                    ).getTime();
+
+                    return secondDate - firstDate;
+                })[0] || null
+        );
+    }, [task?.requestChanges]);
+
+    const latestReviewedRequestStatus = normalizeStatus(latestReviewedRequestChange?.requestStatus);
+
+    const latestReviewedRequestMessageKey = useMemo(() => {
+        if (!latestReviewedRequestChange) return "";
+
+        const requestId = latestReviewedRequestChange?.id || latestReviewedRequestChange?.taskChangeRequestId || latestReviewedRequestChange?.TaskChangeRequestId || "";
+        const status = normalizeStatus(latestReviewedRequestChange?.requestStatus);
+        const reviewedAt = latestReviewedRequestChange?.reviewedAt || latestReviewedRequestChange?.ReviewedAt || "";
+        const createdAt = latestReviewedRequestChange?.createdAt || latestReviewedRequestChange?.CreatedAt || "";
+
+        return [taskId || "task", requestId, status, reviewedAt || createdAt].map(String).join(":");
+    }, [latestReviewedRequestChange, taskId]);
+
+    const isLatestReviewedRequestMessageDismissed = Boolean(
+        latestReviewedRequestMessageKey && dismissedReviewMessageKeys.includes(latestReviewedRequestMessageKey)
+    );
+
+    const shouldShowLatestReviewedRequestMessage = Boolean(
+        latestReviewedRequestMessageKey && latestReviewedRequestStatus && !isLatestReviewedRequestMessageDismissed
+    );
+
+    const dismissLatestReviewedRequestMessage = useCallback(() => {
+        if (!latestReviewedRequestMessageKey) return;
+
+        setDismissedReviewMessageKeys((previousKeys) => {
+            const nextKeys = Array.from(new Set([...previousKeys, latestReviewedRequestMessageKey]));
+            saveDismissedReviewMessageKeys(nextKeys);
+            return nextKeys;
+        });
+    }, [latestReviewedRequestMessageKey]);
+
+const latestReviewedRequestMessage = useMemo(() => {
+    if (!latestReviewedRequestChange) return "";
+
+    const status = normalizeStatus(latestReviewedRequestChange?.requestStatus);
+
+    const typeLabel =
+        latestReviewedRequestChange?.changeTypeLabel ||
+        getRequestChangeTypeLabel(latestReviewedRequestChange?.changeType || "other");
+
+    const taskTitle = task?.title || "this task";
+
+    if (status === "approved") {
+        return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was approved by your team leader.`;
+    }
+
+    if (status === "rejected") {
+        return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was rejected by your team leader.`;
+    }
+
+    return "";
+}, [latestReviewedRequestChange, task?.title]);
+
     const canRequestChange = currentStatusNormalized === "new" && !pendingRequestChange;
 
     const requestChangeAvailabilityMessage = useMemo(() => {
@@ -375,12 +477,8 @@ export default function EmployeeTaskDetailsPage() {
             return "A request change is pending and being processed by your team leader.";
         }
 
-        if (currentStatusNormalized && currentStatusNormalized !== "new") {
-            return "Request changes are only available while the task status is New.";
-        }
-
         return "";
-    }, [currentStatusNormalized, pendingRequestChange]);
+    }, [pendingRequestChange]);
 
     const loadTaskDetails = useCallback(async () => {
         try {
@@ -501,6 +599,9 @@ export default function EmployeeTaskDetailsPage() {
                 newValue: item.newValue || item.NewValue || "",
                 reason: item.reason || item.Reason || "",
                 requestStatus: item.requestStatus || item.RequestStatus || "Pending",
+                reviewedAt: item.reviewedAt || item.ReviewedAt || "",
+                reviewNote: item.reviewNote || item.ReviewNote || "",
+                reviewedByName: item.reviewedByName || item.ReviewedByName || "",
                 createdAt: item.createdAt || item.CreatedAt || "",
                 changedAt: item.createdAt || item.CreatedAt || "",
                 changedAtLabel: formatDateTime(item.createdAt || item.CreatedAt || ""),
@@ -626,20 +727,39 @@ export default function EmployeeTaskDetailsPage() {
             };
         });
 
-        const requestEntries = (task.requestChanges || []).map((item, index) => ({
-            id: item.id || `timeline-request-${index}`,
-            type: "request",
-            hasStatusChanged: false,
-            isRequestChange: true,
-            title: "Change request made",
-            createdAt: item.createdAt || item.changedAt || "",
-            changedAtLabel:
-                item.changedAtLabel || formatDateTime(item.createdAt || item.changedAt || ""),
-            changedByName: item.changedByName || "",
-            changedByProfileImage: item.changedByProfileImage || "",
-            requestTypeLabel:
-                item.changeTypeLabel || getRequestChangeTypeLabel(item.changeType || "other"),
-        }));
+        const requestEntries = (task.requestChanges || []).map((item, index) => {
+            const requestStatus = item.requestStatus || "Pending";
+            const normalizedRequestStatus = normalizeStatus(requestStatus);
+            const reviewedAt = item.reviewedAt || item.ReviewedAt || "";
+            const createdAt = item.createdAt || item.changedAt || "";
+            const timelineDate = reviewedAt || createdAt;
+            const requestTypeLabel =
+                item.changeTypeLabel || getRequestChangeTypeLabel(item.changeType || "other");
+
+            return {
+                id: item.id || `timeline-request-${index}`,
+                type: "request",
+                hasStatusChanged: false,
+                isRequestChange: true,
+                title:
+                    normalizedRequestStatus === "approved"
+                        ? "Change request approved"
+                        : normalizedRequestStatus === "rejected"
+                            ? "Change request rejected"
+                            : "Change request made",
+                createdAt: timelineDate,
+                changedAtLabel: formatDateTime(timelineDate),
+                changedByName:
+                    normalizedRequestStatus === "approved" || normalizedRequestStatus === "rejected"
+                        ? item.reviewedByName || item.changedByName || "Team leader"
+                        : item.changedByName || "",
+                changedByProfileImage: item.changedByProfileImage || "",
+                requestTypeLabel,
+                requestStatus,
+                normalizedRequestStatus,
+                reviewNote: item.reviewNote || "",
+            };
+        });
 
         const fallbackStatusEvent = historyEntries.length
             ? []
@@ -1313,6 +1433,27 @@ export default function EmployeeTaskDetailsPage() {
             </div>
 
             <div className="employee-task-details-page__toolbar">
+                {latestReviewedRequestMessage && shouldShowLatestReviewedRequestMessage ? (
+                    <div
+                        className={`employee-task-details-page__request-review-message employee-task-details-page__request-review-message--${latestReviewedRequestStatus}`}
+                        role="status"
+                    >
+                        <span className="employee-task-details-page__request-review-icon">
+                            {latestReviewedRequestStatus === "approved" ? <FiCheckCircle /> : <FiAlertTriangle />}
+                        </span>
+                        <span className="employee-task-details-page__request-review-copy">
+                            {latestReviewedRequestMessage}
+                        </span>
+                        <button
+                            type="button"
+                            className="employee-task-details-page__request-review-dismiss"
+                            onClick={dismissLatestReviewedRequestMessage}
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                ) : null}
+
                 {canRequestChange ? (
                     <button
                         type="button"
@@ -1414,17 +1555,17 @@ export default function EmployeeTaskDetailsPage() {
                         <div className="employee-task-details-page__detail-item">
                             <div className="employee-task-details-page__label-row">
                                 <FiCalendar />
-                                <span>Due Date</span>
+                                <span>Start Date</span>
                             </div>
-                            <strong>{formatDate(task.dueDate)}</strong>
+                            <strong>{formatDate(task.startDate)}</strong>
                         </div>
 
                         <div className="employee-task-details-page__detail-item">
                             <div className="employee-task-details-page__label-row">
                                 <FiCalendar />
-                                <span>Start Date</span>
+                                <span>Due Date</span>
                             </div>
-                            <strong>{formatDate(task.startDate)}</strong>
+                            <strong>{formatDate(task.dueDate)}</strong>
                         </div>
 
                         <div className="employee-task-details-page__detail-item">
@@ -1492,7 +1633,7 @@ export default function EmployeeTaskDetailsPage() {
                                                                 </span>
                                                             </>
                                                         ) : item.type === "request" ? (
-                                                            "Change request made"
+                                                            item.title || "Change request made"
                                                         ) : (
                                                             "Feedback added"
                                                         )}
@@ -1505,7 +1646,22 @@ export default function EmployeeTaskDetailsPage() {
 
                                                     {item.type === "request" ? (
                                                         <div className="employee-task-details-page__timeline-request-note">
-                                                            <strong>Type:</strong> {item.requestTypeLabel}
+                                                            <div>
+                                                                <strong>Type:</strong> {item.requestTypeLabel}
+                                                            </div>
+                                                            <div>
+                                                                <strong>Status:</strong>{" "}
+                                                                <span
+                                                                    className={`employee-task-details-page__timeline-request-status employee-task-details-page__timeline-request-status--${item.normalizedRequestStatus || "pending"}`}
+                                                                >
+                                                                    {mapStatusLabel(item.requestStatus)}
+                                                                </span>
+                                                            </div>
+                                                            {item.reviewNote ? (
+                                                                <div>
+                                                                    <strong>Review note:</strong> {item.reviewNote}
+                                                                </div>
+                                                            ) : null}
                                                         </div>
                                                     ) : !item.hasStatusChanged && item.feedbackText ? (
                                                         <div className="employee-task-details-page__timeline-note">
