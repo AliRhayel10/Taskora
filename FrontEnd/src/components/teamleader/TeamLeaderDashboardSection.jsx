@@ -10,6 +10,8 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiCalendar,
+  FiEye,
+  FiEdit3,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
 import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
@@ -439,6 +441,58 @@ function getProfileImageUrl(value) {
   return `${API_BASE}/${raw}`;
 }
 
+function getTaskId(task) {
+  return Number(task?.taskId ?? task?.TaskId ?? 0);
+}
+
+function getTaskTitle(task) {
+  return String(task?.title ?? task?.Title ?? "Untitled task").trim();
+}
+
+function getChangeTypeLabel(changeType) {
+  const normalized = String(changeType || "").trim();
+
+  if (normalized === "dueDateChange") return "Due Date Change";
+  if (normalized === "estimatedEffortChange") return "Effort Change";
+  if (normalized === "assigneeChange") return "Assignee Change";
+
+  return "Task Change";
+}
+
+function formatRequestTime(dateValue) {
+  if (!dateValue) return "";
+
+  const createdAt = new Date(dateValue);
+
+  if (Number.isNaN(createdAt.getTime())) return "";
+
+  const now = new Date();
+  const diffMs = Math.max(0, now.getTime() - createdAt.getTime());
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return format(createdAt, "dd/MM/yyyy");
+}
+
+function normalizeTaskRequestsResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.requests)) return data.requests;
+  if (Array.isArray(data?.items)) return data.items;
+
+  return [];
+}
+
 export default function TeamLeaderDashboardSection({
   user,
   searchValue = "",
@@ -447,6 +501,7 @@ export default function TeamLeaderDashboardSection({
 
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [taskRequests, setTaskRequests] = useState([]);
   const [leaderTeamName, setLeaderTeamName] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -678,12 +733,56 @@ export default function TeamLeaderDashboardSection({
           return belongsToLeaderTeam && isInRange;
         });
 
+        const requestsByTask = await Promise.all(
+          filteredTasks.map(async (task) => {
+            const taskId = getTaskId(task);
+
+            if (!taskId) return [];
+
+            try {
+              const requestResponse = await fetch(
+                `${API_BASE}/api/tasks/${encodeURIComponent(taskId)}/change-requests`
+              );
+
+              if (!requestResponse.ok) return [];
+
+              const requestData = await parseJsonSafely(requestResponse);
+              const taskRequestsList = normalizeTaskRequestsResponse(requestData);
+
+              return taskRequestsList.map((request) => ({
+                ...request,
+                taskTitle: getTaskTitle(task),
+                taskId,
+              }));
+            } catch {
+              return [];
+            }
+          })
+        );
+
+        const pendingRequests = requestsByTask
+          .flat()
+          .filter(
+            (request) =>
+              String(request?.requestStatus ?? request?.RequestStatus ?? "")
+                .trim()
+                .toLowerCase() === "pending"
+          )
+          .sort((a, b) => {
+            const firstDate = new Date(a?.createdAt ?? a?.CreatedAt ?? 0).getTime();
+            const secondDate = new Date(b?.createdAt ?? b?.CreatedAt ?? 0).getTime();
+
+            return secondDate - firstDate;
+          });
+
         setMembers(filteredMembers);
         setTasks(filteredTasks);
+        setTaskRequests(pendingRequests);
       } catch (error) {
         console.error("Dashboard fetch error:", error);
         setMembers([]);
         setTasks([]);
+        setTaskRequests([]);
         setLeaderTeamName("");
         setErrorMessage(error.message || "Failed to load dashboard data.");
       } finally {
@@ -839,6 +938,11 @@ export default function TeamLeaderDashboardSection({
       },
     ];
   }, [members.length, tasks]);
+
+  const visibleTaskRequests = useMemo(
+    () => taskRequests.slice(0, 4),
+    [taskRequests]
+  );
 
   const totalPages = Math.max(1, Math.ceil(workloadRows.length / PAGE_SIZE));
 
@@ -1385,6 +1489,96 @@ export default function TeamLeaderDashboardSection({
                 <h3 className="teamleader-dashboard-section__requests-title">
                   Requests
                 </h3>
+
+                <button
+                  type="button"
+                  className="teamleader-dashboard-section__requests-view-all"
+                >
+                  <span>View all</span>
+                  <strong>{taskRequests.length}</strong>
+                </button>
+              </div>
+
+              <div className="teamleader-dashboard-section__requests-list">
+                {visibleTaskRequests.length === 0 ? (
+                  <div className="teamleader-dashboard-section__requests-empty">
+                    No pending requests found.
+                  </div>
+                ) : (
+                  visibleTaskRequests.map((request) => {
+                    const requestId =
+                      request?.taskChangeRequestId ?? request?.TaskChangeRequestId;
+                    const changeType = request?.changeType ?? request?.ChangeType;
+                    const requestedByName =
+                      request?.requestedByName ??
+                      request?.RequestedByName ??
+                      "Unknown user";
+                    const createdAt = request?.createdAt ?? request?.CreatedAt;
+
+                    return (
+                      <article
+                        key={requestId}
+                        className="teamleader-dashboard-section__request-row"
+                      >
+                        <div className="teamleader-dashboard-section__request-accent"></div>
+
+                        <div className="teamleader-dashboard-section__request-icon">
+                          <FiCalendar />
+                        </div>
+
+                        <div className="teamleader-dashboard-section__request-main">
+                          <div className="teamleader-dashboard-section__request-top">
+                            <span className="teamleader-dashboard-section__request-badge">
+                              {getChangeTypeLabel(changeType)}
+                            </span>
+
+                            <span className="teamleader-dashboard-section__request-time">
+                              {formatRequestTime(createdAt)}
+                            </span>
+                          </div>
+
+                          <h4 className="teamleader-dashboard-section__request-title">
+                            {getChangeTypeLabel(changeType)} for task “{request.taskTitle}”
+                          </h4>
+
+                          <div className="teamleader-dashboard-section__request-footer">
+                            <span className="teamleader-dashboard-section__request-label">
+                              Requested by
+                            </span>
+
+                            <span className="teamleader-dashboard-section__request-avatar">
+                              {getInitials(requestedByName)}
+                            </span>
+
+                            <strong className="teamleader-dashboard-section__request-name">
+                              {requestedByName}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="teamleader-dashboard-section__request-actions">
+                          <button
+                            type="button"
+                            className="teamleader-dashboard-section__request-btn teamleader-dashboard-section__request-btn--review"
+                            aria-label="Review request"
+                            title="Review request"
+                          >
+                            <FiEdit3 />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="teamleader-dashboard-section__request-btn teamleader-dashboard-section__request-btn--view"
+                            aria-label="View request"
+                            title="View request"
+                          >
+                            <FiEye />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })
+                )}
               </div>
             </aside>
           </div>
