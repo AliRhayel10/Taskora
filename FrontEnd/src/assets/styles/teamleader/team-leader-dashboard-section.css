@@ -1160,8 +1160,8 @@ body.dark .teamleader-dashboard-section__table-card {
 .teamleader-dashboard-section__request-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  width: calc(100% + 96px);
 }
 
 .teamleader-dashboard-section__request-badge {
@@ -1183,6 +1183,7 @@ body.dark .teamleader-dashboard-section__table-card {
   font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
+  margin-left: auto;
 }
 
 .teamleader-dashboard-section__request-title {
@@ -1297,7 +1298,7 @@ body.dark .teamleader-dashboard-section__table-card {
 
 @media (max-width: 1280px) {
   .teamleader-dashboard-section__request-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: stretch;
   }
 
