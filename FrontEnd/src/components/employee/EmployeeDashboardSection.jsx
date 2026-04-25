@@ -515,7 +515,7 @@ export default function EmployeeDashboardSection({
 
             <p className="employee-dashboard-section__hero-copy">
               {todayTasksCount > 0
-                ? `${todayTasksCount} task${todayTasksCount > 1 ? "s are" : "is"} due today.`
+                ? `${todayTasksCount} task ${todayTasksCount > 1 ? "s are" : "is"} due today.`
                 : "No tasks are due today. Stay focused and keep up the great work."}
             </p>
           </div>
