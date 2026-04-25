@@ -32,6 +32,13 @@ const DEFAULT_EDIT_FORM = {
   dueDate: "",
 };
 
+const REQUEST_CHANGE_OPTIONS = [
+  { value: "dueDateChange", label: "Due Date Change" },
+  { value: "estimatedEffortChange", label: "Estimated Effort Change" },
+  { value: "assigneeChange", label: "Assignee Change" },
+  { value: "other", label: "Other" },
+];
+
 const getStoredUser = () => {
   try {
     const raw =
@@ -55,6 +62,25 @@ const parseJsonSafe = async (response) => {
 };
 
 const normalizeStatus = (value = "") => String(value).trim().toLowerCase();
+
+const mapStatusLabel = (status = "") => {
+  const normalized = normalizeStatus(status).replace(/\s+/g, "");
+
+  if (normalized === "new") return "New";
+  if (normalized === "acknowledged") return "Acknowledged";
+  if (normalized === "pending") return "Pending";
+  if (normalized === "done" || normalized === "completed") return "Done";
+  if (normalized === "approved") return "Approved";
+  if (normalized === "rejected") return "Rejected";
+  if (normalized === "archived") return "Archived";
+
+  return status || "Pending";
+};
+
+const getRequestChangeTypeLabel = (value = "") => {
+  const normalized = String(value || "").trim();
+  return REQUEST_CHANGE_OPTIONS.find((option) => option.value === normalized)?.label || "Other";
+};
 
 const getProfileImage = (user = {}) => {
   const rawValue =
@@ -251,8 +277,12 @@ export default function TaskDetailsPage({
   const resolvedDeleteTaskEndpoint = deleteTaskEndpoint ?? `${API_BASE}/api/tasks/delete`;
 
   const [currentTask, setCurrentTask] = useState(task);
-  const resolvedHistoryEndpoint = currentTask?.id
-    ? `${API_BASE}/api/tasks/${currentTask.id}/history`
+  const currentTaskId = currentTask?.id || currentTask?.taskId || currentTask?.TaskId || "";
+  const resolvedHistoryEndpoint = currentTaskId
+    ? `${API_BASE}/api/tasks/${currentTaskId}/history`
+    : "";
+  const resolvedChangeRequestsEndpoint = currentTaskId
+    ? `${API_BASE}/api/tasks/${currentTaskId}/change-requests`
     : "";
   const [backendStatuses, setBackendStatuses] = useState([]);
   const [users, setUsers] = useState([]);
@@ -271,6 +301,7 @@ export default function TaskDetailsPage({
   const [taskFeedbackText, setTaskFeedbackText] = useState("");
   const [isSubmittingTaskFeedback, setIsSubmittingTaskFeedback] = useState(false);
   const [taskHistory, setTaskHistory] = useState([]);
+  const [taskChangeRequests, setTaskChangeRequests] = useState([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [showAllFeedbackHistory, setShowAllFeedbackHistory] = useState(false);
   const [showAllTimeline, setShowAllTimeline] = useState(false);
@@ -282,28 +313,50 @@ export default function TaskDetailsPage({
   const loadTaskHistory = useCallback(async () => {
     if (!resolvedHistoryEndpoint) {
       setTaskHistory([]);
+      setTaskChangeRequests([]);
       return;
     }
 
     setIsHistoryLoading(true);
 
     try {
-      const response = await fetch(resolvedHistoryEndpoint);
-      const payload = response.status === 204 ? null : await parseJsonSafe(response);
+      const [historyResponse, changeRequestsResponse] = await Promise.all([
+        fetch(resolvedHistoryEndpoint),
+        resolvedChangeRequestsEndpoint ? fetch(resolvedChangeRequestsEndpoint) : Promise.resolve(null),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(payload?.message || payload?.title || "Unable to load task history.");
+      const historyPayload = historyResponse.status === 204 ? null : await parseJsonSafe(historyResponse);
+      const changeRequestsPayload =
+        changeRequestsResponse && changeRequestsResponse.status !== 204
+          ? await parseJsonSafe(changeRequestsResponse)
+          : null;
+
+      if (!historyResponse.ok) {
+        throw new Error(historyPayload?.message || historyPayload?.title || "Unable to load task history.");
       }
 
-      const historyItems = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.history)
-          ? payload.history
+      const historyItems = Array.isArray(historyPayload?.data)
+        ? historyPayload.data
+        : Array.isArray(historyPayload?.history)
+          ? historyPayload.history
+          : [];
+
+      const requestItems =
+        changeRequestsResponse?.ok && changeRequestsPayload?.success !== false
+          ? Array.isArray(changeRequestsPayload?.data)
+            ? changeRequestsPayload.data
+            : Array.isArray(changeRequestsPayload?.requests)
+              ? changeRequestsPayload.requests
+              : Array.isArray(changeRequestsPayload)
+                ? changeRequestsPayload
+                : []
           : [];
 
       setTaskHistory(historyItems);
+      setTaskChangeRequests(requestItems);
     } catch (error) {
       setTaskHistory([]);
+      setTaskChangeRequests([]);
       setFeedback((previous) => previous ?? {
         type: "error",
         message: error?.message || "Unable to load task history.",
@@ -311,7 +364,7 @@ export default function TaskDetailsPage({
     } finally {
       setIsHistoryLoading(false);
     }
-  }, [resolvedHistoryEndpoint]);
+  }, [resolvedChangeRequestsEndpoint, resolvedHistoryEndpoint]);
 
   useEffect(() => {
     loadTaskHistory();
@@ -469,6 +522,7 @@ export default function TaskDetailsPage({
 
       return {
         id: item?.taskStatusHistoryId || item?.TaskStatusHistoryId || `${changedAt}-${index}`,
+        type: hasStatusChanged ? "status" : "feedback",
         changedByName,
         oldStatusName,
         newStatusName,
@@ -477,13 +531,55 @@ export default function TaskDetailsPage({
         changedAtLabel: formatDateTimeLabel(changedAt),
         hasStatusChanged,
         timelineTitle: hasStatusChanged
-          ? `Status changed to ${newStatusName}`
+          ? `Status changed to ${mapStatusLabel(newStatusName)}`
           : feedbackText
             ? "Feedback added"
-            : `Status updated to ${newStatusName || "Unknown"}`,
+            : `Status updated to ${mapStatusLabel(newStatusName || "Unknown")}`,
       };
     });
   }, [taskHistory]);
+
+  const requestTimelineEntries = useMemo(() => {
+    return taskChangeRequests.map((item, index) => {
+      const requestStatus = item?.requestStatus || item?.RequestStatus || "Pending";
+      const normalizedRequestStatus = normalizeStatus(requestStatus).replace(/\s+/g, "");
+      const reviewedAt = item?.reviewedAt || item?.ReviewedAt || "";
+      const createdAt = item?.createdAt || item?.CreatedAt || item?.changedAt || item?.ChangedAt || "";
+      const timelineDate = reviewedAt || createdAt;
+      const requestTypeLabel = getRequestChangeTypeLabel(item?.changeType || item?.ChangeType || "other");
+      const changedByName =
+        normalizedRequestStatus === "approved" || normalizedRequestStatus === "rejected"
+          ? item?.reviewedByName || item?.ReviewedByName || "Team leader"
+          : item?.requestedByName || item?.RequestedByName || item?.changedByName || item?.ChangedByName || "Requester";
+
+      return {
+        id: item?.taskChangeRequestId || item?.TaskChangeRequestId || `timeline-request-${index}`,
+        type: "request",
+        hasStatusChanged: false,
+        isRequestChange: true,
+        title:
+          normalizedRequestStatus === "approved"
+            ? "Change request approved"
+            : normalizedRequestStatus === "rejected"
+              ? "Change request rejected"
+              : "Change request made",
+        changedAt: timelineDate,
+        changedAtLabel: formatDateTimeLabel(timelineDate),
+        changedByName,
+        requestTypeLabel,
+        requestStatus,
+        normalizedRequestStatus: normalizedRequestStatus || "pending",
+        reviewNote: item?.reviewNote || item?.ReviewNote || "",
+        reason: item?.reason || item?.Reason || "",
+      };
+    });
+  }, [taskChangeRequests]);
+
+  const timelineEntries = useMemo(() => {
+    return [...historyEntries, ...requestTimelineEntries].sort(
+      (a, b) => new Date(b.changedAt || 0).getTime() - new Date(a.changedAt || 0).getTime(),
+    );
+  }, [historyEntries, requestTimelineEntries]);
 
   const feedbackHistoryEntries = useMemo(
     () => historyEntries.filter((item) => item.feedbackText),
@@ -496,8 +592,8 @@ export default function TaskDetailsPage({
   );
 
   const visibleTimelineEntries = useMemo(
-    () => (showAllTimeline ? historyEntries : historyEntries.slice(0, 5)),
-    [historyEntries, showAllTimeline],
+    () => (showAllTimeline ? timelineEntries : timelineEntries.slice(0, 5)),
+    [showAllTimeline, timelineEntries],
   );
 
   const resolveTeamIdForUser = (userId) => {
@@ -1156,7 +1252,7 @@ export default function TaskDetailsPage({
                   <h3>Activity Timeline</h3>
                 </div>
 
-                {historyEntries.length > 4 ? (
+                {timelineEntries.length > 4 ? (
                   <button
                     type="button"
                     className="task-details-page__view-all-btn"
@@ -1175,26 +1271,52 @@ export default function TaskDetailsPage({
                     {visibleTimelineEntries.map((item) => (
                       <div key={item.id} className="task-details-page__timeline-item">
                         <div
-                          className={`task-details-page__timeline-marker ${item.hasStatusChanged
+                          className={`task-details-page__timeline-marker ${item.type === "status"
                               ? "task-details-page__timeline-marker--status"
-                              : "task-details-page__timeline-marker--feedback"
+                              : item.type === "request"
+                                ? "task-details-page__timeline-marker--request"
+                                : "task-details-page__timeline-marker--feedback"
                             }`}
                         />
                         <div className="task-details-page__timeline-content">
                           <div className="task-details-page__timeline-heading">
-                            {item.hasStatusChanged ? (
+                            {item.type === "status" ? (
                               <>
                                 <span>Status changed to </span>
-                                <span className={getStatusClass(item.newStatusName)}>{item.newStatusName}</span>
+                                <span className={getStatusClass(item.newStatusName)}>
+                                  {mapStatusLabel(item.newStatusName)}
+                                </span>
                               </>
+                            ) : item.type === "request" ? (
+                              item.title || "Change request made"
                             ) : (
                               item.timelineTitle
                             )}
                           </div>
                           <div className="task-details-page__timeline-meta">
-                            By {item.changedByName} • {item.changedAtLabel}
+                            {item.changedByName ? `By ${item.changedByName} • ` : ""}
+                            {item.changedAtLabel}
                           </div>
-                          {item.feedbackText ? (
+                          {item.type === "request" ? (
+                            <div className="task-details-page__timeline-request-note">
+                              <div>
+                                <strong>Type:</strong> {item.requestTypeLabel}
+                              </div>
+                              <div>
+                                <strong>Status:</strong>{" "}
+                                <span
+                                  className={`task-details-page__timeline-request-status task-details-page__timeline-request-status--${item.normalizedRequestStatus || "pending"}`}
+                                >
+                                  {mapStatusLabel(item.requestStatus)}
+                                </span>
+                              </div>
+                              {item.reviewNote ? (
+                                <div>
+                                  <strong>Review note:</strong> {item.reviewNote}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : item.feedbackText ? (
                             <div className="task-details-page__timeline-note">“{item.feedbackText}”</div>
                           ) : null}
                         </div>
