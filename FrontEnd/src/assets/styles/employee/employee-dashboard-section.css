@@ -648,7 +648,13 @@
   }
 }
 
+/* Floating unassigned task message */
 .employee-dashboard-section__unassigned-message {
+  position: fixed;
+  top: 92px;
+  right: 28px;
+  z-index: 3000;
+  width: min(440px, calc(100vw - 40px));
   border: 1px solid rgba(253, 186, 116, 0.9);
   background: #fff7ed;
   color: #9a3412;
@@ -658,7 +664,20 @@
   grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
+  animation: employee-dashboard-unassigned-float-in 0.22s ease-out;
+}
+
+@keyframes employee-dashboard-unassigned-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .employee-dashboard-section__unassigned-icon {
@@ -674,7 +693,9 @@
   flex-shrink: 0;
 }
 
-.employee-dashboard-section__unassigned-copy { min-width: 0; }
+.employee-dashboard-section__unassigned-copy {
+  min-width: 0;
+}
 
 .employee-dashboard-section__unassigned-copy strong {
   display: block;
@@ -704,7 +725,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .employee-dashboard-section__unassigned-dismiss:hover {
@@ -715,6 +739,10 @@
 
 @media (max-width: 760px) {
   .employee-dashboard-section__unassigned-message {
+    top: 78px;
+    right: 12px;
+    left: 12px;
+    width: auto;
     grid-template-columns: 38px minmax(0, 1fr) auto;
     align-items: flex-start;
     padding: 12px;
@@ -727,7 +755,9 @@
     font-size: 1.12rem;
   }
 
-  .employee-dashboard-section__unassigned-copy p { font-size: 0.88rem; }
+  .employee-dashboard-section__unassigned-copy p {
+    font-size: 0.88rem;
+  }
 }
 
 /* Employee dashboard date range card, copied to match the Team Leader dashboard range picker style */
@@ -1167,7 +1197,6 @@
   min-height: 40px;
 }
 
-
 /* Today should use task date-span overlap, while the date range card stays compact */
 .employee-dashboard-section__range-card {
   width: 260px;
@@ -1325,7 +1354,6 @@
     max-width: none;
   }
 }
-
 
 /* Final override: remove the outer white date-range summary container and keep only the compact range button */
 .employee-dashboard-section__range-card {
