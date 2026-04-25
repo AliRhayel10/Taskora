@@ -267,6 +267,26 @@ function normalizeStatus(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
 }
 
+function getTaskStatusValue(task = {}) {
+  return (
+    task.taskStatusName ||
+    task.TaskStatusName ||
+    task.statusName ||
+    task.StatusName ||
+    task.taskStatus?.statusName ||
+    task.taskStatus?.StatusName ||
+    task.status ||
+    task.Status ||
+    ""
+  );
+}
+
+function isHiddenEmployeeTaskStatus(value) {
+  const normalized = normalizeStatus(value);
+
+  return normalized === "approved" || normalized === "archived";
+}
+
 function toEmployeeStatus(value) {
   const normalized = normalizeStatus(value);
 
@@ -274,22 +294,14 @@ function toEmployeeStatus(value) {
   if (normalized === "acknowledged") return "acknowledged";
   if (normalized === "pending" || normalized === "inprogress") return "pending";
   if (normalized === "done" || normalized === "completed") return "done";
+  if (normalized === "approved") return "approved";
+  if (normalized === "archived") return "archived";
 
   return "new";
 }
 
 function resolveTaskStatus(task) {
-  return toEmployeeStatus(
-    task.taskStatusName ||
-      task.TaskStatusName ||
-      task.statusName ||
-      task.StatusName ||
-      task.taskStatus?.statusName ||
-      task.taskStatus?.StatusName ||
-      task.status ||
-      task.Status ||
-      ""
-  );
+  return toEmployeeStatus(getTaskStatusValue(task));
 }
 
 function getPriorityClass(priority) {
@@ -320,6 +332,8 @@ function getStatusClass(status) {
   if (status === "acknowledged") return "employee-dashboard-section__status--acknowledged";
   if (status === "pending") return "employee-dashboard-section__status--pending";
   if (status === "done") return "employee-dashboard-section__status--done";
+  if (status === "approved") return "employee-dashboard-section__status--done";
+  if (status === "archived") return "employee-dashboard-section__status--done";
   return "employee-dashboard-section__status--new";
 }
 
@@ -328,6 +342,8 @@ function getStatusLabel(status) {
   if (status === "acknowledged") return "Acknowledged";
   if (status === "pending") return "Pending";
   if (status === "done") return "Done";
+  if (status === "approved") return "Approved";
+  if (status === "archived") return "Archived";
   return "New";
 }
 
@@ -336,6 +352,8 @@ function getStatusIcon(status) {
   if (status === "acknowledged") return <FiCheckCircle />;
   if (status === "pending") return <FiClock />;
   if (status === "done") return <FiCheckCircle />;
+  if (status === "approved") return <FiCheckCircle />;
+  if (status === "archived") return <FiCheckCircle />;
   return <FiFileText />;
 }
 
@@ -474,9 +492,15 @@ export default function EmployeeDashboardSection({
             task.assignedToUserId ??
             task.AssignedToUserId ??
             task.assignedUserId ??
-            task.userId;
+            task.AssignedUserId ??
+            task.userId ??
+            task.UserId;
 
-          return Number(assignedUserId) === Number(user.userId);
+          if (Number(assignedUserId) !== Number(user.userId)) {
+            return false;
+          }
+
+          return !isHiddenEmployeeTaskStatus(getTaskStatusValue(task));
         })
         .map((task) => ({
           taskId: task.taskId || task.TaskId,
