@@ -1055,6 +1055,8 @@ function TaskSummaryDonut({ segments, totalTasks }) {
 
 
 function TasksActivityChart({ dataPoints }) {
+  const [hoveredPointKey, setHoveredPointKey] = useState(null);
+
   const width = 920;
   const height = 330;
   const margin = { top: 16, right: 40, bottom: 96, left: 98 };
@@ -1078,8 +1080,23 @@ function TasksActivityChart({ dataPoints }) {
     };
   });
 
+  const hoveredPoint = points.find((point) => point.key === hoveredPointKey) || null;
   const linePath = buildSmoothedLinePath(points);
   const areaPath = buildAreaPath(points, baseY);
+
+  const tooltipWidth = hoveredPoint
+    ? Math.max(118, String(hoveredPoint.label || "").length * 8 + 74)
+    : 0;
+  const tooltipHeight = 54;
+  const tooltipX = hoveredPoint
+    ? Math.min(
+        Math.max(hoveredPoint.x - tooltipWidth / 2, margin.left - 16),
+        width - tooltipWidth - 18
+      )
+    : 0;
+  const tooltipY = hoveredPoint
+    ? Math.max(hoveredPoint.y - tooltipHeight - 18, margin.top + 2)
+    : 0;
 
   return (
     <div className="dashboard-section__tasks-chart-wrap">
@@ -1092,9 +1109,20 @@ function TasksActivityChart({ dataPoints }) {
       >
         <defs>
           <linearGradient id="dashboardTasksActivityGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#84cc16" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#84cc16" stopOpacity="0.04" />
+            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.36" />
+            <stop offset="52%" stopColor="#22c55e" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#22c55e" stopOpacity="0.03" />
           </linearGradient>
+
+          <linearGradient id="dashboardTasksActivityLineGradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#84cc16" />
+            <stop offset="48%" stopColor="#22c55e" />
+            <stop offset="100%" stopColor="#16a34a" />
+          </linearGradient>
+
+          <filter id="dashboardTasksActivityGlow" x="-20%" y="-30%" width="140%" height="160%">
+            <feDropShadow dx="0" dy="8" stdDeviation="6" floodColor="#22c55e" floodOpacity="0.24" />
+          </filter>
         </defs>
 
         {axis.values.map((value, index) => {
@@ -1128,30 +1156,109 @@ function TasksActivityChart({ dataPoints }) {
             y1={margin.top}
             x2={point.x}
             y2={baseY}
-            className="dashboard-section__tasks-chart-grid dashboard-section__tasks-chart-grid--vertical"
+            className={`dashboard-section__tasks-chart-grid dashboard-section__tasks-chart-grid--vertical ${
+              hoveredPointKey === point.key ? "dashboard-section__tasks-chart-grid--active" : ""
+            }`}
           />
         ))}
+
+        {hoveredPoint ? (
+          <line
+            x1={hoveredPoint.x}
+            y1={margin.top}
+            x2={hoveredPoint.x}
+            y2={baseY}
+            className="dashboard-section__tasks-chart-hover-guide"
+          />
+        ) : null}
 
         {areaPath ? (
           <path d={areaPath} className="dashboard-section__tasks-chart-area" fill="url(#dashboardTasksActivityGradient)" />
         ) : null}
 
-        {linePath ? <path d={linePath} className="dashboard-section__tasks-chart-line" /> : null}
+        {linePath ? (
+          <path
+            d={linePath}
+            className="dashboard-section__tasks-chart-line"
+            filter="url(#dashboardTasksActivityGlow)"
+          />
+        ) : null}
 
-        {points.map((point) => (
-          <g key={point.key}>
-            <circle className="dashboard-section__tasks-chart-point-ring" cx={point.x} cy={point.y} r="8.5" />
-            <circle className="dashboard-section__tasks-chart-point" cx={point.x} cy={point.y} r="5.5" />
-            <text
-              x={point.x}
-              y={height - 12}
-              textAnchor="middle"
-              className="dashboard-section__tasks-chart-label"
+        {points.map((point) => {
+          const isActive = hoveredPointKey === point.key;
+
+          return (
+            <g
+              key={point.key}
+              className={`dashboard-section__tasks-chart-point-group ${
+                isActive ? "dashboard-section__tasks-chart-point-group--active" : ""
+              }`}
+              tabIndex="0"
+              role="button"
+              aria-label={`${point.label}: ${point.value} tasks`}
+              onMouseEnter={() => setHoveredPointKey(point.key)}
+              onMouseLeave={() => setHoveredPointKey(null)}
+              onFocus={() => setHoveredPointKey(point.key)}
+              onBlur={() => setHoveredPointKey(null)}
             >
-              {point.label}
+              <circle
+                className="dashboard-section__tasks-chart-point-hit"
+                cx={point.x}
+                cy={point.y}
+                r="18"
+              />
+              <circle
+                className="dashboard-section__tasks-chart-point-ring"
+                cx={point.x}
+                cy={point.y}
+                r={isActive ? "11" : "8.5"}
+              />
+              <circle
+                className="dashboard-section__tasks-chart-point"
+                cx={point.x}
+                cy={point.y}
+                r={isActive ? "7" : "5.5"}
+              />
+              <text
+                x={point.x}
+                y={height - 12}
+                textAnchor="middle"
+                className="dashboard-section__tasks-chart-label"
+              >
+                {point.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {hoveredPoint ? (
+          <g
+            className="dashboard-section__tasks-chart-tooltip"
+            transform={`translate(${tooltipX}, ${tooltipY})`}
+          >
+            <rect
+              width={tooltipWidth}
+              height={tooltipHeight}
+              rx="14"
+              ry="14"
+              className="dashboard-section__tasks-chart-tooltip-box"
+            />
+            <text
+              x="16"
+              y="22"
+              className="dashboard-section__tasks-chart-tooltip-label"
+            >
+              {hoveredPoint.label}
+            </text>
+            <text
+              x="16"
+              y="42"
+              className="dashboard-section__tasks-chart-tooltip-value"
+            >
+              {hoveredPoint.value} {hoveredPoint.value === 1 ? "task" : "tasks"}
             </text>
           </g>
-        ))}
+        ) : null}
       </svg>
     </div>
   );
