@@ -1325,3 +1325,140 @@
     max-width: none;
   }
 }
+
+
+/* Final override: remove the outer white date-range summary container and keep only the compact range button */
+.employee-dashboard-section__range-card {
+  position: relative;
+  overflow: visible;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+  align-self: center;
+  gap: 0;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__summary-icon {
+  display: none;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-menu {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
+  width: auto;
+  max-width: 220px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  transform: none;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-btn span {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-btn svg {
+  flex-shrink: 0;
+  margin-left: 0;
+  color: currentColor;
+}
+
+@media (max-width: 1280px) {
+  .employee-dashboard-section__range-card {
+    justify-self: stretch;
+    justify-content: flex-start;
+  }
+
+  .employee-dashboard-section__range-card .employee-dashboard-section__range-menu,
+  .employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* Final adjustment: move the date range control higher and remove internal scroll from the custom calendar dropdown */
+.employee-dashboard-section__range-card {
+  align-self: start;
+  margin-top: -4px;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-menu {
+  position: relative;
+  z-index: 30;
+}
+
+.employee-dashboard-section__range-dropdown {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__range-dropdown {
+  top: calc(100% + 8px);
+  right: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.employee-dashboard-section__custom-range {
+  overflow: visible;
+}
+
+.employee-dashboard-section__calendar-shell {
+  overflow: visible;
+}
+
+.employee-dashboard-section__apply-btn-wrap {
+  position: static;
+  bottom: auto;
+  background: transparent;
+  margin-top: 8px;
+  padding-top: 0;
+}
+
+@media (max-width: 1280px) {
+  .employee-dashboard-section__range-card {
+    margin-top: 0;
+  }
+
+  .employee-dashboard-section__range-card .employee-dashboard-section__range-dropdown {
+    left: 0;
+    right: auto;
+  }
+}

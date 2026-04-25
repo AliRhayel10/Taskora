@@ -975,7 +975,7 @@ export default function EmployeeDashboardSection({
             </div>
           </div>
 
-          <div className="employee-dashboard-section__summary-card employee-dashboard-section__range-card">
+          <div className="employee-dashboard-section__range-card">
             <div className="employee-dashboard-section__range-menu" ref={rangeMenuRef}>
               <button
                 type="button"
