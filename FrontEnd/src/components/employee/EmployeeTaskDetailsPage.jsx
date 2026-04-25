@@ -236,6 +236,20 @@ function getStoredEmployeeId() {
     );
 }
 
+function getTaskAssignedUserId(task = {}) {
+    return Number(
+        task.assignedToUserId ||
+        task.AssignedToUserId ||
+        task.assignedUserId ||
+        task.AssignedUserId ||
+        task.employeeId ||
+        task.EmployeeId ||
+        task.assigneeUserId ||
+        task.AssigneeUserId ||
+        0
+    );
+}
+
 function getStoredEmployeeName() {
     const storedUser = getStoredEmployee();
 
@@ -448,27 +462,27 @@ export default function EmployeeTaskDetailsPage() {
         });
     }, [latestReviewedRequestMessageKey]);
 
-    const latestReviewedRequestMessage = useMemo(() => {
-        if (!latestReviewedRequestChange) return "";
+const latestReviewedRequestMessage = useMemo(() => {
+    if (!latestReviewedRequestChange) return "";
 
-        const status = normalizeStatus(latestReviewedRequestChange?.requestStatus);
+    const status = normalizeStatus(latestReviewedRequestChange?.requestStatus);
 
-        const typeLabel =
-            latestReviewedRequestChange?.changeTypeLabel ||
-            getRequestChangeTypeLabel(latestReviewedRequestChange?.changeType || "other");
+    const typeLabel =
+        latestReviewedRequestChange?.changeTypeLabel ||
+        getRequestChangeTypeLabel(latestReviewedRequestChange?.changeType || "other");
 
-        const taskTitle = task?.title || "this task";
+    const taskTitle = task?.title || "this task";
 
-        if (status === "approved") {
-            return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was approved by your team leader.`;
-        }
+    if (status === "approved") {
+        return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was approved by your team leader.`;
+    }
 
-        if (status === "rejected") {
-            return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was rejected by your team leader.`;
-        }
+    if (status === "rejected") {
+        return `The ${typeLabel.toLowerCase()} request for “${taskTitle}” was rejected by your team leader.`;
+    }
 
-        return "";
-    }, [latestReviewedRequestChange, task?.title]);
+    return "";
+}, [latestReviewedRequestChange, task?.title]);
 
     const canRequestChange = currentStatusNormalized === "new" && !pendingRequestChange;
 
@@ -480,9 +494,11 @@ export default function EmployeeTaskDetailsPage() {
         return "";
     }, [pendingRequestChange]);
 
-    const loadTaskDetails = useCallback(async () => {
+    const loadTaskDetails = useCallback(async ({ silent = false } = {}) => {
         try {
-            setIsLoading(true);
+            if (!silent) {
+                setIsLoading(true);
+            }
             setErrorMessage("");
 
             const storedUser = getStoredEmployee();
@@ -541,6 +557,15 @@ export default function EmployeeTaskDetailsPage() {
             if (!rawTask) {
                 throw new Error("Failed to load task details.");
             }
+
+            const currentEmployeeId = Number(getStoredEmployeeId());
+            const assignedUserId = getTaskAssignedUserId(rawTask);
+
+            if (currentEmployeeId && assignedUserId && assignedUserId !== currentEmployeeId) {
+                navigate("/employee", { replace: true });
+                return;
+            }
+
 
             if (storedUser?.companyId) {
                 const [historyResponse, statusesResponse, requestChangesResponse] = await Promise.all([
@@ -668,7 +693,7 @@ export default function EmployeeTaskDetailsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [taskId]);
+    }, [taskId, navigate]);
 
     useEffect(() => {
         loadTaskDetails();
@@ -692,6 +717,16 @@ export default function EmployeeTaskDetailsPage() {
             window.removeEventListener("focus", handleWindowFocus);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
+    }, [loadTaskDetails]);
+
+    useEffect(() => {
+        const reassignmentCheckInterval = window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+                loadTaskDetails({ silent: true });
+            }
+        }, 5000);
+
+        return () => window.clearInterval(reassignmentCheckInterval);
     }, [loadTaskDetails]);
 
     const timelineItems = useMemo(() => {
@@ -1250,8 +1285,8 @@ export default function EmployeeTaskDetailsPage() {
                                                     key={option.value}
                                                     type="button"
                                                     className={`employee-task-details-page__change-type-card ${isActive
-                                                        ? "employee-task-details-page__change-type-card--active"
-                                                        : ""
+                                                            ? "employee-task-details-page__change-type-card--active"
+                                                            : ""
                                                         }`}
                                                     onClick={() => {
                                                         setRequestChangeType(option.value);
@@ -1616,10 +1651,10 @@ export default function EmployeeTaskDetailsPage() {
                                             >
                                                 <div
                                                     className={`employee-task-details-page__timeline-marker ${item.type === "status"
-                                                        ? "employee-task-details-page__timeline-marker--status"
-                                                        : item.type === "request"
-                                                            ? "employee-task-details-page__timeline-marker--request"
-                                                            : "employee-task-details-page__timeline-marker--feedback"
+                                                            ? "employee-task-details-page__timeline-marker--status"
+                                                            : item.type === "request"
+                                                                ? "employee-task-details-page__timeline-marker--request"
+                                                                : "employee-task-details-page__timeline-marker--feedback"
                                                         }`}
                                                 />
 
