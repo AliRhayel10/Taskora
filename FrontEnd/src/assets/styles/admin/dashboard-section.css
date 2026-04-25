@@ -508,14 +508,14 @@
 
 .dashboard-section__tasks-chart-label {
   fill: #1e293b;
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .dashboard-section__tasks-chart-y-label {
   fill: #000000;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
 }
 
