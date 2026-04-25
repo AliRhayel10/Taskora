@@ -191,10 +191,7 @@
   transition: color 0.2s ease;
 }
 
-.employee-dashboard-section__tab:hover {
-  color: #1d4ed8;
-}
-
+.employee-dashboard-section__tab:hover,
 .employee-dashboard-section__tab--active {
   color: #1d4ed8;
 }
@@ -255,7 +252,7 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  min-width: 1180px;
+  min-width: 1260px;
 }
 
 .employee-dashboard-section__table thead th {
@@ -326,6 +323,53 @@
   border-bottom: none;
 }
 
+.employee-dashboard-section__table thead th:nth-child(1),
+.employee-dashboard-section__table tbody td:nth-child(1) {
+  width: 22%;
+}
+
+.employee-dashboard-section__table thead th:nth-child(2),
+.employee-dashboard-section__table tbody td:nth-child(2) {
+  width: 10%;
+  text-align: center;
+}
+
+.employee-dashboard-section__table thead th:nth-child(3),
+.employee-dashboard-section__table tbody td:nth-child(3) {
+  width: 11%;
+  text-align: center;
+}
+
+.employee-dashboard-section__table thead th:nth-child(4),
+.employee-dashboard-section__table tbody td:nth-child(4) {
+  width: 9%;
+  text-align: center;
+}
+
+.employee-dashboard-section__table thead th:nth-child(5),
+.employee-dashboard-section__table tbody td:nth-child(5) {
+  width: 12%;
+  text-align: center;
+}
+
+.employee-dashboard-section__table thead th:nth-child(6),
+.employee-dashboard-section__table tbody td:nth-child(6) {
+  width: 13%;
+  text-align: center;
+}
+
+.employee-dashboard-section__table thead th:nth-child(7),
+.employee-dashboard-section__table tbody td:nth-child(7) {
+  width: 13%;
+  text-align: center;
+}
+
+.employee-dashboard-section__table thead th:nth-child(8),
+.employee-dashboard-section__table tbody td:nth-child(8) {
+  width: 10%;
+  text-align: center;
+}
+
 .employee-dashboard-section__task-cell {
   display: flex;
   flex-direction: column;
@@ -372,32 +416,23 @@
   color: #334155;
 }
 
-.employee-dashboard-section__badge--low {
+.employee-dashboard-section__badge--low,
+.employee-dashboard-section__badge--simple {
   color: #1d4ed8;
 }
 
-.employee-dashboard-section__badge--medium {
+.employee-dashboard-section__badge--medium,
+.employee-dashboard-section__badge--medium-complexity {
   color: #ff5900;
 }
 
-.employee-dashboard-section__badge--high {
+.employee-dashboard-section__badge--high,
+.employee-dashboard-section__badge--complex {
   color: #eb1b1b;
 }
 
 .employee-dashboard-section__badge--critical {
   color: #991b1b;
-}
-
-.employee-dashboard-section__badge--simple {
-  color: #1d4ed8;
-}
-
-.employee-dashboard-section__badge--medium-complexity {
-  color: #ff5900;
-}
-
-.employee-dashboard-section__badge--complex {
-  color: #eb1b1b;
 }
 
 .employee-dashboard-section__status-inline {
@@ -543,111 +578,6 @@
   text-align: center;
 }
 
-.employee-dashboard-section__table thead th:nth-child(1),
-.employee-dashboard-section__table tbody td:nth-child(1) {
-  width: 24%;
-}
-
-.employee-dashboard-section__table thead th:nth-child(2),
-.employee-dashboard-section__table tbody td:nth-child(2) {
-  width: 10%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(3),
-.employee-dashboard-section__table tbody td:nth-child(3) {
-  width: 12%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(4),
-.employee-dashboard-section__table tbody td:nth-child(4) {
-  width: 10%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(5),
-.employee-dashboard-section__table tbody td:nth-child(5) {
-  width: 12%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(6),
-.employee-dashboard-section__table tbody td:nth-child(6) {
-  width: 12%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(7),
-.employee-dashboard-section__table tbody td:nth-child(7) {
-  width: 20%;
-  text-align: center;
-}
-
-@media (max-width: 1280px) {
-  .employee-dashboard-section__top-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .employee-dashboard-section__summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1024px) {
-  .employee-dashboard-section__summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .employee-dashboard-section__hero-content h3 {
-    font-size: 1.8rem;
-  }
-
-  .employee-dashboard-section__hero-count {
-    font-size: 1.08rem;
-  }
-}
-
-@media (max-width: 760px) {
-  .employee-dashboard-section {
-    gap: 14px;
-  }
-
-  .employee-dashboard-section__summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .employee-dashboard-section__hero {
-    min-height: 164px;
-  }
-
-  .employee-dashboard-section__hero-content {
-    padding: 16px 18px;
-  }
-
-  .employee-dashboard-section__hero-content h3 {
-    font-size: 1.55rem;
-  }
-
-  .employee-dashboard-section__hero-count {
-    font-size: 1rem;
-  }
-
-  .employee-dashboard-section__tabs {
-    margin-left: 0;
-    padding-right: 0;
-    gap: 14px;
-  }
-
-  .employee-dashboard-section__tab-group {
-    gap: 9px;
-  }
-
-  .employee-dashboard-section__table {
-    min-width: 980px;
-  }
-}
-
 /* Floating unassigned task message */
 .employee-dashboard-section__unassigned-message {
   position: fixed;
@@ -737,86 +667,90 @@
   transform: translateY(-1px);
 }
 
-@media (max-width: 760px) {
-  .employee-dashboard-section__unassigned-message {
-    top: 78px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    grid-template-columns: 38px minmax(0, 1fr) auto;
-    align-items: flex-start;
-    padding: 12px;
-  }
-
-  .employee-dashboard-section__unassigned-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    font-size: 1.12rem;
-  }
-
-  .employee-dashboard-section__unassigned-copy p {
-    font-size: 0.88rem;
-  }
-}
-
-/* Employee dashboard date range card, copied to match the Team Leader dashboard range picker style */
+/* Date range picker */
 .employee-dashboard-section__range-card {
   position: relative;
   overflow: visible;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+  align-self: start;
+  gap: 0;
+  margin-top: -4px;
+}
+
+.employee-dashboard-section__range-card .employee-dashboard-section__summary-icon {
+  display: none;
 }
 
 .employee-dashboard-section__range-menu {
   position: relative;
+  z-index: 30;
+  width: auto;
   min-width: 0;
-  width: 100%;
+  flex: 0 0 auto;
+}
+
+.employee-dashboard-section__range-menu small {
+  display: none;
 }
 
 .employee-dashboard-section__range-btn {
-  width: 100%;
-  min-height: 34px;
-  padding: 0;
-  border: none;
-  background: transparent;
+  width: auto;
+  max-width: 220px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
   color: #1e293b;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
-  font-size: 0.96rem;
+  font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;
   text-align: left;
+  box-shadow: none;
+}
+
+.employee-dashboard-section__range-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1e293b;
+  transform: none;
 }
 
 .employee-dashboard-section__range-btn span {
-  display: block;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .employee-dashboard-section__range-btn svg {
-  color: #475569;
   flex-shrink: 0;
-}
-
-.employee-dashboard-section__range-btn:hover {
-  color: #1d4ed8;
-}
-
-.employee-dashboard-section__range-menu small {
-  display: block;
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 0.84rem;
-  line-height: 1.3;
+  margin-left: 0;
+  color: currentColor;
 }
 
 .employee-dashboard-section__range-dropdown {
   position: absolute;
-  top: calc(100% + 14px);
+  top: calc(100% + 8px);
   right: 0;
   width: 332px;
   background: #f8fafc;
@@ -825,10 +759,9 @@
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
   padding: 12px;
   z-index: 40;
-  max-height: min(calc(100vh - 120px), 760px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
 }
 
 .employee-dashboard-section__range-tabs {
@@ -894,6 +827,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow: visible;
 }
 
 .employee-dashboard-section__custom-range-header {
@@ -990,7 +924,8 @@
   border: 1px solid #dbe7f5;
   border-radius: 14px;
   background: #ffffff;
-  padding: 8px;
+  padding: 6px;
+  overflow: visible;
 }
 
 .employee-dashboard-section__day-picker {
@@ -998,7 +933,7 @@
 }
 
 .employee-dashboard-section__day-picker .rdp {
-  --rdp-cell-size: 34px;
+  --rdp-cell-size: 31px;
   --rdp-accent-color: #2563eb;
   --rdp-background-color: #eff6ff;
   margin: 0;
@@ -1013,7 +948,7 @@
 }
 
 .employee-dashboard-section__day-picker .rdp-caption {
-  padding: 0 2px 6px;
+  padding: 0 2px 4px;
 }
 
 .employee-dashboard-section__day-picker .rdp-caption_label {
@@ -1036,11 +971,11 @@
 }
 
 .employee-dashboard-section__day-picker .rdp-day_button {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 10px;
   color: #334155 !important;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 700;
   border: none !important;
   outline: none !important;
@@ -1110,16 +1045,16 @@
 }
 
 .employee-dashboard-section__apply-btn-wrap {
-  position: sticky;
-  bottom: 0;
-  margin-top: 2px;
-  padding: 8px 0 0;
-  background: linear-gradient(to bottom, rgba(248, 250, 252, 0), #f8fafc 22%, #f8fafc 100%);
+  position: static;
+  bottom: auto;
+  margin-top: 8px;
+  padding-top: 0;
+  background: transparent;
 }
 
 .employee-dashboard-section__apply-btn {
   width: 100%;
-  min-height: 44px;
+  min-height: 40px;
   border: none;
   border-radius: 12px;
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
@@ -1139,6 +1074,108 @@
   box-shadow: 0 14px 24px rgba(37, 99, 235, 0.24);
 }
 
+@media (max-width: 1280px) {
+  .employee-dashboard-section__top-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-dashboard-section__summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .employee-dashboard-section__range-card {
+    margin-top: 0;
+    justify-self: stretch;
+    justify-content: flex-start;
+  }
+
+  .employee-dashboard-section__range-menu,
+  .employee-dashboard-section__range-btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .employee-dashboard-section__range-dropdown {
+    left: 0;
+    right: auto;
+  }
+}
+
+@media (max-width: 1024px) {
+  .employee-dashboard-section__summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-dashboard-section__hero-content h3 {
+    font-size: 1.8rem;
+  }
+
+  .employee-dashboard-section__hero-count {
+    font-size: 1.08rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .employee-dashboard-section {
+    gap: 14px;
+  }
+
+  .employee-dashboard-section__summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-dashboard-section__hero {
+    min-height: 164px;
+  }
+
+  .employee-dashboard-section__hero-content {
+    padding: 16px 18px;
+  }
+
+  .employee-dashboard-section__hero-content h3 {
+    font-size: 1.55rem;
+  }
+
+  .employee-dashboard-section__hero-count {
+    font-size: 1rem;
+  }
+
+  .employee-dashboard-section__tabs {
+    margin-left: 0;
+    padding-right: 0;
+    gap: 14px;
+  }
+
+  .employee-dashboard-section__tab-group {
+    gap: 9px;
+  }
+
+  .employee-dashboard-section__table {
+    min-width: 980px;
+  }
+
+  .employee-dashboard-section__unassigned-message {
+    top: 78px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .employee-dashboard-section__unassigned-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    font-size: 1.12rem;
+  }
+
+  .employee-dashboard-section__unassigned-copy p {
+    font-size: 0.88rem;
+  }
+}
+
 @media (max-width: 560px) {
   .employee-dashboard-section__month-picker-row {
     grid-template-columns: 1fr;
@@ -1146,347 +1183,5 @@
 
   .employee-dashboard-section__range-dropdown {
     width: min(100vw - 32px, 320px);
-  }
-}
-
-/* Final employee dashboard range fixes */
-.employee-dashboard-section__range-btn {
-  justify-content: flex-start;
-  gap: 6px;
-  min-height: 30px;
-}
-
-.employee-dashboard-section__range-btn svg {
-  margin-left: 2px;
-}
-
-.employee-dashboard-section__range-menu small {
-  display: none;
-}
-
-.employee-dashboard-section__range-dropdown {
-  top: calc(100% + 8px);
-  max-height: min(calc(100vh - 286px), 610px);
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.employee-dashboard-section__calendar-shell {
-  padding: 6px;
-}
-
-.employee-dashboard-section__day-picker .rdp {
-  --rdp-cell-size: 31px;
-}
-
-.employee-dashboard-section__day-picker .rdp-day_button {
-  width: 28px;
-  height: 28px;
-  font-size: 0.8rem;
-}
-
-.employee-dashboard-section__day-picker .rdp-caption {
-  padding: 0 2px 4px;
-}
-
-.employee-dashboard-section__apply-btn-wrap {
-  padding-top: 6px;
-}
-
-.employee-dashboard-section__apply-btn {
-  min-height: 40px;
-}
-
-/* Today should use task date-span overlap, while the date range card stays compact */
-.employee-dashboard-section__range-card {
-  width: 260px;
-  max-width: 100%;
-  justify-self: end;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__summary-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 15px;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-menu {
-  width: auto;
-  flex: 1;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
-  width: auto;
-  max-width: 170px;
-}
-
-@media (max-width: 1280px) {
-  .employee-dashboard-section__range-card {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  .employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
-    max-width: none;
-  }
-}
-
-/* Date range card without icon, compact like the Team Leader range control */
-.employee-dashboard-section__range-card {
-  width: 178px;
-  min-width: 178px;
-  max-width: 178px;
-  height: 100px;
-  min-height: 100px;
-  padding: 16px 14px;
-  justify-self: end;
-  justify-content: center;
-  gap: 0;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__summary-icon {
-  display: none;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-menu {
-  width: 100%;
-  flex: 0 0 auto;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
-  width: 100%;
-  max-width: none;
-  min-height: 42px;
-  padding: 0 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  background: #f8fafc;
-  color: #1e293b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 800;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #1d4ed8;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn span {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn svg {
-  margin-left: 0;
-  flex-shrink: 0;
-}
-
-/* Add Start Date column before Due Date */
-.employee-dashboard-section__table {
-  min-width: 1260px;
-}
-
-.employee-dashboard-section__table thead th:nth-child(1),
-.employee-dashboard-section__table tbody td:nth-child(1) {
-  width: 22%;
-}
-
-.employee-dashboard-section__table thead th:nth-child(2),
-.employee-dashboard-section__table tbody td:nth-child(2) {
-  width: 10%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(3),
-.employee-dashboard-section__table tbody td:nth-child(3) {
-  width: 11%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(4),
-.employee-dashboard-section__table tbody td:nth-child(4) {
-  width: 9%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(5),
-.employee-dashboard-section__table tbody td:nth-child(5) {
-  width: 12%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(6),
-.employee-dashboard-section__table tbody td:nth-child(6) {
-  width: 13%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(7),
-.employee-dashboard-section__table tbody td:nth-child(7) {
-  width: 13%;
-  text-align: center;
-}
-
-.employee-dashboard-section__table thead th:nth-child(8),
-.employee-dashboard-section__table tbody td:nth-child(8) {
-  width: 10%;
-  text-align: center;
-}
-
-@media (max-width: 1280px) {
-  .employee-dashboard-section__range-card {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    justify-self: stretch;
-  }
-
-  .employee-dashboard-section__range-card .employee-dashboard-section__range-btn span {
-    max-width: none;
-  }
-}
-
-/* Final override: remove the outer white date-range summary container and keep only the compact range button */
-.employee-dashboard-section__range-card {
-  position: relative;
-  overflow: visible;
-  width: auto;
-  min-width: 0;
-  max-width: none;
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  justify-self: end;
-  align-self: center;
-  gap: 0;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__summary-icon {
-  display: none;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-menu {
-  width: auto;
-  min-width: 0;
-  flex: 0 0 auto;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
-  width: auto;
-  max-width: 220px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  background: #f8fafc;
-  color: #1e293b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 800;
-  box-shadow: none;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #1d4ed8;
-  transform: none;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn span {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-btn svg {
-  flex-shrink: 0;
-  margin-left: 0;
-  color: currentColor;
-}
-
-@media (max-width: 1280px) {
-  .employee-dashboard-section__range-card {
-    justify-self: stretch;
-    justify-content: flex-start;
-  }
-
-  .employee-dashboard-section__range-card .employee-dashboard-section__range-menu,
-  .employee-dashboard-section__range-card .employee-dashboard-section__range-btn {
-    width: 100%;
-    max-width: none;
-  }
-}
-
-/* Final adjustment: move the date range control higher and remove internal scroll from the custom calendar dropdown */
-.employee-dashboard-section__range-card {
-  align-self: start;
-  margin-top: -4px;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-menu {
-  position: relative;
-  z-index: 30;
-}
-
-.employee-dashboard-section__range-dropdown {
-  max-height: none;
-  overflow: visible;
-  overscroll-behavior: auto;
-}
-
-.employee-dashboard-section__range-card .employee-dashboard-section__range-dropdown {
-  top: calc(100% + 8px);
-  right: 0;
-  max-height: none;
-  overflow: visible;
-}
-
-.employee-dashboard-section__custom-range {
-  overflow: visible;
-}
-
-.employee-dashboard-section__calendar-shell {
-  overflow: visible;
-}
-
-.employee-dashboard-section__apply-btn-wrap {
-  position: static;
-  bottom: auto;
-  background: transparent;
-  margin-top: 8px;
-  padding-top: 0;
-}
-
-@media (max-width: 1280px) {
-  .employee-dashboard-section__range-card {
-    margin-top: 0;
-  }
-
-  .employee-dashboard-section__range-card .employee-dashboard-section__range-dropdown {
-    left: 0;
-    right: auto;
   }
 }
