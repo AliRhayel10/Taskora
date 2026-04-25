@@ -171,9 +171,8 @@ export default function AppTopbar({
       <div className="admin-topbar__right">
         {showSearch && (
           <div
-            className={`admin-topbar__search-shell ${
-              isSearchOpen ? "admin-topbar__search-shell--open" : ""
-            }`}
+            className={`admin-topbar__search-shell ${isSearchOpen ? "admin-topbar__search-shell--open" : ""
+              }`}
           >
             <button
               type="button"
@@ -185,9 +184,8 @@ export default function AppTopbar({
             </button>
 
             <div
-              className={`admin-topbar__search ${
-                isSearchOpen ? "admin-topbar__search--open" : ""
-              }`}
+              className={`admin-topbar__search ${isSearchOpen ? "admin-topbar__search--open" : ""
+                }`}
             >
               <FiSearch className="admin-topbar__search-icon" />
               <input
@@ -254,33 +252,32 @@ export default function AppTopbar({
             </span>
 
             <FiChevronDown
-              className={`admin-topbar__profile-chevron ${
-                isProfileMenuOpen ? "admin-topbar__profile-chevron--open" : ""
-              }`}
+              className={`admin-topbar__profile-chevron ${isProfileMenuOpen ? "admin-topbar__profile-chevron--open" : ""
+                }`}
             />
           </button>
 
           {isProfileMenuOpen && (
             <div className="admin-topbar__dropdown">
-<button
-  type="button"
-  className="admin-topbar__dropdown-item"
-  onClick={() => handleMenuAction(onOpenProfile)}
->
-  <FiUser />
-  <span>Profile</span>
-</button>
+              <button
+                type="button"
+                className="admin-topbar__dropdown-item"
+                onClick={() => handleMenuAction(onOpenProfile)}
+              >
+                <FiUser />
+                <span>Profile</span>
+              </button>
 
-<button
-  type="button"
-  className="admin-topbar__dropdown-item"
-  onClick={() => handleMenuAction(onOpenSettings)}
->
-  <FiSettings />
-  <span>Settings</span>
-</button>
+              <button
+                type="button"
+                className="admin-topbar__dropdown-item"
+                onClick={() => handleMenuAction(onOpenSettings)}
+              >
+                <FiSettings />
+                <span>Settings</span>
+              </button>
 
-<div className="admin-topbar__dropdown-divider"></div>
+              <div className="admin-topbar__dropdown-divider"></div>
 
               <button
                 type="button"
