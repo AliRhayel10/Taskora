@@ -1146,3 +1146,138 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* This Month / Custom range picker and compact task activity filters */
+.dashboard-section__range-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-section__panel-header--activity {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.dashboard-section__activity-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.dashboard-section__activity-filter-trigger {
+  position: relative;
+  width: fit-content;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 10px 0 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 14px;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+}
+
+.dashboard-section__activity-filter-trigger span {
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dashboard-section__activity-filter-trigger svg {
+  color: #475569;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.dashboard-section__activity-filter-trigger select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dashboard-section__tasks-completed-toolbar,
+.dashboard-section__tasks-completed-label-group,
+.dashboard-section__tasks-completed-filters {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .dashboard-section__panel-header--activity {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-section__activity-filters {
+    justify-content: flex-start;
+  }
+}
+
+/* Keep the Tasks Activity panel aligned with the Task Summary panel without changing the chart SVG size */
+.dashboard-section__content-grid {
+  align-items: stretch;
+}
+
+.dashboard-section__task-summary-panel,
+.dashboard-section__tasks-completed-panel {
+  height: 100%;
+}
+
+.dashboard-section__tasks-completed-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-section__tasks-chart-wrap {
+  flex: 1 1 auto;
+  align-items: center;
+}
+
+.dashboard-section__tasks-chart {
+  height: 228px;
+  min-height: 228px;
+}
+
+/* Keep selected calendar days rounded like the Team Leader picker */
+.dashboard-section__day-picker .rdp-selected,
+.dashboard-section__day-picker .rdp-range_start,
+.dashboard-section__day-picker .rdp-range_end,
+.dashboard-section__day-picker .rdp-range_middle,
+.dashboard-section__day-picker .rdp-day_selected,
+.dashboard-section__day-picker .rdp-day_range_start,
+.dashboard-section__day-picker .rdp-day_range_end,
+.dashboard-section__day-picker .rdp-day_range_middle {
+  background: transparent !important;
+  border-radius: 10px !important;
+}
+
+.dashboard-section__day-picker .rdp-selected .rdp-day_button,
+.dashboard-section__day-picker .rdp-range_start .rdp-day_button,
+.dashboard-section__day-picker .rdp-range_end .rdp-day_button,
+.dashboard-section__day-picker .rdp-day_selected .rdp-day_button,
+.dashboard-section__day-picker .rdp-day_range_start .rdp-day_button,
+.dashboard-section__day-picker .rdp-day_range_end .rdp-day_button {
+  border-radius: 10px !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.dashboard-section__day-picker .rdp-range_middle .rdp-day_button,
+.dashboard-section__day-picker .rdp-day_range_middle .rdp-day_button {
+  border-radius: 10px !important;
+  background: #e0e7ff !important;
+  color: #334155 !important;
+}

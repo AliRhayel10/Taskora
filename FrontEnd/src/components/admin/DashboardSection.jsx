@@ -623,7 +623,7 @@ function loadRangeState() {
 
     if (!saved) {
       return {
-        selectedPreset: "thisWeek",
+        selectedPreset: "thisMonth",
         customRange: { from: null, to: null },
       };
     }
@@ -631,9 +631,9 @@ function loadRangeState() {
     const parsed = JSON.parse(saved);
 
     const selectedPreset =
-      parsed?.selectedPreset === "nextWeek"
-        ? "thisWeek"
-        : parsed?.selectedPreset || "thisWeek";
+      ["today", "thisWeek", "nextWeek"].includes(parsed?.selectedPreset)
+        ? "thisMonth"
+        : parsed?.selectedPreset || "thisMonth";
 
     return {
       selectedPreset,
@@ -644,7 +644,7 @@ function loadRangeState() {
     };
   } catch {
     return {
-      selectedPreset: "thisWeek",
+      selectedPreset: "thisMonth",
       customRange: { from: null, to: null },
     };
   }
@@ -665,8 +665,6 @@ function saveRangeState(selectedPreset, customRange) {
 
 function getPresetRange(preset, customRange) {
   switch (preset) {
-    case "today":
-      return getTodayRange();
     case "custom": {
       if (
         customRange?.from instanceof Date &&
@@ -682,23 +680,21 @@ function getPresetRange(preset, customRange) {
         }
       }
 
-      return getWeekRange(0);
+      return getMonthRange(new Date());
     }
-    case "thisWeek":
+    case "thisMonth":
     default:
-      return getWeekRange(0);
+      return getMonthRange(new Date());
   }
 }
 
 function getRangeLabel(preset) {
   switch (preset) {
-    case "today":
-      return "Today";
     case "custom":
       return "Custom";
-    case "thisWeek":
+    case "thisMonth":
     default:
-      return "This Week";
+      return "This Month";
   }
 }
 
@@ -745,7 +741,53 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
     return itemTime >= startTime && itemTime <= end.getTime();
   });
 
-  if (totalDays <= 31) {
+  const isWholeMonthRange =
+    start.getDate() === 1 &&
+    start.getMonth() === end.getMonth() &&
+    start.getFullYear() === end.getFullYear() &&
+    end.getDate() === endOfMonth(start).getDate();
+
+  if (isWholeMonthRange) {
+    const lastDayOfMonth = end.getDate();
+    const milestoneDays = Array.from(
+      new Set([1, 5, 10, 15, 20, 25, lastDayOfMonth].filter((day) => day <= lastDayOfMonth))
+    );
+
+    const buckets = milestoneDays.map((day, index) => {
+      const bucketStart = new Date(start.getFullYear(), start.getMonth(), day);
+      const nextDay = milestoneDays[index + 1];
+      const bucketEnd = nextDay
+        ? new Date(start.getFullYear(), start.getMonth(), nextDay - 1)
+        : end;
+
+      return {
+        key: `${toDateKey(bucketStart)}-${toDateKey(bucketEnd)}`,
+        start: bucketStart,
+        end: bucketEnd,
+        date: bucketStart,
+        label: formatShortDate(bucketStart),
+        value: 0,
+      };
+    });
+
+    filteredTasks.forEach((item) => {
+      const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
+      const bucket = buckets.find((entry) => itemDate >= startOfDay(entry.start) && itemDate <= endOfDay(entry.end));
+
+      if (bucket) {
+        bucket.value += 1;
+      }
+    });
+
+    return {
+      start,
+      end,
+      series: buckets,
+      totalCount: filteredTasks.length,
+    };
+  }
+
+  if (totalDays <= 14) {
     const bucketMap = new Map();
 
     for (let time = startTime; time <= startOfDay(end).getTime(); time += dayMs) {
@@ -1238,17 +1280,11 @@ export default function DashboardSection({ searchValue = "" }) {
       return;
     }
 
-    let nextRange = customRange;
+    const nextRange = getMonthRange(new Date());
 
-    if (preset === "today") {
-      nextRange = getTodayRange();
-    } else if (preset === "thisWeek") {
-      nextRange = getWeekRange(0);
-    }
-
-    setDraftPreset(preset);
+    setDraftPreset("thisMonth");
     setDraftCustomRange({ from: null, to: null });
-    setSelectedPreset(preset);
+    setSelectedPreset("thisMonth");
     setCustomRange({ from: nextRange.start, to: nextRange.end });
     setIsRangeMenuOpen(false);
   };
@@ -1591,6 +1627,14 @@ export default function DashboardSection({ searchValue = "" }) {
           return priorityValue === selectedPriority;
         })?.label || "Priority";
 
+  const selectedTeamLabel =
+    selectedTeam === "all"
+      ? "Team"
+      : dashboardData.teamOptions.find((team) => {
+          const teamValue = team.id || normalizeStatus(team.label);
+          return teamValue === selectedTeam;
+        })?.label || "Team";
+
   const statCards = [
     {
       key: "users",
@@ -1658,25 +1702,13 @@ export default function DashboardSection({ searchValue = "" }) {
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={draftPreset === "today"}
+                  aria-selected={draftPreset === "thisMonth"}
                   className={`dashboard-section__range-option ${
-                    draftPreset === "today" ? "dashboard-section__range-option--active" : ""
+                    draftPreset === "thisMonth" ? "dashboard-section__range-option--active" : ""
                   }`}
-                  onClick={() => handleSelectPreset("today")}
+                  onClick={() => handleSelectPreset("thisMonth")}
                 >
-                  Today
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftPreset === "thisWeek"}
-                  className={`dashboard-section__range-option ${
-                    draftPreset === "thisWeek" ? "dashboard-section__range-option--active" : ""
-                  }`}
-                  onClick={() => handleSelectPreset("thisWeek")}
-                >
-                  This Week
+                  This Month
                 </button>
 
                 <button
@@ -1877,29 +1909,34 @@ export default function DashboardSection({ searchValue = "" }) {
               </article>
 
               <article className="dashboard-section__panel dashboard-section__tasks-completed-panel">
-                <div className="dashboard-section__panel-header dashboard-section__panel-header--stacked">
+                <div className="dashboard-section__panel-header dashboard-section__panel-header--activity">
                   <div>
                     <h3>Tasks Activity</h3>
                     <p>Number of Tasks</p>
                   </div>
-                  <button
-                    type="button"
-                    className="dashboard-section__summary-menu"
-                    aria-label="Tasks activity options"
-                  >
-                    <FiMoreHorizontal />
-                  </button>
-                </div>
 
-                <div className="dashboard-section__tasks-completed-toolbar">
-                  <div className="dashboard-section__tasks-completed-label-group">
-                    <label className="dashboard-section__priority-trigger">
-                      <span className="dashboard-section__priority-trigger-text">
-                        {selectedPriorityLabel}
-                      </span>
-                      <FiChevronDown className="dashboard-section__priority-trigger-icon" />
+                  <div className="dashboard-section__activity-filters">
+                    <label className="dashboard-section__activity-filter-trigger">
+                      <span>{selectedTeamLabel}</span>
+                      <FiChevronDown />
                       <select
-                        className="dashboard-section__priority-native-select"
+                        value={selectedTeam}
+                        onChange={(event) => setSelectedTeam(event.target.value)}
+                        aria-label="Filter tasks by team"
+                      >
+                        <option value="all">Team</option>
+                        {dashboardData.teamOptions.map((team) => (
+                          <option key={team.id || team.label} value={team.id || normalizeStatus(team.label)}>
+                            {team.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="dashboard-section__activity-filter-trigger">
+                      <span>{selectedPriorityLabel}</span>
+                      <FiChevronDown />
+                      <select
                         value={selectedPriority}
                         onChange={(event) => setSelectedPriority(event.target.value)}
                         aria-label="Filter tasks by priority"
@@ -1914,25 +1951,6 @@ export default function DashboardSection({ searchValue = "" }) {
                           );
                         })}
                       </select>
-                    </label>
-                  </div>
-
-                  <div className="dashboard-section__tasks-completed-filters">
-
-                    <label className="dashboard-section__filter-select">
-                      <select
-                        value={selectedTeam}
-                        onChange={(event) => setSelectedTeam(event.target.value)}
-                        aria-label="Filter tasks by team"
-                      >
-                        <option value="all">Team: All</option>
-                        {dashboardData.teamOptions.map((team) => (
-                          <option key={team.id || team.label} value={team.id || normalizeStatus(team.label)}>
-                            {team.label}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown />
                     </label>
                   </div>
                 </div>
