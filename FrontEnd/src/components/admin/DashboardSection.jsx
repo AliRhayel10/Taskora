@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiActivity,
   FiAlertCircle,
+  FiCalendar,
   FiCheckSquare,
   FiChevronDown,
   FiLayers,
@@ -9,9 +10,13 @@ import {
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi";
+import { DayPicker } from "react-day-picker";
+import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
+import "react-day-picker/dist/style.css";
 import "../../assets/styles/admin/dashboard-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
+const RANGE_STORAGE_KEY = "admin_dashboard_range";
 
 const STATUS_COLOR_MAP = {
   new: "#9ca3af",          // grey
@@ -29,11 +34,6 @@ const FALLBACK_STATUS_COLORS = [
   "#3b82f6", // blue
   "#22c55e", // green
   "#ef4444", // red
-];
-
-const CHART_PERIOD_OPTIONS = [
-  { value: "this-week", label: "This Week" },
-  { value: "this-month", label: "This Month" },
 ];
 
 function getStoredUser() {
@@ -489,6 +489,219 @@ function addDays(date, amount) {
   return value;
 }
 
+function endOfDay(date) {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+}
+
+function getTodayRange() {
+  const today = new Date();
+  return {
+    start: startOfDay(today),
+    end: endOfDay(today),
+  };
+}
+
+function getWeekRange(offsetWeeks = 0) {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const start = new Date(now);
+  start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
+
+  const weekStart = startOfDay(start);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  return {
+    start: weekStart,
+    end: endOfDay(weekEnd),
+  };
+}
+
+function getMonthRange(monthDate) {
+  const base = startOfMonth(monthDate || new Date());
+  return {
+    start: startOfDay(base),
+    end: endOfDay(endOfMonth(base)),
+  };
+}
+
+function parseApiDate(dateValue) {
+  if (!dateValue) return null;
+
+  const raw = String(dateValue).trim();
+  if (!raw) return null;
+
+  const dateOnly = raw.includes("T") ? raw.split("T")[0] : raw;
+  const parsed = new Date(`${dateOnly}T00:00:00`);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function doesTaskOverlapRange(task, start, end) {
+  const taskStart = parseApiDate(task?.startDate ?? task?.StartDate);
+  const taskDue = parseApiDate(task?.dueDate ?? task?.DueDate);
+  const rangeStart = startOfDay(start);
+  const rangeEnd = endOfDay(end);
+
+  if (!taskStart && !taskDue) return true;
+
+  if (taskStart && taskDue) {
+    return startOfDay(taskStart) <= rangeEnd && endOfDay(taskDue) >= rangeStart;
+  }
+
+  if (taskStart) {
+    const value = startOfDay(taskStart);
+    return value >= rangeStart && value <= rangeEnd;
+  }
+
+  if (taskDue) {
+    const value = startOfDay(taskDue);
+    return value >= rangeStart && value <= rangeEnd;
+  }
+
+  return true;
+}
+
+function isFullMonthRange(range) {
+  if (!(range?.from instanceof Date) || !(range?.to instanceof Date)) return false;
+
+  const monthStart = startOfMonth(range.from);
+  const monthEnd = endOfMonth(range.from);
+
+  return (
+    startOfDay(range.from).getTime() === startOfDay(monthStart).getTime() &&
+    endOfDay(range.to).getTime() === endOfDay(monthEnd).getTime() &&
+    range.from.getMonth() === range.to.getMonth() &&
+    range.from.getFullYear() === range.to.getFullYear()
+  );
+}
+
+function formatMonthYearText(date) {
+  return format(date, "MMMM yyyy");
+}
+
+function formatDateText(date) {
+  return format(date, "dd/MM/yyyy");
+}
+
+function getInitialCalendarMonth(selectedPreset, customRange) {
+  if (
+    selectedPreset === "custom" &&
+    customRange?.from instanceof Date &&
+    !Number.isNaN(customRange.from.getTime())
+  ) {
+    return startOfMonth(customRange.from);
+  }
+
+  return startOfMonth(new Date());
+}
+
+function buildYearOptions(tasks) {
+  const currentYear = new Date().getFullYear();
+  const candidateYears = [];
+
+  for (const task of Array.isArray(tasks) ? tasks : []) {
+    const start = parseApiDate(task?.startDate ?? task?.StartDate);
+    const due = parseApiDate(task?.dueDate ?? task?.DueDate);
+    if (start) candidateYears.push(start.getFullYear());
+    if (due) candidateYears.push(due.getFullYear());
+  }
+
+  const earliestDataYear = candidateYears.length ? Math.min(...candidateYears) : currentYear - 5;
+  const startYear = Math.min(earliestDataYear, currentYear);
+  const endYear = currentYear + 5;
+  return Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index);
+}
+
+function loadRangeState() {
+  try {
+    const saved = localStorage.getItem(RANGE_STORAGE_KEY);
+
+    if (!saved) {
+      return {
+        selectedPreset: "thisWeek",
+        customRange: { from: null, to: null },
+      };
+    }
+
+    const parsed = JSON.parse(saved);
+
+    const selectedPreset =
+      parsed?.selectedPreset === "nextWeek"
+        ? "thisWeek"
+        : parsed?.selectedPreset || "thisWeek";
+
+    return {
+      selectedPreset,
+      customRange: {
+        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
+        to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
+      },
+    };
+  } catch {
+    return {
+      selectedPreset: "thisWeek",
+      customRange: { from: null, to: null },
+    };
+  }
+}
+
+function saveRangeState(selectedPreset, customRange) {
+  localStorage.setItem(
+    RANGE_STORAGE_KEY,
+    JSON.stringify({
+      selectedPreset,
+      customRange: {
+        from: customRange?.from ? customRange.from.toISOString() : null,
+        to: customRange?.to ? customRange.to.toISOString() : null,
+      },
+    })
+  );
+}
+
+function getPresetRange(preset, customRange) {
+  switch (preset) {
+    case "today":
+      return getTodayRange();
+    case "custom": {
+      if (
+        customRange?.from instanceof Date &&
+        !Number.isNaN(customRange.from.getTime()) &&
+        customRange?.to instanceof Date &&
+        !Number.isNaN(customRange.to.getTime())
+      ) {
+        const start = startOfDay(customRange.from);
+        const end = endOfDay(customRange.to);
+
+        if (start <= end) {
+          return { start, end };
+        }
+      }
+
+      return getWeekRange(0);
+    }
+    case "thisWeek":
+    default:
+      return getWeekRange(0);
+  }
+}
+
+function getRangeLabel(preset) {
+  switch (preset) {
+    case "today":
+      return "Today";
+    case "custom":
+      return "Custom";
+    case "thisWeek":
+    default:
+      return "This Week";
+  }
+}
+
 function getDateRange(period, tasksWithDates) {
   const today = startOfDay(new Date());
 
@@ -515,6 +728,84 @@ function getDateRange(period, tasksWithDates) {
   return {
     start: startOfDay(sortedDates[0]),
     end: startOfDay(sortedDates[sortedDates.length - 1]),
+  };
+}
+
+
+function buildTasksActivitySeriesByRange(range, tasksWithDates) {
+  const start = startOfDay(range.start);
+  const end = endOfDay(range.end);
+  const startTime = start.getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const totalDays = Math.max(1, Math.round((startOfDay(end).getTime() - startTime) / dayMs) + 1);
+
+  const filteredTasks = tasksWithDates.filter((item) => {
+    const itemDate = item.date instanceof Date ? startOfDay(item.date) : startOfDay(new Date());
+    const itemTime = itemDate.getTime();
+    return itemTime >= startTime && itemTime <= end.getTime();
+  });
+
+  if (totalDays <= 31) {
+    const bucketMap = new Map();
+
+    for (let time = startTime; time <= startOfDay(end).getTime(); time += dayMs) {
+      const bucketDate = new Date(time);
+      bucketMap.set(toDateKey(bucketDate), {
+        key: toDateKey(bucketDate),
+        date: bucketDate,
+        label: formatShortDate(bucketDate),
+        value: 0,
+      });
+    }
+
+    filteredTasks.forEach((item) => {
+      const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
+      const bucketKey = toDateKey(itemDate);
+      if (bucketMap.has(bucketKey)) {
+        bucketMap.get(bucketKey).value += 1;
+      }
+    });
+
+    return {
+      start,
+      end,
+      series: Array.from(bucketMap.values()),
+      totalCount: filteredTasks.length,
+    };
+  }
+
+  const bucketCount = 7;
+  const step = Math.max(1, Math.ceil(totalDays / bucketCount));
+  const buckets = [];
+
+  for (let index = 0; index < bucketCount; index += 1) {
+    const bucketStart = addDays(start, index * step);
+    if (bucketStart > end) break;
+
+    const bucketEnd = index === bucketCount - 1 ? end : addDays(bucketStart, step - 1);
+    buckets.push({
+      key: `${toDateKey(bucketStart)}-${toDateKey(bucketEnd)}`,
+      start: bucketStart,
+      end: bucketEnd > end ? end : bucketEnd,
+      date: bucketStart,
+      label: formatShortDate(bucketStart),
+      value: 0,
+    });
+  }
+
+  filteredTasks.forEach((item) => {
+    const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
+    const bucket = buckets.find((entry) => itemDate >= startOfDay(entry.start) && itemDate <= endOfDay(entry.end));
+    if (bucket) {
+      bucket.value += 1;
+    }
+  });
+
+  return {
+    start,
+    end,
+    series: buckets,
+    totalCount: filteredTasks.length,
   };
 }
 
@@ -825,19 +1116,187 @@ function TasksActivityChart({ dataPoints }) {
 }
 
 export default function DashboardSection({ searchValue = "" }) {
+  const initialRangeState = useMemo(() => loadRangeState(), []);
+
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskStatuses, setTaskStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [selectedPriority, setSelectedPriority] = useState("all");
-  const [selectedPeriod, setSelectedPeriod] = useState("this-week");
   const [selectedTeam, setSelectedTeam] = useState("all");
   const [loading, setLoading] = useState(true);
+
+  const [selectedPreset, setSelectedPreset] = useState(initialRangeState.selectedPreset);
+  const [customRange, setCustomRange] = useState(initialRangeState.customRange);
+  const [draftPreset, setDraftPreset] = useState(initialRangeState.selectedPreset);
+  const [draftCustomRange, setDraftCustomRange] = useState({ from: null, to: null });
+  const [draftCalendarMonth, setDraftCalendarMonth] = useState(
+    getInitialCalendarMonth(initialRangeState.selectedPreset, initialRangeState.customRange)
+  );
+  const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
+
+  const rangeMenuRef = useRef(null);
 
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || currentUser?.CompanyId;
   const normalizedSearch = String(searchValue || "").trim().toLowerCase();
+
+
+  useEffect(() => {
+    saveRangeState(selectedPreset, customRange);
+  }, [selectedPreset, customRange]);
+
+  const syncDraftWithAppliedState = () => {
+    setDraftPreset(selectedPreset);
+
+    if (selectedPreset === "custom") {
+      setDraftCustomRange({
+        from: customRange?.from || null,
+        to: customRange?.to || null,
+      });
+      setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
+    } else {
+      setDraftCustomRange({ from: null, to: null });
+      setDraftCalendarMonth(startOfMonth(new Date()));
+    }
+  };
+
+  const openRangeMenu = () => {
+    syncDraftWithAppliedState();
+    setIsRangeMenuOpen(true);
+  };
+
+  const closeRangeMenu = () => {
+    syncDraftWithAppliedState();
+    setIsRangeMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isRangeMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (rangeMenuRef.current && !rangeMenuRef.current.contains(event.target)) {
+        closeRangeMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isRangeMenuOpen, selectedPreset, customRange]);
+
+  const activeRange = useMemo(
+    () => getPresetRange(selectedPreset, customRange),
+    [selectedPreset, customRange]
+  );
+
+  const rangeLabel = useMemo(() => {
+    if (
+      selectedPreset === "custom" &&
+      customRange?.from instanceof Date &&
+      customRange?.to instanceof Date
+    ) {
+      if (isFullMonthRange(customRange)) {
+        return formatMonthYearText(customRange.from);
+      }
+
+      return `${formatDateText(customRange.from)} - ${formatDateText(customRange.to)}`;
+    }
+
+    return getRangeLabel(selectedPreset);
+  }, [selectedPreset, customRange]);
+
+  const draftRangePreview = useMemo(() => {
+    if (
+      draftCustomRange?.from instanceof Date &&
+      draftCustomRange?.to instanceof Date
+    ) {
+      if (isFullMonthRange(draftCustomRange)) {
+        return formatMonthYearText(draftCustomRange.from);
+      }
+
+      return `${formatDateText(draftCustomRange.from)} - ${formatDateText(draftCustomRange.to)}`;
+    }
+
+    return formatMonthYearText(draftCalendarMonth);
+  }, [draftCalendarMonth, draftCustomRange]);
+
+  const yearOptions = useMemo(() => buildYearOptions(tasks), [tasks]);
+  const selectedMonthIndex = draftCalendarMonth.getMonth();
+  const selectedYearValue = draftCalendarMonth.getFullYear();
+
+  const handleSelectPreset = (preset) => {
+    if (preset === "custom") {
+      setDraftPreset("custom");
+      setDraftCustomRange({ from: null, to: null });
+      setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
+      return;
+    }
+
+    let nextRange = customRange;
+
+    if (preset === "today") {
+      nextRange = getTodayRange();
+    } else if (preset === "thisWeek") {
+      nextRange = getWeekRange(0);
+    }
+
+    setDraftPreset(preset);
+    setDraftCustomRange({ from: null, to: null });
+    setSelectedPreset(preset);
+    setCustomRange({ from: nextRange.start, to: nextRange.end });
+    setIsRangeMenuOpen(false);
+  };
+
+  const handleCustomRangeSelect = (range) => {
+    setDraftPreset("custom");
+    setDraftCustomRange({
+      from: range?.from || null,
+      to: range?.to || null,
+    });
+
+    if (range?.from instanceof Date) {
+      setDraftCalendarMonth(startOfMonth(range.from));
+    }
+  };
+
+  const handleDraftMonthChange = (monthIndex) => {
+    const nextMonth = startOfMonth(setMonth(new Date(draftCalendarMonth), Number(monthIndex)));
+    setDraftCalendarMonth(nextMonth);
+    setDraftPreset("custom");
+    setDraftCustomRange({ from: null, to: null });
+  };
+
+  const handleDraftYearChange = (yearValue) => {
+    const nextMonth = startOfMonth(setYear(new Date(draftCalendarMonth), Number(yearValue)));
+    setDraftCalendarMonth(nextMonth);
+    setDraftPreset("custom");
+    setDraftCustomRange({ from: null, to: null });
+  };
+
+  const handleApplyCustomRange = () => {
+    const monthRange = getMonthRange(draftCalendarMonth);
+
+    const nextRange =
+      draftCustomRange?.from instanceof Date && draftCustomRange?.to instanceof Date
+        ? {
+            from: startOfDay(draftCustomRange.from),
+            to: endOfDay(draftCustomRange.to),
+          }
+        : {
+            from: monthRange.start,
+            to: monthRange.end,
+          };
+
+    setSelectedPreset("custom");
+    setCustomRange(nextRange);
+    setIsRangeMenuOpen(false);
+  };
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -911,7 +1370,8 @@ export default function DashboardSection({ searchValue = "" }) {
 
   const dashboardData = useMemo(() => {
     const activeUsers = users.filter((user) => getUserStatus(user) === "Active");
-    const completedTasks = tasks.filter((task) => isCompletedStatus(getTaskStatus(task)));
+    const rangedTasks = tasks.filter((task) => doesTaskOverlapRange(task, activeRange.start, activeRange.end));
+    const completedTasks = rangedTasks.filter((task) => isCompletedStatus(getTaskStatus(task)));
 
     const orderedStatuses = taskStatuses
       .map((status, index) => ({
@@ -922,7 +1382,7 @@ export default function DashboardSection({ searchValue = "" }) {
       .filter((status) => status.name)
       .sort((a, b) => a.order - b.order);
 
-    const countByStatusId = tasks.reduce((accumulator, task) => {
+    const countByStatusId = rangedTasks.reduce((accumulator, task) => {
       const taskStatusId = getTaskStatusId(task);
       if (!taskStatusId) return accumulator;
       accumulator[taskStatusId] = (accumulator[taskStatusId] || 0) + 1;
@@ -934,7 +1394,7 @@ export default function DashboardSection({ searchValue = "" }) {
       return accumulator;
     }, {});
 
-    const fallbackNameCounts = tasks.reduce((accumulator, task) => {
+    const fallbackNameCounts = rangedTasks.reduce((accumulator, task) => {
       const normalizedName = normalizeStatus(getTaskStatus(task));
       if (!normalizedName) return accumulator;
       accumulator[normalizedName] = (accumulator[normalizedName] || 0) + 1;
@@ -952,11 +1412,11 @@ export default function DashboardSection({ searchValue = "" }) {
             key: `${status.id || normalizedName || "unknown"}-${index}`,
             label: status.name,
             value,
-            percentage: tasks.length > 0 ? Math.round((value / tasks.length) * 100) : 0,
+            percentage: rangedTasks.length > 0 ? Math.round((value / rangedTasks.length) * 100) : 0,
             color: getStatusColor(status.name, index),
           };
         })
-      : Array.from(new Set(tasks.map((task) => getTaskStatus(task)).filter(Boolean))).map(
+      : Array.from(new Set(rangedTasks.map((task) => getTaskStatus(task)).filter(Boolean))).map(
           (statusName, index) => {
             const normalizedName = normalizeStatus(statusName);
             const linkedStatusId = statusNameToId[normalizedName];
@@ -968,7 +1428,7 @@ export default function DashboardSection({ searchValue = "" }) {
               key: `${normalizedName || "unknown"}-${index}`,
               label: statusName,
               value,
-              percentage: tasks.length > 0 ? Math.round((value / tasks.length) * 100) : 0,
+              percentage: rangedTasks.length > 0 ? Math.round((value / rangedTasks.length) * 100) : 0,
               color: getStatusColor(statusName, index),
             };
           }
@@ -984,7 +1444,7 @@ export default function DashboardSection({ searchValue = "" }) {
       .sort((a, b) => a.order - b.order);
 
     const fallbackPriorityMap = new Map();
-    tasks.forEach((task) => {
+    rangedTasks.forEach((task) => {
       const taskPriorityName = getTaskPriorityName(task);
       if (!taskPriorityName) return;
       const normalized = normalizeStatus(taskPriorityName);
@@ -1038,7 +1498,7 @@ export default function DashboardSection({ searchValue = "" }) {
       .filter((team) => team.label);
 
     const fallbackTeamMap = new Map();
-    tasks.forEach((task) => {
+    rangedTasks.forEach((task) => {
       const taskTeamName = getTaskTeamName(task);
       if (!taskTeamName) return;
       const id = getTaskTeamId(task) || normalizeStatus(taskTeamName);
@@ -1054,7 +1514,7 @@ export default function DashboardSection({ searchValue = "" }) {
           order: index,
         }));
 
-    const activityTasks = tasks
+    const activityTasks = rangedTasks
       .map((task) => ({
         task,
         date: getTaskRelevantDate(task) || startOfDay(new Date()),
@@ -1076,7 +1536,7 @@ export default function DashboardSection({ searchValue = "" }) {
       return item.teamId === selectedTeam || normalizeStatus(item.teamName) === selectedTeam;
     });
 
-    const tasksActivityData = buildTasksActivitySeries(selectedPeriod, teamFilteredTasks);
+    const tasksActivityData = buildTasksActivitySeriesByRange(activeRange, teamFilteredTasks);
     const tasksActivitySeries = tasksActivityData.series;
     const activityTaskCount = tasksActivityData.totalCount;
 
@@ -1095,7 +1555,7 @@ export default function DashboardSection({ searchValue = "" }) {
       ...teamOptions.map((team) => team.label),
       String(users.length),
       String(teams.length),
-      String(tasks.length),
+      String(rangedTasks.length),
       String(activeUsers.length),
       String(completedTasks.length),
       String(activityTaskCount),
@@ -1104,16 +1564,16 @@ export default function DashboardSection({ searchValue = "" }) {
       .toLowerCase();
 
     return {
-      hasAnyData: users.length > 0 || teams.length > 0 || tasks.length > 0,
+      hasAnyData: users.length > 0 || teams.length > 0 || rangedTasks.length > 0,
       searchMatches: !normalizedSearch || searchableContent.includes(normalizedSearch),
       stats: {
         users: users.length,
         activeUsers: activeUsers.length,
         teams: teams.length,
-        tasks: tasks.length,
+        tasks: rangedTasks.length,
         completedTasks: completedTasks.length,
         completionRate:
-          tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0,
+          rangedTasks.length > 0 ? Math.round((completedTasks.length / rangedTasks.length) * 100) : 0,
       },
       taskSummary,
       priorityOptions,
@@ -1121,7 +1581,7 @@ export default function DashboardSection({ searchValue = "" }) {
       tasksActivitySeries,
       activityTaskCount,
     };
-  }, [users, teams, tasks, taskStatuses, priorities, selectedPriority, selectedPeriod, selectedTeam, normalizedSearch]);
+  }, [users, teams, tasks, taskStatuses, priorities, selectedPriority, selectedTeam, normalizedSearch, activeRange]);
 
   const selectedPriorityLabel =
     selectedPriority === "all"
@@ -1174,6 +1634,152 @@ export default function DashboardSection({ searchValue = "" }) {
       <div className="dashboard-section__title-row">
         <h2>Dashboard</h2>
         <div className="dashboard-section__title-line"></div>
+      </div>
+
+
+      <div className="dashboard-section__toolbar">
+        <div className="dashboard-section__range-menu" ref={rangeMenuRef}>
+          <button
+            type="button"
+            className="dashboard-section__range-btn"
+            onClick={openRangeMenu}
+          >
+            <span>{rangeLabel}</span>
+            <FiChevronDown />
+          </button>
+
+          {isRangeMenuOpen && (
+            <div className="dashboard-section__range-dropdown">
+              <div
+                className="dashboard-section__range-tabs"
+                role="tablist"
+                aria-label="Date range presets"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === "today"}
+                  className={`dashboard-section__range-option ${
+                    draftPreset === "today" ? "dashboard-section__range-option--active" : ""
+                  }`}
+                  onClick={() => handleSelectPreset("today")}
+                >
+                  Today
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === "thisWeek"}
+                  className={`dashboard-section__range-option ${
+                    draftPreset === "thisWeek" ? "dashboard-section__range-option--active" : ""
+                  }`}
+                  onClick={() => handleSelectPreset("thisWeek")}
+                >
+                  This Week
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === "custom"}
+                  className={`dashboard-section__range-option ${
+                    draftPreset === "custom" ? "dashboard-section__range-option--active" : ""
+                  }`}
+                  onClick={() => handleSelectPreset("custom")}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {draftPreset === "custom" && (
+                <>
+                  <div className="dashboard-section__range-divider"></div>
+
+                  <div className="dashboard-section__custom-range">
+                    <div className="dashboard-section__custom-range-header">
+                      <FiCalendar />
+                      <span>Pick a custom range</span>
+                    </div>
+
+                    <div className="dashboard-section__custom-range-preview">
+                      {draftRangePreview}
+                    </div>
+
+                    <div className="dashboard-section__month-picker-row">
+                      <div className="dashboard-section__month-picker-field">
+                        <label htmlFor="dashboard-month-select">Month</label>
+                        <div className="dashboard-section__month-picker-select-wrap">
+                          <select
+                            id="dashboard-month-select"
+                            className="dashboard-section__month-picker-select"
+                            value={selectedMonthIndex}
+                            onChange={(event) => handleDraftMonthChange(event.target.value)}
+                          >
+                            {Array.from({ length: 12 }, (_, index) => (
+                              <option key={index} value={index}>
+                                {format(new Date(2026, index, 1), "MMMM")}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+
+                      <div className="dashboard-section__month-picker-field">
+                        <label htmlFor="dashboard-year-select">Year</label>
+                        <div className="dashboard-section__month-picker-select-wrap">
+                          <select
+                            id="dashboard-year-select"
+                            className="dashboard-section__month-picker-select"
+                            value={selectedYearValue}
+                            onChange={(event) => handleDraftYearChange(event.target.value)}
+                          >
+                            {yearOptions.map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="dashboard-section__calendar-shell">
+                      <DayPicker
+                        mode="range"
+                        month={draftCalendarMonth}
+                        onMonthChange={(month) => setDraftCalendarMonth(startOfMonth(month))}
+                        selected={draftCustomRange}
+                        onSelect={handleCustomRangeSelect}
+                        showOutsideDays={false}
+                        numberOfMonths={1}
+                        className="dashboard-section__day-picker"
+                        modifiers={{
+                          past: (date) => startOfDay(date) < startOfDay(new Date()),
+                        }}
+                        modifiersClassNames={{
+                          past: "dashboard-section__day--past",
+                        }}
+                      />
+                    </div>
+
+                    <div className="dashboard-section__apply-btn-wrap">
+                      <button
+                        type="button"
+                        className="dashboard-section__apply-btn"
+                        onClick={handleApplyCustomRange}
+                      >
+                        Apply Range
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="dashboard-section__scroll">
@@ -1312,20 +1918,6 @@ export default function DashboardSection({ searchValue = "" }) {
                   </div>
 
                   <div className="dashboard-section__tasks-completed-filters">
-                    <label className="dashboard-section__filter-select">
-                      <select
-                        value={selectedPeriod}
-                        onChange={(event) => setSelectedPeriod(event.target.value)}
-                        aria-label="Filter tasks by period"
-                      >
-                        {CHART_PERIOD_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown />
-                    </label>
 
                     <label className="dashboard-section__filter-select">
                       <select
