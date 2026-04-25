@@ -1629,11 +1629,11 @@ export default function DashboardSection({ searchValue = "" }) {
 
   const selectedTeamLabel =
     selectedTeam === "all"
-      ? "Team"
+      ? "All Teams"
       : dashboardData.teamOptions.find((team) => {
           const teamValue = team.id || normalizeStatus(team.label);
           return teamValue === selectedTeam;
-        })?.label || "Team";
+        })?.label || "All Teams";
 
   const statCards = [
     {
@@ -1924,7 +1924,7 @@ export default function DashboardSection({ searchValue = "" }) {
                         onChange={(event) => setSelectedTeam(event.target.value)}
                         aria-label="Filter tasks by team"
                       >
-                        <option value="all">Team</option>
+                        <option value="all">All Teams</option>
                         {dashboardData.teamOptions.map((team) => (
                           <option key={team.id || team.label} value={team.id || normalizeStatus(team.label)}>
                             {team.label}
