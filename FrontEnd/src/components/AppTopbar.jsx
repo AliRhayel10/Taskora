@@ -20,6 +20,7 @@ function getInitials(name) {
 
   if (!parts.length) return "U";
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+
   return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
@@ -93,6 +94,7 @@ export default function AppTopbar({
   const effectiveUser = useMemo(() => {
     const authUser = parseStoredUser("authUser");
     const storedUser = parseStoredUser("user");
+
     return user || authUser || storedUser || null;
   }, [user]);
 
@@ -101,6 +103,8 @@ export default function AppTopbar({
   const email = getUserEmail(effectiveUser);
   const profileImage = getUserImage(effectiveUser);
   const initials = getInitials(displayName);
+
+  const canOpenSettings = typeof onOpenSettings === "function";
 
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
@@ -138,11 +142,13 @@ export default function AppTopbar({
 
   const handleToggleSearch = () => {
     if (!showSearch) return;
+
     setIsSearchOpen((prev) => !prev);
   };
 
   const handleCloseSearch = () => {
     setIsSearchOpen(false);
+
     if (typeof onSearchChange === "function") {
       onSearchChange("");
     }
@@ -154,6 +160,7 @@ export default function AppTopbar({
 
   const handleMenuAction = (callback) => {
     setIsProfileMenuOpen(false);
+
     if (typeof callback === "function") {
       callback();
     }
@@ -171,8 +178,9 @@ export default function AppTopbar({
       <div className="admin-topbar__right">
         {showSearch && (
           <div
-            className={`admin-topbar__search-shell ${isSearchOpen ? "admin-topbar__search-shell--open" : ""
-              }`}
+            className={`admin-topbar__search-shell ${
+              isSearchOpen ? "admin-topbar__search-shell--open" : ""
+            }`}
           >
             <button
               type="button"
@@ -184,10 +192,12 @@ export default function AppTopbar({
             </button>
 
             <div
-              className={`admin-topbar__search ${isSearchOpen ? "admin-topbar__search--open" : ""
-                }`}
+              className={`admin-topbar__search ${
+                isSearchOpen ? "admin-topbar__search--open" : ""
+              }`}
             >
               <FiSearch className="admin-topbar__search-icon" />
+
               <input
                 ref={searchInputRef}
                 type="text"
@@ -223,6 +233,7 @@ export default function AppTopbar({
           aria-label="Notifications"
         >
           <FiBell />
+
           {notificationCount > 0 && (
             <span className="admin-topbar__alerts-badge">
               {notificationCount > 9 ? "9+" : notificationCount}
@@ -252,8 +263,9 @@ export default function AppTopbar({
             </span>
 
             <FiChevronDown
-              className={`admin-topbar__profile-chevron ${isProfileMenuOpen ? "admin-topbar__profile-chevron--open" : ""
-                }`}
+              className={`admin-topbar__profile-chevron ${
+                isProfileMenuOpen ? "admin-topbar__profile-chevron--open" : ""
+              }`}
             />
           </button>
 
@@ -268,14 +280,16 @@ export default function AppTopbar({
                 <span>Profile</span>
               </button>
 
-              <button
-                type="button"
-                className="admin-topbar__dropdown-item"
-                onClick={() => handleMenuAction(onOpenSettings)}
-              >
-                <FiSettings />
-                <span>Settings</span>
-              </button>
+              {canOpenSettings && (
+                <button
+                  type="button"
+                  className="admin-topbar__dropdown-item"
+                  onClick={() => handleMenuAction(onOpenSettings)}
+                >
+                  <FiSettings />
+                  <span>Settings</span>
+                </button>
+              )}
 
               <div className="admin-topbar__dropdown-divider"></div>
 
