@@ -5,6 +5,7 @@ import {
   FiLogOut,
   FiMoon,
   FiSearch,
+  FiSettings,
   FiSun,
   FiUser,
   FiX,
@@ -78,6 +79,7 @@ export default function AppTopbar({
   showSearch = true,
   searchPlaceholder = "Search...",
   onOpenProfile,
+  onOpenSettings,
   onLogout,
   theme = "light",
   onToggleTheme,
@@ -260,16 +262,25 @@ export default function AppTopbar({
 
           {isProfileMenuOpen && (
             <div className="admin-topbar__dropdown">
-              <button
-                type="button"
-                className="admin-topbar__dropdown-item"
-                onClick={() => handleMenuAction(onOpenProfile)}
-              >
-                <FiUser />
-                <span>Profile</span>
-              </button>
+<button
+  type="button"
+  className="admin-topbar__dropdown-item"
+  onClick={() => handleMenuAction(onOpenProfile)}
+>
+  <FiUser />
+  <span>Profile</span>
+</button>
 
-              <div className="admin-topbar__dropdown-divider"></div>
+<button
+  type="button"
+  className="admin-topbar__dropdown-item"
+  onClick={() => handleMenuAction(onOpenSettings)}
+>
+  <FiSettings />
+  <span>Settings</span>
+</button>
+
+<div className="admin-topbar__dropdown-divider"></div>
 
               <button
                 type="button"
