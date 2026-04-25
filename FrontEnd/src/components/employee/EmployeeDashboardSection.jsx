@@ -15,6 +15,7 @@ import {
   FiClock,
   FiEye,
   FiFileText,
+  FiX,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import "../../assets/styles/employee/employee-dashboard-section.css";
@@ -23,6 +24,7 @@ import cloudBg from "../../assets/images/cloud.png";
 
 const API_BASE = "http://localhost:5000";
 const MIN_TASKS_PER_PAGE = 1;
+const UNASSIGNED_TASK_MESSAGE_KEY = "employee_dashboard_unassigned_task_message";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -185,6 +187,7 @@ export default function EmployeeDashboardSection({
     key: "dueDate",
     direction: "asc",
   });
+  const [unassignedTaskMessage, setUnassignedTaskMessage] = useState(null);
 
   const tableCardRef = useRef(null);
   const tableHeadRef = useRef(null);
@@ -275,6 +278,30 @@ export default function EmployeeDashboardSection({
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    try {
+      const rawMessage = sessionStorage.getItem(UNASSIGNED_TASK_MESSAGE_KEY);
+
+      if (!rawMessage) return;
+
+      const parsedMessage = JSON.parse(rawMessage);
+
+      setUnassignedTaskMessage({
+        title: parsedMessage?.title || "Task update",
+        message:
+          parsedMessage?.message ||
+          "This task is no longer assigned to you, so it was removed from your dashboard.",
+      });
+      sessionStorage.removeItem(UNASSIGNED_TASK_MESSAGE_KEY);
+    } catch {
+      setUnassignedTaskMessage({
+        title: "Task update",
+        message: "This task is no longer assigned to you, so it was removed from your dashboard.",
+      });
+      sessionStorage.removeItem(UNASSIGNED_TASK_MESSAGE_KEY);
+    }
+  }, []);
 
   useEffect(() => {
     const handleWindowFocus = () => {
@@ -567,6 +594,29 @@ export default function EmployeeDashboardSection({
           </div>
         </div>
       </div>
+
+
+      {unassignedTaskMessage ? (
+        <div className="employee-dashboard-section__unassigned-message" role="status">
+          <span className="employee-dashboard-section__unassigned-icon">
+            <FiAlertCircle />
+          </span>
+
+          <div className="employee-dashboard-section__unassigned-copy">
+            <strong>{unassignedTaskMessage.title}</strong>
+            <p>{unassignedTaskMessage.message}</p>
+          </div>
+
+          <button
+            type="button"
+            className="employee-dashboard-section__unassigned-dismiss"
+            aria-label="Dismiss task update"
+            onClick={() => setUnassignedTaskMessage(null)}
+          >
+            <FiX />
+          </button>
+        </div>
+      ) : null}
 
       <div className="employee-dashboard-section__tabs">
         {STATUS_TABS.map((tab) => (

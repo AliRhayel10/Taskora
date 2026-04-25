@@ -20,6 +20,7 @@ import "../../assets/styles/employee/employee-task-details-page.css";
 
 const API_BASE = "http://localhost:5000";
 const DISMISSED_REVIEW_MESSAGES_KEY = "employee_task_details_dismissed_review_messages";
+const DASHBOARD_UNASSIGNED_TASK_MESSAGE_KEY = "employee_dashboard_unassigned_task_message";
 
 const REQUEST_CHANGE_OPTIONS = [
     {
@@ -562,6 +563,21 @@ const latestReviewedRequestMessage = useMemo(() => {
             const assignedUserId = getTaskAssignedUserId(rawTask);
 
             if (currentEmployeeId && assignedUserId && assignedUserId !== currentEmployeeId) {
+                try {
+                    sessionStorage.setItem(
+                        DASHBOARD_UNASSIGNED_TASK_MESSAGE_KEY,
+                        JSON.stringify({
+                            taskId,
+                            title: rawTask.title || rawTask.Title || "this task",
+                            message:
+                                "This task is no longer assigned to you, so it was removed from your dashboard.",
+                            createdAt: new Date().toISOString(),
+                        })
+                    );
+                } catch {
+                    // Session storage is optional. Navigation should still continue.
+                }
+
                 navigate("/employee", { replace: true });
                 return;
             }
