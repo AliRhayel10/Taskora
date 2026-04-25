@@ -519,6 +519,10 @@ export default function TaskDetailsPage({
       const oldNormalized = normalizeStatus(oldStatusName);
       const newNormalized = normalizeStatus(newStatusName);
       const hasStatusChanged = !!newStatusName && oldNormalized !== newNormalized;
+      const isRejectedReassignmentToPending =
+        feedbackText &&
+        (oldNormalized === "done" || oldNormalized === "completed") &&
+        newNormalized === "pending";
 
       return {
         id: item?.taskStatusHistoryId || item?.TaskStatusHistoryId || `${changedAt}-${index}`,
@@ -530,11 +534,14 @@ export default function TaskDetailsPage({
         changedAt,
         changedAtLabel: formatDateTimeLabel(changedAt),
         hasStatusChanged,
-        timelineTitle: hasStatusChanged
-          ? `Status changed to ${mapStatusLabel(newStatusName)}`
-          : feedbackText
-            ? "Feedback added"
-            : `Status updated to ${mapStatusLabel(newStatusName || "Unknown")}`,
+        isRejectedReassignmentToPending,
+        timelineTitle: isRejectedReassignmentToPending
+          ? "Task rejected and reassigned to Pending."
+          : hasStatusChanged
+            ? `Status changed to ${mapStatusLabel(newStatusName)}`
+            : feedbackText
+              ? "Feedback added"
+              : `Status updated to ${mapStatusLabel(newStatusName || "Unknown")}`,
       };
     });
   }, [taskHistory]);
@@ -1281,12 +1288,21 @@ export default function TaskDetailsPage({
                         <div className="task-details-page__timeline-content">
                           <div className="task-details-page__timeline-heading">
                             {item.type === "status" ? (
-                              <>
-                                <span>Status changed to </span>
-                                <span className={getStatusClass(item.newStatusName)}>
-                                  {mapStatusLabel(item.newStatusName)}
-                                </span>
-                              </>
+                              item.isRejectedReassignmentToPending ? (
+                                <>
+<span>Task rejected and reassigned to </span>
+<span className={getStatusClass(item.newStatusName)}>
+  {mapStatusLabel(item.newStatusName)}
+</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>Status changed to </span>
+                                  <span className={getStatusClass(item.newStatusName)}>
+                                    {mapStatusLabel(item.newStatusName)}
+                                  </span>
+                                </>
+                              )
                             ) : item.type === "request" ? (
                               item.title || "Change request made"
                             ) : (

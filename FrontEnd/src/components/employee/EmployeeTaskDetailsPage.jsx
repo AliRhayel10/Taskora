@@ -757,6 +757,10 @@ const latestReviewedRequestMessage = useMemo(() => {
             const oldNormalized = normalizeStatus(oldStatusName);
             const newNormalized = normalizeStatus(newStatusName);
             const hasStatusChanged = Boolean(newStatusName) && oldNormalized !== newNormalized;
+            const isRejectedReassignmentToPending =
+                feedbackValue &&
+                (oldNormalized === "done" || oldNormalized === "completed") &&
+                newNormalized === "pending";
 
             return {
                 id:
@@ -765,9 +769,12 @@ const latestReviewedRequestMessage = useMemo(() => {
                     `history-item-${index}`,
                 type: hasStatusChanged ? "status" : "feedback",
                 hasStatusChanged,
-                title: hasStatusChanged
-                    ? `Status changed to ${mapStatusLabel(newStatusName)}`
-                    : "Feedback added",
+                isRejectedReassignmentToPending,
+                title: isRejectedReassignmentToPending
+                    ? "Task rejected and reassigned to Pending."
+                    : hasStatusChanged
+                        ? `Status changed to ${mapStatusLabel(newStatusName)}`
+                        : "Feedback added",
                 createdAt: changedAt,
                 changedAtLabel: formatDateTime(changedAt),
                 feedbackText: feedbackValue,
@@ -1677,12 +1684,21 @@ const latestReviewedRequestMessage = useMemo(() => {
                                                 <div className="employee-task-details-page__timeline-content">
                                                     <div className="employee-task-details-page__timeline-heading">
                                                         {item.type === "status" ? (
-                                                            <>
-                                                                <span>Status changed to </span>
-                                                                <span className={getStatusClass(item.newStatusName)}>
-                                                                    {mapStatusLabel(item.newStatusName)}
-                                                                </span>
-                                                            </>
+                                                            item.isRejectedReassignmentToPending ? (
+                                                                <>
+<span>Task rejected and reassigned to </span>
+<span className={getStatusClass(item.newStatusName)}>
+  {mapStatusLabel(item.newStatusName)}
+</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <span>Status changed to </span>
+                                                                    <span className={getStatusClass(item.newStatusName)}>
+                                                                        {mapStatusLabel(item.newStatusName)}
+                                                                    </span>
+                                                                </>
+                                                            )
                                                         ) : item.type === "request" ? (
                                                             item.title || "Change request made"
                                                         ) : (
@@ -1714,7 +1730,7 @@ const latestReviewedRequestMessage = useMemo(() => {
                                                                 </div>
                                                             ) : null}
                                                         </div>
-                                                    ) : !item.hasStatusChanged && item.feedbackText ? (
+                                                    ) : item.feedbackText ? (
                                                         <div className="employee-task-details-page__timeline-note">
                                                             “{item.feedbackText}”
                                                         </div>
