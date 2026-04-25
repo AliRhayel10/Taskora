@@ -660,6 +660,7 @@ export default function TeamLeaderDashboardSection({
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskRequests, setTaskRequests] = useState([]);
+  const [showAllTaskRequests, setShowAllTaskRequests] = useState(false);
   const [leaderTeamName, setLeaderTeamName] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -1143,9 +1144,15 @@ export default function TeamLeaderDashboardSection({
   }, [members.length, tasks]);
 
   const visibleTaskRequests = useMemo(
-    () => taskRequests.slice(0, 4),
-    [taskRequests]
+    () => (showAllTaskRequests ? taskRequests : taskRequests.slice(0, 4)),
+    [showAllTaskRequests, taskRequests]
   );
+
+  useEffect(() => {
+    if (taskRequests.length <= 4 && showAllTaskRequests) {
+      setShowAllTaskRequests(false);
+    }
+  }, [showAllTaskRequests, taskRequests.length]);
 
   const totalPages = Math.max(1, Math.ceil(workloadRows.length / PAGE_SIZE));
 
@@ -1930,19 +1937,27 @@ export default function TeamLeaderDashboardSection({
             </div>
 
             <aside className="teamleader-dashboard-section__requests-card">
-              <div className="teamleader-dashboard-section__requests-header">
-                <h3 className="teamleader-dashboard-section__requests-title">
-                  Requests
-                </h3>
+<div className="teamleader-dashboard-section__requests-header">
+  <div className="teamleader-dashboard-section__requests-title-wrap">
+    <h3 className="teamleader-dashboard-section__requests-title">
+      Requests
+    </h3>
 
-                <button
-                  type="button"
-                  className="teamleader-dashboard-section__requests-view-all"
-                >
-                  <span>View all</span>
-                  <strong>{taskRequests.length}</strong>
-                </button>
-              </div>
+    <span className="teamleader-dashboard-section__requests-count">
+      {taskRequests.length}
+    </span>
+  </div>
+
+  {taskRequests.length > 4 && (
+    <button
+      type="button"
+      className="teamleader-dashboard-section__requests-view-all"
+      onClick={() => setShowAllRequests((previous) => !previous)}
+    >
+      {showAllRequests ? "Show less" : "View all"}
+    </button>
+  )}
+</div>
 
               <div className="teamleader-dashboard-section__requests-list">
                 {visibleTaskRequests.length === 0 ? (
