@@ -2562,12 +2562,16 @@ const resolvedCurrentUserId =
 
       {feedback && (
         <div
-          className={`tasks-section__feedback ${feedback.type === "success"
-              ? "tasks-section__feedback--success"
-              : "tasks-section__feedback--error"
-            }`}
+          className={`tasks-section__feedback tasks-section__feedback--floating ${
+            feedback.type === "success"
+              ? "tasks-section__feedback--floating-success"
+              : "tasks-section__feedback--floating-error"
+          }`}
+          role={feedback.type === "success" ? "status" : "alert"}
+          aria-live={feedback.type === "success" ? "polite" : "assertive"}
         >
-          {feedback.message}
+          {feedback.type === "success" ? <FiCheckCircle /> : <FiAlertTriangle />}
+          <span>{feedback.message}</span>
         </div>
       )}
 
