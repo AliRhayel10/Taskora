@@ -926,6 +926,7 @@ const resolvedCurrentUserId =
   const editTaskInfoModalRef = useRef(null);
   const editAssigneeModalRef = useRef(null);
   const editDueDateModalRef = useRef(null);
+  const editSaveConfirmModalRef = useRef(null);
   const prioritySelectRef = useRef(null);
   const complexitySelectRef = useRef(null);
   const effortInputRef = useRef(null);
@@ -1021,6 +1022,7 @@ const resolvedCurrentUserId =
       if (editTaskInfoModalRef.current?.contains(target)) return;
       if (editAssigneeModalRef.current?.contains(target)) return;
       if (editDueDateModalRef.current?.contains(target)) return;
+      if (editSaveConfirmModalRef.current?.contains(target)) return;
       if (editRowRef.current?.contains(target)) return;
 
       if (isEditTaskInfoOpen) {
@@ -3914,6 +3916,7 @@ const resolvedCurrentUserId =
           }}
         >
           <div
+            ref={editSaveConfirmModalRef}
             className="tasks-section__confirm-modal tasks-section__confirm-modal--save-edit"
             onClick={(event) => event.stopPropagation()}
           >
@@ -3936,7 +3939,7 @@ const resolvedCurrentUserId =
                 type="button"
                 className="tasks-section__submit-btn"
                 onClick={saveTaskChanges}
-                disabled={isEditSaveDisabled}
+                disabled={isSavingEdit}
               >
                 {isSavingEdit ? "Saving..." : "Confirm"}
               </button>
