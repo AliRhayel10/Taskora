@@ -48,15 +48,17 @@ function ProtectedActiveRoute({ children }) {
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [isAllowed, setIsAllowed] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState("Please log in to continue.");
 
   useEffect(() => {
     let isMounted = true;
     let intervalId = null;
 
-    const logoutInactiveUser = (message = INACTIVE_ACCOUNT_MESSAGE) => {
-      clearStoredUser();
+    const redirectToLogin = (message) => {
+      sessionStorage.setItem("loginRedirectMessage", message);
 
       if (isMounted) {
+        setRedirectMessage(message);
         setIsAllowed(false);
         setIsChecking(false);
         navigate("/login", {
@@ -66,6 +68,11 @@ function ProtectedActiveRoute({ children }) {
       }
     };
 
+    const logoutInactiveUser = (message = INACTIVE_ACCOUNT_MESSAGE) => {
+      clearStoredUser();
+      redirectToLogin(message || INACTIVE_ACCOUNT_MESSAGE);
+    };
+
     const checkUserStatus = async () => {
       const storedUser = parseStoredUser();
       const userId = getStoredUserId(storedUser);
@@ -73,16 +80,7 @@ function ProtectedActiveRoute({ children }) {
       if (!storedUser || !userId) {
         clearStoredUser();
 
-        if (isMounted) {
-          setIsAllowed(false);
-          setIsChecking(false);
-          navigate("/login", {
-            replace: true,
-            state: {
-              message: "Please log in to continue.",
-            },
-          });
-        }
+        redirectToLogin("Please log in to continue.");
 
         return;
       }
@@ -167,7 +165,7 @@ function ProtectedActiveRoute({ children }) {
       <Navigate
         to="/login"
         replace
-        state={{ message: "Please log in to continue." }}
+        state={{ message: redirectMessage }}
       />
     );
   }

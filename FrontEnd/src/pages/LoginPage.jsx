@@ -13,7 +13,14 @@ export default function LoginPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(location.state?.message || "");
+  const [errorMessage, setErrorMessage] = useState(() => {
+    const redirectedMessage =
+      location.state?.message || sessionStorage.getItem("loginRedirectMessage") || "";
+
+    sessionStorage.removeItem("loginRedirectMessage");
+
+    return redirectedMessage;
+  });
 
   const handleChange = (e) => {
     const { id, value } = e.target;
