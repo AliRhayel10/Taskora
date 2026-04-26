@@ -11,10 +11,15 @@ import {
   FiUser,
   FiCheckCircle,
   FiSlash,
+  FiGrid,
+  FiList,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
+const LIST_PAGE_SIZE = 6;
 
 function getStoredUser() {
   try {
@@ -179,6 +184,8 @@ export default function TeamsSection({
   const [isStatusActive, setIsStatusActive] = useState(true);
   const [leaderImageErrors, setLeaderImageErrors] = useState({});
   const [createLeaderImageErrors, setCreateLeaderImageErrors] = useState({});
+  const [viewMode, setViewMode] = useState("grid");
+  const [listPage, setListPage] = useState(1);
 
   const [teamForm, setTeamForm] = useState({
     teamName: "",
@@ -732,6 +739,29 @@ export default function TeamsSection({
     return createPortal(content, document.body);
   };
 
+  const totalListPages = Math.max(
+    1,
+    Math.ceil(resolvedTeams.length / LIST_PAGE_SIZE),
+  );
+
+  const paginatedTeams = useMemo(() => {
+    const safePage = Math.min(Math.max(listPage, 1), totalListPages);
+    const startIndex = (safePage - 1) * LIST_PAGE_SIZE;
+
+    return resolvedTeams.slice(startIndex, startIndex + LIST_PAGE_SIZE);
+  }, [resolvedTeams, listPage, totalListPages]);
+
+  const listStartItem =
+    resolvedTeams.length === 0 ? 0 : (Math.min(listPage, totalListPages) - 1) * LIST_PAGE_SIZE + 1;
+  const listEndItem = Math.min(
+    Math.min(listPage, totalListPages) * LIST_PAGE_SIZE,
+    resolvedTeams.length,
+  );
+
+  useEffect(() => {
+    setListPage(1);
+  }, [effectiveSearchTerm, viewMode, resolvedTeams.length]);
+
   return (
     <section className="teams-section" ref={sectionRef}>
       <div className="teams-section__title-row">
@@ -739,7 +769,31 @@ export default function TeamsSection({
         <div className="teams-section__title-line"></div>
       </div>
 
-      <div className="teams-section__toolbar teams-section__toolbar--align-end">
+      <div className="teams-section__toolbar">
+        <div className="teams-section__view-tabs" role="tablist" aria-label="Teams view">
+          <button
+            type="button"
+            className={`teams-section__view-tab ${viewMode === "grid" ? "teams-section__view-tab--active" : ""}`}
+            onClick={() => setViewMode("grid")}
+            role="tab"
+            aria-selected={viewMode === "grid"}
+          >
+            <FiGrid />
+            <span>Grid</span>
+          </button>
+
+          <button
+            type="button"
+            className={`teams-section__view-tab ${viewMode === "list" ? "teams-section__view-tab--active" : ""}`}
+            onClick={() => setViewMode("list")}
+            role="tab"
+            aria-selected={viewMode === "list"}
+          >
+            <FiList />
+            <span>List</span>
+          </button>
+        </div>
+
         <button
           type="button"
           className="teams-section__create-btn"
@@ -781,7 +835,7 @@ export default function TeamsSection({
           </div>
         )}
 
-        {!isLoading && resolvedTeams.length > 0 && (
+        {!isLoading && resolvedTeams.length > 0 && viewMode === "grid" && (
           <div className="teams-section__grid" style={{ "--teams-grid-columns": gridColumnCount }}>
             {resolvedTeams.map((team) => (
               <article key={team.teamId} className="teams-section__card teams-section__card--compact">
@@ -912,6 +966,148 @@ export default function TeamsSection({
                 </div>
               </article>
             ))}
+          </div>
+        )}
+
+        {!isLoading && resolvedTeams.length > 0 && viewMode === "list" && (
+          <div className="teams-section__list-card">
+            <div className="teams-section__table-wrap">
+              <table className="teams-section__table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Team Leader</th>
+                    <th>Total Members</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {paginatedTeams.map((team) => (
+                    <tr key={`team-row-${team.teamId}`}>
+                      <td>
+                        <button
+                          type="button"
+                          className="teams-section__table-title"
+                          onClick={() => {
+                            if (typeof onOpenTeam === "function") {
+                              onOpenTeam(team);
+                            }
+                          }}
+                        >
+                          {team.teamName}
+                        </button>
+                      </td>
+
+                      <td>
+                        <span className="teams-section__table-description">
+                          {team.description || "No description added yet."}
+                        </span>
+                      </td>
+
+                      <td>
+                        {team.resolvedTeamLeaderName ? (
+                          <div className="teams-section__table-leader">
+                            <span className="teams-section__table-leader-avatar">
+                              {team.resolvedTeamLeaderImage && !leaderImageErrors[team.teamId] ? (
+                                <img
+                                  src={team.resolvedTeamLeaderImage}
+                                  alt={team.resolvedTeamLeaderName}
+                                  onError={() => handleLeaderImageError(team.teamId)}
+                                />
+                              ) : (
+                                getInitials(team.resolvedTeamLeaderName)
+                              )}
+                            </span>
+
+                            <span className="teams-section__table-leader-copy">
+                              <strong>{team.resolvedTeamLeaderName}</strong>
+                              <small>Team Leader</small>
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="teams-section__table-muted">No team leader</span>
+                        )}
+                      </td>
+
+                      <td>
+                        <span className="teams-section__table-members">
+                          <FiUser />
+                          {team.totalMembersCount}{" "}
+                          {team.totalMembersCount === 1 ? "member" : "members"}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="teams-section__table-actions">
+                          <button
+                            type="button"
+                            className="teams-section__table-action-btn"
+                            onClick={() => openEditPanel(team)}
+                            aria-label={`Edit ${team.teamName}`}
+                            title="Edit Team"
+                          >
+                            <FiEdit2 />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="teams-section__table-action-btn teams-section__table-action-btn--danger"
+                            onClick={() => openDeleteModal(team)}
+                            aria-label={`Delete ${team.teamName}`}
+                            title="Delete Team"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="teams-section__pagination">
+              <span className="teams-section__pagination-copy">
+                Showing {listStartItem}-{listEndItem} of {resolvedTeams.length} teams
+              </span>
+
+              <div className="teams-section__pagination-controls">
+                <button
+                  type="button"
+                  className="teams-section__pagination-btn"
+                  onClick={() => setListPage((page) => Math.max(1, page - 1))}
+                  disabled={listPage <= 1}
+                  aria-label="Previous page"
+                >
+                  <FiChevronLeft />
+                </button>
+
+                {Array.from({ length: totalListPages }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={`team-list-page-${page}`}
+                    type="button"
+                    className={`teams-section__pagination-page ${page === listPage ? "teams-section__pagination-page--active" : ""}`}
+                    onClick={() => setListPage(page)}
+                    aria-label={`Go to page ${page}`}
+                    aria-current={page === listPage ? "page" : undefined}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  className="teams-section__pagination-btn"
+                  onClick={() => setListPage((page) => Math.min(totalListPages, page + 1))}
+                  disabled={listPage >= totalListPages}
+                  aria-label="Next page"
+                >
+                  <FiChevronRight />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

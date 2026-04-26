@@ -59,6 +59,52 @@
   justify-content: flex-end;
 }
 
+.teams-section__view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.teams-section__view-tab {
+  border: none;
+  background: transparent;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.teams-section__view-tab:not(:last-child) {
+  margin-right: 12px;
+}
+
+.teams-section__view-tab svg {
+  font-size: 1.08rem;
+}
+
+.teams-section__view-tab:hover,
+.teams-section__view-tab--active {
+  color: #1d4ed8;
+}
+
+.teams-section__view-tab--active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
 .teams-section__search {
   width: 100%;
   max-width: 420px;
@@ -1170,4 +1216,296 @@
   outline: 2px solid #93c5fd;
   outline-offset: 3px;
   border-radius: 6px;
+}
+.teams-section__list-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+}
+
+.teams-section__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.teams-section__table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.teams-section__table thead th {
+  background: #eaf2ff;
+  border-bottom: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-size: 0.96rem;
+  font-weight: 800;
+  text-align: left;
+  padding: 16px 18px;
+  white-space: nowrap;
+}
+
+.teams-section__table tbody td {
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.94rem;
+  font-weight: 600;
+  padding: 14px 18px;
+  vertical-align: middle;
+}
+
+.teams-section__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.teams-section__table th:nth-child(1),
+.teams-section__table td:nth-child(1) {
+  width: 20%;
+}
+
+.teams-section__table th:nth-child(2),
+.teams-section__table td:nth-child(2) {
+  width: 32%;
+}
+
+.teams-section__table th:nth-child(3),
+.teams-section__table td:nth-child(3) {
+  width: 24%;
+}
+
+.teams-section__table th:nth-child(4),
+.teams-section__table td:nth-child(4) {
+  width: 14%;
+}
+
+.teams-section__table th:nth-child(5),
+.teams-section__table td:nth-child(5) {
+  width: 10%;
+  text-align: center;
+}
+
+.teams-section__table-title {
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 0.98rem;
+  font-weight: 850;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teams-section__table-title:hover {
+  color: #2563eb;
+}
+
+.teams-section__table-description {
+  display: block;
+  color: #64748b;
+  font-weight: 650;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teams-section__table-leader {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.teams-section__table-leader-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.84rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.teams-section__table-leader-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.teams-section__table-leader-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.teams-section__table-leader-copy strong {
+  color: #1e293b;
+  font-size: 0.94rem;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teams-section__table-leader-copy small,
+.teams-section__table-muted {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.teams-section__table-members {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #475569;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.teams-section__table-members svg {
+  color: #64748b;
+  font-size: 0.98rem;
+}
+
+.teams-section__table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.teams-section__table-action-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #2563eb;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.96rem;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.teams-section__table-action-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.teams-section__table-action-btn--danger {
+  color: #dc2626;
+}
+
+.teams-section__table-action-btn--danger:hover {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #b91c1c;
+}
+
+.teams-section__pagination {
+  min-height: 70px;
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.teams-section__pagination-copy {
+  color: #475569;
+  font-size: 0.94rem;
+  font-weight: 750;
+}
+
+.teams-section__pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teams-section__pagination-btn,
+.teams-section__pagination-page {
+  min-width: 38px;
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.teams-section__pagination-page--active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.teams-section__pagination-btn:hover:not(:disabled),
+.teams-section__pagination-page:hover:not(.teams-section__pagination-page--active) {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.teams-section__pagination-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 760px) {
+  .teams-section__toolbar {
+    gap: 12px;
+  }
+
+  .teams-section__view-tabs {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .teams-section__pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .teams-section__pagination-controls {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
 }
