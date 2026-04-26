@@ -680,17 +680,23 @@ const latestReviewedRequestMessage = useMemo(() => {
                     "New",
                 taskStatusId: rawTask.taskStatusId || rawTask.TaskStatusId || rawTask.statusId || rawTask.StatusId || 0,
                 assignedToName:
-                    rawTask.assignedToName ||
-                    rawTask.AssignedToName ||
-                    rawTask.assignedUserName ||
-                    rawTask.employeeName ||
-                    "Assigned user",
+                    !getTaskAssignedUserId(rawTask) &&
+                    (rawTask.formerAssignedUserName || rawTask.FormerAssignedUserName)
+                        ? `${rawTask.formerAssignedUserName || rawTask.FormerAssignedUserName} (deleted user)`
+                        : rawTask.assignedToName ||
+                          rawTask.AssignedToName ||
+                          rawTask.assignedUserName ||
+                          rawTask.employeeName ||
+                          "Assigned user",
                 assignedToEmail:
-                    rawTask.assignedToEmail ||
-                    rawTask.AssignedToEmail ||
-                    rawTask.assignedUserEmail ||
-                    rawTask.employeeEmail ||
-                    "",
+                    !getTaskAssignedUserId(rawTask) &&
+                    (rawTask.formerAssignedUserEmail || rawTask.FormerAssignedUserEmail)
+                        ? rawTask.formerAssignedUserEmail || rawTask.FormerAssignedUserEmail
+                        : rawTask.assignedToEmail ||
+                          rawTask.AssignedToEmail ||
+                          rawTask.assignedUserEmail ||
+                          rawTask.employeeEmail ||
+                          "",
                 assignedToProfileImage: getProfileImage(rawTask),
                 feedback: pureFeedbackEntries,
                 requestChanges: requestChangeEntries,

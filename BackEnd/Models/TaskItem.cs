@@ -23,6 +23,12 @@ namespace BackEnd.Models
 
         public int? AssignedToUserId { get; set; }
 
+        [StringLength(200)]
+        public string? FormerAssignedUserName { get; set; }
+
+        [StringLength(256)]
+        public string? FormerAssignedUserEmail { get; set; }
+
         public int CreatedByUserId { get; set; }
 
         [Required]

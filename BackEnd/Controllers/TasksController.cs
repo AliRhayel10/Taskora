@@ -849,7 +849,7 @@ namespace BackEnd.Controllers
                 .Include(t => t.AssignedToUser)
                 .Where(t => t.CompanyId == companyId)
                 .OrderByDescending(t => t.TaskId)
-                .Select(t => new TaskResponse
+                .Select(t => new
                 {
                     TaskId = t.TaskId,
                     CompanyId = t.CompanyId,
@@ -858,6 +858,8 @@ namespace BackEnd.Controllers
                     Description = t.Description,
                     Feedback = t.Feedback,
                     AssignedToUserId = t.AssignedToUserId,
+                    FormerAssignedUserName = t.FormerAssignedUserName,
+                    FormerAssignedUserEmail = t.FormerAssignedUserEmail,
                     CreatedByUserId = t.CreatedByUserId,
                     Priority = t.Priority,
                     Complexity = t.Complexity,
@@ -865,10 +867,13 @@ namespace BackEnd.Controllers
                     Weight = t.Weight,
                     StartDate = t.StartDate,
                     DueDate = t.DueDate,
+                    IsArchived = t.IsArchived,
+                    ArchivedAt = t.ArchivedAt,
                     TaskStatusId = t.TaskStatusId,
                     TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
-                    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
-                    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
+                    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : t.FormerAssignedUserName ?? "",
+                    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : t.FormerAssignedUserEmail ?? "",
+                    IsFormerAssignee = t.AssignedToUserId == null && t.FormerAssignedUserName != null
                 })
                 .ToListAsync();
 
@@ -886,7 +891,7 @@ namespace BackEnd.Controllers
                 .Include(t => t.TaskStatus)
                 .Include(t => t.AssignedToUser)
                 .Where(t => t.TaskId == taskId)
-                .Select(t => new TaskResponse
+                .Select(t => new
                 {
                     TaskId = t.TaskId,
                     CompanyId = t.CompanyId,
@@ -895,6 +900,8 @@ namespace BackEnd.Controllers
                     Description = t.Description,
                     Feedback = t.Feedback,
                     AssignedToUserId = t.AssignedToUserId,
+                    FormerAssignedUserName = t.FormerAssignedUserName,
+                    FormerAssignedUserEmail = t.FormerAssignedUserEmail,
                     CreatedByUserId = t.CreatedByUserId,
                     Priority = t.Priority,
                     Complexity = t.Complexity,
@@ -902,10 +909,13 @@ namespace BackEnd.Controllers
                     Weight = t.Weight,
                     StartDate = t.StartDate,
                     DueDate = t.DueDate,
+                    IsArchived = t.IsArchived,
+                    ArchivedAt = t.ArchivedAt,
                     TaskStatusId = t.TaskStatusId,
                     TaskStatusName = t.TaskStatus != null ? t.TaskStatus.StatusName : "",
-                    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : "",
-                    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : ""
+                    AssignedUserName = t.AssignedToUser != null ? t.AssignedToUser.FullName : t.FormerAssignedUserName ?? "",
+                    AssignedUserEmail = t.AssignedToUser != null ? t.AssignedToUser.Email : t.FormerAssignedUserEmail ?? "",
+                    IsFormerAssignee = t.AssignedToUserId == null && t.FormerAssignedUserName != null
                 })
                 .FirstOrDefaultAsync();
 

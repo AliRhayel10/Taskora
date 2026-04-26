@@ -63,6 +63,53 @@ const parseJsonSafe = async (response) => {
 
 const normalizeStatus = (value = "") => String(value).trim().toLowerCase();
 
+const isClosedTaskStatus = (status) => {
+  const normalized = normalizeStatus(status);
+
+  return (
+    normalized === "done" ||
+    normalized === "approved" ||
+    normalized === "archived"
+  );
+};
+
+const isTaskMissingAssignee = (task) => {
+  const assignedId = String(task?.assignedUserId ?? task?.assignedToUserId ?? "").trim();
+  const assignedName = String(task?.assignedUserName ?? task?.assignedToUserName ?? "")
+    .trim()
+    .toLowerCase();
+
+  return !assignedId || !assignedName || assignedName === "unknown user";
+};
+
+const getFormerAssigneeName = (task) =>
+  String(
+    task?.formerAssignedUserName ||
+    task?.FormerAssignedUserName ||
+    task?.deletedAssigneeNameSnapshot ||
+    task?.DeletedAssigneeNameSnapshot ||
+    task?.assignedUserName ||
+    ""
+  ).trim();
+
+const getFormerAssigneeEmail = (task) =>
+  String(
+    task?.formerAssignedUserEmail ||
+    task?.FormerAssignedUserEmail ||
+    task?.deletedAssigneeEmailSnapshot ||
+    task?.DeletedAssigneeEmailSnapshot ||
+    task?.assignedUserEmail ||
+    ""
+  ).trim();
+
+const isHistoricalUnassignedTask = (task) => {
+  return (
+    isTaskMissingAssignee(task) &&
+    isClosedTaskStatus(task?.effectiveStatus || task?.status) &&
+    Boolean(getFormerAssigneeName(task))
+  );
+};
+
 const mapStatusLabel = (status = "") => {
   const normalized = normalizeStatus(status).replace(/\s+/g, "");
 
@@ -619,13 +666,21 @@ export default function TaskDetailsPage({
     return Number(matchedTeam?.teamId || currentTask?.teamId || 0);
   };
 
+  const isHistoricalUnassigned = isHistoricalUnassignedTask(currentTask);
+  const formerAssigneeName = getFormerAssigneeName(currentTask);
+  const formerAssigneeEmail = getFormerAssigneeEmail(currentTask);
+
   const assignee = useMemo(
     () => ({
-      fullName: currentTask?.assignedUserName || "Unassigned",
-      email: currentTask?.assignedUserEmail || "No email available",
-      assignedUserAvatar: currentTask?.assignedUserAvatar || "",
+      fullName: isHistoricalUnassigned
+        ? `${formerAssigneeName} (deleted user)`
+        : currentTask?.assignedUserName || "Unassigned",
+      email: isHistoricalUnassigned
+        ? formerAssigneeEmail || "Original user was deleted"
+        : currentTask?.assignedUserEmail || "No email available",
+      assignedUserAvatar: isHistoricalUnassigned ? "" : currentTask?.assignedUserAvatar || "",
     }),
-    [currentTask],
+    [currentTask, isHistoricalUnassigned, formerAssigneeName, formerAssigneeEmail],
   );
 
   const profileImage = getProfileImage(assignee);
@@ -642,8 +697,10 @@ export default function TaskDetailsPage({
   const canDelete = canEdit;
   const isDone = normalizedCurrentStatus === "done";
   const isApproved = normalizedCurrentStatus === "approved";
+  const canReviewDoneTask = isDone;
+  const canReassignDoneTask = isDone && !isHistoricalUnassigned;
 
-  const hasToolbarActions = isDone || isApproved || canDelete;
+  const hasToolbarActions = canReviewDoneTask || isApproved || canDelete;
 
   const openEditModal = () => {
     setIsReviewMenuOpen(false);
@@ -1063,7 +1120,7 @@ export default function TaskDetailsPage({
       <div className="task-details-page__toolbar">
         {hasToolbarActions ? (
           <>
-            {isDone ? (
+            {canReviewDoneTask ? (
               <div
                 className="task-details-page__review-menu"
                 onClick={(event) => event.stopPropagation()}
@@ -1076,7 +1133,7 @@ export default function TaskDetailsPage({
                   aria-label={isUpdatingStatus ? "Updating task review" : "Review task"}
                   title={isUpdatingStatus ? "Updating task review" : "Review task"}
                 >
-                  <span>Review Task</span>
+                  <span>{isHistoricalUnassigned ? "Review Historical Task" : "Review Task"}</span>
                   <FiChevronDown />
                 </button>
 
@@ -1088,18 +1145,20 @@ export default function TaskDetailsPage({
                       onClick={handleApprove}
                       disabled={isUpdatingStatus || !approvedStatusId}
                     >
-                      <span>Approve</span>
+                      <span>{isHistoricalUnassigned ? "Approve Historical Completion" : "Approve"}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      className="task-details-page__review-option task-details-page__review-option--reject"
-                      onClick={handleReassign}
-                      disabled={isUpdatingStatus || !pendingStatusId}
-                    >
-                      <FiRotateCcw />
-                      <span>Re Assign</span>
-                    </button>
+                    {canReassignDoneTask ? (
+                      <button
+                        type="button"
+                        className="task-details-page__review-option task-details-page__review-option--reject"
+                        onClick={handleReassign}
+                        disabled={isUpdatingStatus || !pendingStatusId}
+                      >
+                        <FiRotateCcw />
+                        <span>Re Assign</span>
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1706,7 +1765,11 @@ export default function TaskDetailsPage({
               <>
                 <div className="task-details-page__confirm-header">
                   <h3>
-                    {confirmAction === "approve" ? "Approve Task" : "Re Assign Task"}
+                    {confirmAction === "approve"
+                      ? isHistoricalUnassigned
+                        ? "Approve Historical Completion"
+                        : "Approve Task"
+                      : "Re Assign Task"}
                   </h3>
 
                   <button
@@ -1722,7 +1785,9 @@ export default function TaskDetailsPage({
 
                 {confirmAction === "approve" ? (
                   <p className="task-details-page__confirm-text">
-                    Are you sure you want to approve this task?
+                    {isHistoricalUnassigned
+                      ? "Approve this task as a historical completion. The original assignee was deleted, so no reassignment is needed."
+                      : "Are you sure you want to approve this task?"}
                   </p>
                 ) : (
                   <>
@@ -1769,7 +1834,9 @@ export default function TaskDetailsPage({
                     {isUpdatingStatus
                       ? "Saving..."
                       : confirmAction === "approve"
-                        ? "Approve"
+                        ? isHistoricalUnassigned
+                          ? "Approve Historical"
+                          : "Approve"
                         : "Re Assign"}
                   </button>
                 </div>

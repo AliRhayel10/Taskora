@@ -162,6 +162,12 @@ namespace BackEnd.Data
                 entity.Property(t => t.Weight)
                     .HasPrecision(10, 2);
 
+                entity.Property(t => t.FormerAssignedUserName)
+                    .HasMaxLength(200);
+
+                entity.Property(t => t.FormerAssignedUserEmail)
+                    .HasMaxLength(256);
+
                 entity.HasOne<Company>()
                     .WithMany()
                     .HasForeignKey(t => t.CompanyId)

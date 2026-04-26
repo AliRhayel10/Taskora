@@ -575,6 +575,16 @@ const getErrorMessageFromPayload = (payload, fallbackMessage) => {
   );
 };
 
+const isClosedTaskStatus = (status) => {
+  const normalized = normalizeStatus(status);
+
+  return (
+    normalized === "done" ||
+    normalized === "approved" ||
+    normalized === "archived"
+  );
+};
+
 const isTaskUnassigned = (task) => {
   const assignedId = String(task?.assignedUserId ?? "").trim();
   const assignedName = String(task?.assignedUserName ?? "")
@@ -582,6 +592,39 @@ const isTaskUnassigned = (task) => {
     .toLowerCase();
 
   return !assignedId || !assignedName || assignedName === "unknown user";
+};
+
+const getFormerAssigneeName = (task) => {
+  const snapshotName = String(task?.formerAssignedUserName || "").trim();
+  const assignedName = String(task?.assignedUserName || "").trim();
+
+  if (snapshotName && snapshotName.toLowerCase() !== "unknown user") {
+    return snapshotName;
+  }
+
+  if (assignedName && assignedName.toLowerCase() !== "unknown user") {
+    return assignedName;
+  }
+
+  return "Deleted user";
+};
+
+const getFormerAssigneeEmail = (task) => {
+  const snapshotEmail = String(task?.formerAssignedUserEmail || "").trim();
+  const assignedEmail = String(task?.assignedUserEmail || "").trim();
+
+  return snapshotEmail || assignedEmail;
+};
+
+const isHistoricalUnassignedTask = (task) => {
+  return (
+    isTaskUnassigned(task) &&
+    isClosedTaskStatus(task?.effectiveStatus || task?.status)
+  );
+};
+
+const isActiveUnassignedTask = (task) => {
+  return isTaskUnassigned(task) && !isHistoricalUnassignedTask(task);
 };
 
 const mapTaskFromApi = (task) => ({
@@ -592,6 +635,20 @@ const mapTaskFromApi = (task) => ({
   feedback: task.feedback ?? task.Feedback ?? null,
   assignedUserId:
     task.assignedUserId ?? task.assignedToUserId ?? task.AssignedToUserId ?? "",
+  formerAssignedUserName:
+    task.formerAssignedUserName ??
+    task.FormerAssignedUserName ??
+    task.deletedAssigneeNameSnapshot ??
+    task.DeletedAssigneeNameSnapshot ??
+    "",
+  formerAssignedUserEmail:
+    task.formerAssignedUserEmail ??
+    task.FormerAssignedUserEmail ??
+    task.deletedAssigneeEmailSnapshot ??
+    task.DeletedAssigneeEmailSnapshot ??
+    "",
+  isFormerAssignee:
+    Boolean(task.isFormerAssignee ?? task.IsFormerAssignee ?? false),
   assignedUserName:
     task.assignedUserName ??
     task.assignedToUserName ??
@@ -1628,22 +1685,31 @@ const resolvedCurrentUserId =
       );
 
       const fallbackName =
-        matchedUser?.fullName ?? matchedUser?.name ?? "Unknown User";
+        matchedUser?.fullName ?? matchedUser?.name ?? "";
       const fallbackEmail = matchedUser?.email ?? "";
       const fallbackAvatar = getProfileImage(matchedUser || {});
 
+      const effectiveStatus = getEffectiveTaskStatus(task);
       const rawName = String(task.assignedUserName || "").trim();
-      const resolvedName =
-        !rawName || rawName.toLowerCase() === "unknown user"
+      const rawNameIsUnknown = rawName.toLowerCase() === "unknown user";
+      const shouldUseFormerAssignee =
+        !matchedUser &&
+        isTaskUnassigned(task) &&
+        isClosedTaskStatus(effectiveStatus);
+
+      const resolvedName = shouldUseFormerAssignee
+        ? getFormerAssigneeName(task)
+        : !rawName || rawNameIsUnknown
           ? fallbackName
           : rawName;
-
-      const effectiveStatus = getEffectiveTaskStatus(task);
 
       return {
         ...task,
         assignedUserName: resolvedName,
-        assignedUserEmail: task.assignedUserEmail || fallbackEmail,
+        assignedUserEmail:
+          shouldUseFormerAssignee
+            ? getFormerAssigneeEmail(task)
+            : task.assignedUserEmail || fallbackEmail,
         assignedUserAvatar: task.assignedUserAvatar || fallbackAvatar,
         effectiveStatus,
       };
@@ -1651,7 +1717,7 @@ const resolvedCurrentUserId =
   }, [tasks, users]);
 
   const unassignedTasksCount = useMemo(() => {
-    return tasksWithUsers.filter((task) => isTaskUnassigned(task)).length;
+    return tasksWithUsers.filter((task) => isActiveUnassignedTask(task)).length;
   }, [tasksWithUsers]);
 
   const tasksInSelectedRange = useMemo(() => {
@@ -1671,7 +1737,7 @@ const resolvedCurrentUserId =
     };
 
     tasksInSelectedRange.forEach((task) => {
-      if (isTaskUnassigned(task)) {
+      if (isActiveUnassignedTask(task)) {
         counts.unassigned += 1;
       }
 
@@ -1692,7 +1758,7 @@ const resolvedCurrentUserId =
         activeTab === "all"
           ? true
           : activeTab === "unassigned"
-            ? isTaskUnassigned(task)
+            ? isActiveUnassignedTask(task)
             : normalizeStatus(task.effectiveStatus) === activeTab;
 
       if (!matchesTab) {
@@ -1738,8 +1804,12 @@ const resolvedCurrentUserId =
         case "title":
           return String(task.title || "").toLowerCase();
         case "assignedUserName":
-          return isTaskUnassigned(task)
-            ? "zzzzzz_unassigned"
+          if (isHistoricalUnassignedTask(task)) {
+            return `zzzzzz_${getFormerAssigneeName(task).toLowerCase()}`;
+          }
+
+          return isActiveUnassignedTask(task)
+            ? "zzzzzy_unassigned"
             : String(task.assignedUserName || "").toLowerCase();
         case "priority":
           return priorityRank[String(task.priority || "").toLowerCase()] ?? 0;
@@ -2967,7 +3037,17 @@ const resolvedCurrentUserId =
                               </div>
                             </div>
                           </button>
-                        ) : isTaskUnassigned(task) ? (
+                        ) : isHistoricalUnassignedTask(task) ? (
+                          <span
+                            className="tasks-section__unassigned-pill"
+                            title={getFormerAssigneeEmail(task) || "Deleted user"}
+                          >
+                            <FiAlertTriangle />
+                            {getFormerAssigneeName(task) === "Deleted user"
+                              ? "Deleted user"
+                              : `${getFormerAssigneeName(task)} (deleted user)`}
+                          </span>
+                        ) : isActiveUnassignedTask(task) ? (
                           <span className="tasks-section__unassigned-pill">
                             <FiAlertTriangle />
                             Unassigned
