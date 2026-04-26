@@ -29,7 +29,7 @@ namespace BackEnd.Controllers
                 join leader in _context.Users
                     on team.TeamLeaderUserId equals leader.UserId into leaderJoin
                 from leader in leaderJoin.DefaultIfEmpty()
-                where team.CompanyId == companyId
+                where team.CompanyId == companyId && team.IsActive
                 select new
                 {
                     team.TeamId,
@@ -603,35 +603,42 @@ namespace BackEnd.Controllers
                 return NotFound(new { success = false, message = "Team not found." });
             }
 
-            var taskIds = await _context.Tasks
-                .AsNoTracking()
-                .Where(task => task.TeamId == teamId)
-                .Select(task => task.TaskId)
-                .ToListAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (taskIds.Count > 0)
+            try
             {
-                await _context.TaskStatusHistories
-                    .Where(history => taskIds.Contains(history.TaskId))
-                    .ExecuteDeleteAsync();
+                var teamMembers = await _context.TeamMembers
+                    .Where(teamMember => teamMember.TeamId == teamId)
+                    .ToListAsync();
 
-                await _context.Tasks
-                    .Where(task => task.TeamId == teamId)
-                    .ExecuteDeleteAsync();
+                if (teamMembers.Count > 0)
+                {
+                    _context.TeamMembers.RemoveRange(teamMembers);
+                }
+
+                team.TeamLeaderUserId = null;
+                team.IsActive = false;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Team deleted successfully."
+                });
             }
-
-            await _context.TeamMembers
-                .Where(teamMember => teamMember.TeamId == teamId)
-                .ExecuteDeleteAsync();
-
-            _context.Teams.Remove(team);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            catch (Exception error)
             {
-                success = true,
-                message = "Team deleted successfully."
-            });
+                await transaction.RollbackAsync();
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Failed to delete team.",
+                    detail = error.Message
+                });
+            }
         }
 
         private async Task SyncTeamMembersAsync(Team team, IEnumerable<int> requestedMemberIds, int? requestedLeaderId)

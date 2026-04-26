@@ -343,23 +343,50 @@ namespace BackEnd.Controllers
                 });
             }
 
-            var historyItems = await _context.TaskStatusHistories
-                .Where(h => h.TaskId == taskId)
-                .ToListAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (historyItems.Any())
+            try
             {
-                _context.TaskStatusHistories.RemoveRange(historyItems);
+                var changeRequests = await _context.TaskChangeRequests
+                    .Where(request => request.TaskId == taskId)
+                    .ToListAsync();
+
+                if (changeRequests.Any())
+                {
+                    _context.TaskChangeRequests.RemoveRange(changeRequests);
+                }
+
+                var historyItems = await _context.TaskStatusHistories
+                    .Where(history => history.TaskId == taskId)
+                    .ToListAsync();
+
+                if (historyItems.Any())
+                {
+                    _context.TaskStatusHistories.RemoveRange(historyItems);
+                }
+
+                _context.Tasks.Remove(task);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Task deleted successfully."
+                });
             }
-
-            _context.Tasks.Remove(task);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            catch (Exception error)
             {
-                success = true,
-                message = "Task deleted successfully."
-            });
+                await transaction.RollbackAsync();
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Failed to delete task.",
+                    detail = error.Message
+                });
+            }
         }
 
         [HttpDelete("delete/{taskId:int}")]

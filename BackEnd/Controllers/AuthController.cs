@@ -646,49 +646,147 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
                 });
             }
 
-            var userRoles = await _context.UserRoles
-                .Where(ur => ur.UserId == userId)
-                .ToListAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (userRoles.Count > 0)
+            try
             {
-                _context.UserRoles.RemoveRange(userRoles);
-            }
+                var replacementUserId = await _context.Users
+                    .Where(u => u.CompanyId == user.CompanyId && u.UserId != userId && u.IsActive)
+                    .Join(
+                        _context.UserRoles,
+                        userItem => userItem.UserId,
+                        userRole => userRole.UserId,
+                        (userItem, userRole) => new { userItem.UserId, userRole.RoleId }
+                    )
+                    .Join(
+                        _context.Roles,
+                        userRole => userRole.RoleId,
+                        role => role.RoleId,
+                        (userRole, role) => new { userRole.UserId, role.RoleName }
+                    )
+                    .Where(item =>
+                        item.RoleName.ToLower() == "admin" ||
+                        item.RoleName.ToLower() == "company admin" ||
+                        item.RoleName.ToLower() == "companyadmin")
+                    .Select(item => (int?)item.UserId)
+                    .FirstOrDefaultAsync();
 
-            // Remove the user from teams before deleting the user itself.
-            // Adjust the two blocks below only if your team relation names differ.
-            if (_context.Model.FindEntityType(typeof(Team)) != null)
-            {
-                var teamsLedByUser = await _context.Set<Team>()
-                    .Where(t => t.TeamLeaderUserId == userId)
+                replacementUserId ??= await _context.Users
+                    .Where(u => u.CompanyId == user.CompanyId && u.UserId != userId && u.IsActive)
+                    .Select(u => (int?)u.UserId)
+                    .FirstOrDefaultAsync();
+
+                var hasRequiredReferences =
+                    await _context.Tasks.AnyAsync(task => task.CreatedByUserId == userId) ||
+                    await _context.TaskStatusHistories.AnyAsync(history => history.ChangedByUserId == userId) ||
+                    await _context.TaskChangeRequests.AnyAsync(request => request.RequestedByUserId == userId);
+
+                if (hasRequiredReferences && replacementUserId == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "This user cannot be deleted because their records are linked to tasks or activity history and no replacement user is available."
+                    });
+                }
+
+                var assignedTasks = await _context.Tasks
+                    .Where(task => task.AssignedToUserId == userId)
+                    .ToListAsync();
+
+                foreach (var task in assignedTasks)
+                {
+                    task.AssignedToUserId = null;
+                }
+
+                if (replacementUserId.HasValue)
+                {
+                    var createdTasks = await _context.Tasks
+                        .Where(task => task.CreatedByUserId == userId)
+                        .ToListAsync();
+
+                    foreach (var task in createdTasks)
+                    {
+                        task.CreatedByUserId = replacementUserId.Value;
+                    }
+
+                    var historiesChangedByUser = await _context.TaskStatusHistories
+                        .Where(history => history.ChangedByUserId == userId)
+                        .ToListAsync();
+
+                    foreach (var history in historiesChangedByUser)
+                    {
+                        history.ChangedByUserId = replacementUserId.Value;
+                    }
+
+                    var requestsMadeByUser = await _context.TaskChangeRequests
+                        .Where(request => request.RequestedByUserId == userId)
+                        .ToListAsync();
+
+                    foreach (var request in requestsMadeByUser)
+                    {
+                        request.RequestedByUserId = replacementUserId.Value;
+                    }
+                }
+
+                var requestsReviewedByUser = await _context.TaskChangeRequests
+                    .Where(request => request.ReviewedByUserId == userId)
+                    .ToListAsync();
+
+                foreach (var request in requestsReviewedByUser)
+                {
+                    request.ReviewedByUserId = null;
+                }
+
+                var teamsLedByUser = await _context.Teams
+                    .Where(team => team.TeamLeaderUserId == userId)
                     .ToListAsync();
 
                 foreach (var team in teamsLedByUser)
                 {
                     team.TeamLeaderUserId = null;
                 }
-            }
 
-            if (_context.Model.FindEntityType(typeof(TeamMember)) != null)
-            {
-                var teamMemberships = await _context.Set<TeamMember>()
-                    .Where(tm => tm.UserId == userId)
+                var teamMemberships = await _context.TeamMembers
+                    .Where(teamMember => teamMember.UserId == userId)
                     .ToListAsync();
 
                 if (teamMemberships.Count > 0)
                 {
-                    _context.Set<TeamMember>().RemoveRange(teamMemberships);
+                    _context.TeamMembers.RemoveRange(teamMemberships);
                 }
+
+                var userRoles = await _context.UserRoles
+                    .Where(userRole => userRole.UserId == userId)
+                    .ToListAsync();
+
+                if (userRoles.Count > 0)
+                {
+                    _context.UserRoles.RemoveRange(userRoles);
+                }
+
+                _context.Users.Remove(user);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "User deleted successfully. Existing tasks were kept and unassigned from this user."
+                });
             }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            catch (Exception error)
             {
-                success = true,
-                message = "User deleted successfully."
-            });
+                await transaction.RollbackAsync();
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Failed to delete user.",
+                    detail = error.Message
+                });
+            }
         }
 
         [HttpPost("verify-email-change-otp")]
