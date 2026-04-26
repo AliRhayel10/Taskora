@@ -3,7 +3,6 @@ import {
   FiGrid,
   FiUsers,
   FiLayers,
-  FiCheckSquare,
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
@@ -28,7 +27,6 @@ export default function AdminSidebar({
     { name: "Dashboard", icon: <FiGrid /> },
     { name: "Users", icon: <FiUsers /> },
     { name: "Teams", icon: <FiLayers /> },
-    { name: "Tasks", icon: <FiCheckSquare /> },
   ];
 
   return (

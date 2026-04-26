@@ -9,7 +9,6 @@ import TeamsSection from "../components/admin/TeamsSection";
 import TeamDetailsPage from "../components/admin/TeamDetailsPage";
 import UserDetailsPage from "../components/admin/UserDetailsPage";
 import UsersSection from "../components/admin/UsersSection";
-import TasksSection from "../components/admin/TasksSection";
 import "./../assets/styles/admin/admin-dashboard.css";
 
 export default function AdminDashboard() {
@@ -117,6 +116,12 @@ export default function AdminDashboard() {
       setSelectedUser(null);
     }
 
+    if (section === "Tasks") {
+      setTopbarSearch("");
+      setActiveSection("Dashboard");
+      return;
+    }
+
     setTopbarSearch("");
     setActiveSection(section);
   };
@@ -156,7 +161,7 @@ export default function AdminDashboard() {
   };
 
   const shouldShowSearch = () => {
-    return ["Dashboard", "Users", "Teams", "TeamDetails", "Tasks"].includes(
+    return ["Dashboard", "Users", "Teams", "TeamDetails"].includes(
       activeSection
     );
   };
@@ -169,8 +174,6 @@ export default function AdminDashboard() {
         return "Search teams...";
       case "TeamDetails":
         return "Search team members...";
-      case "Tasks":
-        return "Search tasks...";
       case "Dashboard":
         return "Search...";
       default:
@@ -243,14 +246,11 @@ export default function AdminDashboard() {
           />
         );
 
-      case "Tasks":
-        return <TasksSection searchValue={topbarSearch} />;
-
       case "Dashboard":
         return <DashboardSection searchValue={topbarSearch} />;
 
       default:
-        return <DashboardSection />;
+        return <DashboardSection searchValue={topbarSearch} />;
     }
   };
 
@@ -284,7 +284,6 @@ export default function AdminDashboard() {
           searchValue={topbarSearch}
           onSearchChange={setTopbarSearch}
           searchPlaceholder={getSearchPlaceholder()}
-          notificationCount={0}
           onOpenProfile={() => handleSectionSelect("Profile")}
           onOpenSettings={() => handleSectionSelect("Settings")}
           onLogout={handleLogout}
