@@ -269,6 +269,24 @@ namespace BackEnd.Controllers
                 });
             }
 
+            var email = request.Email?.Trim().ToLower() ?? "";
+
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var existingUser = await _context.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+                if (existingUser != null && !existingUser.IsActive)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new LoginResponse
+                    {
+                        Success = false,
+                        Message = "Your account is inactive. Please contact your administrator."
+                    });
+                }
+            }
+
             var result = await _loginService.LoginAsync(request);
 
             if (!result.Success)

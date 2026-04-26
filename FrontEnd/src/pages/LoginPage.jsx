@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 import "./../assets/styles/login.css";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -12,7 +13,7 @@ export default function LoginPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(location.state?.message || "");
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -33,6 +34,9 @@ export default function LoginPage() {
     if (!isFormValid) return;
 
     try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("authUser");
+
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: {
@@ -62,8 +66,11 @@ export default function LoginPage() {
         profileImageUrl: data.profileImageUrl,
         jobTitle: data.jobTitle,
         token: data.token,
+        isActive: data.isActive ?? true,
+        status: data.status || "Active",
       };
       localStorage.setItem("user", JSON.stringify(userPayload));
+      localStorage.setItem("authUser", JSON.stringify(userPayload));
 
       if (
         role === "admin" ||
