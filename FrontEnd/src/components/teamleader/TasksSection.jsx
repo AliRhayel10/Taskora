@@ -866,6 +866,7 @@ const resolvedCurrentUserId =
   const [selectedRange, setSelectedRange] = useState(DEFAULT_RANGE);
   const [draftRange, setDraftRange] = useState(DEFAULT_RANGE);
   const [deleteTaskId, setDeleteTaskId] = useState(null);
+  const [isEditSaveConfirmOpen, setIsEditSaveConfirmOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editFormState, setEditFormState] = useState(null);
   const [selectedTaskForView, setSelectedTaskForView] = useState(null);
@@ -2187,6 +2188,7 @@ const resolvedCurrentUserId =
   const cancelEditMode = () => {
     setEditingTaskId(null);
     setEditFormState(null);
+    setIsEditSaveConfirmOpen(false);
     setIsEditAssigneeOpen(false);
     setIsEditTaskInfoOpen(false);
     setIsEditDueDateOpen(false);
@@ -2362,6 +2364,18 @@ const resolvedCurrentUserId =
 
   const startIndex = sortedTasks.length ? (currentPage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(currentPage * pageSize, sortedTasks.length);
+
+  const isEditSaveDisabled =
+    isSavingEdit ||
+    !editFormState?.title?.trim() ||
+    !editFormState?.description?.trim() ||
+    !editFormState?.assignedUserId ||
+    !editFormState?.priority ||
+    !editFormState?.complexity ||
+    !editFormState?.estimatedEffortHours ||
+    !editFormState?.startDate ||
+    !editFormState?.dueDate ||
+    !computedEditTaskWeight;
 
   if (selectedTaskForView) {
     return (
@@ -3014,19 +3028,8 @@ const resolvedCurrentUserId =
                                 type="button"
                                 className="tasks-section__action-btn tasks-section__action-btn--edit"
                                 title="Save changes"
-                                onClick={saveTaskChanges}
-                                disabled={
-                                  isSavingEdit ||
-                                  !editFormState.title?.trim() ||
-                                  !editFormState.description?.trim() ||
-                                  !editFormState.assignedUserId ||
-                                  !editFormState.priority ||
-                                  !editFormState.complexity ||
-                                  !editFormState.estimatedEffortHours ||
-                                  !editFormState.startDate ||
-                                  !editFormState.dueDate ||
-                                  !computedEditTaskWeight
-                                }
+                                onClick={() => setIsEditSaveConfirmOpen(true)}
+                                disabled={isEditSaveDisabled}
                               >
                                 <FiCheck />
                               </button>
@@ -3780,6 +3783,47 @@ const resolvedCurrentUserId =
         </div>
       )}
 
+
+      {isEditSaveConfirmOpen && editingTaskId && (
+        <div
+          className="tasks-section__modal-overlay"
+          onClick={() => {
+            if (!isSavingEdit) {
+              setIsEditSaveConfirmOpen(false);
+            }
+          }}
+        >
+          <div
+            className="tasks-section__confirm-modal tasks-section__confirm-modal--save-edit"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="tasks-section__confirm-copy">
+              <h3>Confirm Task Update</h3>
+              <p>Are you sure you want to save the changes made to this task?</p>
+            </div>
+
+            <div className="tasks-section__confirm-actions">
+              <button
+                type="button"
+                className="tasks-section__secondary-btn"
+                onClick={() => setIsEditSaveConfirmOpen(false)}
+                disabled={isSavingEdit}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="tasks-section__submit-btn"
+                onClick={saveTaskChanges}
+                disabled={isEditSaveDisabled}
+              >
+                {isSavingEdit ? "Saving..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteTaskId && (
         <div
