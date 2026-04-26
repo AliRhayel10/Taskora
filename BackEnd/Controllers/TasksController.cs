@@ -305,7 +305,8 @@ namespace BackEnd.Controllers
             {
                 var assignedUser = await _context.Users.FirstOrDefaultAsync(u =>
                     u.UserId == request.AssignedToUserId.Value &&
-                    u.CompanyId == task.CompanyId);
+                    u.CompanyId == task.CompanyId &&
+                    u.IsActive);
 
                 if (assignedUser == null)
                 {
@@ -314,6 +315,29 @@ namespace BackEnd.Controllers
                         success = false,
                         message = "Assigned user not found."
                     });
+                }
+
+                var assignedUserTeamId = await (
+                    from teamMember in _context.TeamMembers
+                    join team in _context.Teams on teamMember.TeamId equals team.TeamId
+                    where teamMember.UserId == request.AssignedToUserId.Value &&
+                          team.IsActive &&
+                          team.CompanyId == task.CompanyId
+                    orderby teamMember.TeamMemberId
+                    select (int?)team.TeamId
+                ).FirstOrDefaultAsync();
+
+                assignedUserTeamId ??= await _context.Teams
+                    .Where(team =>
+                        team.TeamLeaderUserId == request.AssignedToUserId.Value &&
+                        team.IsActive &&
+                        team.CompanyId == task.CompanyId)
+                    .Select(team => (int?)team.TeamId)
+                    .FirstOrDefaultAsync();
+
+                if (assignedUserTeamId.HasValue)
+                {
+                    task.TeamId = assignedUserTeamId.Value;
                 }
             }
 
@@ -327,6 +351,12 @@ namespace BackEnd.Controllers
                     ? "Task reassigned successfully."
                     : "Task unassigned successfully."
             });
+        }
+
+        [HttpPut("update-assignee/{taskId:int}")]
+        public async Task<IActionResult> UpdateTaskAssigneeFallback(int taskId, [FromBody] UpdateTaskAssigneeRequest request)
+        {
+            return await UpdateTaskAssignee(taskId, request);
         }
 
         [HttpDelete("{taskId:int}")]

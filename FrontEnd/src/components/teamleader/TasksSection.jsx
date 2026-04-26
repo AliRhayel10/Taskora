@@ -703,6 +703,42 @@ const buildTaskUpdatePayload = ({
   dueDate: editFormState.dueDate || task.dueDate || null,
 });
 
+const isOnlyAssigneeChanged = (task, editFormState) => {
+  if (!task || !editFormState) return false;
+
+  const normalizeValue = (value) => String(value ?? "").trim();
+
+  const normalizeDateValue = (value) => {
+    if (!value) return "";
+
+    const date = value instanceof Date ? value : new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return normalizeValue(value);
+    }
+
+    return format(date, "yyyy-MM-dd");
+  };
+
+  const currentAssigneeId = normalizeValue(task.assignedUserId);
+  const nextAssigneeId = normalizeValue(editFormState.assignedUserId);
+
+  if (!nextAssigneeId || currentAssigneeId === nextAssigneeId) {
+    return false;
+  }
+
+  return (
+    normalizeValue(task.title) === normalizeValue(editFormState.title) &&
+    normalizeValue(task.description) === normalizeValue(editFormState.description) &&
+    normalizeValue(task.priority) === normalizeValue(editFormState.priority) &&
+    normalizeValue(task.complexity) === normalizeValue(editFormState.complexity) &&
+    Number(task.estimatedEffortHours || 0) ===
+      Number(editFormState.estimatedEffortHours || 0) &&
+    normalizeDateValue(task.startDate) === normalizeDateValue(editFormState.startDate) &&
+    normalizeDateValue(task.dueDate) === normalizeDateValue(editFormState.dueDate)
+  );
+};
+
 const buildDeletePayload = (taskId) => ({
   taskId: Number(taskId),
 });
@@ -2288,6 +2324,87 @@ const resolvedCurrentUserId =
     setFeedback(null);
 
     try {
+      const currentAssigneeId = String(taskToEdit.assignedUserId ?? "").trim();
+      const nextAssigneeId = String(editFormState.assignedUserId ?? "").trim();
+      const hasAssigneeChanged =
+        Boolean(nextAssigneeId) && currentAssigneeId !== nextAssigneeId;
+
+      const shouldOnlyUpdateAssignee = isOnlyAssigneeChanged(
+        taskToEdit,
+        editFormState,
+      );
+
+      if (hasAssigneeChanged) {
+        const assigneeAttempt = await tryRequestCandidates([
+          {
+            url: `${API_BASE}/api/tasks/${editingTaskId}/assignee`,
+            options: {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                assignedToUserId: Number(nextAssigneeId),
+              }),
+            },
+          },
+          {
+            url: `${API_BASE}/api/tasks/update-assignee/${editingTaskId}`,
+            options: {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                assignedToUserId: Number(nextAssigneeId),
+              }),
+            },
+          },
+        ]);
+
+        if (!assigneeAttempt.ok) {
+          throw new Error(
+            assigneeAttempt.message ||
+            "Unable to assign task to the selected user.",
+          );
+        }
+
+        if (shouldOnlyUpdateAssignee) {
+          setTasks((previousTasks) =>
+            previousTasks.map((task) => {
+              if (String(task.id) !== String(editingTaskId)) {
+                return task;
+              }
+
+              const selectedUser = users.find(
+                (user) => String(user.userId ?? user.id) === nextAssigneeId,
+              );
+
+              return {
+                ...task,
+                assignedUserId: Number(nextAssigneeId),
+                assignedToUserId: Number(nextAssigneeId),
+                AssignedToUserId: Number(nextAssigneeId),
+                assignedUserName:
+                  selectedUser?.fullName ||
+                  selectedUser?.name ||
+                  task.assignedUserName ||
+                  "",
+                assignedUserEmail:
+                  selectedUser?.email || task.assignedUserEmail || "",
+                assignedUserAvatar:
+                  getProfileImage(selectedUser) || task.assignedUserAvatar || "",
+                teamId: editingSelectedUserTeamId || task.teamId,
+              };
+            }),
+          );
+
+          await loadTasks();
+          setFeedback({
+            type: "success",
+            message: "Task assigned successfully.",
+          });
+          cancelEditMode();
+          return;
+        }
+      }
+
       const payload = buildTaskUpdatePayload({
         task: taskToEdit,
         editFormState,
@@ -2374,8 +2491,7 @@ const resolvedCurrentUserId =
     !editFormState?.complexity ||
     !editFormState?.estimatedEffortHours ||
     !editFormState?.startDate ||
-    !editFormState?.dueDate ||
-    !computedEditTaskWeight;
+    !editFormState?.dueDate;
 
   if (selectedTaskForView) {
     return (
