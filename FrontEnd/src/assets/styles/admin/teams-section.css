@@ -42,6 +42,11 @@
   overscroll-behavior: contain;
 }
 
+.teams-section__scroll--list {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
 .teams-section__toolbar {
   display: flex;
   align-items: center;
@@ -1220,14 +1225,21 @@
 .teams-section__list-card {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .teams-section__table-wrap {
   width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: auto;
+  overflow-y: auto;
 }
 
 .teams-section__table {
@@ -1244,17 +1256,25 @@
   font-size: 0.96rem;
   font-weight: 800;
   text-align: left;
-  padding: 16px 18px;
+  padding: 14px 16px;
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .teams-section__table tbody td {
   border-bottom: 1px solid #e2e8f0;
   color: #334155;
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   font-weight: 600;
-  padding: 14px 18px;
+  padding: 12px 16px;
   vertical-align: middle;
+  height: 72px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .teams-section__table tbody tr:last-child td {
@@ -1427,31 +1447,36 @@
 }
 
 .teams-section__pagination {
-  min-height: 70px;
-  border-top: 1px solid #e2e8f0;
-  padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding: 14px 16px;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  margin-top: auto;
+  background: #f8fafc;
 }
 
 .teams-section__pagination-copy {
-  color: #475569;
-  font-size: 0.94rem;
-  font-weight: 750;
+  color: #475467;
+  font-size: 0.92rem;
+  font-weight: 500;
 }
 
 .teams-section__pagination-controls {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .teams-section__pagination-btn,
 .teams-section__pagination-page {
-  min-width: 38px;
-  height: 38px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #f8fafc;
@@ -1459,14 +1484,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
-  font-weight: 800;
+  gap: 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease,
     transform 0.2s ease;
+}
+
+.teams-section__pagination-page {
+  width: 36px;
+  padding: 0;
 }
 
 .teams-section__pagination-page--active {

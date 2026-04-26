@@ -19,7 +19,7 @@ import {
 import "../../assets/styles/admin/teams-section.css";
 
 const API_BASE_URL = "http://localhost:5000";
-const LIST_PAGE_SIZE = 6;
+const FALLBACK_LIST_PAGE_SIZE = 6;
 
 function getStoredUser() {
   try {
@@ -156,6 +156,15 @@ function getTotalTeamMembersCount(team) {
   return 0;
 }
 
+function getInitialTeamsViewMode() {
+  try {
+    const savedView = localStorage.getItem("teamsSectionViewMode");
+    return savedView === "list" ? "list" : "grid";
+  } catch {
+    return "grid";
+  }
+}
+
 function calculateTeamGridColumns(width) {
   if (width >= 1240) return 4;
   if (width >= 900) return 3;
@@ -184,8 +193,9 @@ export default function TeamsSection({
   const [isStatusActive, setIsStatusActive] = useState(true);
   const [leaderImageErrors, setLeaderImageErrors] = useState({});
   const [createLeaderImageErrors, setCreateLeaderImageErrors] = useState({});
-  const [viewMode, setViewMode] = useState("grid");
+  const [viewMode, setViewMode] = useState(() => getInitialTeamsViewMode());
   const [listPage, setListPage] = useState(1);
+  const [listPageSize, setListPageSize] = useState(FALLBACK_LIST_PAGE_SIZE);
 
   const [teamForm, setTeamForm] = useState({
     teamName: "",
@@ -207,6 +217,7 @@ export default function TeamsSection({
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
   const sectionRef = useRef(null);
+  const listTableWrapRef = useRef(null);
   const menuRef = useRef(null);
   const [gridColumnCount, setGridColumnCount] = useState(4);
 
@@ -374,6 +385,14 @@ export default function TeamsSection({
   }, []);
 
   useEffect(() => {
+    try {
+      localStorage.setItem("teamsSectionViewMode", viewMode);
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
     if (!successMessage && !errorMessage) return;
 
     const timeoutId = window.setTimeout(() => {
@@ -419,6 +438,39 @@ export default function TeamsSection({
       };
     });
   }, [filteredTeams, companyMembers]);
+
+  useEffect(() => {
+    if (viewMode !== "list") {
+      return;
+    }
+
+    const updateListPageSize = () => {
+      const wrapHeight = listTableWrapRef.current?.getBoundingClientRect().height || 0;
+      const headerHeight = 52;
+      const rowHeight = 72;
+      const availableRows = Math.floor((wrapHeight - headerHeight) / rowHeight);
+
+      setListPageSize(Math.max(1, availableRows || FALLBACK_LIST_PAGE_SIZE));
+    };
+
+    updateListPageSize();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && listTableWrapRef.current
+        ? new ResizeObserver(updateListPageSize)
+        : null;
+
+    if (resizeObserver && listTableWrapRef.current) {
+      resizeObserver.observe(listTableWrapRef.current);
+    }
+
+    window.addEventListener("resize", updateListPageSize);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateListPageSize);
+    };
+  }, [viewMode, resolvedTeams.length]);
 
   const assignedActiveLeaderIds = useMemo(() => {
     return new Set(
@@ -741,26 +793,30 @@ export default function TeamsSection({
 
   const totalListPages = Math.max(
     1,
-    Math.ceil(resolvedTeams.length / LIST_PAGE_SIZE),
+    Math.ceil(resolvedTeams.length / listPageSize),
   );
 
   const paginatedTeams = useMemo(() => {
     const safePage = Math.min(Math.max(listPage, 1), totalListPages);
-    const startIndex = (safePage - 1) * LIST_PAGE_SIZE;
+    const startIndex = (safePage - 1) * listPageSize;
 
-    return resolvedTeams.slice(startIndex, startIndex + LIST_PAGE_SIZE);
-  }, [resolvedTeams, listPage, totalListPages]);
+    return resolvedTeams.slice(startIndex, startIndex + listPageSize);
+  }, [resolvedTeams, listPage, totalListPages, listPageSize]);
 
   const listStartItem =
-    resolvedTeams.length === 0 ? 0 : (Math.min(listPage, totalListPages) - 1) * LIST_PAGE_SIZE + 1;
+    resolvedTeams.length === 0 ? 0 : (Math.min(listPage, totalListPages) - 1) * listPageSize + 1;
   const listEndItem = Math.min(
-    Math.min(listPage, totalListPages) * LIST_PAGE_SIZE,
+    Math.min(listPage, totalListPages) * listPageSize,
     resolvedTeams.length,
   );
 
   useEffect(() => {
     setListPage(1);
   }, [effectiveSearchTerm, viewMode, resolvedTeams.length]);
+
+  useEffect(() => {
+    setListPage((page) => Math.min(Math.max(1, page), totalListPages));
+  }, [totalListPages]);
 
   return (
     <section className="teams-section" ref={sectionRef}>
@@ -818,7 +874,7 @@ export default function TeamsSection({
         </div>
       )}
 
-      <div className="teams-section__scroll">
+      <div className={`teams-section__scroll ${viewMode === "list" ? "teams-section__scroll--list" : ""}`}>
         {isLoading && (
           <div className="teams-section__state-card">
             <p>Loading teams...</p>
@@ -971,7 +1027,7 @@ export default function TeamsSection({
 
         {!isLoading && resolvedTeams.length > 0 && viewMode === "list" && (
           <div className="teams-section__list-card">
-            <div className="teams-section__table-wrap">
+            <div className="teams-section__table-wrap" ref={listTableWrapRef}>
               <table className="teams-section__table">
                 <thead>
                   <tr>
