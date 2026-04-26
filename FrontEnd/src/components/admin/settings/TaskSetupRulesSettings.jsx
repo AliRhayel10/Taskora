@@ -161,7 +161,6 @@ export default function TaskSetupRulesSettings({
     const [priorityRows, setPriorityRows] = useState([]);
     const [complexityRows, setComplexityRows] = useState([]);
 
-    const [editingStatusIndex, setEditingStatusIndex] = useState(null);
     const [editingPriorityIndex, setEditingPriorityIndex] = useState(null);
     const [editingComplexityIndex, setEditingComplexityIndex] = useState(null);
     const [activeTab, setActiveTab] = useState("statuses");
@@ -270,11 +269,6 @@ export default function TaskSetupRulesSettings({
         };
     };
 
-    const didStatusRowChange = (index) => {
-        const currentValue = (statusesList[index] || "").trim();
-        const originalValue = statusOriginalValue(index).trim();
-        return currentValue !== originalValue;
-    };
 
     const didPriorityRowChange = (index) => {
         const currentRow = priorityRows[index] || { name: "", multiplier: "" };
@@ -352,28 +346,6 @@ export default function TaskSetupRulesSettings({
         });
     };
 
-    const cancelStatusEdit = (index) => {
-        const isPending =
-            pendingNewRow?.type === "status" && pendingNewRow?.index === index;
-
-        if (isPending) {
-            const nextStatuses = statusesList.filter((_, itemIndex) => itemIndex !== index);
-            setStatusesList(nextStatuses);
-            setDraftData(taskData);
-            setPendingNewRow(null);
-            setEditingStatusIndex(null);
-            setErrorMessage("");
-            setSuccessMessage("");
-            return;
-        }
-
-        resetDraftToSaved();
-        setEditingStatusIndex(null);
-        setPendingNewRow(null);
-        setErrorMessage("");
-        setSuccessMessage("");
-    };
-
     const cancelPriorityEdit = (index) => {
         const isPending =
             pendingNewRow?.type === "priority" && pendingNewRow?.index === index;
@@ -423,13 +395,6 @@ export default function TaskSetupRulesSettings({
             return;
         }
 
-        if (pendingNewRow.type === "status") {
-            const nextStatuses = statusesList.filter(
-                (_, itemIndex) => itemIndex !== pendingNewRow.index
-            );
-            setStatusesList(nextStatuses);
-            setEditingStatusIndex(null);
-        }
 
         if (pendingNewRow.type === "priority") {
             const nextRows = priorityRows.filter(
@@ -456,7 +421,6 @@ export default function TaskSetupRulesSettings({
     useEffect(() => {
         const hasEditableFieldOpen =
             pendingNewRow !== null ||
-            editingStatusIndex !== null ||
             editingPriorityIndex !== null ||
             editingComplexityIndex !== null;
 
@@ -474,16 +438,6 @@ export default function TaskSetupRulesSettings({
                 return;
             }
 
-            if (editingStatusIndex !== null) {
-                const activeRow = panelRef.current?.querySelector(
-                    `[data-row-type="status"][data-row-index="${editingStatusIndex}"]`
-                );
-
-                if (activeRow && !activeRow.contains(event.target)) {
-                    cancelStatusEdit(editingStatusIndex);
-                    return;
-                }
-            }
 
             if (editingPriorityIndex !== null) {
                 const activeRow = panelRef.current?.querySelector(
@@ -519,7 +473,6 @@ export default function TaskSetupRulesSettings({
         };
     }, [
         pendingNewRow,
-        editingStatusIndex,
         editingPriorityIndex,
         editingComplexityIndex,
         statusesList,
@@ -602,7 +555,6 @@ export default function TaskSetupRulesSettings({
             setStatusesList(payload.statuses);
             setPriorityRows(parseMultiplierRows(normalizedData.priorityMultipliers));
             setComplexityRows(parseMultiplierRows(normalizedData.complexityMultipliers));
-            setEditingStatusIndex(null);
             setEditingPriorityIndex(null);
             setEditingComplexityIndex(null);
             setPendingNewRow(null);
@@ -620,11 +572,6 @@ export default function TaskSetupRulesSettings({
         }
     };
 
-    const updateStatusValue = (index, value) => {
-        const next = [...statusesList];
-        next[index] = value;
-        syncStatuses(next);
-    };
 
     const updatePriorityRow = (index, field, value) => {
         const next = [...priorityRows];
@@ -673,15 +620,6 @@ export default function TaskSetupRulesSettings({
         }
     };
 
-    const addStatus = () => {
-        const next = [...statusesList, ""];
-        setStatusesList(next);
-        setEditingStatusIndex(next.length - 1);
-        setPendingNewRow({ type: "status", index: next.length - 1 });
-        setErrorMessage("");
-        setSuccessMessage("");
-    };
-
     const addPriority = () => {
         const next = [...priorityRows, { name: "", multiplier: "" }];
         setPriorityRows(next);
@@ -698,45 +636,6 @@ export default function TaskSetupRulesSettings({
         setPendingNewRow({ type: "complexity", index: next.length - 1 });
         setErrorMessage("");
         setSuccessMessage("");
-    };
-
-    const deleteStatus = async (index, options = {}) => {
-        const { skipModal = false } = options;
-        const isPending =
-            pendingNewRow?.type === "status" && pendingNewRow?.index === index;
-
-        if (!isPending && !skipModal) {
-            openDeleteModal(
-                "status",
-                index,
-                "Delete status",
-                "Are you sure you want to delete this status? This action will remove it from your task setup rules."
-            );
-            return;
-        }
-
-        const nextStatuses = statusesList.filter((_, itemIndex) => itemIndex !== index);
-        const cleaned = nextStatuses.map((item) => item.trim()).filter(Boolean);
-        const nextDraftData = {
-            ...draftData,
-            statuses: cleaned.join(", "),
-        };
-
-        setStatusesList(nextStatuses);
-        setDraftData(nextDraftData);
-
-        if (editingStatusIndex === index) {
-            setEditingStatusIndex(null);
-        }
-
-        if (isPending) {
-            setPendingNewRow(null);
-            setSuccessMessage("");
-            setErrorMessage("");
-            return;
-        }
-
-        await saveSetupRules(nextDraftData, { showSuccess: true });
     };
 
     const deletePriority = async (index, options = {}) => {
@@ -821,10 +720,6 @@ export default function TaskSetupRulesSettings({
         const { type, index } = deleteModal;
         closeDeleteModal();
 
-        if (type === "status") {
-            await deleteStatus(index, { skipModal: true });
-            return;
-        }
 
         if (type === "priority") {
             await deletePriority(index, { skipModal: true });
@@ -834,40 +729,6 @@ export default function TaskSetupRulesSettings({
         if (type === "complexity") {
             await deleteComplexity(index, { skipModal: true });
         }
-    };
-
-    const handleStatusEditToggle = async (index, isEditingRow) => {
-        if (isEditingRow) {
-            const currentValue = (statusesList[index] || "").trim();
-            if (!currentValue) {
-                return;
-            }
-
-            const isPending =
-                pendingNewRow?.type === "status" && pendingNewRow?.index === index;
-
-            if (!isPending && !didStatusRowChange(index)) {
-                setEditingStatusIndex(null);
-                setPendingNewRow(null);
-                setSuccessMessage("");
-                setErrorMessage("");
-                setStatusesList(parseCommaSeparated(taskData.statuses));
-                setDraftData(taskData);
-                return;
-            }
-
-            const ok = await saveSetupRules(draftData, {
-                showSuccess: didStatusRowChange(index) || isPending,
-            });
-
-            if (ok) {
-                setEditingStatusIndex(null);
-                setPendingNewRow(null);
-            }
-            return;
-        }
-
-        setEditingStatusIndex(index);
     };
 
     const handlePriorityEditToggle = async (index, isEditingRow) => {
@@ -951,58 +812,14 @@ export default function TaskSetupRulesSettings({
     };
 
     const renderStatusRow = (status, index) => {
-        const isEditingRow = editingStatusIndex === index;
-
         return (
             <div
-                className="task-setup-rules-row"
+                className="task-setup-rules-row task-setup-rules-row--status"
                 key={`status-${index}`}
                 data-row-type="status"
                 data-row-index={index}
             >
-                {isEditingRow ? (
-                    <input
-                        type="text"
-                        className="task-setup-rules-input task-setup-rules-input--row"
-                        value={status}
-                        onChange={(e) => updateStatusValue(index, e.target.value)}
-                        placeholder="Status name"
-                    />
-                ) : (
-                    <div className="task-setup-rules-row-value">{status || "-"}</div>
-                )}
-
-                <div className="task-setup-rules-row-actions">
-                    <button
-                        type="button"
-                        className="task-setup-rules-icon-btn"
-                        onClick={() => handleStatusEditToggle(index, isEditingRow)}
-                        aria-label="Edit status"
-                        disabled={isEditingRow && !(statusesList[index] || "").trim()}
-                    >
-                        {isEditingRow ? <FiCheck /> : <FiEdit2 />}
-                    </button>
-
-                    {isEditingRow ? (
-                        <button
-                            type="button"
-                            className="task-setup-rules-icon-btn task-setup-rules-icon-btn--cancel"
-                            onClick={() => cancelStatusEdit(index)}
-                            aria-label="Cancel status edit"
-                        >
-                            <FiX />
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            className="task-setup-rules-icon-btn task-setup-rules-icon-btn--danger"
-                            onClick={() => deleteStatus(index)}
-                            aria-label="Delete status"
-                        >
-                            <FiTrash />
-                        </button>
-                    )}
-                </div>
+                <div className="task-setup-rules-row-value">{status || "-"}</div>
             </div>
         );
     };
@@ -1127,16 +944,6 @@ export default function TaskSetupRulesSettings({
                             <div className="task-setup-rules-row-empty">No statuses yet.</div>
                         )}
                     </div>
-
-                    <button
-                        type="button"
-                        className="task-setup-rules-add-btn"
-                        onClick={addStatus}
-                    >
-                        <span className="task-setup-rules-add-btn__text">
-                            <FiPlus /> Add New Status
-                        </span>
-                    </button>
                 </PanelCard>
             );
         }

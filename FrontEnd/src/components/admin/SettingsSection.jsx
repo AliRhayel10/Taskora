@@ -3,7 +3,6 @@ import {
   FiBriefcase,
   FiCheckSquare,
   FiShield,
-  FiBell,
   FiChevronRight,
 } from "react-icons/fi";
 import WorkspaceSettings from "./settings/WorkspaceSettings";
@@ -71,12 +70,6 @@ export default function SettingsSection({ resetSignal = 0 }) {
       description:
         "Configure task statuses, priorities, complexity levels, effort calculation, and workload rules.",
       icon: <FiCheckSquare />,
-    },
-    {
-      key: "notifications",
-      title: "Notifications",
-      description: "Configure notification settings, reminders, and alerts.",
-      icon: <FiBell />,
     },
   ];
 

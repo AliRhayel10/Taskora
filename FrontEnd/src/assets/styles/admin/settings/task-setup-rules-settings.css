@@ -500,3 +500,12 @@
     width: 100%;
   }
 }
+
+/* Task statuses are read-only */
+.task-setup-rules-row--status {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.task-setup-rules-row--status .task-setup-rules-row-value {
+  width: 100%;
+}
