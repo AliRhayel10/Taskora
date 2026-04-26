@@ -29,6 +29,49 @@ namespace BackEnd.Controllers
             _emailService = emailService;
         }
 
+        private async Task ClearExpiredEmailChangeOtpsAsync()
+        {
+            var expiredUsers = await _context.Users
+                .Where(u =>
+                    u.EmailChangeOtpExpiresAt != null &&
+                    u.EmailChangeOtpExpiresAt <= DateTime.UtcNow)
+                .ToListAsync();
+
+            if (!expiredUsers.Any())
+            {
+                return;
+            }
+
+            foreach (var expiredUser in expiredUsers)
+            {
+                expiredUser.PendingEmail = null;
+                expiredUser.EmailChangeOtp = null;
+                expiredUser.EmailChangeOtpExpiresAt = null;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        private bool HasExpiredEmailChangeOtp(User user)
+        {
+            return user.EmailChangeOtpExpiresAt != null &&
+                   user.EmailChangeOtpExpiresAt <= DateTime.UtcNow;
+        }
+
+        private async Task ClearExpiredEmailChangeOtpForUserAsync(User user)
+        {
+            if (!HasExpiredEmailChangeOtp(user))
+            {
+                return;
+            }
+
+            user.PendingEmail = null;
+            user.EmailChangeOtp = null;
+            user.EmailChangeOtpExpiresAt = null;
+
+            await _context.SaveChangesAsync();
+        }
+
         [HttpGet("test")]
         public IActionResult Test()
         {
@@ -36,6 +79,18 @@ namespace BackEnd.Controllers
             {
                 success = true,
                 message = "API is working"
+            });
+        }
+
+        [HttpPost("cleanup-expired-email-change-otps")]
+        public async Task<IActionResult> CleanupExpiredEmailChangeOtps()
+        {
+            await ClearExpiredEmailChangeOtpsAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Expired email change OTP records cleared."
             });
         }
 
@@ -300,6 +355,8 @@ namespace BackEnd.Controllers
         [HttpGet("profile/{userId}")]
         public async Task<IActionResult> GetProfile(int userId)
         {
+            await ClearExpiredEmailChangeOtpsAsync();
+
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
@@ -387,6 +444,8 @@ namespace BackEnd.Controllers
                     message = "User not found."
                 });
             }
+
+            await ClearExpiredEmailChangeOtpForUserAsync(user);
 
             var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == user.CompanyId);
 
@@ -655,11 +714,25 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
                 });
             }
 
+            if (HasExpiredEmailChangeOtp(user))
+            {
+                user.PendingEmail = null;
+                user.EmailChangeOtp = null;
+                user.EmailChangeOtpExpiresAt = null;
+
+                await _context.SaveChangesAsync();
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired code."
+                });
+            }
+
             if (
                 string.IsNullOrWhiteSpace(user.PendingEmail) ||
                 string.IsNullOrWhiteSpace(user.EmailChangeOtp) ||
                 user.EmailChangeOtpExpiresAt == null ||
-                user.EmailChangeOtpExpiresAt <= DateTime.UtcNow ||
                 user.EmailChangeOtp != request.Otp.Trim()
             )
             {

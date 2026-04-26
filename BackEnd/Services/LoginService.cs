@@ -15,6 +15,28 @@ namespace BackEnd.Services
             _emailService = emailService;
         }
 
+        private async Task ClearExpiredPasswordResetTokensAsync()
+        {
+            var expiredUsers = await _context.Users
+                .Where(user =>
+                    user.PasswordResetTokenExpiresAt != null &&
+                    user.PasswordResetTokenExpiresAt <= DateTime.UtcNow)
+                .ToListAsync();
+
+            if (!expiredUsers.Any())
+            {
+                return;
+            }
+
+            foreach (var expiredUser in expiredUsers)
+            {
+                expiredUser.PasswordResetToken = null;
+                expiredUser.PasswordResetTokenExpiresAt = null;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
             if (request == null ||
@@ -86,6 +108,8 @@ return new LoginResponse
 
         public async Task<string?> GeneratePasswordResetTokenAsync(string email)
         {
+            await ClearExpiredPasswordResetTokensAsync();
+
             if (string.IsNullOrWhiteSpace(email))
                 return null;
 
@@ -111,6 +135,8 @@ return new LoginResponse
 
         public async Task<bool> ResetPasswordAsync(string token, string newPassword, string confirmPassword)
         {
+            await ClearExpiredPasswordResetTokensAsync();
+
             if (string.IsNullOrWhiteSpace(token))
                 return false;
 
@@ -141,6 +167,8 @@ return new LoginResponse
 
         public async Task<bool> VerifyResetOtpAsync(string email, string otp)
         {
+            await ClearExpiredPasswordResetTokensAsync();
+
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
                 return false;
 
