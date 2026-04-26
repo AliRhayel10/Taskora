@@ -3601,12 +3601,12 @@ const resolvedCurrentUserId =
         >
           <div
             ref={editAssigneeModalRef}
-            className="tasks-section__confirm-modal"
+            className="tasks-section__confirm-modal tasks-section__confirm-modal--assignee"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
-                <h3>Edit Assignee</h3>
+                <h3>Edit Assignee <span className="tasks-section__required">*</span></h3>
                 <p>Search and choose a different employee.</p>
               </div>
 

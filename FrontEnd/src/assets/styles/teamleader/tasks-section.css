@@ -2466,3 +2466,90 @@ body.dark .tasks-section__title-line {
     padding: 14px;
   }
 }
+
+/* Final task edit assignee and calendar hover fixes */
+.tasks-section__confirm-modal--assignee .tasks-section__form-actions {
+  margin-top: 22px;
+}
+
+.tasks-section__confirm-modal--assignee .tasks-section__member-picker {
+  margin-bottom: 0;
+}
+
+.tasks-section__day-picker .rdp-selected,
+.tasks-section__day-picker .rdp-range_start,
+.tasks-section__day-picker .rdp-range_end,
+.tasks-section__day-picker .rdp-range_middle,
+.tasks-section__day-picker .rdp-day_selected,
+.tasks-section__day-picker .rdp-day_range_start,
+.tasks-section__day-picker .rdp-day_range_end,
+.tasks-section__day-picker .rdp-day_range_middle {
+  background: transparent !important;
+  border-radius: 10px !important;
+}
+
+.tasks-section__day-picker .rdp-selected .rdp-day_button,
+.tasks-section__day-picker .rdp-range_start .rdp-day_button,
+.tasks-section__day-picker .rdp-range_end .rdp-day_button,
+.tasks-section__day-picker .rdp-day_selected .rdp-day_button,
+.tasks-section__day-picker .rdp-day_range_start .rdp-day_button,
+.tasks-section__day-picker .rdp-day_range_end .rdp-day_button {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.tasks-section__day-picker .rdp-range_middle .rdp-day_button,
+.tasks-section__day-picker .rdp-day_range_middle .rdp-day_button {
+  background: #e0e7ff !important;
+  color: #334155 !important;
+  border-radius: 10px !important;
+}
+
+.tasks-section__day-picker .rdp-selected:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__day-picker .rdp-range_start:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__day-picker .rdp-range_end:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__day-picker .rdp-day_selected:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__day-picker .rdp-day_range_start:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__day-picker .rdp-day_range_end:not(.rdp-day_disabled) .rdp-day_button:hover {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.22) !important;
+  transform: translateY(-1px) scale(1.03) !important;
+}
+
+.tasks-section__day-picker .rdp-range_middle:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__day-picker .rdp-day_range_middle:not(.rdp-day_disabled) .rdp-day_button:hover {
+  background: #c7d2fe !important;
+  color: #1e293b !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.16) !important;
+  transform: translateY(-1px) scale(1.03) !important;
+}
+
+.tasks-section__dashboard-day-picker .rdp-selected,
+.tasks-section__dashboard-day-picker .rdp-range_start,
+.tasks-section__dashboard-day-picker .rdp-range_end,
+.tasks-section__dashboard-day-picker .rdp-range_middle,
+.tasks-section__dashboard-day-picker .rdp-day_selected,
+.tasks-section__dashboard-day-picker .rdp-day_range_start,
+.tasks-section__dashboard-day-picker .rdp-day_range_end,
+.tasks-section__dashboard-day-picker .rdp-day_range_middle {
+  background: transparent !important;
+  border-radius: 10px !important;
+}
+
+.tasks-section__dashboard-day-picker .rdp-selected:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__dashboard-day-picker .rdp-range_start:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__dashboard-day-picker .rdp-range_end:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__dashboard-day-picker .rdp-day_selected:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__dashboard-day-picker .rdp-day_range_start:not(.rdp-day_disabled) .rdp-day_button:hover,
+.tasks-section__dashboard-day-picker .rdp-day_range_end:not(.rdp-day_disabled) .rdp-day_button:hover {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.22) !important;
+  transform: translateY(-1px) scale(1.03) !important;
+}
