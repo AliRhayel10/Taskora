@@ -151,6 +151,13 @@ function getTotalTeamMembersCount(team) {
   return 0;
 }
 
+function calculateTeamGridColumns(width) {
+  if (width >= 1240) return 4;
+  if (width >= 900) return 3;
+  if (width >= 620) return 2;
+  return 1;
+}
+
 export default function TeamsSection({
   onOpenTeam,
   searchValue,
@@ -192,7 +199,9 @@ export default function TeamsSection({
 
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || 0;
+  const sectionRef = useRef(null);
   const menuRef = useRef(null);
+  const [gridColumnCount, setGridColumnCount] = useState(4);
 
   const handleLeaderImageError = (teamId) => {
     setLeaderImageErrors((prev) => ({
@@ -329,6 +338,31 @@ export default function TeamsSection({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateGridColumns = () => {
+      const width = sectionRef.current?.getBoundingClientRect().width || window.innerWidth;
+      setGridColumnCount(calculateTeamGridColumns(width));
+    };
+
+    updateGridColumns();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && sectionRef.current
+        ? new ResizeObserver(updateGridColumns)
+        : null;
+
+    if (resizeObserver && sectionRef.current) {
+      resizeObserver.observe(sectionRef.current);
+    }
+
+    window.addEventListener("resize", updateGridColumns);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateGridColumns);
     };
   }, []);
 
@@ -699,38 +733,38 @@ export default function TeamsSection({
   };
 
   return (
-    <section className="teams-section">
+    <section className="teams-section" ref={sectionRef}>
       <div className="teams-section__title-row">
         <h2>Teams</h2>
         <div className="teams-section__title-line"></div>
       </div>
 
-      <div className="teams-section__scroll">
-        <div className="teams-section__toolbar teams-section__toolbar--align-end">
-          <button
-            type="button"
-            className="teams-section__create-btn"
-            onClick={openCreateModal}
-          >
-            <FiPlus />
-            <span>Create Team</span>
-          </button>
-        </div>
+      <div className="teams-section__toolbar teams-section__toolbar--align-end">
+        <button
+          type="button"
+          className="teams-section__create-btn"
+          onClick={openCreateModal}
+        >
+          <FiPlus />
+          <span>Create Team</span>
+        </button>
+      </div>
 
-        {successMessage && (
+      {successMessage && (
           <div className="teams-section__feedback teams-section__feedback--success teams-section__feedback--floating">
             <FiCheckCircle />
             <span>{successMessage}</span>
           </div>
         )}
 
-        {errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && (
-          <div className="teams-section__feedback teams-section__feedback--floating teams-section__feedback--floating-error">
-            <FiSlash />
-            <span>{errorMessage}</span>
-          </div>
-        )}
+      {errorMessage && !isCreateModalOpen && !isDeleteModalOpen && !selectedTeam && (
+        <div className="teams-section__feedback teams-section__feedback--floating teams-section__feedback--floating-error">
+          <FiSlash />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
+      <div className="teams-section__scroll">
         {isLoading && (
           <div className="teams-section__state-card">
             <p>Loading teams...</p>
@@ -748,7 +782,7 @@ export default function TeamsSection({
         )}
 
         {!isLoading && resolvedTeams.length > 0 && (
-          <div className="teams-section__grid">
+          <div className="teams-section__grid" style={{ "--teams-grid-columns": gridColumnCount }}>
             {resolvedTeams.map((team) => (
               <article key={team.teamId} className="teams-section__card teams-section__card--compact">
                 <div className="teams-section__card-top">

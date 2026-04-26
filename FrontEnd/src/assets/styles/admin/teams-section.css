@@ -37,7 +37,9 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding-right: 4px;
+  padding-right: 6px;
+  padding-bottom: 18px;
+  overscroll-behavior: contain;
 }
 
 .teams-section__toolbar {
@@ -46,6 +48,11 @@
   justify-content: space-between;
   gap: 18px;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 16px 0 2px;
+  background: inherit;
 }
 
 .teams-section__toolbar--align-end {
@@ -224,8 +231,9 @@
 
 .teams-section__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 330px));
-  justify-content: start;
+  grid-template-columns: repeat(var(--teams-grid-columns, 4), minmax(0, 1fr));
+  justify-content: stretch;
+  align-items: stretch;
   gap: 18px;
 }
 
@@ -239,7 +247,7 @@
 
 .teams-section__card--compact {
   width: 100%;
-  max-width: 330px;
+  max-width: none;
 }
 
 .teams-section__card-top {
@@ -998,16 +1006,10 @@
   transform: none;
 }
 
-@media (max-width: 1180px) {
-  .teams-section__grid {
-    grid-template-columns: repeat(2, minmax(0, 330px));
-  }
-}
-
 @media (max-width: 860px) {
   .teams-section__toolbar {
-    flex-direction: column;
     align-items: stretch;
+    padding-top: 12px;
   }
 
   .teams-section__search {
@@ -1015,7 +1017,8 @@
   }
 
   .teams-section__create-btn {
-    width: 100%;
+    width: auto;
+    align-self: flex-end;
   }
 }
 
@@ -1069,10 +1072,6 @@
   .teams-section__status-row {
     align-items: center;
     flex-wrap: wrap;
-  }
-
-  .teams-section__grid {
-    grid-template-columns: 1fr;
   }
 
   .teams-section__card--compact {
