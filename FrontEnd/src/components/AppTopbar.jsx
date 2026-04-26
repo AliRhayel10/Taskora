@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  FiBell,
   FiChevronDown,
   FiLogOut,
   FiMoon,
@@ -76,7 +75,6 @@ export default function AppTopbar({
   user,
   searchValue = "",
   onSearchChange,
-  notificationCount = 0,
   showSearch = true,
   searchPlaceholder = "Search...",
   onOpenProfile,
@@ -225,20 +223,6 @@ export default function AppTopbar({
           }
         >
           {theme === "light" ? <FiMoon /> : <FiSun />}
-        </button>
-
-        <button
-          type="button"
-          className="admin-topbar__alerts"
-          aria-label="Notifications"
-        >
-          <FiBell />
-
-          {notificationCount > 0 && (
-            <span className="admin-topbar__alerts-badge">
-              {notificationCount > 9 ? "9+" : notificationCount}
-            </span>
-          )}
         </button>
 
         <div className="admin-topbar__profile-menu-wrap" ref={profileMenuRef}>
