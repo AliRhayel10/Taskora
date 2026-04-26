@@ -607,6 +607,41 @@ namespace BackEnd.Controllers
 
             try
             {
+                var taskIds = await _context.Tasks
+                    .Where(task => task.TeamId == teamId)
+                    .Select(task => task.TaskId)
+                    .ToListAsync();
+
+                if (taskIds.Count > 0)
+                {
+                    var taskChangeRequests = await _context.TaskChangeRequests
+                        .Where(request => taskIds.Contains(request.TaskId))
+                        .ToListAsync();
+
+                    if (taskChangeRequests.Count > 0)
+                    {
+                        _context.TaskChangeRequests.RemoveRange(taskChangeRequests);
+                    }
+
+                    var taskStatusHistories = await _context.TaskStatusHistories
+                        .Where(history => taskIds.Contains(history.TaskId))
+                        .ToListAsync();
+
+                    if (taskStatusHistories.Count > 0)
+                    {
+                        _context.TaskStatusHistories.RemoveRange(taskStatusHistories);
+                    }
+
+                    var tasks = await _context.Tasks
+                        .Where(task => taskIds.Contains(task.TaskId))
+                        .ToListAsync();
+
+                    if (tasks.Count > 0)
+                    {
+                        _context.Tasks.RemoveRange(tasks);
+                    }
+                }
+
                 var teamMembers = await _context.TeamMembers
                     .Where(teamMember => teamMember.TeamId == teamId)
                     .ToListAsync();
@@ -616,8 +651,7 @@ namespace BackEnd.Controllers
                     _context.TeamMembers.RemoveRange(teamMembers);
                 }
 
-                team.TeamLeaderUserId = null;
-                team.IsActive = false;
+                _context.Teams.Remove(team);
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -636,7 +670,7 @@ namespace BackEnd.Controllers
                 {
                     success = false,
                     message = "Failed to delete team.",
-                    detail = error.Message
+                    detail = error.InnerException?.Message ?? error.Message
                 });
             }
         }
