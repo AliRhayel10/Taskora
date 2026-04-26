@@ -511,12 +511,60 @@ export default function TeamDetailsPage({
       }
     };
 
+    const handleUserDeleted = (event) => {
+      const deletedUserId = String(event?.detail?.userId || "");
+
+      if (!deletedUserId) {
+        return;
+      }
+
+      setMembers((prevMembers) => {
+        const nextMembers = prevMembers.filter(
+          (member) => String(member.userId) !== deletedUserId
+        );
+
+        writeCachedTeamMembers(teamState?.teamId, nextMembers);
+        return nextMembers;
+      });
+
+      setTeamState((prevTeam) => {
+        if (!prevTeam) {
+          return prevTeam;
+        }
+
+        const nextMemberIds = Array.isArray(prevTeam.memberIds)
+          ? prevTeam.memberIds.filter((id) => String(id) !== deletedUserId)
+          : [];
+
+        const deletedUserWasLeader =
+          String(prevTeam.teamLeaderId || prevTeam.teamLeaderUserId || "") ===
+          deletedUserId;
+
+        return {
+          ...prevTeam,
+          memberIds: nextMemberIds,
+          memberCount: nextMemberIds.length,
+          activeMemberCount:
+            typeof prevTeam.activeMemberCount === "number"
+              ? Math.max(0, prevTeam.activeMemberCount - 1)
+              : nextMemberIds.length,
+          teamLeaderId: deletedUserWasLeader ? null : prevTeam.teamLeaderId,
+          teamLeaderUserId: deletedUserWasLeader
+            ? null
+            : prevTeam.teamLeaderUserId,
+          teamLeaderName: deletedUserWasLeader ? "" : prevTeam.teamLeaderName,
+        };
+      });
+    };
+
     window.addEventListener("taskora:user-updated", handleUserUpdated);
+    window.addEventListener("taskora:user-deleted", handleUserDeleted);
 
     return () => {
       window.removeEventListener("taskora:user-updated", handleUserUpdated);
+      window.removeEventListener("taskora:user-deleted", handleUserDeleted);
     };
-  }, [companyId]);
+  }, [companyId, teamState?.teamId]);
 
   useEffect(() => {
     const teamIdValue = teamState?.teamId;
@@ -568,14 +616,12 @@ export default function TeamDetailsPage({
     );
 
     const orderedIds = [
-      ...cachedMembers
-        .filter((member) => member?.userId != null)
-        .map((member) => String(member.userId)),
       ...activeMemberIds.map((id) => String(id)),
       leaderId,
     ]
       .filter(Boolean)
-      .filter((value, index, array) => array.indexOf(value) === index);
+      .filter((value, index, array) => array.indexOf(value) === index)
+      .filter((memberId) => availableMembersMap.has(String(memberId)));
 
     const resolvedMembers = orderedIds.map((memberId) => {
       const numericMemberId = Number(memberId);

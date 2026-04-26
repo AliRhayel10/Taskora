@@ -632,8 +632,59 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
     });
 }
 
+        [HttpGet("delete-user-impact/{userId:int}")]
+        public async Task<IActionResult> GetDeleteUserImpact(int userId)
+        {
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found."
+                });
+            }
+
+            var teams = await (
+                from teamMember in _context.TeamMembers
+                join team in _context.Teams on teamMember.TeamId equals team.TeamId
+                where teamMember.UserId == userId && team.IsActive
+                select team.TeamName
+            ).Distinct().ToListAsync();
+
+            var teamsLed = await _context.Teams
+                .Where(team => team.TeamLeaderUserId == userId && team.IsActive)
+                .Select(team => team.TeamName)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var teamName in teamsLed)
+            {
+                if (!teams.Contains(teamName))
+                {
+                    teams.Add(teamName);
+                }
+            }
+
+            var taskCount = await _context.Tasks
+                .CountAsync(task => task.AssignedToUserId == userId || task.CreatedByUserId == userId);
+
+            return Ok(new
+            {
+                success = true,
+                hasTeam = teams.Count > 0,
+                teamNames = teams,
+                teamCount = teams.Count,
+                hasTasks = taskCount > 0,
+                taskCount
+            });
+        }
+
         [HttpDelete("delete-user/{userId:int}")]
-        public async Task<IActionResult> DeleteUser(int userId)
+        public async Task<IActionResult> DeleteUser(int userId, [FromQuery] bool deleteTasks = false)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
 
@@ -650,6 +701,51 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
 
             try
             {
+                var taskIdsOwnedByUser = await _context.Tasks
+                    .Where(task => task.AssignedToUserId == userId || task.CreatedByUserId == userId)
+                    .Select(task => task.TaskId)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (taskIdsOwnedByUser.Count > 0 && !deleteTasks)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "This user has task records. Confirm task deletion before deleting this user."
+                    });
+                }
+
+                if (taskIdsOwnedByUser.Count > 0)
+                {
+                    var taskChangeRequestsForTasks = await _context.TaskChangeRequests
+                        .Where(request => taskIdsOwnedByUser.Contains(request.TaskId))
+                        .ToListAsync();
+
+                    if (taskChangeRequestsForTasks.Count > 0)
+                    {
+                        _context.TaskChangeRequests.RemoveRange(taskChangeRequestsForTasks);
+                    }
+
+                    var taskHistoryForTasks = await _context.TaskStatusHistories
+                        .Where(history => taskIdsOwnedByUser.Contains(history.TaskId))
+                        .ToListAsync();
+
+                    if (taskHistoryForTasks.Count > 0)
+                    {
+                        _context.TaskStatusHistories.RemoveRange(taskHistoryForTasks);
+                    }
+
+                    var tasksToDelete = await _context.Tasks
+                        .Where(task => taskIdsOwnedByUser.Contains(task.TaskId))
+                        .ToListAsync();
+
+                    if (tasksToDelete.Count > 0)
+                    {
+                        _context.Tasks.RemoveRange(tasksToDelete);
+                    }
+                }
+
                 var replacementUserId = await _context.Users
                     .Where(u => u.CompanyId == user.CompanyId && u.UserId != userId && u.IsActive)
                     .Join(
@@ -676,40 +772,21 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
                     .Select(u => (int?)u.UserId)
                     .FirstOrDefaultAsync();
 
-                var hasRequiredReferences =
-                    await _context.Tasks.AnyAsync(task => task.CreatedByUserId == userId) ||
+                var remainingRequiredReferences =
                     await _context.TaskStatusHistories.AnyAsync(history => history.ChangedByUserId == userId) ||
                     await _context.TaskChangeRequests.AnyAsync(request => request.RequestedByUserId == userId);
 
-                if (hasRequiredReferences && replacementUserId == null)
+                if (remainingRequiredReferences && replacementUserId == null)
                 {
                     return BadRequest(new
                     {
                         success = false,
-                        message = "This user cannot be deleted because their records are linked to tasks or activity history and no replacement user is available."
+                        message = "This user cannot be deleted because their activity records are linked to other tasks and no replacement user is available."
                     });
-                }
-
-                var assignedTasks = await _context.Tasks
-                    .Where(task => task.AssignedToUserId == userId)
-                    .ToListAsync();
-
-                foreach (var task in assignedTasks)
-                {
-                    task.AssignedToUserId = null;
                 }
 
                 if (replacementUserId.HasValue)
                 {
-                    var createdTasks = await _context.Tasks
-                        .Where(task => task.CreatedByUserId == userId)
-                        .ToListAsync();
-
-                    foreach (var task in createdTasks)
-                    {
-                        task.CreatedByUserId = replacementUserId.Value;
-                    }
-
                     var historiesChangedByUser = await _context.TaskStatusHistories
                         .Where(history => history.ChangedByUserId == userId)
                         .ToListAsync();
@@ -773,7 +850,9 @@ public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request
                 return Ok(new
                 {
                     success = true,
-                    message = "User deleted successfully. Existing tasks were kept and unassigned from this user."
+                    message = deleteTasks && taskIdsOwnedByUser.Count > 0
+                        ? "User, team memberships, and related task records deleted successfully."
+                        : "User deleted successfully."
                 });
             }
             catch (Exception error)

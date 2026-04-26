@@ -162,6 +162,78 @@ function getResolvedUserTeam(user, teams) {
     return matchedTeam?.teamName || matchedTeam?.name || "Unassigned";
 }
 
+function getDeleteImpactFromLocalData(user, teams) {
+    const teamName = getResolvedUserTeam(user, teams);
+    const hasTeam = teamName !== "Unassigned";
+
+    return {
+        hasTeam,
+        teamNames: hasTeam ? [teamName] : [],
+        teamCount: hasTeam ? 1 : 0,
+        hasTasks: false,
+        taskCount: 0,
+    };
+}
+
+function getDeleteModalContent(user, impact) {
+    const userName = getUserName(user);
+    const hasTeam = Boolean(impact?.hasTeam);
+    const hasTasks = Boolean(impact?.hasTasks);
+    const teamNames = Array.isArray(impact?.teamNames) ? impact.teamNames.filter(Boolean) : [];
+    const teamLabel = teamNames.length ? teamNames.join(", ") : "a team";
+    const taskCount = Number(impact?.taskCount || 0);
+
+    if (hasTeam && hasTasks) {
+        return {
+            title: "Delete user and task records?",
+            tone: "danger",
+            message: (
+                <>
+                    Are you sure you want to permanently delete <strong>{userName}</strong>? This user belongs to <strong>{teamLabel}</strong> and has <strong>{taskCount}</strong> task record{taskCount === 1 ? "" : "s"}. The user will be removed from the team, and their tasks with all related records will be deleted.
+                </>
+            ),
+            buttonLabel: "Delete user and tasks",
+        };
+    }
+
+    if (hasTeam) {
+        return {
+            title: "Delete user from team?",
+            tone: "warning",
+            message: (
+                <>
+                    Are you sure you want to permanently delete <strong>{userName}</strong>? This user belongs to <strong>{teamLabel}</strong>, so they will be removed from the team before the account is deleted.
+                </>
+            ),
+            buttonLabel: "Delete user",
+        };
+    }
+
+    if (hasTasks) {
+        return {
+            title: "Delete user and task records?",
+            tone: "danger",
+            message: (
+                <>
+                    Are you sure you want to permanently delete <strong>{userName}</strong>? This user has <strong>{taskCount}</strong> task record{taskCount === 1 ? "" : "s"}, so their tasks and all related records will also be deleted.
+                </>
+            ),
+            buttonLabel: "Delete user and tasks",
+        };
+    }
+
+    return {
+        title: "Delete user forever?",
+        tone: "simple",
+        message: (
+            <>
+                Are you sure you want to permanently delete <strong>{userName}</strong>? This user is not assigned to a team and has no task records.
+            </>
+        ),
+        buttonLabel: "Delete forever",
+    };
+}
+
 function getUserStatus(user) {
     if (typeof user?.isActive === "boolean") return user.isActive ? "Active" : "Inactive";
     if (typeof user?.IsActive === "boolean") return user.IsActive ? "Active" : "Inactive";
@@ -316,6 +388,8 @@ export default function UsersSection({
     const [createForm, setCreateForm] = useState(initialCreateForm);
     const [showPassword, setShowPassword] = useState(false);
     const [userPendingDelete, setUserPendingDelete] = useState(null);
+    const [deleteImpact, setDeleteImpact] = useState(null);
+    const [isDeleteImpactLoading, setIsDeleteImpactLoading] = useState(false);
     const [isDeletingUser, setIsDeletingUser] = useState(false);
 
     const currentUser = useMemo(() => getStoredUser(), []);
@@ -619,15 +693,49 @@ export default function UsersSection({
         setCreateForm((prev) => ({ ...prev, [field]: value }));
     };
 
-    const openDeleteModal = (user) => {
+    const openDeleteModal = async (user) => {
         setCreateError("");
         setCreateSuccess("");
         setUserPendingDelete(user);
+        setDeleteImpact(getDeleteImpactFromLocalData(user, teams));
+        setIsDeleteImpactLoading(true);
+
+        const targetUserId = getUserId(user);
+
+        if (!targetUserId) {
+            setIsDeleteImpactLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/auth/delete-user-impact/${encodeURIComponent(targetUserId)}`,
+                { method: "GET" }
+            );
+
+            const data = await readJsonSafe(response);
+
+            if (response.ok && data?.success !== false) {
+                setDeleteImpact({
+                    hasTeam: Boolean(data?.hasTeam),
+                    teamNames: Array.isArray(data?.teamNames) ? data.teamNames : [],
+                    teamCount: Number(data?.teamCount || 0),
+                    hasTasks: Boolean(data?.hasTasks),
+                    taskCount: Number(data?.taskCount || 0),
+                });
+            }
+        } catch (error) {
+            console.error("Failed to load delete impact:", error);
+        } finally {
+            setIsDeleteImpactLoading(false);
+        }
     };
 
     const closeDeleteModal = () => {
         if (isDeletingUser) return;
         setUserPendingDelete(null);
+        setDeleteImpact(null);
+        setIsDeleteImpactLoading(false);
     };
 
     const handleDeleteUser = async () => {
@@ -644,49 +752,33 @@ export default function UsersSection({
             setCreateError("");
             setCreateSuccess("");
 
-            const candidateRequests = [
-                {
-                    url: `${API_BASE_URL}/api/auth/delete-user/${encodeURIComponent(targetUserId)}`,
-                    method: "DELETE",
-                },
-                {
-                    url: `${API_BASE_URL}/api/users/${encodeURIComponent(targetUserId)}`,
-                    method: "DELETE",
-                },
-                {
-                    url: `${API_BASE_URL}/api/user/${encodeURIComponent(targetUserId)}`,
-                    method: "DELETE",
-                },
-            ];
+            const shouldDeleteTasks = Boolean(deleteImpact?.hasTasks);
+            const response = await fetch(
+                `${API_BASE_URL}/api/auth/delete-user/${encodeURIComponent(targetUserId)}?deleteTasks=${shouldDeleteTasks}`,
+                { method: "DELETE" }
+            );
 
-            let deleted = false;
-            let resolvedData = null;
+            const resolvedData = await readJsonSafe(response);
 
-            for (const requestConfig of candidateRequests) {
-                try {
-                    const response = await fetch(requestConfig.url, {
-                        method: requestConfig.method,
-                    });
-
-                    const data = await readJsonSafe(response);
-
-                    if (!response.ok) {
-                        continue;
-                    }
-
-                    resolvedData = data;
-                    deleted = true;
-                    break;
-                } catch (error) {
-                    console.error("Delete user request failed:", error);
-                }
-            }
-
-            if (!deleted) {
-                throw new Error("Failed to delete user.");
+            if (!response.ok || resolvedData?.success === false) {
+                throw new Error(
+                    resolvedData?.message ||
+                    resolvedData?.detail ||
+                    "Failed to delete user."
+                );
             }
 
             setUserPendingDelete(null);
+            setDeleteImpact(null);
+
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                    new CustomEvent("taskora:user-deleted", {
+                        detail: { userId: targetUserId },
+                    })
+                );
+            }
+
             setCreateSuccess(resolvedData?.message || "User deleted successfully.");
 
             const remainingUsersOnPage = Math.max(0, users.length - 1);
@@ -825,6 +917,10 @@ export default function UsersSection({
             window.removeEventListener("taskora:user-updated", handleExternalUserUpdate);
         };
     }, [currentPage, debouncedSearchTerm, companyId]);
+
+    const deleteModalContent = userPendingDelete
+        ? getDeleteModalContent(userPendingDelete, deleteImpact)
+        : null;
 
     return (
         <section className="users-section">
@@ -1046,33 +1142,33 @@ export default function UsersSection({
                 </div>
             )}
 
-            {userPendingDelete && (
+            {userPendingDelete && deleteModalContent && (
                 <div className="users-section__modal-overlay" role="dialog" aria-modal="true">
-                    <div className="users-section__modal users-section__modal--confirm">
-                        <div className="users-section__confirm-top">
-                            <div className="users-section__confirm-icon">
-                                <FiX />
-                            </div>
+                    <div className={`users-section__modal users-section__modal--confirm users-section__delete-modal users-section__delete-modal--${deleteModalContent.tone}`}>
+                        <button
+                            type="button"
+                            className="users-section__modal-close users-section__modal-close--confirm"
+                            onClick={closeDeleteModal}
+                            disabled={isDeletingUser}
+                            aria-label="Close delete confirmation"
+                        >
+                            <FiX />
+                        </button>
 
-                            <button
-                                type="button"
-                                className="users-section__modal-close users-section__modal-close--confirm"
-                                onClick={closeDeleteModal}
-                                disabled={isDeletingUser}
-                                aria-label="Close delete confirmation"
-                            >
-                                <FiX />
-                            </button>
+                        <div className="users-section__delete-modal-icon">
+                            <FiTrash2 />
                         </div>
 
-                        <div className="users-section__confirm-copy">
-                            <h3>Delete user</h3>
-                            <p>
-                                Are you sure you want to delete <strong>{getUserName(userPendingDelete)}</strong>? This action cannot be undone and will permanently remove the user from the system, including any team memberships and related assignments.
-                            </p>
+                        <div className="users-section__delete-modal-copy">
+                            <h3>{deleteModalContent.title}</h3>
+                            <p>{deleteModalContent.message}</p>
+
+                            {isDeleteImpactLoading && (
+                                <small>Checking this user’s team and task records...</small>
+                            )}
                         </div>
 
-                        <div className="users-section__form-actions users-section__form-actions--confirm">
+                        <div className="users-section__form-actions users-section__form-actions--confirm users-section__delete-modal-actions">
                             <button
                                 type="button"
                                 className="users-section__secondary-btn users-section__secondary-btn--confirm"
@@ -1086,9 +1182,9 @@ export default function UsersSection({
                                 type="button"
                                 className="users-section__submit-btn users-section__submit-btn--danger"
                                 onClick={handleDeleteUser}
-                                disabled={isDeletingUser}
+                                disabled={isDeletingUser || isDeleteImpactLoading}
                             >
-                                {isDeletingUser ? "Deleting..." : "Delete"}
+                                {isDeletingUser ? "Deleting..." : deleteModalContent.buttonLabel}
                             </button>
                         </div>
                     </div>
