@@ -509,3 +509,19 @@
 .task-setup-rules-row--status .task-setup-rules-row-value {
   width: 100%;
 }
+
+/* Read-only row color polish */
+.task-setup-rules-row--status {
+  background: #f1f5f9;
+  border-color: #dbe3ef;
+}
+
+.task-setup-rules-row--status .task-setup-rules-row-value {
+  color: #475569;
+}
+
+.task-setup-rules-formula-box--readonly {
+  background: #f1f5f9;
+  border-color: #dbe3ef;
+  color: #475569;
+}

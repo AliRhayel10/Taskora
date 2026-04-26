@@ -1036,7 +1036,7 @@ export default function TaskSetupRulesSettings({
 
         return (
             <PanelCard title="Effort Calculation Rule" icon={<FiSliders />}>
-                <div className="task-setup-rules-formula-box">
+                <div className="task-setup-rules-formula-box task-setup-rules-formula-box--readonly">
                     {taskData.effortFormula || DEFAULT_FORMULA}
                 </div>
             </PanelCard>
