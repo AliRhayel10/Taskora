@@ -607,6 +607,11 @@ export default function EmployeeDashboardSection({
 
       const parsedMessage = JSON.parse(rawMessage);
 
+      if (!parsedMessage?.taskId && !parsedMessage?.title) {
+        sessionStorage.removeItem(UNASSIGNED_TASK_MESSAGE_KEY);
+        return;
+      }
+
       setUnassignedTaskMessage({
         title: parsedMessage?.title || "Task update",
         message:

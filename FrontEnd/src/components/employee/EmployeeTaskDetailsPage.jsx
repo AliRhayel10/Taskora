@@ -243,10 +243,12 @@ function getTaskAssignedUserId(task = {}) {
         task.AssignedToUserId ||
         task.assignedUserId ||
         task.AssignedUserId ||
-        task.employeeId ||
-        task.EmployeeId ||
         task.assigneeUserId ||
         task.AssigneeUserId ||
+        task.assignedToId ||
+        task.AssignedToId ||
+        task.assigneeId ||
+        task.AssigneeId ||
         0
     );
 }
