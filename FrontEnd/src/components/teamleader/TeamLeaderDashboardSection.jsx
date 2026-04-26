@@ -589,6 +589,42 @@ function getRequestTaskId(request) {
   return Number(request?.taskId ?? request?.TaskId ?? 0);
 }
 
+function getRequestSearchText(request) {
+  const changeType = request?.changeType ?? request?.ChangeType;
+  const requestStatus = request?.requestStatus ?? request?.RequestStatus;
+
+  return [
+    request?.taskTitle,
+    request?.TaskTitle,
+    getChangeTypeLabel(changeType),
+    changeType,
+    requestStatus,
+    request?.requestedByName,
+    request?.RequestedByName,
+    request?.requestedByEmail,
+    request?.RequestedByEmail,
+    request?.currentAssigneeName,
+    request?.CurrentAssigneeName,
+    request?.currentAssigneeEmail,
+    request?.CurrentAssigneeEmail,
+    request?.requestedAssigneeName,
+    request?.RequestedAssigneeName,
+    request?.reviewedByName,
+    request?.ReviewedByName,
+    request?.reviewNote,
+    request?.ReviewNote,
+    getRequestReason(request),
+    getRequestOldValue(request),
+    getRequestNewValue(request),
+    formatReviewValue(request, getRequestOldValue(request), changeType, "current"),
+    formatReviewValue(request, getRequestNewValue(request), changeType, "requested"),
+    formatRequestDateTime(request?.createdAt ?? request?.CreatedAt),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 function getReviewDecisionLabel(decision) {
   return decision === "Approved" ? "approve" : "reject";
 }
@@ -1143,21 +1179,37 @@ export default function TeamLeaderDashboardSection({
     ];
   }, [members.length, tasks]);
 
+  const filteredTaskRequests = useMemo(() => {
+    const search = String(searchValue || "").trim().toLowerCase();
+
+    if (!search) {
+      return taskRequests;
+    }
+
+    return taskRequests.filter((request) =>
+      getRequestSearchText(request).includes(search)
+    );
+  }, [taskRequests, searchValue]);
+
   const visibleTaskRequests = useMemo(
-    () => (showAllTaskRequests ? taskRequests : taskRequests.slice(0, 4)),
-    [showAllTaskRequests, taskRequests]
+    () =>
+      showAllTaskRequests
+        ? filteredTaskRequests
+        : filteredTaskRequests.slice(0, 4),
+    [showAllTaskRequests, filteredTaskRequests]
   );
 
   useEffect(() => {
-    if (taskRequests.length <= 4 && showAllTaskRequests) {
+    if (filteredTaskRequests.length <= 4 && showAllTaskRequests) {
       setShowAllTaskRequests(false);
     }
-  }, [showAllTaskRequests, taskRequests.length]);
+  }, [showAllTaskRequests, filteredTaskRequests.length]);
 
   const totalPages = Math.max(1, Math.ceil(workloadRows.length / PAGE_SIZE));
 
   useEffect(() => {
     setCurrentPage(1);
+    setShowAllTaskRequests(false);
   }, [searchValue, members.length, tasks.length, selectedPreset, customRange, sortConfig]);
 
   useEffect(() => {
@@ -1944,17 +1996,17 @@ export default function TeamLeaderDashboardSection({
     </h3>
 
     <span className="teamleader-dashboard-section__requests-count">
-      {taskRequests.length}
+      {filteredTaskRequests.length}
     </span>
   </div>
 
-  {taskRequests.length > 4 && (
+  {filteredTaskRequests.length > 4 && (
     <button
       type="button"
       className="teamleader-dashboard-section__requests-view-all"
-      onClick={() => setShowAllRequests((previous) => !previous)}
+      onClick={() => setShowAllTaskRequests((previous) => !previous)}
     >
-      {showAllRequests ? "Show less" : "View all"}
+      {showAllTaskRequests ? "Show less" : "View all"}
     </button>
   )}
 </div>
@@ -1962,7 +2014,9 @@ export default function TeamLeaderDashboardSection({
               <div className="teamleader-dashboard-section__requests-list">
                 {visibleTaskRequests.length === 0 ? (
                   <div className="teamleader-dashboard-section__requests-empty">
-                    No pending requests found.
+                    {String(searchValue || "").trim()
+                      ? "No pending requests match your search."
+                      : "No pending requests found."}
                   </div>
                 ) : (
                   visibleTaskRequests.map((request) => {
