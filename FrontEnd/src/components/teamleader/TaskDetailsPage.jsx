@@ -823,7 +823,8 @@ export default function TaskDetailsPage({
         },
         "",
       );
-      window.location.reload();
+
+      setIsReviewMenuOpen(false);
     } catch {
       // feedback is already handled in updateStatus
     }
