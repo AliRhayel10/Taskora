@@ -874,6 +874,7 @@ const resolvedCurrentUserId =
   const [isEditDueDateOpen, setIsEditDueDateOpen] = useState(false);
   const [editDueDateDraft, setEditDueDateDraft] = useState(DEFAULT_RANGE);
   const [editMemberSearch, setEditMemberSearch] = useState("");
+  const [editAssigneeDraftUserId, setEditAssigneeDraftUserId] = useState("");
   const [editTaskDraft, setEditTaskDraft] = useState({
     title: "",
     description: "",
@@ -994,6 +995,7 @@ const resolvedCurrentUserId =
       if (isEditAssigneeOpen) {
         setIsEditAssigneeOpen(false);
         setEditMemberSearch("");
+        setEditAssigneeDraftUserId("");
         setActiveEditField(null);
         return;
       }
@@ -1820,6 +1822,20 @@ const resolvedCurrentUserId =
     return (baseEffort * priorityMultiplier * complexityMultiplier).toFixed(2);
   }, [editFormState, priorityMultipliers, complexityMultipliers]);
 
+  const isEditAssigneeChanged =
+    Boolean(editAssigneeDraftUserId) &&
+    editFormState &&
+    String(editAssigneeDraftUserId) !== String(editFormState.assignedUserId ?? "");
+
+  const isEditTaskInfoValid =
+    editTaskDraft.title.trim() !== "" && editTaskDraft.description.trim() !== "";
+
+  const isEditTaskInfoChanged =
+    editFormState &&
+    (editTaskDraft.title.trim() !== String(editFormState.title || "").trim() ||
+      editTaskDraft.description.trim() !==
+        String(editFormState.description || "").trim());
+
   const formattedRangeLabel =
     selectedRange?.from && selectedRange?.to
       ? `${format(selectedRange.from, "dd/MM/yyyy")} - ${format(
@@ -2176,6 +2192,7 @@ const resolvedCurrentUserId =
     setIsEditDueDateOpen(false);
     setEditDueDateDraft(DEFAULT_RANGE);
     setEditMemberSearch("");
+    setEditAssigneeDraftUserId("");
     setEditTaskDraft({ title: "", description: "" });
     setActiveEditField(null);
   };
@@ -2207,7 +2224,28 @@ const resolvedCurrentUserId =
   const closeEditAssigneeModal = () => {
     setIsEditAssigneeOpen(false);
     setEditMemberSearch("");
+    setEditAssigneeDraftUserId("");
     setActiveEditField(null);
+  };
+
+  const openEditAssigneeModal = () => {
+    if (!editFormState) return;
+
+    setActiveEditField("assignee");
+    setEditAssigneeDraftUserId(String(editFormState.assignedUserId ?? ""));
+    setIsEditAssigneeOpen(true);
+  };
+
+  const applyEditAssignee = () => {
+    if (!editFormState) return;
+
+    const nextAssigneeId = String(editAssigneeDraftUserId || "");
+    const currentAssigneeId = String(editFormState.assignedUserId ?? "");
+
+    if (!nextAssigneeId || nextAssigneeId === currentAssigneeId) return;
+
+    handleEditFormChange("assignedUserId", nextAssigneeId);
+    closeEditAssigneeModal();
   };
 
   const openEditDueDateModal = (task) => {
@@ -2748,10 +2786,7 @@ const resolvedCurrentUserId =
                           <button
                             type="button"
                             className="tasks-section__inline-link"
-                            onClick={() => {
-                              setActiveEditField("assignee");
-                              setIsEditAssigneeOpen(true);
-                            }}
+                            onClick={openEditAssigneeModal}
                           >
                             <div className="tasks-section__user-cell">
                               <div className="tasks-section__avatar">
@@ -3504,7 +3539,9 @@ const resolvedCurrentUserId =
 
             <div className="tasks-section__form">
               <div className="tasks-section__form-group">
-                <label htmlFor="edit-task-title">Name</label>
+                <label htmlFor="edit-task-title">
+                  Name <span className="tasks-section__required">*</span>
+                </label>
                 <input
                   id="edit-task-title"
                   type="text"
@@ -3519,7 +3556,9 @@ const resolvedCurrentUserId =
               </div>
 
               <div className="tasks-section__form-group">
-                <label htmlFor="edit-task-description">Description</label>
+                <label htmlFor="edit-task-description">
+                  Description <span className="tasks-section__required">*</span>
+                </label>
                 <textarea
                   id="edit-task-description"
                   rows={4}
@@ -3545,6 +3584,7 @@ const resolvedCurrentUserId =
                   type="button"
                   className="tasks-section__submit-btn"
                   onClick={applyEditTaskInfo}
+                  disabled={!isEditTaskInfoValid || !isEditTaskInfoChanged}
                 >
                   Apply
                 </button>
@@ -3599,7 +3639,8 @@ const resolvedCurrentUserId =
                   filteredEditAssignableUsers.map((user) => {
                     const userId = user.userId ?? user.id;
                     const isSelected =
-                      String(editFormState.assignedUserId) === String(userId);
+                      String(editAssigneeDraftUserId || editFormState.assignedUserId) ===
+                      String(userId);
                     const imageUrl = getProfileImage(user);
 
                     return (
@@ -3611,11 +3652,7 @@ const resolvedCurrentUserId =
                             : ""
                           }`}
                         onClick={() => {
-                          handleEditFormChange(
-                            "assignedUserId",
-                            String(userId),
-                          );
-                          closeEditAssigneeModal();
+                          setEditAssigneeDraftUserId(String(userId));
                         }}
                       >
                         <span
@@ -3665,9 +3702,10 @@ const resolvedCurrentUserId =
               <button
                 type="button"
                 className="tasks-section__submit-btn"
-                onClick={closeEditAssigneeModal}
+                onClick={applyEditAssignee}
+                disabled={!isEditAssigneeChanged}
               >
-                Apply
+                Confirm
               </button>
             </div>
           </div>
@@ -3681,7 +3719,7 @@ const resolvedCurrentUserId =
         >
           <div
             ref={editDueDateModalRef}
-            className="tasks-section__confirm-modal"
+            className="tasks-section__confirm-modal tasks-section__confirm-modal--date"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">

@@ -2427,3 +2427,42 @@ body.dark .tasks-section__title-line {
     font-size: 0.94rem;
   }
 }
+
+/* Task edit modal final fixes */
+.tasks-section__confirm-modal--date {
+  max-width: 374px;
+  padding: 16px;
+}
+
+.tasks-section__confirm-modal--date .tasks-section__modal-header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+
+.tasks-section__confirm-modal--date .tasks-section__date-picker-calendar {
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px;
+  margin: 0 auto;
+}
+
+.tasks-section__confirm-modal--date .tasks-section__form-actions {
+  margin-top: 12px !important;
+}
+
+.tasks-section__member-row:hover {
+  background: #eef4ff;
+}
+
+.tasks-section__submit-btn:disabled:hover,
+.tasks-section__secondary-btn:disabled:hover,
+.tasks-section__danger-btn:disabled:hover {
+  transform: none;
+}
+
+@media (max-width: 760px) {
+  .tasks-section__confirm-modal--date {
+    max-width: min(100%, 374px);
+    padding: 14px;
+  }
+}
