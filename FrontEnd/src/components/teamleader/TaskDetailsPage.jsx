@@ -1318,14 +1318,6 @@ export default function TaskDetailsPage({
                               <div>
                                 <strong>Type:</strong> {item.requestTypeLabel}
                               </div>
-                              <div>
-                                <strong>Status:</strong>{" "}
-                                <span
-                                  className={`task-details-page__timeline-request-status task-details-page__timeline-request-status--${item.normalizedRequestStatus || "pending"}`}
-                                >
-                                  {mapStatusLabel(item.requestStatus)}
-                                </span>
-                              </div>
                               {item.reviewNote ? (
                                 <div>
                                   <strong>Review note:</strong> {item.reviewNote}
