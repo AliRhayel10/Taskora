@@ -15,6 +15,18 @@ import {
   FiList,
   FiChevronLeft,
   FiChevronRight,
+  FiCode,
+  FiHeadphones,
+  FiBarChart2,
+  FiCloud,
+  FiMonitor,
+  FiTrendingUp,
+  FiSmartphone,
+  FiPenTool,
+  FiShield,
+  FiActivity,
+  FiLock,
+  FiLayers,
 } from "react-icons/fi";
 import "../../assets/styles/admin/teams-section.css";
 
@@ -170,6 +182,87 @@ function calculateTeamGridColumns(width) {
   if (width >= 900) return 3;
   if (width >= 620) return 2;
   return 1;
+}
+
+const TEAM_VISUAL_THEMES = [
+  {
+    keywords: ["backend", "api", "database", "engineering"],
+    icon: FiCode,
+    color: "blue",
+  },
+  {
+    keywords: ["customer", "success", "support", "onboarding"],
+    icon: FiHeadphones,
+    color: "emerald",
+  },
+  {
+    keywords: ["data", "analytics", "report", "dashboard", "business intelligence"],
+    icon: FiBarChart2,
+    color: "violet",
+  },
+  {
+    keywords: ["devops", "infrastructure", "deployment", "cloud"],
+    icon: FiCloud,
+    color: "amber",
+  },
+  {
+    keywords: ["front end", "frontend", "ui", "web"],
+    icon: FiMonitor,
+    color: "rose",
+  },
+  {
+    keywords: ["marketing", "campaign", "content", "growth"],
+    icon: FiTrendingUp,
+    color: "purple",
+  },
+  {
+    keywords: ["mobile", "ios", "android"],
+    icon: FiSmartphone,
+    color: "sky",
+  },
+  {
+    keywords: ["design", "product design", "ux", "ui", "creative"],
+    icon: FiPenTool,
+    color: "cyan",
+  },
+  {
+    keywords: ["qa", "quality", "testing", "assurance"],
+    icon: FiShield,
+    color: "yellow",
+  },
+  {
+    keywords: ["research", "product research", "lab", "discovery"],
+    icon: FiActivity,
+    color: "indigo",
+  },
+  {
+    keywords: ["security", "access", "control", "privacy"],
+    icon: FiLock,
+    color: "pink",
+  },
+];
+
+function getTeamVisual(team) {
+  const source = `${team?.teamName || ""} ${team?.description || ""}`.toLowerCase();
+  const matchedTheme = TEAM_VISUAL_THEMES.find((theme) =>
+    theme.keywords.some((keyword) => source.includes(keyword))
+  );
+
+  return matchedTheme || { icon: FiLayers, color: "slate" };
+}
+
+function TeamVisualIcon({ team, className = "" }) {
+  const visual = getTeamVisual(team);
+  const Icon = visual.icon;
+
+  return (
+    <span
+      className={`teams-section__team-icon teams-section__team-icon--${visual.color} ${className}`}
+      aria-hidden="true"
+    >
+      <Icon />
+    </span>
+  );
 }
 
 export default function TeamsSection({
@@ -894,8 +987,13 @@ export default function TeamsSection({
         {!isLoading && resolvedTeams.length > 0 && viewMode === "grid" && (
           <div className="teams-section__grid" style={{ "--teams-grid-columns": gridColumnCount }}>
             {resolvedTeams.map((team) => (
-              <article key={team.teamId} className="teams-section__card teams-section__card--compact">
+              <article
+                key={team.teamId}
+                className={`teams-section__card teams-section__card--compact teams-section__card--${getTeamVisual(team).color}`}
+              >
                 <div className="teams-section__card-top">
+                  <TeamVisualIcon team={team} />
+
                   <div className="teams-section__card-heading">
                     <div className="teams-section__card-title-row">
                       <button
@@ -1043,17 +1141,21 @@ export default function TeamsSection({
                   {paginatedTeams.map((team) => (
                     <tr key={`team-row-${team.teamId}`}>
                       <td>
-                        <button
-                          type="button"
-                          className="teams-section__table-title"
-                          onClick={() => {
-                            if (typeof onOpenTeam === "function") {
-                              onOpenTeam(team);
-                            }
-                          }}
-                        >
-                          {team.teamName}
-                        </button>
+                        <div className="teams-section__table-team">
+                          <TeamVisualIcon team={team} className="teams-section__team-icon--table" />
+
+                          <button
+                            type="button"
+                            className="teams-section__table-title"
+                            onClick={() => {
+                              if (typeof onOpenTeam === "function") {
+                                onOpenTeam(team);
+                              }
+                            }}
+                          >
+                            {team.teamName}
+                          </button>
+                        </div>
                       </td>
 
                       <td>
