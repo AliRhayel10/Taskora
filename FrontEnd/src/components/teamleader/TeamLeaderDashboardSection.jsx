@@ -1007,7 +1007,7 @@ export default function TeamLeaderDashboardSection({
             return false;
           }
 
-          return role !== "team leader" && role !== "admin";
+          return role !== "admin";
         });
 
         const leaderMemberIdSet = new Set(

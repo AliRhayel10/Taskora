@@ -1248,11 +1248,11 @@ const resolvedCurrentUserId =
           membersPayload,
           teamsPayload,
         ] = await Promise.all([
-          fetchJson(resolvedTasksEndpoint).catch(() => []),
+          fetchJson(resolvedTasksEndpoint),
           fetchJson(resolvedSetupRulesEndpoint).catch(() => null),
           fetchJson(resolvedStatusesEndpoint).catch(() => null),
-          fetchJson(resolvedMembersEndpoint).catch(() => []),
-          fetchJson(resolvedTeamsEndpoint).catch(() => []),
+          fetchJson(resolvedMembersEndpoint),
+          fetchJson(resolvedTeamsEndpoint),
         ]);
 
         if (!isMounted) return;
@@ -1321,7 +1321,7 @@ const resolvedCurrentUserId =
       } catch (error) {
         console.error("loadData error:", error);
         if (!isMounted) return;
-        setErrorMessage("Unable to load tasks right now.");
+        setErrorMessage(error?.message || "Unable to load tasks right now.");
       } finally {
         if (isMounted) setIsLoading(false);
       }

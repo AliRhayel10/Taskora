@@ -23,9 +23,15 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactApp", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://127.0.0.1:5173"
+            )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -41,6 +47,6 @@ app.UseStaticFiles();
 
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapControllers().RequireCors("AllowReactApp");
 
 app.Run();
