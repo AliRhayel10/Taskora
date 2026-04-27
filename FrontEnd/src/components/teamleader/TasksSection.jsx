@@ -1024,6 +1024,78 @@ const resolvedCurrentUserId =
     };
   }, [teams, storedUserTeamId]);
 
+  const currentTeamId = useMemo(() => {
+    const directTeamId = Number(storedUserTeamId || 0);
+
+    if (directTeamId) {
+      return directTeamId;
+    }
+
+    const currentUserId = Number(resolvedCurrentUserId || 0);
+
+    if (!currentUserId) {
+      return 0;
+    }
+
+    const leaderTeam = teams.find((team) => {
+      const leaderId = Number(
+        team?.teamLeaderUserId ??
+          team?.teamLeaderId ??
+          team?.TeamLeaderUserId ??
+          team?.TeamLeaderId ??
+          0,
+      );
+
+      return leaderId === currentUserId;
+    });
+
+    return Number(leaderTeam?.teamId ?? leaderTeam?.TeamId ?? 0);
+  }, [teams, storedUserTeamId, resolvedCurrentUserId]);
+
+  const currentTeamMemberIds = useMemo(() => {
+    if (!currentTeamId) {
+      return [];
+    }
+
+    const currentTeam = teams.find(
+      (team) => Number(team?.teamId ?? team?.TeamId ?? 0) === Number(currentTeamId),
+    );
+
+    const idsFromTeam = Array.isArray(currentTeam?.memberIds)
+      ? currentTeam.memberIds
+      : Array.isArray(currentTeam?.MemberIds)
+        ? currentTeam.MemberIds
+        : [];
+
+    const idsFromUsers = users
+      .filter((user) => {
+        const directTeamId = Number(
+          user?.teamId ?? user?.TeamId ?? user?.team?.teamId ?? user?.team?.TeamId ?? 0,
+        );
+        const teamIds = user?.teamIds ?? user?.TeamIds;
+
+        return (
+          directTeamId === Number(currentTeamId) ||
+          (Array.isArray(teamIds) &&
+            teamIds.some((id) => Number(id) === Number(currentTeamId)))
+        );
+      })
+      .map((user) => Number(user?.userId ?? user?.id ?? user?.UserId ?? user?.Id ?? 0));
+
+    return Array.from(
+      new Set([...idsFromTeam, ...idsFromUsers].map((id) => Number(id)).filter(Boolean)),
+    );
+  }, [teams, users, currentTeamId]);
+
+  const currentTeamMemberIdSet = useMemo(() => {
+    return new Set(currentTeamMemberIds.map((id) => Number(id)));
+  }, [currentTeamMemberIds]);
+
+  const isUserInCurrentTeam = (userId) => {
+    const numericUserId = Number(userId);
+    return Boolean(numericUserId && currentTeamMemberIdSet.has(numericUserId));
+  };
+
   const loadTasks = async () => {
     const response = await fetch(resolvedTasksEndpoint);
     if (!response.ok) {
@@ -1556,15 +1628,11 @@ const resolvedCurrentUserId =
     const query = memberSearch.trim().toLowerCase();
 
     const teamMembers = users.filter((user) => {
-      const role = String(user.role || "").toLowerCase();
+      const role = String(user.role || "").trim().toLowerCase();
       if (role === "team leader") return false;
 
-      const userId = Number(user.userId ?? user.id);
-
-      return teams.some((team) => {
-        const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
-        return memberIds.some((id) => Number(id) === userId);
-      });
+      const userId = Number(user.userId ?? user.id ?? user.UserId ?? user.Id);
+      return currentTeamMemberIdSet.has(userId);
     });
 
     if (!query) return teamMembers;
@@ -1582,7 +1650,7 @@ const resolvedCurrentUserId =
         jobTitle.includes(query)
       );
     });
-  }, [users, teams, memberSearch]);
+  }, [users, memberSearch, currentTeamMemberIdSet]);
 
   const selectedUser = useMemo(
     () =>
@@ -1649,15 +1717,11 @@ const resolvedCurrentUserId =
     const query = editMemberSearch.trim().toLowerCase();
 
     const teamMembers = users.filter((user) => {
-      const role = String(user.role || "").toLowerCase();
+      const role = String(user.role || "").trim().toLowerCase();
       if (role === "team leader") return false;
 
-      const userId = Number(user.userId ?? user.id);
-
-      return teams.some((team) => {
-        const memberIds = Array.isArray(team?.memberIds) ? team.memberIds : [];
-        return memberIds.some((id) => Number(id) === userId);
-      });
+      const userId = Number(user.userId ?? user.id ?? user.UserId ?? user.Id);
+      return currentTeamMemberIdSet.has(userId);
     });
 
     if (!query) return teamMembers;
@@ -1675,7 +1739,7 @@ const resolvedCurrentUserId =
         jobTitle.includes(query)
       );
     });
-  }, [users, teams, editMemberSearch]);
+  }, [users, editMemberSearch, currentTeamMemberIdSet]);
 
   const tasksWithUsers = useMemo(() => {
     return tasks.map((task) => {
@@ -1721,14 +1785,29 @@ const resolvedCurrentUserId =
   }, [tasksWithUsers]);
 
   const tasksInSelectedRange = useMemo(() => {
-    return tasksWithUsers.filter((task) =>
-      doesTaskOverlapRange(
-        task,
-        activeDashboardRange.start,
-        activeDashboardRange.end,
-      ),
-    );
-  }, [tasksWithUsers, activeDashboardRange]);
+    return tasksWithUsers.filter((task) => {
+      const taskTeamId = Number(task.teamId ?? task.TeamId ?? 0);
+      const assignedUserId = Number(
+        task.assignedUserId ?? task.assignedToUserId ?? task.AssignedToUserId ?? 0,
+      );
+
+      const belongsToCurrentTeam =
+        Boolean(currentTeamId) && taskTeamId === Number(currentTeamId);
+
+      const assignedToCurrentTeamMember =
+        !assignedUserId || currentTeamMemberIdSet.has(assignedUserId);
+
+      return (
+        belongsToCurrentTeam &&
+        assignedToCurrentTeamMember &&
+        doesTaskOverlapRange(
+          task,
+          activeDashboardRange.start,
+          activeDashboardRange.end,
+        )
+      );
+    });
+  }, [tasksWithUsers, activeDashboardRange, currentTeamId, currentTeamMemberIdSet]);
 
   const taskCounts = useMemo(() => {
     const counts = {
@@ -1912,7 +1991,7 @@ const resolvedCurrentUserId =
     !formState.startDate ||
     !formState.dueDate ||
     !computedTaskWeight ||
-    !selectedUserTeamId ||
+    !currentTeamId ||
     !resolvedCurrentUserId;
 
   const computedEditTaskWeight = useMemo(() => {
@@ -2119,8 +2198,12 @@ const resolvedCurrentUserId =
         throw new Error("Creator user is missing.");
       }
 
-      if (!selectedUserTeamId) {
-        throw new Error("Assigned user's team could not be resolved.");
+      if (!currentTeamId) {
+        throw new Error("Current team could not be resolved.");
+      }
+
+      if (!isUserInCurrentTeam(formState.assignedUserId)) {
+        throw new Error("You can only assign tasks to members of your team.");
       }
 
       if (new Date(formState.dueDate) < new Date(formState.startDate)) {
@@ -2129,7 +2212,7 @@ const resolvedCurrentUserId =
 
       const payload = {
         companyId: Number(resolvedCompanyId),
-        teamId: Number(selectedUserTeamId),
+        teamId: Number(currentTeamId),
         title: formState.title.trim(),
         description: formState.description.trim(),
         assignedToUserId: Number(formState.assignedUserId),
@@ -2406,6 +2489,10 @@ const resolvedCurrentUserId =
         editFormState,
       );
 
+      if (nextAssigneeId && !isUserInCurrentTeam(nextAssigneeId)) {
+        throw new Error("You can only assign tasks to members of your team.");
+      }
+
       if (hasAssigneeChanged) {
         const assigneeAttempt = await tryRequestCandidates([
           {
@@ -2462,7 +2549,7 @@ const resolvedCurrentUserId =
                   selectedUser?.email || task.assignedUserEmail || "",
                 assignedUserAvatar:
                   getProfileImage(selectedUser) || task.assignedUserAvatar || "",
-                teamId: editingSelectedUserTeamId || task.teamId,
+                teamId: currentTeamId || task.teamId,
               };
             }),
           );
@@ -2482,7 +2569,7 @@ const resolvedCurrentUserId =
         editFormState,
         computedEditTaskWeight,
         resolvedCompanyId,
-        teamId: editingSelectedUserTeamId || taskToEdit.teamId,
+        teamId: currentTeamId || taskToEdit.teamId,
       });
 
       const updateAttempt = await tryRequestCandidates([
@@ -3457,7 +3544,7 @@ const resolvedCurrentUserId =
                         <FiSearch />
                         <input
                           type="text"
-                          placeholder="Search any member in the company..."
+                          placeholder="Search a member in this team..."
                           value={memberSearch}
                           onChange={(event) =>
                             setMemberSearch(event.target.value)
@@ -3829,7 +3916,7 @@ const resolvedCurrentUserId =
                 <FiSearch />
                 <input
                   type="text"
-                  placeholder="Search any member in the company..."
+                  placeholder="Search a member in this team..."
                   value={editMemberSearch}
                   onChange={(event) => setEditMemberSearch(event.target.value)}
                 />
