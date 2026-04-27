@@ -337,7 +337,33 @@ function formatDateText(date) {
 }
 
 function getMemberId(member) {
-  return Number(member?.userId ?? 0);
+  return Number(
+    member?.userId ??
+      member?.UserId ??
+      member?.id ??
+      member?.Id ??
+      0
+  );
+}
+
+function getMemberTeamId(member) {
+  return Number(
+    member?.teamId ??
+      member?.TeamId ??
+      member?.teamID ??
+      member?.TeamID ??
+      0
+  );
+}
+
+function getMemberRole(member) {
+  return normalizeRole(
+    member?.role ??
+      member?.Role ??
+      member?.roleName ??
+      member?.RoleName ??
+      ""
+  );
 }
 
 function getTaskAssigneeId(task) {
@@ -351,15 +377,27 @@ function getTaskAssigneeId(task) {
 }
 
 function getTeamId(team) {
-  return Number(team?.teamId ?? 0);
+  return Number(
+    team?.teamId ??
+      team?.TeamId ??
+      team?.id ??
+      team?.Id ??
+      0
+  );
 }
 
 function getTeamName(team) {
-  return String(team?.teamName || "").trim();
+  return String(
+    team?.teamName ??
+      team?.TeamName ??
+      team?.name ??
+      team?.Name ??
+      ""
+  ).trim();
 }
 
 function isEmployeeMember(member) {
-  return normalizeRole(member?.role) === "employee";
+  return getMemberRole(member) === "employee";
 }
 
 function resolveLeaderTeams(teamsData, user) {
@@ -371,24 +409,34 @@ function resolveLeaderTeams(teamsData, user) {
     .trim()
     .toLowerCase();
 
-  let matched = teamsData.filter(
-    (team) =>
-      Number(team?.teamLeaderUserId) === userId ||
-      Number(team?.teamLeaderId) === userId
-  );
+  let matched = teamsData.filter((team) => {
+    const leaderId = Number(
+      team?.teamLeaderUserId ??
+        team?.TeamLeaderUserId ??
+        team?.teamLeaderId ??
+        team?.TeamLeaderId ??
+        0
+    );
+
+    return leaderId === userId;
+  });
 
   if (matched.length > 0) return matched;
 
   if (userName) {
-    matched = teamsData.filter(
-      (team) => String(team?.teamLeaderName || "").trim().toLowerCase() === userName
+    matched = teamsData.filter((team) =>
+      String(team?.teamLeaderName ?? team?.TeamLeaderName ?? "")
+        .trim()
+        .toLowerCase() === userName
     );
     if (matched.length > 0) return matched;
   }
 
   if (userEmail) {
-    matched = teamsData.filter(
-      (team) => String(team?.teamLeaderEmail || "").trim().toLowerCase() === userEmail
+    matched = teamsData.filter((team) =>
+      String(team?.teamLeaderEmail ?? team?.TeamLeaderEmail ?? "")
+        .trim()
+        .toLowerCase() === userEmail
     );
     if (matched.length > 0) return matched;
   }
@@ -919,32 +967,66 @@ export default function TeamLeaderDashboardSection({
 
         setLeaderTeamName(teamName);
 
-        const leaderMemberIds = [
-          ...new Set(
-            leaderTeams.flatMap((team) =>
-              Array.isArray(team?.memberIds)
-                ? team.memberIds.map((id) => Number(id)).filter((id) => id > 0)
-                : []
-            )
-          ),
-        ];
+        const leaderTeamIdSet = new Set(
+          leaderTeamIds.map((id) => Number(id)).filter((id) => id > 0)
+        );
+
+        const leaderMemberIdsFromTeams = new Set(
+          leaderTeams
+            .flatMap((team) => {
+              const ids =
+                team?.memberIds ??
+                team?.MemberIds ??
+                team?.membersIds ??
+                team?.MembersIds ??
+                [];
+
+              return Array.isArray(ids) ? ids : [];
+            })
+            .map((id) => Number(id))
+            .filter((id) => id > 0)
+        );
 
         const filteredMembers = membersData.filter((member) => {
           const memberId = getMemberId(member);
-          return isEmployeeMember(member) && leaderMemberIds.includes(memberId);
+          const memberTeamId = getMemberTeamId(member);
+          const role = getMemberRole(member);
+
+          if (!memberId) {
+            return false;
+          }
+
+          const belongsByTeamId =
+            Boolean(memberTeamId) && leaderTeamIdSet.has(memberTeamId);
+
+          const belongsByTeamMemberList = leaderMemberIdsFromTeams.has(memberId);
+
+          const belongsToLeaderTeam = belongsByTeamId || belongsByTeamMemberList;
+
+          if (!belongsToLeaderTeam) {
+            return false;
+          }
+
+          return role !== "team leader" && role !== "admin";
         });
 
+        const leaderMemberIdSet = new Set(
+          filteredMembers.map((member) => getMemberId(member)).filter((id) => id > 0)
+        );
+
         const filteredTasks = resolvedTasks.filter((task) => {
-          const belongsToLeaderTeam = leaderTeamIds.includes(
-            Number(task?.teamId ?? task?.TeamId ?? 0)
-          );
+          const taskTeamId = Number(task?.teamId ?? task?.TeamId ?? 0);
+          const assigneeId = getTaskAssigneeId(task);
+
+          const belongsToLeaderTeam = leaderTeamIdSet.has(taskTeamId);
+          const assignedToTeamMember = leaderMemberIdSet.has(assigneeId);
           const isInRange = doesTaskOverlapRange(
             task,
             activeRange.start,
             activeRange.end
           );
 
-          return belongsToLeaderTeam && isInRange;
+          return belongsToLeaderTeam && assignedToTeamMember && isInRange;
         });
 
         const requestsByTask = await Promise.all(
@@ -965,8 +1047,8 @@ export default function TeamLeaderDashboardSection({
 
               return taskRequestsList.map((request) => {
                 const newAssigneeId = Number(request?.newValue ?? request?.NewValue ?? 0);
-                const requestedAssignee = membersData.find(
-                  (member) => Number(member?.userId ?? member?.UserId ?? 0) === newAssigneeId
+                const requestedAssignee = filteredMembers.find(
+                  (member) => getMemberId(member) === newAssigneeId
                 );
 
                 return {
