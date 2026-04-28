@@ -9,6 +9,7 @@ import {
   FiChevronRight,
   FiClipboard,
   FiClock,
+  FiEye,
   FiUsers,
 } from "react-icons/fi";
 import { DayPicker } from "react-day-picker";
@@ -310,10 +311,6 @@ function getTaskWeight(task) {
   return Number(task?.weight ?? task?.Weight ?? 0);
 }
 
-function isTaskArchived(task) {
-  return Boolean(task?.isArchived ?? task?.IsArchived);
-}
-
 function getInitials(fullName) {
   return String(fullName || "")
     .split(" ")
@@ -380,7 +377,7 @@ function normalizeSearch(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
+export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMember }) {
   const initialRangeState = useMemo(() => loadRangeState(), []);
 
   const [teams, setTeams] = useState([]);
@@ -590,6 +587,8 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
         weight: Number(weightValue.toFixed(2)).toLocaleString(),
         workloadStatus,
         memberStatus,
+        rawMember: member,
+        currentTasks: memberTasks,
       };
     });
 
@@ -786,6 +785,35 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
     });
   };
 
+  const handleViewMember = (row) => {
+    if (typeof onViewMember === "function") {
+      onViewMember({
+        ...row.rawMember,
+        calculatedTasks: row.tasks,
+        calculatedEffort: row.effortValue,
+        calculatedWeight: row.weightValue,
+        calculatedStatus: row.memberStatus,
+        currentTasks: row.currentTasks,
+      });
+      return;
+    }
+
+    const event = new CustomEvent("team-member-view", {
+      detail: {
+        member: {
+          ...row.rawMember,
+          calculatedTasks: row.tasks,
+          calculatedEffort: row.effortValue,
+          calculatedWeight: row.weightValue,
+          calculatedStatus: row.memberStatus,
+          currentTasks: row.currentTasks,
+        },
+      },
+    });
+
+    window.dispatchEvent(event);
+  };
+
   const renderSortButton = (label, key) => (
     <button
       type="button"
@@ -809,10 +837,10 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
 
   return (
     <section className="team-leader-team-section">
-<div className="users-section__title-row team-leader-team-section__title-row">
-  <h2>Team</h2>
-  <div className="users-section__title-line team-leader-team-section__title-line" />
-</div>
+      <div className="users-section__title-row team-leader-team-section__title-row">
+        <h2>Team</h2>
+        <div className="users-section__title-line team-leader-team-section__title-line" />
+      </div>
 
       <div className="team-leader-team-section__toolbar">
         <div className="team-leader-team-section__range-menu" ref={rangeMenuRef}>
@@ -990,6 +1018,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
                     <th>{renderSortButton("Weight", "weight")}</th>
                     <th>{renderSortButton("Workload Status", "workloadStatus")}</th>
                     <th>{renderSortButton("Status", "status")}</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
 
@@ -1036,11 +1065,21 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
                             {row.memberStatus}
                           </span>
                         </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="team-leader-team-section__action-btn"
+                            onClick={() => handleViewMember(row)}
+                            aria-label={`View ${row.member}`}
+                          >
+                            <FiEye />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="team-leader-team-section__empty-cell">
+                      <td colSpan="8" className="team-leader-team-section__empty-cell">
                         No members found for this range.
                       </td>
                     </tr>

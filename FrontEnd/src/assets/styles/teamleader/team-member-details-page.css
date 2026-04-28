@@ -1,0 +1,584 @@
+.team-member-details-page {
+  width: 100%;
+  height: calc(100vh - 140px);
+  min-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.team-member-details-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.team-member-details-page__back-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #2563eb;
+  background: #f8fafc;
+  color: #2563eb;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.team-member-details-page__back-btn:hover {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.team-member-details-page__title-row h2 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.45rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.team-member-details-page__title-line {
+  flex: 1;
+  height: 1px;
+  background: #cbd5e1;
+}
+
+.team-member-details-page__content-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(320px, 1.05fr) minmax(280px, 0.88fr) minmax(360px, 1.15fr);
+  gap: 18px;
+  flex-shrink: 0;
+}
+
+.team-member-details-page__profile-card,
+.team-member-details-page__overview-card,
+.team-member-details-page__tasks-card,
+.team-member-details-page__activity-card {
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  border-radius: 22px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+.team-member-details-page__profile-card {
+  min-height: 260px;
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+}
+
+.team-member-details-page__profile-main {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-width: 0;
+}
+
+.team-member-details-page__avatar {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #6d28d9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.team-member-details-page__avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  display: block;
+}
+
+.team-member-details-page__online-dot {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 3px solid #ffffff;
+}
+
+.team-member-details-page__profile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.team-member-details-page__profile-copy h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.team-member-details-page__email-row,
+.team-member-details-page__label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.team-member-details-page__email-row {
+  color: #475569;
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+
+.team-member-details-page__email-row svg,
+.team-member-details-page__label-row svg {
+  color: #2563eb;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.team-member-details-page__email-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-member-details-page__profile-divider {
+  width: 100%;
+  height: 1px;
+  background: #dbe3ef;
+}
+
+.team-member-details-page__info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.team-member-details-page__info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.team-member-details-page__label-row {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.team-member-details-page__info-item strong {
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.3;
+  padding-left: 24px;
+  word-break: break-word;
+}
+
+.team-member-details-page__status-badge {
+  width: fit-content;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 15px;
+  font-size: 0.86rem;
+  font-weight: 900;
+  border: 1px solid transparent;
+  margin-left: 24px;
+}
+
+.team-member-details-page__status-badge--active {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.team-member-details-page__status-badge--away {
+  background: #fff7ed;
+  color: #f97316;
+  border-color: #fed7aa;
+}
+
+.team-member-details-page__status-badge--inactive {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.team-member-details-page__overview-card {
+  min-height: 260px;
+  padding: 28px 30px;
+}
+
+.team-member-details-page__overview-card h3,
+.team-member-details-page__tasks-card h3,
+.team-member-details-page__activity-card h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.team-member-details-page__overview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 26px;
+}
+
+.team-member-details-page__overview-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  color: #475569;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.team-member-details-page__overview-item strong {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.team-member-details-page__overview-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.08rem;
+}
+
+.team-member-details-page__overview-icon--tasks {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.team-member-details-page__overview-icon--effort {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.team-member-details-page__overview-icon--weight {
+  background: #eaf2ff;
+  color: #2563eb;
+}
+
+.team-member-details-page__tasks-card {
+  min-height: 260px;
+  padding: 28px 30px;
+}
+
+.team-member-details-page__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.team-member-details-page__view-all-btn {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.team-member-details-page__view-all-btn:hover {
+  color: #1d4ed8;
+}
+
+.team-member-details-page__tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.team-member-details-page__task-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto 36px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.team-member-details-page__task-row:last-child {
+  border-bottom: none;
+}
+
+.team-member-details-page__task-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team-member-details-page__task-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.team-member-details-page__task-copy strong {
+  color: #0f172a;
+  font-size: 0.94rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-member-details-page__task-copy span {
+  color: #475569;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.team-member-details-page__task-status {
+  min-height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.team-member-details-page__task-status--progress {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.team-member-details-page__task-status--pending {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.team-member-details-page__task-status--done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.team-member-details-page__task-status--new {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.team-member-details-page__task-status--danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.team-member-details-page__task-action {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #bfdbfe;
+  border-radius: 11px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.team-member-details-page__task-action:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.team-member-details-page__empty-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.92rem;
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.team-member-details-page__activity-card {
+  flex: 1;
+  min-height: 0;
+  padding: 26px 30px;
+  overflow: hidden;
+}
+
+.team-member-details-page__activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.team-member-details-page__activity-item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 10px 0;
+}
+
+.team-member-details-page__activity-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team-member-details-page__activity-icon--complete {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.team-member-details-page__activity-icon--upload {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.team-member-details-page__activity-icon--comment {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.team-member-details-page__activity-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.team-member-details-page__activity-item strong {
+  color: #0f172a;
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.team-member-details-page__activity-item span {
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+@media (max-width: 1200px) {
+  .team-member-details-page {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .team-member-details-page__content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-member-details-page__activity-card {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 760px) {
+  .team-member-details-page__title-row {
+    gap: 12px;
+  }
+
+  .team-member-details-page__title-row h2 {
+    font-size: 1.2rem;
+  }
+
+  .team-member-details-page__back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .team-member-details-page__profile-card,
+  .team-member-details-page__overview-card,
+  .team-member-details-page__tasks-card,
+  .team-member-details-page__activity-card {
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+
+  .team-member-details-page__profile-main {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .team-member-details-page__avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 1.6rem;
+  }
+
+  .team-member-details-page__profile-copy h3 {
+    font-size: 1.35rem;
+  }
+
+  .team-member-details-page__info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-member-details-page__task-row {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .team-member-details-page__task-status,
+  .team-member-details-page__task-action {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
