@@ -810,10 +810,10 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
 
   return (
     <section className="team-leader-team-section">
-      <div className="team-leader-team-section__title-row">
-        <h2>Team</h2>
-        <div className="team-leader-team-section__title-line" />
-      </div>
+<div className="users-section__title-row team-leader-team-section__title-row">
+  <h2>Team</h2>
+  <div className="users-section__title-line team-leader-team-section__title-line" />
+</div>
 
       <div className="team-leader-team-section__toolbar">
         <div className="team-leader-team-section__range-menu" ref={rangeMenuRef}>
@@ -987,7 +987,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
                     <th>{renderSortButton("Member", "member")}</th>
                     <th>{renderSortButton("Job Title", "jobTitle")}</th>
                     <th>{renderSortButton("Tasks", "tasks")}</th>
-                    <th>{renderSortButton("Effort (This Month)", "effort")}</th>
+                    <th>{renderSortButton("Effort", "effort")}</th>
                     <th>{renderSortButton("Weight", "weight")}</th>
                     <th>{renderSortButton("Workload Status", "workloadStatus")}</th>
                     <th>{renderSortButton("Status", "status")}</th>
