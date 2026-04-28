@@ -487,7 +487,7 @@ const latestReviewedRequestMessage = useMemo(() => {
     return "";
 }, [latestReviewedRequestChange, task?.title]);
 
-    const canRequestChange = currentStatusNormalized === "new" && !pendingRequestChange;
+    const canRequestChange = currentStatusNormalized === "acknowledged" && !pendingRequestChange;
 
     const requestChangeAvailabilityMessage = useMemo(() => {
         if (pendingRequestChange) {
