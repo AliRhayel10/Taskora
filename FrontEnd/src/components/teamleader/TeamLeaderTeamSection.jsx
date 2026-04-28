@@ -539,6 +539,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
   }, [tasks, leaderTeamIds, activeRange]);
 
   const teamMembers = useMemo(() => {
+    const currentLeaderId = getUserId(user);
     const memberIdsFromTeams = new Set();
 
     for (const team of teams) {
@@ -547,23 +548,25 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
 
       const memberIds = team?.memberIds ?? team?.MemberIds;
       if (Array.isArray(memberIds)) {
-        memberIds.map(Number).filter(Boolean).forEach((memberId) => memberIdsFromTeams.add(memberId));
+        memberIds
+          .map(Number)
+          .filter(Boolean)
+          .forEach((memberId) => memberIdsFromTeams.add(memberId));
       }
-
-      const leaderId = getTeamLeaderId(team);
-      if (leaderId) memberIdsFromTeams.add(leaderId);
     }
 
     return members.filter((member) => {
       const memberId = getMemberId(member);
       const explicitTeamIds = getMemberTeamIds(member);
 
+      if (currentLeaderId && memberId === currentLeaderId) return false;
+
       if (memberIdsFromTeams.size > 0) return memberIdsFromTeams.has(memberId);
       if (explicitTeamIds.length > 0) return explicitTeamIds.some((teamId) => leaderTeamIds.includes(teamId));
 
       return true;
     });
-  }, [members, teams, leaderTeamIds]);
+  }, [members, teams, leaderTeamIds, user]);
 
   const rows = useMemo(() => {
     const search = normalizeSearch(searchValue);
