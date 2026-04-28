@@ -16,6 +16,7 @@ import { DayPicker } from "react-day-picker";
 import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
 import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-team-section.css";
+import TeamMemberDetailsPage from "./TeamMemberDetailsPage";
 
 const API_BASE = "http://localhost:5000";
 const PAGE_SIZE = 6;
@@ -380,6 +381,7 @@ function normalizeSearch(value) {
 export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMember }) {
   const initialRangeState = useMemo(() => loadRangeState(), []);
 
+  const [selectedMember, setSelectedMember] = useState(null);
   const [teams, setTeams] = useState([]);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -786,32 +788,21 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
   };
 
   const handleViewMember = (row) => {
+    const memberDetails = {
+      ...row.rawMember,
+      calculatedTasks: row.tasks,
+      calculatedEffort: row.effortValue,
+      calculatedWeight: row.weightValue,
+      calculatedStatus: row.memberStatus,
+      currentTasks: row.currentTasks,
+    };
+
     if (typeof onViewMember === "function") {
-      onViewMember({
-        ...row.rawMember,
-        calculatedTasks: row.tasks,
-        calculatedEffort: row.effortValue,
-        calculatedWeight: row.weightValue,
-        calculatedStatus: row.memberStatus,
-        currentTasks: row.currentTasks,
-      });
+      onViewMember(memberDetails);
       return;
     }
 
-    const event = new CustomEvent("team-member-view", {
-      detail: {
-        member: {
-          ...row.rawMember,
-          calculatedTasks: row.tasks,
-          calculatedEffort: row.effortValue,
-          calculatedWeight: row.weightValue,
-          calculatedStatus: row.memberStatus,
-          currentTasks: row.currentTasks,
-        },
-      },
-    });
-
-    window.dispatchEvent(event);
+    setSelectedMember(memberDetails);
   };
 
   const renderSortButton = (label, key) => (
@@ -834,6 +825,15 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
       />
     </button>
   );
+
+  if (selectedMember) {
+    return (
+      <TeamMemberDetailsPage
+        member={selectedMember}
+        onBack={() => setSelectedMember(null)}
+      />
+    );
+  }
 
   return (
     <section className="team-leader-team-section">
