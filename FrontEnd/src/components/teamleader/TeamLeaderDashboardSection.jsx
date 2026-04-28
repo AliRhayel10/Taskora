@@ -22,7 +22,7 @@ import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
 import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-dashboard-section.css";
 
-const PAGE_SIZE = 4;
+const PAGE_SIZE = 5;
 const RANGE_STORAGE_KEY = "teamleader_dashboard_range";
 const API_BASE = "http://localhost:5000";
 
