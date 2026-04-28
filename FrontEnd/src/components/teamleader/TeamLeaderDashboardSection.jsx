@@ -362,8 +362,32 @@ function getMemberRole(member) {
       member?.Role ??
       member?.roleName ??
       member?.RoleName ??
+      member?.userRole ??
+      member?.UserRole ??
+      member?.type ??
+      member?.Type ??
       ""
   );
+}
+
+function isAdminMember(member) {
+  const role = getMemberRole(member);
+  const isAdminFlag = Boolean(
+    member?.isAdmin ??
+      member?.IsAdmin ??
+      member?.admin ??
+      member?.Admin ??
+      false
+  );
+
+  return isAdminFlag || role === "admin" || role === "administrator";
+}
+
+function isCurrentUserMember(member, user) {
+  const memberId = getMemberId(member);
+  const currentUserId = Number(user?.userId ?? user?.UserId ?? user?.id ?? user?.Id ?? 0);
+
+  return Boolean(memberId && currentUserId && memberId === currentUserId);
 }
 
 function getTaskAssigneeId(task) {
@@ -990,8 +1014,6 @@ export default function TeamLeaderDashboardSection({
         const filteredMembers = membersData.filter((member) => {
           const memberId = getMemberId(member);
           const memberTeamId = getMemberTeamId(member);
-          const role = getMemberRole(member);
-
           if (!memberId) {
             return false;
           }
@@ -1007,7 +1029,7 @@ export default function TeamLeaderDashboardSection({
             return false;
           }
 
-          return role !== "admin";
+          return !isAdminMember(member) && !isCurrentUserMember(member, user);
         });
 
         const leaderMemberIdSet = new Set(
@@ -1134,7 +1156,9 @@ export default function TeamLeaderDashboardSection({
   const workloadRows = useMemo(() => {
     const search = searchValue.trim().toLowerCase();
 
-    let rows = members.map((member) => {
+    let rows = members
+      .filter((member) => !isAdminMember(member) && !isCurrentUserMember(member, user))
+      .map((member) => {
       const memberId = getMemberId(member);
 
       const memberTasks = tasks.filter(
@@ -1219,7 +1243,7 @@ export default function TeamLeaderDashboardSection({
     }
 
     return rows;
-  }, [members, tasks, searchValue, sortConfig]);
+  }, [members, tasks, searchValue, sortConfig, user]);
 
   const summaryCards = useMemo(() => {
     const totalTasks = tasks.length;
