@@ -535,7 +535,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
     return tasks.filter((task) => {
       const taskTeamId = getTaskTeamId(task);
       if (leaderTeamIds.length && !leaderTeamIds.includes(taskTeamId)) return false;
-      if (isTaskArchived(task)) return false;
       return doesTaskOverlapRange(task, activeRange.start, activeRange.end);
     });
   }, [tasks, leaderTeamIds, activeRange]);
