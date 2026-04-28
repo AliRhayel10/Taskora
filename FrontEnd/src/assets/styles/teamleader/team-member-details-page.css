@@ -582,3 +582,127 @@
     justify-self: start;
   }
 }
+/* Updated task list behavior */
+.team-member-details-page__tasks-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  max-height: 360px;
+  overflow: hidden;
+}
+
+.team-member-details-page__tasks-list {
+  flex: 1;
+  min-height: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.team-member-details-page__tasks-list--all {
+  max-height: 250px;
+}
+
+.team-member-details-page__tasks-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.team-member-details-page__tasks-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.team-member-details-page__tasks-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.team-member-details-page__tasks-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@media (max-width: 760px) {
+  .team-member-details-page__tasks-card {
+    max-height: none;
+  }
+
+  .team-member-details-page__tasks-list,
+  .team-member-details-page__tasks-list--all {
+    max-height: 320px;
+  }
+}
+
+
+/* Fixed card heights and stable Tasks list behavior */
+.team-member-details-page__content-grid {
+  align-items: stretch;
+}
+
+.team-member-details-page__profile-card,
+.team-member-details-page__overview-card,
+.team-member-details-page__tasks-card {
+  height: 300px;
+  min-height: 300px;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.team-member-details-page__tasks-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-member-details-page__tasks-card .team-member-details-page__section-header {
+  flex: 0 0 auto;
+  margin-bottom: 14px;
+}
+
+.team-member-details-page__tasks-list,
+.team-member-details-page__tasks-list--all {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.team-member-details-page__task-row {
+  min-height: 64px;
+  flex-shrink: 0;
+}
+
+.team-member-details-page__task-copy strong,
+.team-member-details-page__task-copy span {
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .team-member-details-page__profile-card,
+  .team-member-details-page__overview-card,
+  .team-member-details-page__tasks-card {
+    height: 300px;
+    min-height: 300px;
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 760px) {
+  .team-member-details-page__profile-card,
+  .team-member-details-page__overview-card,
+  .team-member-details-page__tasks-card {
+    height: auto;
+    min-height: 280px;
+    max-height: none;
+  }
+
+  .team-member-details-page__tasks-card {
+    height: 360px;
+    max-height: 360px;
+  }
+}

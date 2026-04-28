@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiBriefcase,
@@ -9,9 +9,11 @@ import {
   FiShield,
   FiTrendingUp,
 } from "react-icons/fi";
+import TaskDetailsPage from "./TaskDetailsPage";
 import "../../assets/styles/teamleader/team-member-details-page.css";
 
 const API_BASE = "http://localhost:5000";
+const PREVIEW_TASK_LIMIT = 3;
 
 function getValue(source, keys, fallback = "") {
   for (const key of keys) {
@@ -65,14 +67,21 @@ function getStatusClass(status = "") {
   return "team-member-details-page__status-badge--inactive";
 }
 
-function formatTaskDate(value) {
-  if (!value) return "No due date";
+function parseTaskDate(value) {
+  if (!value) return null;
 
   const raw = String(value).trim();
   const dateOnly = raw.includes("T") ? raw.split("T")[0] : raw;
   const parsed = new Date(`${dateOnly}T00:00:00`);
 
-  if (Number.isNaN(parsed.getTime())) return raw;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatTaskDate(value) {
+  if (!value) return "No due date";
+
+  const parsed = parseTaskDate(value);
+  if (!parsed) return String(value);
 
   return parsed.toLocaleDateString("en-US", {
     month: "short",
@@ -90,7 +99,79 @@ function getTaskDueDate(task = {}) {
 }
 
 function getTaskStatus(task = {}) {
-  return getValue(task, ["effectiveStatus", "status", "Status"], "Pending");
+  const directStatus = getValue(
+    task,
+    [
+      "effectiveStatus",
+      "EffectiveStatus",
+      "status",
+      "Status",
+      "statusName",
+      "StatusName",
+      "taskStatus",
+      "TaskStatus",
+      "taskStatusName",
+      "TaskStatusName",
+      "state",
+      "State",
+    ],
+    ""
+  );
+
+  if (typeof directStatus === "string" && directStatus.trim()) {
+    return directStatus;
+  }
+
+  if (directStatus && typeof directStatus === "object") {
+    const nestedStatus = getValue(
+      directStatus,
+      ["statusName", "StatusName", "name", "Name", "taskStatusName", "TaskStatusName", "label", "Label"],
+      ""
+    );
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  const nestedObjects = [
+    task?.taskStatus,
+    task?.TaskStatus,
+    task?.statusInfo,
+    task?.StatusInfo,
+    task?.statusNavigation,
+    task?.StatusNavigation,
+  ];
+
+  for (const nested of nestedObjects) {
+    if (!nested || typeof nested !== "object") continue;
+
+    const nestedStatus = getValue(
+      nested,
+      ["statusName", "StatusName", "name", "Name", "taskStatusName", "TaskStatusName", "label", "Label"],
+      ""
+    );
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  return "Not set";
+}
+
+function getTaskId(task = {}) {
+  return task?.taskId ?? task?.TaskId ?? task?.id ?? task?.Id ?? "";
+}
+
+function getTaskEffort(task = {}) {
+  return Number(
+    task?.estimatedEffortHours ??
+      task?.EstimatedEffortHours ??
+      task?.effort ??
+      task?.Effort ??
+      0
+  );
+}
+
+function getTaskWeight(task = {}) {
+  return Number(task?.weight ?? task?.Weight ?? 0);
 }
 
 function getTaskStatusClass(status = "") {
@@ -127,7 +208,29 @@ function formatTaskStatus(status = "") {
   return status || "Pending";
 }
 
-export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
+function sortTasksByDueDate(tasks) {
+  return [...tasks].sort((firstTask, secondTask) => {
+    const firstDate = parseTaskDate(getTaskDueDate(firstTask));
+    const secondDate = parseTaskDate(getTaskDueDate(secondTask));
+
+    if (!firstDate && !secondDate) return 0;
+    if (!firstDate) return 1;
+    if (!secondDate) return -1;
+
+    return firstDate.getTime() - secondDate.getTime();
+  });
+}
+
+export default function TeamMemberDetailsPage({
+  member,
+  onBack,
+  onViewTask,
+  onTaskUpdated,
+  companyId,
+}) {
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+
   const details = useMemo(() => {
     const selectedMember = member || {};
 
@@ -140,20 +243,16 @@ export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
     );
     const status = getStatus(selectedMember);
     const profileImageUrl = getProfileImage(selectedMember);
-    const tasksCount = Number(
-      getValue(selectedMember, ["calculatedTasks", "tasks", "Tasks", "taskCount", "TaskCount"], 0)
-    );
-    const effort = Number(
-      getValue(selectedMember, ["calculatedEffort", "totalEffort", "TotalEffort"], 0)
-    );
-    const weight = Number(
-      getValue(selectedMember, ["calculatedWeight", "totalWeight", "TotalWeight"], 0)
-    );
     const currentTasks = Array.isArray(selectedMember.currentTasks)
       ? selectedMember.currentTasks
       : Array.isArray(selectedMember.CurrentTasks)
         ? selectedMember.CurrentTasks
         : [];
+
+    const sortedTasks = sortTasksByDueDate(currentTasks);
+    const tasksCount = sortedTasks.length;
+    const effort = sortedTasks.reduce((sum, task) => sum + getTaskEffort(task), 0);
+    const weight = sortedTasks.reduce((sum, task) => sum + getTaskWeight(task), 0);
 
     return {
       name,
@@ -164,12 +263,36 @@ export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
       tasksCount,
       effort,
       weight,
-      currentTasks,
+      currentTasks: sortedTasks,
     };
   }, [member]);
 
+  const displayedTasks = showAllTasks
+    ? details.currentTasks
+    : details.currentTasks.slice(0, PREVIEW_TASK_LIMIT);
+
   const displayEffort = `${Number(details.effort.toFixed(2)).toLocaleString()}h`;
   const displayWeight = Number(details.weight.toFixed(2)).toLocaleString();
+
+  const handleViewTask = (task) => {
+    if (typeof onViewTask === "function") {
+      onViewTask(task);
+      return;
+    }
+
+    setSelectedTask(task);
+  };
+
+  if (selectedTask) {
+    return (
+      <TaskDetailsPage
+        task={selectedTask}
+        onBack={() => setSelectedTask(null)}
+        onTaskUpdated={onTaskUpdated}
+        companyId={companyId}
+      />
+    );
+  }
 
   return (
     <section className="team-member-details-page">
@@ -264,20 +387,26 @@ export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
 
         <article className="team-member-details-page__tasks-card">
           <div className="team-member-details-page__section-header">
-            <h3>Current Tasks</h3>
-            <button type="button" className="team-member-details-page__view-all-btn">
-              View all
-            </button>
+            <h3>Tasks</h3>
+            {details.currentTasks.length > PREVIEW_TASK_LIMIT && (
+              <button
+                type="button"
+                className="team-member-details-page__view-all-btn"
+                onClick={() => setShowAllTasks((current) => !current)}
+              >
+                {showAllTasks ? "Show less" : "View all"}
+              </button>
+            )}
           </div>
 
           <div className="team-member-details-page__tasks-list">
-            {details.currentTasks.length ? (
-              details.currentTasks.slice(0, 3).map((task, index) => {
+            {displayedTasks.length ? (
+              displayedTasks.map((task, index) => {
                 const status = getTaskStatus(task);
                 const title = getTaskTitle(task);
 
                 return (
-                  <div key={task?.taskId ?? task?.TaskId ?? task?.id ?? index} className="team-member-details-page__task-row">
+                  <div key={getTaskId(task) || index} className="team-member-details-page__task-row">
                     <div className="team-member-details-page__task-icon">
                       <FiCheckCircle />
                     </div>
@@ -294,7 +423,7 @@ export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
                     <button
                       type="button"
                       className="team-member-details-page__task-action"
-                      onClick={() => onViewTask?.(task)}
+                      onClick={() => handleViewTask(task)}
                       aria-label={`View ${title}`}
                     >
                       <FiEye />
@@ -304,7 +433,7 @@ export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
               })
             ) : (
               <div className="team-member-details-page__empty-state">
-                No current tasks found for this member.
+                No tasks found for this member in the selected date range.
               </div>
             )}
           </div>
@@ -320,35 +449,23 @@ export default function TeamMemberDetailsPage({ member, onBack, onViewTask }) {
         </div>
 
         <div className="team-member-details-page__activity-list">
-          <div className="team-member-details-page__activity-item">
-            <span className="team-member-details-page__activity-icon team-member-details-page__activity-icon--complete">
-              <FiCheckCircle />
-            </span>
-            <div>
-              <strong>Completed task “Dashboard UI Design”</strong>
-              <span>May 18, 2025 at 4:30 PM</span>
+          {details.currentTasks.slice(0, 3).map((task, index) => (
+            <div key={getTaskId(task) || index} className="team-member-details-page__activity-item">
+              <span className="team-member-details-page__activity-icon team-member-details-page__activity-icon--complete">
+                <FiCheckCircle />
+              </span>
+              <div>
+                <strong>{formatTaskStatus(getTaskStatus(task))}: {getTaskTitle(task)}</strong>
+                <span>Due: {formatTaskDate(getTaskDueDate(task))}</span>
+              </div>
             </div>
-          </div>
+          ))}
 
-          <div className="team-member-details-page__activity-item">
-            <span className="team-member-details-page__activity-icon team-member-details-page__activity-icon--upload">
-              <FiBriefcase />
-            </span>
-            <div>
-              <strong>Updated work details</strong>
-              <span>May 16, 2025 at 11:15 AM</span>
+          {!details.currentTasks.length && (
+            <div className="team-member-details-page__empty-state">
+              No recent activity available for the selected date range.
             </div>
-          </div>
-
-          <div className="team-member-details-page__activity-item">
-            <span className="team-member-details-page__activity-icon team-member-details-page__activity-icon--comment">
-              <FiClock />
-            </span>
-            <div>
-              <strong>Commented on “Mobile App Redesign”</strong>
-              <span>May 15, 2025 at 2:45 PM</span>
-            </div>
-          </div>
+          )}
         </div>
       </article>
     </section>
