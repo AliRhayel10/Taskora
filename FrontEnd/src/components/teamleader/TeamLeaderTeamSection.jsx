@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertTriangle,
   FiBarChart2,
+  FiCalendar,
   FiCheckCircle,
   FiChevronDown,
   FiChevronLeft,
@@ -16,8 +17,9 @@ import "react-day-picker/dist/style.css";
 import "../../assets/styles/teamleader/team-leader-team-section.css";
 
 const API_BASE = "http://localhost:5000";
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 6;
 const RANGE_STORAGE_KEY = "teamleader_team_range";
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => format(new Date(2026, index, 1), "MMMM"));
 
 function startOfDay(date) {
   const value = new Date(date);
@@ -675,7 +677,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
       {
         title: "Total Members",
         value: teamMembers.length.toLocaleString(),
-        description: "Active team members",
         icon: <FiUsers />,
         iconClass: "team-leader-team-section__card-icon--members",
         valueClass: "team-leader-team-section__card-value--blue",
@@ -683,7 +684,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
       {
         title: "Tasks",
         value: totalTasks.toLocaleString(),
-        description: "Assigned to the team",
         icon: <FiClipboard />,
         iconClass: "team-leader-team-section__card-icon--tasks",
         valueClass: "team-leader-team-section__card-value--purple",
@@ -691,7 +691,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
       {
         title: "Total Effort",
         value: `${Number(totalEffort.toFixed(2)).toLocaleString()}h`,
-        description: "This month",
         icon: <FiClock />,
         iconClass: "team-leader-team-section__card-icon--effort",
         valueClass: "team-leader-team-section__card-value--green",
@@ -699,7 +698,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
       {
         title: "Average Workload",
         value: `${averageWorkload}%`,
-        description: "Across the team",
         icon: <FiBarChart2 />,
         iconClass: "team-leader-team-section__card-icon--workload",
         valueClass: "team-leader-team-section__card-value--orange",
@@ -708,24 +706,23 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
   }, [filteredRangeTasks, teamMembers.length]);
 
   const handleSelectPreset = (preset) => {
+    if (preset === "custom") {
+      const nextMonth = startOfMonth(new Date());
+
+      setDraftPreset("custom");
+      setDraftCustomRange({ from: null, to: null });
+      setDraftCalendarMonth(nextMonth);
+      return;
+    }
+
+    const range = preset === "today" ? getTodayRange() : getWeekRange();
+
     setDraftPreset(preset);
-
-    if (preset === "today") {
-      const range = getTodayRange();
-      setDraftCustomRange({ from: range.start, to: range.end });
-      setDraftCalendarMonth(startOfMonth(range.start));
-      return;
-    }
-
-    if (preset === "thisWeek") {
-      const range = getWeekRange();
-      setDraftCustomRange({ from: range.start, to: range.end });
-      setDraftCalendarMonth(startOfMonth(range.start));
-      return;
-    }
-
-    const range = getMonthRange(draftCalendarMonth);
-    setDraftCustomRange({ from: range.start, to: range.end });
+    setDraftCustomRange({ from: null, to: null });
+    setSelectedPreset(preset);
+    setCustomRange({ from: range.start, to: range.end });
+    setDraftCalendarMonth(startOfMonth(range.start));
+    setIsRangeMenuOpen(false);
   };
 
   const handleDraftMonthChange = (monthIndex) => {
@@ -758,19 +755,29 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
     }
   };
 
+  const getVisibleMonthRange = () => {
+    const visibleMonthStart = startOfMonth(draftCalendarMonth);
+    const visibleMonthEnd = endOfMonth(draftCalendarMonth);
+
+    return {
+      from: startOfDay(visibleMonthStart),
+      to: endOfDay(visibleMonthEnd),
+    };
+  };
+
   const handleApplyCustomRange = () => {
-    if (
-      draftCustomRange?.from instanceof Date &&
-      draftCustomRange?.to instanceof Date &&
-      startOfDay(draftCustomRange.from) <= endOfDay(draftCustomRange.to)
-    ) {
-      setSelectedPreset(draftPreset);
-      setCustomRange({
-        from: startOfDay(draftCustomRange.from),
-        to: endOfDay(draftCustomRange.to),
-      });
-      setIsRangeMenuOpen(false);
-    }
+    const nextRange =
+      draftCustomRange?.from instanceof Date && draftCustomRange?.to instanceof Date
+        ? {
+            from: startOfDay(draftCustomRange.from),
+            to: endOfDay(draftCustomRange.to),
+          }
+        : getVisibleMonthRange();
+
+    setSelectedPreset("custom");
+    setCustomRange(nextRange);
+    setIsRangeMenuOpen(false);
+    setDraftCustomRange({ from: null, to: null });
   };
 
   const handleSort = (key) => {
@@ -863,75 +870,85 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
                 </button>
               </div>
 
-              <div className="team-leader-team-section__range-divider" />
+              {draftPreset === "custom" && (
+                <>
+                  <div className="team-leader-team-section__range-divider" />
 
-              <div className="team-leader-team-section__custom-range">
-                <div className="team-leader-team-section__custom-range-preview">
-                  {draftRangePreview}
-                </div>
+                  <div className="team-leader-team-section__custom-range">
+                    <div className="team-leader-team-section__custom-range-header">
+                      <FiCalendar />
+                      <span>Pick a custom range</span>
+                    </div>
 
-                <div className="team-leader-team-section__month-picker-row">
-                  <div className="team-leader-team-section__month-picker-field">
-                    <label htmlFor="team-leader-team-month-select">Month</label>
-                    <div className="team-leader-team-section__month-picker-select-wrap">
-                      <select
-                        id="team-leader-team-month-select"
-                        className="team-leader-team-section__month-picker-select"
-                        value={selectedMonthIndex}
-                        onChange={(event) => handleDraftMonthChange(event.target.value)}
+                    <div className="team-leader-team-section__custom-range-preview">
+                      {draftRangePreview}
+                    </div>
+
+                    <div className="team-leader-team-section__month-picker-row">
+                      <div className="team-leader-team-section__month-picker-field">
+                        <label htmlFor="team-leader-team-month-select">Month</label>
+                        <div className="team-leader-team-section__month-picker-select-wrap">
+                          <select
+                            id="team-leader-team-month-select"
+                            className="team-leader-team-section__month-picker-select"
+                            value={selectedMonthIndex}
+                            onChange={(event) => handleDraftMonthChange(event.target.value)}
+                          >
+                            {MONTH_OPTIONS.map((monthLabel, monthIndex) => (
+                              <option key={monthLabel} value={monthIndex}>
+                                {monthLabel}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+
+                      <div className="team-leader-team-section__month-picker-field">
+                        <label htmlFor="team-leader-team-year-select">Year</label>
+                        <div className="team-leader-team-section__month-picker-select-wrap">
+                          <select
+                            id="team-leader-team-year-select"
+                            className="team-leader-team-section__month-picker-select"
+                            value={selectedYearValue}
+                            onChange={(event) => handleDraftYearChange(event.target.value)}
+                          >
+                            {yearOptions.map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                          <FiChevronDown />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="team-leader-team-section__calendar-shell">
+                      <DayPicker
+                        mode="range"
+                        month={draftCalendarMonth}
+                        onMonthChange={(month) => setDraftCalendarMonth(startOfMonth(month))}
+                        selected={draftCustomRange}
+                        onSelect={handleCustomRangeSelect}
+                        showOutsideDays={false}
+                        numberOfMonths={1}
+                        className="team-leader-team-section__day-picker"
+                      />
+                    </div>
+
+                    <div className="team-leader-team-section__apply-btn-wrap">
+                      <button
+                        type="button"
+                        className="team-leader-team-section__apply-btn"
+                        onClick={handleApplyCustomRange}
                       >
-                        {Array.from({ length: 12 }, (_, index) => (
-                          <option key={index} value={index}>
-                            {format(new Date(2026, index, 1), "MMMM")}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown />
+                        Apply Range
+                      </button>
                     </div>
                   </div>
-
-                  <div className="team-leader-team-section__month-picker-field">
-                    <label htmlFor="team-leader-team-year-select">Year</label>
-                    <div className="team-leader-team-section__month-picker-select-wrap">
-                      <select
-                        id="team-leader-team-year-select"
-                        className="team-leader-team-section__month-picker-select"
-                        value={selectedYearValue}
-                        onChange={(event) => handleDraftYearChange(event.target.value)}
-                      >
-                        {yearOptions.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-                      <FiChevronDown />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="team-leader-team-section__calendar-shell">
-                  <DayPicker
-                    mode="range"
-                    month={draftCalendarMonth}
-                    onMonthChange={(month) => setDraftCalendarMonth(startOfMonth(month))}
-                    selected={draftCustomRange}
-                    onSelect={handleCustomRangeSelect}
-                    showOutsideDays={false}
-                    numberOfMonths={1}
-                    className="team-leader-team-section__day-picker"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className="team-leader-team-section__apply-btn"
-                  onClick={handleApplyCustomRange}
-                  disabled={!(draftCustomRange?.from instanceof Date && draftCustomRange?.to instanceof Date)}
-                >
-                  Apply Range
-                </button>
-              </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -957,7 +974,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "" }) {
                   <strong className={`team-leader-team-section__card-value ${card.valueClass}`}>
                     {card.value}
                   </strong>
-                  <small>{card.description}</small>
                 </div>
               </article>
             ))}
