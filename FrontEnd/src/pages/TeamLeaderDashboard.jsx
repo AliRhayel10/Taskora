@@ -5,8 +5,10 @@ import AppTopbar from "../components/AppTopbar";
 import TeamLeaderDashboardSection from "../components/teamleader/TeamLeaderDashboardSection";
 import TeamLeaderProfileSection from "../components/teamleader/TeamLeaderProfileSection";
 import TasksSection from "../components/teamleader/TasksSection";
+import TeamLeaderTeamSection from "../components/teamleader/TeamLeaderTeamSection";
 import "../assets/styles/teamleader/team-leader-dashboard.css";
 import "../assets/styles/teamleader/tasks-section.css";
+import "../assets/styles/teamleader/team-leader-team-section.css";
 
 function SectionTitle({ title }) {
   return (
@@ -160,6 +162,8 @@ const searchPlaceholder = "Search";
             </>
           ) : activeItem === "Tasks" ? (
             <TasksSection searchValue={searchValue} user={user} />
+          ) : activeItem === "Team" ? (
+            <TeamLeaderTeamSection searchValue={searchValue} user={user} />
           ) : activeItem === "Profile" ? (
             <TeamLeaderProfileSection user={user} setUser={setUser} />
           ) : (

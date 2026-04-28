@@ -1,0 +1,32 @@
+.team-leader-team-section {
+  width: 100%;
+}
+
+.team-leader-team-section__title-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.team-leader-team-section__title-row h2 {
+  margin: 0;
+  color: #17233a;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.team-leader-team-section__title-line {
+  flex: 1;
+  height: 1px;
+  background: #c9d3e3;
+}
+
+body.dark .team-leader-team-section__title-row h2 {
+  color: #f8fafc;
+}
+
+body.dark .team-leader-team-section__title-line {
+  background: rgba(148, 163, 184, 0.35);
+}
