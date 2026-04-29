@@ -10,6 +10,7 @@ import {
   FiLayers,
   FiMessageSquare,
   FiRotateCcw,
+  FiSearch,
   FiSend,
   FiTarget,
   FiTrash2,
@@ -397,6 +398,7 @@ export default function TaskDetailsPage({
   const [priorityOptions, setPriorityOptions] = useState([]);
   const [complexityOptions, setComplexityOptions] = useState([]);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editMemberSearch, setEditMemberSearch] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
@@ -710,6 +712,146 @@ export default function TaskDetailsPage({
     [showAllTimeline, timelineEntries],
   );
 
+  const currentTeamId = useMemo(() => {
+    const taskTeamId = Number(currentTask?.teamId ?? currentTask?.TeamId ?? 0);
+
+    if (taskTeamId) return taskTeamId;
+
+    const assignedUserId = Number(
+      currentTask?.assignedUserId ??
+        currentTask?.assignedToUserId ??
+        currentTask?.AssignedToUserId ??
+        0,
+    );
+
+    if (!assignedUserId) return 0;
+
+    const matchedTeam = teams.find((team) => {
+      const memberIds = Array.isArray(team?.memberIds)
+        ? team.memberIds
+        : Array.isArray(team?.MemberIds)
+          ? team.MemberIds
+          : [];
+      const leaderId = Number(
+        team?.teamLeaderUserId ??
+          team?.teamLeaderId ??
+          team?.TeamLeaderUserId ??
+          team?.TeamLeaderId ??
+          0,
+      );
+
+      return (
+        memberIds.some((id) => Number(id) === assignedUserId) ||
+        leaderId === assignedUserId
+      );
+    });
+
+    return Number(matchedTeam?.teamId ?? matchedTeam?.TeamId ?? 0);
+  }, [currentTask, teams]);
+
+  const currentTeamMemberIds = useMemo(() => {
+    if (!currentTeamId) return [];
+
+    const currentTeam = teams.find(
+      (team) => Number(team?.teamId ?? team?.TeamId ?? 0) === Number(currentTeamId),
+    );
+
+    const idsFromTeam = Array.isArray(currentTeam?.memberIds)
+      ? currentTeam.memberIds
+      : Array.isArray(currentTeam?.MemberIds)
+        ? currentTeam.MemberIds
+        : [];
+
+    const idsFromUsers = users
+      .filter((user) => {
+        const directTeamId = Number(
+          user?.teamId ??
+            user?.TeamId ??
+            user?.team?.teamId ??
+            user?.team?.TeamId ??
+            0,
+        );
+        const teamIds = user?.teamIds ?? user?.TeamIds;
+
+        return (
+          directTeamId === Number(currentTeamId) ||
+          (Array.isArray(teamIds) &&
+            teamIds.some((id) => Number(id) === Number(currentTeamId)))
+        );
+      })
+      .map((user) =>
+        Number(user?.userId ?? user?.UserId ?? user?.id ?? user?.Id ?? 0),
+      );
+
+    return Array.from(
+      new Set([...idsFromTeam, ...idsFromUsers].map((id) => Number(id)).filter(Boolean)),
+    );
+  }, [teams, users, currentTeamId]);
+
+  const currentTeamMemberIdSet = useMemo(
+    () => new Set(currentTeamMemberIds.map((id) => Number(id))),
+    [currentTeamMemberIds],
+  );
+
+  const editAssignableUsers = useMemo(() => {
+    const query = editMemberSearch.trim().toLowerCase();
+
+    const teamMembers = users.filter((user) => {
+      const role = String(user?.role ?? user?.Role ?? "").trim().toLowerCase();
+      if (role === "team leader") return false;
+
+      const userId = Number(user?.userId ?? user?.UserId ?? user?.id ?? user?.Id ?? 0);
+
+      if (currentTeamMemberIdSet.size > 0) {
+        return currentTeamMemberIdSet.has(userId);
+      }
+
+      const directTeamId = Number(
+        user?.teamId ?? user?.TeamId ?? user?.team?.teamId ?? user?.team?.TeamId ?? 0,
+      );
+      const teamIds = user?.teamIds ?? user?.TeamIds;
+
+      return (
+        Boolean(currentTeamId) &&
+        (directTeamId === Number(currentTeamId) ||
+          (Array.isArray(teamIds) &&
+            teamIds.some((id) => Number(id) === Number(currentTeamId))))
+      );
+    });
+
+    if (!query) return teamMembers;
+
+    return teamMembers.filter((user) => {
+      const fullName = String(user?.fullName ?? user?.name ?? user?.FullName ?? "").toLowerCase();
+      const email = String(user?.email ?? user?.Email ?? "").toLowerCase();
+      const role = String(user?.role ?? user?.Role ?? "").toLowerCase();
+      const jobTitle = String(user?.jobTitle ?? user?.JobTitle ?? "").toLowerCase();
+
+      return (
+        fullName.includes(query) ||
+        email.includes(query) ||
+        role.includes(query) ||
+        jobTitle.includes(query)
+      );
+    });
+  }, [users, editMemberSearch, currentTeamMemberIdSet, currentTeamId]);
+
+  const editSelectedUser = useMemo(
+    () =>
+      users.find(
+        (user) =>
+          String(user?.userId ?? user?.UserId ?? user?.id ?? user?.Id ?? "") ===
+          String(editFormState.assignedUserId || ""),
+      ) || null,
+    [users, editFormState.assignedUserId],
+  );
+
+  const canContinueEdit = Boolean(
+    editFormState.title.trim() &&
+      editFormState.description.trim() &&
+      editFormState.assignedUserId,
+  );
+
   const resolveTeamIdForUser = (userId) => {
     const numericUserId = Number(userId);
     if (!numericUserId) return Number(currentTask?.teamId || 0);
@@ -780,11 +922,13 @@ export default function TaskDetailsPage({
       dueDate: toIsoDate(currentTask?.dueDate || ""),
     });
 
+    setEditMemberSearch("");
     setIsEditOpen(true);
   };
 
   const closeEditModal = () => {
     setIsEditOpen(false);
+    setEditMemberSearch("");
     setEditFormState(DEFAULT_EDIT_FORM);
   };
 
@@ -1559,13 +1703,13 @@ export default function TaskDetailsPage({
       {isEditOpen ? (
         <div className="tasks-section__modal-overlay" onClick={closeEditModal}>
           <div
-            className="tasks-section__modal"
+            className="tasks-section__modal tasks-section__modal--wide"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="tasks-section__modal-header tasks-section__modal-header--lined">
               <div>
                 <h3>Edit Task</h3>
-                <p>Update all task fields except weight and status.</p>
+                <p>Update the task fields and assignment.</p>
               </div>
 
               <button
@@ -1578,190 +1722,271 @@ export default function TaskDetailsPage({
               </button>
             </div>
 
-            <form className="tasks-section__form" onSubmit={handleSaveEdit}>
-              <div className="tasks-section__form-grid">
-                <div className="tasks-section__form-group tasks-section__form-group--full">
-                  <label htmlFor="task-details-title">
-                    Title <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-details-title"
-                    type="text"
-                    value={editFormState.title}
-                    onChange={(event) =>
-                      handleEditFormChange("title", event.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group tasks-section__form-group--full">
-                  <label htmlFor="task-details-description">
-                    Description <span className="tasks-section__required">*</span>
-                  </label>
-                  <textarea
-                    id="task-details-description"
-                    value={editFormState.description}
-                    onChange={(event) =>
-                      handleEditFormChange("description", event.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-assignee">
-                    Assigned To <span className="tasks-section__required">*</span>
-                  </label>
-                  <div className="tasks-section__select-wrapper">
-                    <select
-                      id="task-details-assignee"
-                      value={editFormState.assignedUserId}
+            <form className="tasks-section__form task-details-page__edit-form" onSubmit={handleSaveEdit}>
+              <div className="task-details-page__edit-form-grid">
+                <div className="task-details-page__edit-form-column task-details-page__edit-form-column--main">
+                  <div className="tasks-section__form-group">
+                    <label htmlFor="task-details-title">
+                      Name <span className="tasks-section__required">*</span>
+                    </label>
+                    <input
+                      id="task-details-title"
+                      type="text"
+                      value={editFormState.title}
                       onChange={(event) =>
-                        handleEditFormChange("assignedUserId", event.target.value)
+                        handleEditFormChange("title", event.target.value)
                       }
                       required
-                    >
-                      <option value="">Select member</option>
-                      {users.map((user) => {
-                        const userId =
-                          user?.userId ?? user?.UserId ?? user?.id ?? user?.Id;
-                        const userName =
-                          user?.fullName || user?.name || user?.full_name || `User ${userId}`;
+                    />
+                  </div>
 
-                        return (
-                          <option key={userId} value={String(userId)}>
-                            {userName}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <FiChevronDown />
+                  <div className="tasks-section__form-group">
+                    <label htmlFor="task-details-description">
+                      Description <span className="tasks-section__required">*</span>
+                    </label>
+                    <textarea
+                      id="task-details-description"
+                      value={editFormState.description}
+                      onChange={(event) =>
+                        handleEditFormChange("description", event.target.value)
+                      }
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div className="tasks-section__form-group task-details-page__edit-assignee-group">
+                    <label>
+                      Assigned To <span className="tasks-section__required">*</span>
+                    </label>
+                    <p className="tasks-section__field-description">
+                      Search and select one employee from this team.
+                    </p>
+
+                    <div className="tasks-section__member-picker task-details-page__edit-member-picker">
+                      <div className="tasks-section__member-search">
+                        <FiSearch />
+                        <input
+                          type="text"
+                          placeholder="Search a member in this team..."
+                          value={editMemberSearch}
+                          onChange={(event) => setEditMemberSearch(event.target.value)}
+                        />
+                      </div>
+
+                      <div className="tasks-section__member-table task-details-page__edit-member-table">
+                        {editAssignableUsers.length === 0 ? (
+                          <p className="tasks-section__members-empty">
+                            No members found.
+                          </p>
+                        ) : (
+                          editAssignableUsers.map((user) => {
+                            const userId = user?.userId ?? user?.UserId ?? user?.id ?? user?.Id;
+                            const userName =
+                              user?.fullName ??
+                              user?.FullName ??
+                              user?.name ??
+                              user?.Name ??
+                              "Unknown User";
+                            const userEmail = user?.email ?? user?.Email ?? "—";
+                            const isSelected =
+                              String(editFormState.assignedUserId) === String(userId);
+                            const imageUrl = getProfileImage(user);
+
+                            return (
+                              <button
+                                key={userId}
+                                type="button"
+                                className={`tasks-section__member-row ${isSelected
+                                    ? "tasks-section__member-row--selected"
+                                    : ""
+                                  }`}
+                                onClick={() =>
+                                  handleEditFormChange("assignedUserId", String(userId))
+                                }
+                              >
+                                <span
+                                  className={`tasks-section__member-check ${isSelected
+                                      ? "tasks-section__member-check--selected"
+                                      : ""
+                                    }`}
+                                >
+                                  {isSelected ? "✓" : ""}
+                                </span>
+
+                                <span className="tasks-section__member-avatar">
+                                  {imageUrl ? (
+                                    <img
+                                      src={imageUrl}
+                                      alt={userName}
+                                      className="tasks-section__member-avatar-image"
+                                    />
+                                  ) : (
+                                    <span className="tasks-section__member-avatar-fallback">
+                                      {getInitials(userName)}
+                                    </span>
+                                  )}
+                                </span>
+
+                                <span className="tasks-section__member-copy">
+                                  <strong>{userName}</strong>
+                                  <small>{userEmail}</small>
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-priority">
-                    Priority <span className="tasks-section__required">*</span>
-                  </label>
-                  <div className="tasks-section__select-wrapper">
-                    <select
-                      id="task-details-priority"
-                      value={editFormState.priority}
-                      onChange={(event) =>
-                        handleEditFormChange("priority", event.target.value)
-                      }
-                      required
-                    >
-                      {priorityOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    <FiChevronDown />
+                <div className="task-details-page__edit-form-column task-details-page__edit-form-column--details">
+                  <div className="task-details-page__edit-compact-grid">
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-priority">
+                        Priority <span className="tasks-section__required">*</span>
+                      </label>
+                      <div className="tasks-section__select-wrapper">
+                        <select
+                          id="task-details-priority"
+                          value={editFormState.priority}
+                          onChange={(event) =>
+                            handleEditFormChange("priority", event.target.value)
+                          }
+                          required
+                        >
+                          {priorityOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <FiChevronDown />
+                      </div>
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-complexity">
+                        Complexity <span className="tasks-section__required">*</span>
+                      </label>
+                      <div className="tasks-section__select-wrapper">
+                        <select
+                          id="task-details-complexity"
+                          value={editFormState.complexity}
+                          onChange={(event) =>
+                            handleEditFormChange("complexity", event.target.value)
+                          }
+                          required
+                        >
+                          {complexityOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <FiChevronDown />
+                      </div>
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-effort">
+                        Estimated Effort (hours) <span className="tasks-section__required">*</span>
+                      </label>
+                      <input
+                        id="task-details-effort"
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        value={editFormState.estimatedEffortHours}
+                        onChange={(event) =>
+                          handleEditFormChange(
+                            "estimatedEffortHours",
+                            event.target.value,
+                          )
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-start-date">
+                        Start Date <span className="tasks-section__required">*</span>
+                      </label>
+                      <input
+                        id="task-details-start-date"
+                        type="date"
+                        value={editFormState.startDate}
+                        onChange={(event) =>
+                          handleEditFormChange("startDate", event.target.value)
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-due-date">
+                        Due Date <span className="tasks-section__required">*</span>
+                      </label>
+                      <input
+                        id="task-details-due-date"
+                        type="date"
+                        value={editFormState.dueDate}
+                        onChange={(event) =>
+                          handleEditFormChange("dueDate", event.target.value)
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-weight">Weight</label>
+                      <input
+                        id="task-details-weight"
+                        type="text"
+                        className="tasks-section__task-weight-input"
+                        value={weight > 0 ? weight.toFixed(2) : "Not set"}
+                        disabled
+                        readOnly
+                      />
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-status">Status</label>
+                      <input
+                        id="task-details-status"
+                        type="text"
+                        className="tasks-section__task-weight-input"
+                        value={status}
+                        disabled
+                        readOnly
+                      />
+                    </div>
+
+                    <div className="tasks-section__form-group">
+                      <label htmlFor="task-details-assignee-preview">Selected Employee</label>
+                      <input
+                        id="task-details-assignee-preview"
+                        type="text"
+                        className="tasks-section__task-weight-input"
+                        value={
+                          editSelectedUser
+                            ? editSelectedUser?.fullName ??
+                              editSelectedUser?.FullName ??
+                              editSelectedUser?.name ??
+                              editSelectedUser?.Name ??
+                              "Selected employee"
+                            : "Not selected"
+                        }
+                        disabled
+                        readOnly
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-complexity">
-                    Complexity <span className="tasks-section__required">*</span>
-                  </label>
-                  <div className="tasks-section__select-wrapper">
-                    <select
-                      id="task-details-complexity"
-                      value={editFormState.complexity}
-                      onChange={(event) =>
-                        handleEditFormChange("complexity", event.target.value)
-                      }
-                      required
-                    >
-                      {complexityOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    <FiChevronDown />
-                  </div>
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-effort">
-                    Estimated Effort (hours) <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-details-effort"
-                    type="number"
-                    min="0"
-                    step="0.25"
-                    value={editFormState.estimatedEffortHours}
-                    onChange={(event) =>
-                      handleEditFormChange(
-                        "estimatedEffortHours",
-                        event.target.value,
-                      )
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-start-date">
-                    Start Date <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-details-start-date"
-                    type="date"
-                    value={editFormState.startDate}
-                    onChange={(event) =>
-                      handleEditFormChange("startDate", event.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-due-date">
-                    Due Date <span className="tasks-section__required">*</span>
-                  </label>
-                  <input
-                    id="task-details-due-date"
-                    type="date"
-                    value={editFormState.dueDate}
-                    onChange={(event) =>
-                      handleEditFormChange("dueDate", event.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-weight">Weight</label>
-                  <input
-                    id="task-details-weight"
-                    type="text"
-                    className="tasks-section__task-weight-input"
-                    value={weight > 0 ? weight.toFixed(2) : "Not set"}
-                    disabled
-                    readOnly
-                  />
-                </div>
-
-                <div className="tasks-section__form-group">
-                  <label htmlFor="task-details-status">Status</label>
-                  <input
-                    id="task-details-status"
-                    type="text"
-                    className="tasks-section__task-weight-input"
-                    value={status}
-                    disabled
-                    readOnly
-                  />
                 </div>
               </div>
 
-              <div className="tasks-section__form-actions">
+              <div className="tasks-section__form-actions task-details-page__edit-form-actions">
                 <button
                   type="button"
                   className="tasks-section__secondary-btn"
@@ -1769,10 +1994,11 @@ export default function TaskDetailsPage({
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="tasks-section__submit-btn"
-                  disabled={isSavingEdit}
+                  disabled={isSavingEdit || !canContinueEdit}
                 >
                   {isSavingEdit ? "Saving..." : "Save Changes"}
                 </button>
