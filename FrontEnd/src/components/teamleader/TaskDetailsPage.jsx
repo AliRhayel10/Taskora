@@ -209,6 +209,66 @@ const getComplexityClass = (complexity = "") => {
   return "task-details-page__value--default";
 };
 
+const getTaskStatusValue = (task = {}) => {
+  const directStatus =
+    task?.status ??
+    task?.Status ??
+    task?.effectiveStatus ??
+    task?.EffectiveStatus ??
+    task?.statusName ??
+    task?.StatusName ??
+    task?.taskStatusName ??
+    task?.TaskStatusName ??
+    task?.state ??
+    task?.State ??
+    "";
+
+  if (typeof directStatus === "string" && directStatus.trim()) return directStatus;
+
+  if (directStatus && typeof directStatus === "object") {
+    const nestedStatus =
+      directStatus?.statusName ||
+      directStatus?.StatusName ||
+      directStatus?.name ||
+      directStatus?.Name ||
+      directStatus?.taskStatusName ||
+      directStatus?.TaskStatusName ||
+      directStatus?.label ||
+      directStatus?.Label ||
+      "";
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  const nestedSources = [
+    task?.taskStatus,
+    task?.TaskStatus,
+    task?.statusInfo,
+    task?.StatusInfo,
+    task?.statusNavigation,
+    task?.StatusNavigation,
+  ];
+
+  for (const nested of nestedSources) {
+    if (!nested || typeof nested !== "object") continue;
+
+    const nestedStatus =
+      nested?.statusName ||
+      nested?.StatusName ||
+      nested?.name ||
+      nested?.Name ||
+      nested?.taskStatusName ||
+      nested?.TaskStatusName ||
+      nested?.label ||
+      nested?.Label ||
+      "";
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  return "Not set";
+};
+
 const getStatusClass = (status = "") => {
   const normalized = String(status).trim().toLowerCase();
 
@@ -509,7 +569,7 @@ export default function TaskDetailsPage({
     return getBackendStatusId(archivedStatus);
   }, [backendStatuses]);
 
-  const status = currentTask?.status || currentTask?.effectiveStatus || "Not set";
+  const status = getTaskStatusValue(currentTask);
   const startDateLabel = formatDateLabel(currentTask?.startDate);
   const dueDateLabel = formatDateLabel(currentTask?.dueDate);
   const normalizedCurrentStatus = normalizeStatus(status);

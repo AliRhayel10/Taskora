@@ -1044,7 +1044,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
                             </span>
                           </div>
                         </td>
-                        <td>{row.jobTitle}</td>
+                        <td className="team-leader-team-section__job-title-cell">{row.jobTitle}</td>
                         <td>{row.tasks}</td>
                         <td>{row.effort}</td>
                         <td>{row.weight}</td>
@@ -1064,7 +1064,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
                               row.memberStatus
                             )}`}
                           >
-                            <span />
                             {row.memberStatus}
                           </span>
                         </td>

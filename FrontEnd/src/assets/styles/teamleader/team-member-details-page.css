@@ -706,3 +706,109 @@
     max-height: 360px;
   }
 }
+
+
+/* Final fixes: keep the three top cards the same height, with task scrolling inside only */
+.team-member-details-page__content-grid {
+  align-items: stretch;
+}
+
+.team-member-details-page__profile-card,
+.team-member-details-page__overview-card,
+.team-member-details-page__tasks-card {
+  height: 260px;
+  min-height: 260px;
+  max-height: 260px;
+  overflow: hidden;
+}
+
+.team-member-details-page__tasks-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 30px;
+}
+
+.team-member-details-page__tasks-card .team-member-details-page__section-header {
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+}
+
+.team-member-details-page__tasks-list,
+.team-member-details-page__tasks-list--all {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.team-member-details-page__task-row {
+  min-height: 54px;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+
+.team-member-details-page__task-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.team-member-details-page__task-action {
+  width: 32px;
+  height: 32px;
+}
+
+.team-member-details-page__task-status {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  min-height: auto;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.team-member-details-page__task-status--new { color: #2563eb; }
+.team-member-details-page__task-status--acknowledged { color: #7c3aed; }
+.team-member-details-page__task-status--pending { color: #d97706; }
+.team-member-details-page__task-status--done { color: #0891b2; }
+.team-member-details-page__task-status--approved { color: #16a34a; }
+.team-member-details-page__task-status--rejected { color: #dc2626; }
+.team-member-details-page__task-status--archived { color: #64748b; }
+
+.team-member-details-page__online-dot {
+  display: none;
+}
+
+.team-member-details-page__job-title-value {
+  color: #334155;
+  font-size: 0.96rem;
+  font-weight: 500;
+}
+
+@media (max-width: 1200px) {
+  .team-member-details-page__profile-card,
+  .team-member-details-page__overview-card,
+  .team-member-details-page__tasks-card {
+    height: 260px;
+    min-height: 260px;
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 760px) {
+  .team-member-details-page__profile-card,
+  .team-member-details-page__overview-card,
+  .team-member-details-page__tasks-card {
+    height: auto;
+    min-height: 280px;
+    max-height: none;
+  }
+
+  .team-member-details-page__tasks-card {
+    height: 360px;
+    max-height: 360px;
+  }
+}

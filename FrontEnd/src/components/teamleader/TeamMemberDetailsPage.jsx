@@ -13,7 +13,7 @@ import TaskDetailsPage from "./TaskDetailsPage";
 import "../../assets/styles/teamleader/team-member-details-page.css";
 
 const API_BASE = "http://localhost:5000";
-const PREVIEW_TASK_LIMIT = 3;
+const PREVIEW_TASK_LIMIT = 5;
 
 function getValue(source, keys, fallback = "") {
   for (const key of keys) {
@@ -174,38 +174,59 @@ function getTaskWeight(task = {}) {
   return Number(task?.weight ?? task?.Weight ?? 0);
 }
 
+function normalizeTaskStatus(status = "") {
+  return String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+}
+
 function getTaskStatusClass(status = "") {
-  const normalized = String(status).trim().toLowerCase();
+  const normalized = normalizeTaskStatus(status);
 
-  if (normalized === "done" || normalized === "completed" || normalized === "approved") {
-    return "team-member-details-page__task-status--done";
+  if (normalized === "new") return "team-member-details-page__task-status--new";
+  if (normalized === "acknowledged" || normalized === "in-progress") {
+    return "team-member-details-page__task-status--acknowledged";
   }
-
-  if (normalized === "in progress" || normalized === "acknowledged") {
-    return "team-member-details-page__task-status--progress";
-  }
-
-  if (normalized === "new") {
-    return "team-member-details-page__task-status--new";
-  }
-
-  if (normalized === "rejected" || normalized === "overdue") {
-    return "team-member-details-page__task-status--danger";
-  }
+  if (normalized === "pending") return "team-member-details-page__task-status--pending";
+  if (normalized === "done" || normalized === "completed") return "team-member-details-page__task-status--done";
+  if (normalized === "approved") return "team-member-details-page__task-status--approved";
+  if (normalized === "rejected") return "team-member-details-page__task-status--rejected";
+  if (normalized === "archived") return "team-member-details-page__task-status--archived";
 
   return "team-member-details-page__task-status--pending";
 }
 
 function formatTaskStatus(status = "") {
-  const normalized = String(status).trim().toLowerCase();
+  const rawStatus = String(status || "").trim();
+  const normalized = normalizeTaskStatus(rawStatus);
 
-  if (normalized === "acknowledged") return "In Progress";
-  if (normalized === "done") return "Completed";
+  if (normalized === "in-progress") return "Acknowledged";
+  if (normalized === "done" || normalized === "completed") return "Done";
   if (normalized === "approved") return "Approved";
   if (normalized === "rejected") return "Rejected";
   if (normalized === "new") return "New";
+  if (normalized === "acknowledged") return "Acknowledged";
+  if (normalized === "pending") return "Pending";
+  if (normalized === "archived") return "Archived";
 
-  return status || "Pending";
+  return rawStatus || "Pending";
+}
+
+function buildTaskForDetails(task = {}) {
+  const status = getTaskStatus(task);
+
+  return {
+    ...task,
+    status,
+    Status: status,
+    effectiveStatus: status,
+    EffectiveStatus: status,
+    statusName: status,
+    StatusName: status,
+    taskStatusName: status,
+    TaskStatusName: status,
+  };
 }
 
 function sortTasksByDueDate(tasks) {
@@ -275,12 +296,14 @@ export default function TeamMemberDetailsPage({
   const displayWeight = Number(details.weight.toFixed(2)).toLocaleString();
 
   const handleViewTask = (task) => {
+    const taskForDetails = buildTaskForDetails(task);
+
     if (typeof onViewTask === "function") {
-      onViewTask(task);
+      onViewTask(taskForDetails);
       return;
     }
 
-    setSelectedTask(task);
+    setSelectedTask(taskForDetails);
   };
 
   if (selectedTask) {
@@ -319,7 +342,6 @@ export default function TeamMemberDetailsPage({
               ) : (
                 getInitials(details.name)
               )}
-              <span className="team-member-details-page__online-dot" />
             </span>
 
             <div className="team-member-details-page__profile-copy">
@@ -340,7 +362,7 @@ export default function TeamMemberDetailsPage({
                 <FiBriefcase />
                 <span>Job Title</span>
               </div>
-              <strong>{details.jobTitle}</strong>
+              <strong className="team-member-details-page__job-title-value">{details.jobTitle}</strong>
             </div>
 
             <div className="team-member-details-page__info-item">
@@ -399,7 +421,7 @@ export default function TeamMemberDetailsPage({
             )}
           </div>
 
-          <div className="team-member-details-page__tasks-list">
+          <div className={`team-member-details-page__tasks-list ${showAllTasks ? "team-member-details-page__tasks-list--all" : ""}`}>
             {displayedTasks.length ? (
               displayedTasks.map((task, index) => {
                 const status = getTaskStatus(task);

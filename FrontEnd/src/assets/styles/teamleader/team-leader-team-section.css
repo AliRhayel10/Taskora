@@ -942,3 +942,19 @@ body.dark .team-leader-team-section__pagination {
     grid-template-columns: 1fr;
   }
 }
+
+/* Final fixes: keep Team page table behavior as it originally was */
+.team-leader-team-section__table-wrap {
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.team-leader-team-section__member-status > span {
+  display: none;
+}
+
+.team-leader-team-section__job-title-cell {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
