@@ -1489,17 +1489,17 @@ export default function TaskDetailsPage({
             <div className="task-details-page__detail-item">
               <div className="task-details-page__label-row">
                 <FiCalendar />
-                <span>Due Date</span>
+                <span>Start Date</span>
               </div>
-              <strong>{dueDateLabel}</strong>
+              <strong>{startDateLabel}</strong>
             </div>
 
             <div className="task-details-page__detail-item">
               <div className="task-details-page__label-row">
                 <FiCalendar />
-                <span>Start Date</span>
+                <span>Due Date</span>
               </div>
-              <strong>{startDateLabel}</strong>
+              <strong>{dueDateLabel}</strong>
             </div>
 
             <div className="task-details-page__detail-item">
