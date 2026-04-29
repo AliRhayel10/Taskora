@@ -3807,3 +3807,66 @@ body.dark .teamleader-dashboard-section__title-line {
     grid-template-columns: 1fr;
   }
 }
+
+/* Header spacing fix: give Dashboard table headers more horizontal breathing room */
+.teamleader-dashboard-section__table thead th {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(1),
+.teamleader-dashboard-section__table tbody td:nth-child(1) {
+  width: 31%;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(2),
+.teamleader-dashboard-section__table tbody td:nth-child(2) {
+  width: 18%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(3),
+.teamleader-dashboard-section__table tbody td:nth-child(3) {
+  width: 14%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(4),
+.teamleader-dashboard-section__table tbody td:nth-child(4) {
+  width: 13%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(5),
+.teamleader-dashboard-section__table tbody td:nth-child(5) {
+  width: 24%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(2) {
+  padding-right: 30px;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(3) {
+  padding-left: 30px;
+  padding-right: 24px;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(4) {
+  padding-left: 24px;
+}
+
+.teamleader-dashboard-section__sort-btn {
+  gap: 8px;
+  min-width: 0;
+  width: auto;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(n + 2) .teamleader-dashboard-section__sort-btn {
+  width: auto;
+  margin: 0 auto;
+}
+
+.teamleader-dashboard-section__sort-icon {
+  flex-shrink: 0;
+}
