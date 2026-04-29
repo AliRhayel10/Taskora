@@ -1320,13 +1320,26 @@ export default function TeamLeaderDashboardSection({
 
   const summaryCards = useMemo(() => {
     const activeTasks = tasks.filter(isActiveWorkloadTask);
-    const totalTasks = activeTasks.length;
-    const totalEffort = activeTasks.reduce(
+
+    const allTasksCount = tasks.length;
+    const activeTasksCount = activeTasks.length;
+
+    const allEffort = tasks.reduce(
       (sum, task) =>
         sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
       0
     );
-    const totalWeight = activeTasks.reduce(
+    const activeEffort = activeTasks.reduce(
+      (sum, task) =>
+        sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
+      0
+    );
+
+    const allWeight = tasks.reduce(
+      (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
+      0
+    );
+    const activeWeight = activeTasks.reduce(
       (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
       0
     );
@@ -1339,20 +1352,29 @@ export default function TeamLeaderDashboardSection({
         iconClass: "teamleader-dashboard-section__card-icon--members",
       },
       {
-        title: "Active Tasks",
-        value: totalTasks,
+        title: "Tasks",
+        value: allTasksCount,
+        valueLabel: "All",
+        activeValue: activeTasksCount,
+        activeValueLabel: "Active",
         icon: <FiClipboard />,
         iconClass: "teamleader-dashboard-section__card-icon--tasks",
       },
       {
-        title: "Total Effort",
-        value: `${Number(totalEffort.toFixed(2))}h`,
+        title: "Effort",
+        value: `${Number(allEffort.toFixed(2))}h`,
+        valueLabel: "All",
+        activeValue: `${Number(activeEffort.toFixed(2))}h`,
+        activeValueLabel: "Active",
         icon: <FiClock />,
         iconClass: "teamleader-dashboard-section__card-icon--effort",
       },
       {
-        title: "Total Weight",
-        value: Number(totalWeight.toFixed(2)),
+        title: "Weight",
+        value: Number(allWeight.toFixed(2)),
+        valueLabel: "All",
+        activeValue: Number(activeWeight.toFixed(2)),
+        activeValueLabel: "Active",
         icon: <FiBarChart2 />,
         iconClass: "teamleader-dashboard-section__card-icon--weight",
       },
@@ -1924,9 +1946,38 @@ export default function TeamLeaderDashboardSection({
                   <span className="teamleader-dashboard-section__card-label">
                     {card.title}
                   </span>
-                  <strong className="teamleader-dashboard-section__card-value">
-                    {card.value}
-                  </strong>
+                  {card.activeValue !== undefined && card.activeValue !== null ? (
+                    <div className="teamleader-dashboard-section__card-split-metric">
+                      <div className="teamleader-dashboard-section__card-metric-half">
+                        <span className="teamleader-dashboard-section__card-metric-label">
+                          {card.valueLabel || "All"}
+                        </span>
+                        <strong className="teamleader-dashboard-section__card-value">
+                          {card.value}
+                        </strong>
+                      </div>
+
+                      <span
+                        className="teamleader-dashboard-section__card-metric-divider"
+                        aria-hidden="true"
+                      />
+
+                      <div className="teamleader-dashboard-section__card-metric-half teamleader-dashboard-section__card-metric-half--active">
+                        <span className="teamleader-dashboard-section__card-metric-label">
+                          {card.activeValueLabel || "Active"}
+                        </span>
+                        <strong className="teamleader-dashboard-section__card-value">
+                          {card.activeValue}
+                        </strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="teamleader-dashboard-section__card-value-row">
+                      <strong className="teamleader-dashboard-section__card-value">
+                        {card.value}
+                      </strong>
+                    </div>
+                  )}
                 </div>
               </article>
             ))}

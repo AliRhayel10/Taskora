@@ -3870,3 +3870,77 @@ body.dark .teamleader-dashboard-section__title-line {
 .teamleader-dashboard-section__sort-icon {
   flex-shrink: 0;
 }
+
+/* Summary cards: split all vs active values with a centered divider */
+.teamleader-dashboard-section__card-value-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.teamleader-dashboard-section__card-split-metric {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  min-width: 0;
+}
+
+.teamleader-dashboard-section__card-metric-half {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.teamleader-dashboard-section__card-metric-half--active {
+  align-items: flex-start;
+}
+
+.teamleader-dashboard-section__card-metric-label {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
+}
+
+.teamleader-dashboard-section__card-metric-divider {
+  width: 1px;
+  height: 38px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  display: inline-block;
+}
+
+.teamleader-dashboard-section__card-split-metric .teamleader-dashboard-section__card-value {
+  color: #1e40af;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+  .teamleader-dashboard-section__card-split-metric {
+    column-gap: 10px;
+  }
+
+  .teamleader-dashboard-section__card-metric-label {
+    font-size: 0.68rem;
+  }
+
+  .teamleader-dashboard-section__card-metric-divider {
+    height: 34px;
+  }
+
+  .teamleader-dashboard-section__card-split-metric .teamleader-dashboard-section__card-value {
+    font-size: 1.38rem;
+  }
+}
