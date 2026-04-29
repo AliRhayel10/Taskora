@@ -400,6 +400,79 @@ function getTaskAssigneeId(task) {
   );
 }
 
+
+function getTaskStatusValue(task = {}) {
+  const directStatus =
+    task?.effectiveStatus ??
+    task?.EffectiveStatus ??
+    task?.status ??
+    task?.Status ??
+    task?.statusName ??
+    task?.StatusName ??
+    task?.taskStatusName ??
+    task?.TaskStatusName ??
+    task?.state ??
+    task?.State ??
+    "";
+
+  if (typeof directStatus === "string" && directStatus.trim()) return directStatus;
+
+  if (directStatus && typeof directStatus === "object") {
+    const nestedStatus =
+      directStatus?.statusName ??
+      directStatus?.StatusName ??
+      directStatus?.name ??
+      directStatus?.Name ??
+      directStatus?.taskStatusName ??
+      directStatus?.TaskStatusName ??
+      directStatus?.label ??
+      directStatus?.Label ??
+      "";
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  const nestedObjects = [
+    task?.taskStatus,
+    task?.TaskStatus,
+    task?.statusInfo,
+    task?.StatusInfo,
+    task?.statusNavigation,
+    task?.StatusNavigation,
+  ];
+
+  for (const nested of nestedObjects) {
+    if (!nested || typeof nested !== "object") continue;
+
+    const nestedStatus =
+      nested?.statusName ??
+      nested?.StatusName ??
+      nested?.name ??
+      nested?.Name ??
+      nested?.taskStatusName ??
+      nested?.TaskStatusName ??
+      nested?.label ??
+      nested?.Label ??
+      "";
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  return "";
+}
+
+function normalizeTaskStatusValue(status = "") {
+  return String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+}
+
+function isActiveWorkloadTask(task = {}) {
+  const normalizedStatus = normalizeTaskStatusValue(getTaskStatusValue(task));
+  return normalizedStatus !== "approved" && normalizedStatus !== "archived";
+}
+
 function getTeamId(team) {
   return Number(
     team?.teamId ??
@@ -1162,7 +1235,7 @@ export default function TeamLeaderDashboardSection({
       const memberId = getMemberId(member);
 
       const memberTasks = tasks.filter(
-        (task) => getTaskAssigneeId(task) === memberId
+        (task) => getTaskAssigneeId(task) === memberId && isActiveWorkloadTask(task)
       );
 
       const totalTasks = memberTasks.length;
@@ -1246,13 +1319,14 @@ export default function TeamLeaderDashboardSection({
   }, [members, tasks, searchValue, sortConfig, user]);
 
   const summaryCards = useMemo(() => {
-    const totalTasks = tasks.length;
-    const totalEffort = tasks.reduce(
+    const activeTasks = tasks.filter(isActiveWorkloadTask);
+    const totalTasks = activeTasks.length;
+    const totalEffort = activeTasks.reduce(
       (sum, task) =>
         sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
       0
     );
-    const totalWeight = tasks.reduce(
+    const totalWeight = activeTasks.reduce(
       (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
       0
     );
@@ -1265,7 +1339,7 @@ export default function TeamLeaderDashboardSection({
         iconClass: "teamleader-dashboard-section__card-icon--members",
       },
       {
-        title: "Tasks",
+        title: "Active Tasks",
         value: totalTasks,
         icon: <FiClipboard />,
         iconClass: "teamleader-dashboard-section__card-icon--tasks",
@@ -1894,7 +1968,7 @@ export default function TeamLeaderDashboardSection({
                           className="teamleader-dashboard-section__sort-btn"
                           onClick={() => handleSort("tasks")}
                         >
-                          <span>Tasks</span>
+                          <span>Active Tasks</span>
                           <FiChevronDown
                             className={`teamleader-dashboard-section__sort-icon ${
                               sortConfig.key === "tasks"
@@ -2455,7 +2529,7 @@ export default function TeamLeaderDashboardSection({
             <div className="teamleader-dashboard-section__assignee-table" role="radiogroup" aria-label="Select new assignee">
               <div className="teamleader-dashboard-section__assignee-table-head">
                 <span>Team Member</span>
-                <span>Tasks</span>
+                <span>Active Tasks</span>
                 <span>Effort</span>
                 <span>Weight</span>
                 <span>Workload</span>

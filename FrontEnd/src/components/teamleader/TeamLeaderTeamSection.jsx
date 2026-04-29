@@ -304,6 +304,79 @@ function getTaskAssigneeId(task) {
   return Number(task?.assignedToUserId ?? task?.AssignedToUserId ?? 0);
 }
 
+
+function getTaskStatusValue(task = {}) {
+  const directStatus =
+    task?.effectiveStatus ??
+    task?.EffectiveStatus ??
+    task?.status ??
+    task?.Status ??
+    task?.statusName ??
+    task?.StatusName ??
+    task?.taskStatusName ??
+    task?.TaskStatusName ??
+    task?.state ??
+    task?.State ??
+    "";
+
+  if (typeof directStatus === "string" && directStatus.trim()) return directStatus;
+
+  if (directStatus && typeof directStatus === "object") {
+    const nestedStatus =
+      directStatus?.statusName ??
+      directStatus?.StatusName ??
+      directStatus?.name ??
+      directStatus?.Name ??
+      directStatus?.taskStatusName ??
+      directStatus?.TaskStatusName ??
+      directStatus?.label ??
+      directStatus?.Label ??
+      "";
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  const nestedObjects = [
+    task?.taskStatus,
+    task?.TaskStatus,
+    task?.statusInfo,
+    task?.StatusInfo,
+    task?.statusNavigation,
+    task?.StatusNavigation,
+  ];
+
+  for (const nested of nestedObjects) {
+    if (!nested || typeof nested !== "object") continue;
+
+    const nestedStatus =
+      nested?.statusName ??
+      nested?.StatusName ??
+      nested?.name ??
+      nested?.Name ??
+      nested?.taskStatusName ??
+      nested?.TaskStatusName ??
+      nested?.label ??
+      nested?.Label ??
+      "";
+
+    if (String(nestedStatus || "").trim()) return nestedStatus;
+  }
+
+  return "";
+}
+
+function normalizeTaskStatusValue(status = "") {
+  return String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+}
+
+function isActiveWorkloadTask(task = {}) {
+  const normalizedStatus = normalizeTaskStatusValue(getTaskStatusValue(task));
+  return normalizedStatus !== "approved" && normalizedStatus !== "archived";
+}
+
 function getTaskEffort(task) {
   return Number(task?.estimatedEffortHours ?? task?.EstimatedEffortHours ?? task?.effort ?? task?.Effort ?? 0);
 }
@@ -534,6 +607,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
     return tasks.filter((task) => {
       const taskTeamId = getTaskTeamId(task);
       if (leaderTeamIds.length && !leaderTeamIds.includes(taskTeamId)) return false;
+      if (!isActiveWorkloadTask(task)) return false;
       return doesTaskOverlapRange(task, activeRange.start, activeRange.end);
     });
   }, [tasks, leaderTeamIds, activeRange]);
@@ -685,7 +759,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
         valueClass: "team-leader-team-section__card-value--blue",
       },
       {
-        title: "Tasks",
+        title: "Active Tasks",
         value: totalTasks.toLocaleString(),
         icon: <FiClipboard />,
         iconClass: "team-leader-team-section__card-icon--tasks",
@@ -1016,7 +1090,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
                   <tr>
                     <th>{renderSortButton("Member", "member")}</th>
                     <th>{renderSortButton("Job Title", "jobTitle")}</th>
-                    <th>{renderSortButton("Tasks", "tasks")}</th>
+                    <th>{renderSortButton("Active Tasks", "tasks")}</th>
                     <th>{renderSortButton("Effort", "effort")}</th>
                     <th>{renderSortButton("Weight", "weight")}</th>
                     <th>{renderSortButton("Workload Status", "workloadStatus")}</th>

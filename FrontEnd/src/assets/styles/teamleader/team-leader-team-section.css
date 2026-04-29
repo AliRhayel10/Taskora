@@ -958,3 +958,37 @@ body.dark .team-leader-team-section__pagination {
   font-size: 0.9rem;
   font-weight: 500;
 }
+
+/* Fix: keep the Active Tasks sort chevron visible */
+.team-leader-team-section__table thead th:nth-child(2),
+.team-leader-team-section__table tbody td:nth-child(2) {
+  width: 13%;
+}
+
+.team-leader-team-section__table thead th:nth-child(3),
+.team-leader-team-section__table tbody td:nth-child(3) {
+  width: 11%;
+  text-align: center;
+}
+
+.team-leader-team-section__table thead th:nth-child(4),
+.team-leader-team-section__table tbody td:nth-child(4) {
+  width: 9%;
+  text-align: center;
+}
+
+.team-leader-team-section__table thead th:nth-child(5),
+.team-leader-team-section__table tbody td:nth-child(5) {
+  width: 8%;
+  text-align: center;
+}
+
+.team-leader-team-section__table thead th:nth-child(3) .team-leader-team-section__sort-btn {
+  gap: 6px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.team-leader-team-section__sort-icon {
+  flex: 0 0 auto;
+}

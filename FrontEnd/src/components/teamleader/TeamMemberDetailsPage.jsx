@@ -213,6 +213,12 @@ function formatTaskStatus(status = "") {
   return rawStatus || "Pending";
 }
 
+
+function isActiveWorkloadTask(task = {}) {
+  const normalizedStatus = normalizeTaskStatus(getTaskStatus(task));
+  return normalizedStatus !== "approved" && normalizedStatus !== "archived";
+}
+
 function buildTaskForDetails(task = {}) {
   const status = getTaskStatus(task);
 
@@ -270,7 +276,8 @@ export default function TeamMemberDetailsPage({
         ? selectedMember.CurrentTasks
         : [];
 
-    const sortedTasks = sortTasksByDueDate(currentTasks);
+    const activeTasks = currentTasks.filter(isActiveWorkloadTask);
+    const sortedTasks = sortTasksByDueDate(activeTasks);
     const tasksCount = sortedTasks.length;
     const effort = sortedTasks.reduce((sum, task) => sum + getTaskEffort(task), 0);
     const weight = sortedTasks.reduce((sum, task) => sum + getTaskWeight(task), 0);
@@ -385,7 +392,7 @@ export default function TeamMemberDetailsPage({
               <span className="team-member-details-page__overview-icon team-member-details-page__overview-icon--tasks">
                 <FiCheckCircle />
               </span>
-              <span>Tasks Assigned</span>
+              <span>Active Tasks</span>
               <strong>{details.tasksCount}</strong>
             </div>
 
@@ -393,7 +400,7 @@ export default function TeamMemberDetailsPage({
               <span className="team-member-details-page__overview-icon team-member-details-page__overview-icon--effort">
                 <FiClock />
               </span>
-              <span>Total Effort</span>
+              <span>Active Effort</span>
               <strong>{displayEffort}</strong>
             </div>
 
@@ -401,7 +408,7 @@ export default function TeamMemberDetailsPage({
               <span className="team-member-details-page__overview-icon team-member-details-page__overview-icon--weight">
                 <FiTrendingUp />
               </span>
-              <span>Total Weight</span>
+              <span>Active Weight</span>
               <strong>{displayWeight}</strong>
             </div>
           </div>
@@ -409,7 +416,7 @@ export default function TeamMemberDetailsPage({
 
         <article className="team-member-details-page__tasks-card">
           <div className="team-member-details-page__section-header">
-            <h3>Tasks</h3>
+            <h3>Active Tasks</h3>
             {details.currentTasks.length > PREVIEW_TASK_LIMIT && (
               <button
                 type="button"
