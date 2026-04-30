@@ -275,6 +275,24 @@ function getWorkloadStatus(weight) {
   return "Overloaded";
 }
 
+function getDashboardMemberStatus(member) {
+  const status = member?.status ?? member?.Status;
+  const isActive = member?.isActive ?? member?.IsActive;
+
+  if (typeof status === "string" && status.trim()) {
+    return status;
+  }
+
+  return isActive === false ? "Inactive" : "Active";
+}
+
+function isActiveDashboardMember(member) {
+  return String(getDashboardMemberStatus(member) || "")
+    .trim()
+    .toLowerCase() === "active";
+}
+
+
 function getInitials(fullName) {
   return String(fullName || "")
     .split(" ")
@@ -1320,6 +1338,8 @@ export default function TeamLeaderDashboardSection({
 
   const summaryCards = useMemo(() => {
     const activeTasks = tasks.filter(isActiveWorkloadTask);
+    const activeMembersCount = members.filter(isActiveDashboardMember).length;
+    const inactiveMembersCount = Math.max(members.length - activeMembersCount, 0);
 
     const allTasksCount = tasks.length;
     const activeTasksCount = activeTasks.length;
@@ -1348,6 +1368,9 @@ export default function TeamLeaderDashboardSection({
       {
         title: "Team Members",
         value: members.length,
+        valueLabel: "All",
+        activeValue: inactiveMembersCount,
+        activeValueLabel: "Inactive",
         icon: <FiUsers />,
         iconClass: "teamleader-dashboard-section__card-icon--members",
       },
@@ -1379,7 +1402,7 @@ export default function TeamLeaderDashboardSection({
         iconClass: "teamleader-dashboard-section__card-icon--weight",
       },
     ];
-  }, [members.length, tasks]);
+  }, [members, tasks]);
 
   const filteredTaskRequests = useMemo(() => {
     const search = String(searchValue || "").trim().toLowerCase();
