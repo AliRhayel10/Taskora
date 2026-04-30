@@ -247,16 +247,16 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
   };
 
   return (
-    <div className="team-leader-dashboard__range-toolbar">
-      <div className="team-leader-dashboard__range-menu" ref={rangeMenuRef}>
-        <button type="button" className="team-leader-dashboard__range-btn" onClick={openRangeMenu}>
+    <div className="dashboard-section__toolbar dashboard-section__range-toolbar">
+      <div className="dashboard-section__range-menu" ref={rangeMenuRef}>
+        <button type="button" className="dashboard-section__range-btn" onClick={openRangeMenu}>
           <span>{rangeLabel}</span>
           <FiChevronDown />
         </button>
 
         {isRangeMenuOpen && (
-          <div className="team-leader-dashboard__range-dropdown">
-            <div className="team-leader-dashboard__range-tabs" role="tablist" aria-label="Date range presets">
+          <div className="dashboard-section__range-dropdown">
+            <div className="dashboard-section__range-tabs" role="tablist" aria-label="Date range presets">
               {[
                 ["today", "Today"],
                 ["thisWeek", "This Week"],
@@ -267,8 +267,8 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                   type="button"
                   role="tab"
                   aria-selected={draftPreset === preset}
-                  className={`team-leader-dashboard__range-option ${
-                    draftPreset === preset ? "team-leader-dashboard__range-option--active" : ""
+                  className={`dashboard-section__range-option ${
+                    draftPreset === preset ? "dashboard-section__range-option--active" : ""
                   }`}
                   onClick={() => applyPreset(preset)}
                 >
@@ -279,20 +279,20 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
 
             {draftPreset === "custom" && (
               <>
-                <div className="team-leader-dashboard__range-divider" />
-                <div className="team-leader-dashboard__custom-range">
-                  <div className="team-leader-dashboard__custom-range-header">
+                <div className="dashboard-section__range-divider" />
+                <div className="dashboard-section__custom-range">
+                  <div className="dashboard-section__custom-range-header">
                     <FiCalendar />
                     <span>Pick a custom range</span>
                   </div>
-                  <div className="team-leader-dashboard__custom-range-preview">{draftRangePreview}</div>
-                  <div className="team-leader-dashboard__month-picker-row">
-                    <div className="team-leader-dashboard__month-picker-field">
-                      <label htmlFor="team-leader-dashboard-month-select">Month</label>
-                      <div className="team-leader-dashboard__month-picker-select-wrap">
+                  <div className="dashboard-section__custom-range-preview">{draftRangePreview}</div>
+                  <div className="dashboard-section__month-picker-row">
+                    <div className="dashboard-section__month-picker-field">
+                      <label htmlFor="dashboard-month-select">Month</label>
+                      <div className="dashboard-section__month-picker-select-wrap">
                         <select
-                          id="team-leader-dashboard-month-select"
-                          className="team-leader-dashboard__month-picker-select"
+                          id="dashboard-month-select"
+                          className="dashboard-section__month-picker-select"
                           value={selectedMonthIndex}
                           onChange={(event) => handleDraftMonthChange(event.target.value)}
                         >
@@ -305,12 +305,12 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                         <FiChevronDown />
                       </div>
                     </div>
-                    <div className="team-leader-dashboard__month-picker-field">
-                      <label htmlFor="team-leader-dashboard-year-select">Year</label>
-                      <div className="team-leader-dashboard__month-picker-select-wrap">
+                    <div className="dashboard-section__month-picker-field">
+                      <label htmlFor="dashboard-year-select">Year</label>
+                      <div className="dashboard-section__month-picker-select-wrap">
                         <select
-                          id="team-leader-dashboard-year-select"
-                          className="team-leader-dashboard__month-picker-select"
+                          id="dashboard-year-select"
+                          className="dashboard-section__month-picker-select"
                           value={selectedYearValue}
                           onChange={(event) => handleDraftYearChange(event.target.value)}
                         >
@@ -324,7 +324,7 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                       </div>
                     </div>
                   </div>
-                  <div className="team-leader-dashboard__calendar-shell">
+                  <div className="dashboard-section__calendar-shell">
                     <DayPicker
                       mode="range"
                       selected={draftCustomRange}
@@ -333,11 +333,17 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                       onMonthChange={setDraftCalendarMonth}
                       showOutsideDays={false}
                       numberOfMonths={1}
-                      className="team-leader-dashboard__day-picker"
+                      className="dashboard-section__day-picker"
+                      modifiers={{
+                        past: (date) => startOfDay(date) < startOfDay(new Date()),
+                      }}
+                      modifiersClassNames={{
+                        past: "dashboard-section__day--past",
+                      }}
                     />
                   </div>
-                  <div className="team-leader-dashboard__apply-btn-wrap">
-                    <button type="button" className="team-leader-dashboard__apply-btn" onClick={handleApplyCustomRange}>
+                  <div className="dashboard-section__apply-btn-wrap">
+                    <button type="button" className="dashboard-section__apply-btn" onClick={handleApplyCustomRange}>
                       Apply Range
                     </button>
                   </div>
