@@ -603,15 +603,6 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
     return teams.map(getTeamId).filter(Boolean);
   }, [teams, user]);
 
-  const filteredRangeTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const taskTeamId = getTaskTeamId(task);
-      if (leaderTeamIds.length && !leaderTeamIds.includes(taskTeamId)) return false;
-      if (!isActiveWorkloadTask(task)) return false;
-      return doesTaskOverlapRange(task, activeRange.start, activeRange.end);
-    });
-  }, [tasks, leaderTeamIds, activeRange]);
-
   const teamMembers = useMemo(() => {
     const currentLeaderId = getUserId(user);
     const memberIdsFromTeams = new Set();
@@ -641,6 +632,29 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
       return true;
     });
   }, [members, teams, leaderTeamIds, user]);
+
+  const teamMemberIdSet = useMemo(() => {
+    return new Set(teamMembers.map((member) => getMemberId(member)).filter(Boolean));
+  }, [teamMembers]);
+
+  const selectedRangeTeamTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const taskTeamId = getTaskTeamId(task);
+      const assigneeId = getTaskAssigneeId(task);
+      const belongsToLeaderTeamByTeam =
+        leaderTeamIds.length > 0 && taskTeamId > 0 && leaderTeamIds.includes(taskTeamId);
+      const belongsToLeaderTeamByAssignee =
+        assigneeId > 0 && teamMemberIdSet.has(assigneeId);
+
+      if (!belongsToLeaderTeamByTeam && !belongsToLeaderTeamByAssignee) return false;
+
+      return doesTaskOverlapRange(task, activeRange.start, activeRange.end);
+    });
+  }, [tasks, leaderTeamIds, teamMemberIdSet, activeRange.start, activeRange.end]);
+
+  const filteredRangeTasks = useMemo(() => {
+    return selectedRangeTeamTasks.filter(isActiveWorkloadTask);
+  }, [selectedRangeTeamTasks]);
 
   const rows = useMemo(() => {
     const search = normalizeSearch(searchValue);
@@ -745,13 +759,8 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
   }, [rows.length, safeCurrentPage]);
 
   const summaryCards = useMemo(() => {
-    const allRangeTasks = tasks.filter((task) => {
-      const taskTeamId = getTaskTeamId(task);
-      if (leaderTeamIds.length && !leaderTeamIds.includes(taskTeamId)) return false;
-      return doesTaskOverlapRange(task, activeRange.start, activeRange.end);
-    });
-
-    const activeRangeTasks = allRangeTasks.filter(isActiveWorkloadTask);
+    const allRangeTasks = selectedRangeTeamTasks;
+    const activeRangeTasks = filteredRangeTasks;
     const inactiveMembersCount = teamMembers.filter(
       (member) => String(getMemberStatus(member)).trim().toLowerCase() === "inactive"
     ).length;
@@ -803,7 +812,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
         iconClass: "team-leader-team-section__card-icon--workload",
       },
     ];
-  }, [tasks, leaderTeamIds, activeRange, teamMembers]);
+  }, [selectedRangeTeamTasks, filteredRangeTasks, teamMembers]);
 
   const handleSelectPreset = (preset) => {
     if (preset === "custom") {
