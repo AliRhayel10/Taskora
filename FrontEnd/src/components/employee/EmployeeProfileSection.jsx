@@ -70,7 +70,27 @@ function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export default function EmployeeProfileSection({ user }) {
+function buildProfileImageUrl(value, cacheKey = "") {
+  const rawValue = String(value || "").trim();
+
+  if (!rawValue) return "";
+
+  if (rawValue.startsWith("blob:") || rawValue.startsWith("data:")) {
+    return rawValue;
+  }
+
+  const baseUrl =
+    rawValue.startsWith("http://") || rawValue.startsWith("https://")
+      ? rawValue
+      : `${API_BASE_URL}${rawValue.startsWith("/") ? rawValue : `/${rawValue}`}`;
+
+  if (!cacheKey) return baseUrl;
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}v=${encodeURIComponent(cacheKey)}`;
+}
+
+export default function EmployeeProfileSection({ user, setUser, onProfileUpdated }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
@@ -84,6 +104,7 @@ export default function EmployeeProfileSection({ user }) {
     fullName: "",
     role: "",
     profileImageUrl: "",
+    profileImageUpdatedAt: "",
   });
 
   const [draftData, setDraftData] = useState({
@@ -106,22 +127,81 @@ export default function EmployeeProfileSection({ user }) {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageCacheKey, setImageCacheKey] = useState(() => Date.now());
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
-  const userId = user?.userId || 0;
+  const userId = user?.userId || user?.id || 0;
+
+  const publishUpdatedUser = useCallback(
+    (profileUpdate) => {
+      const readStoredUser = (key) => {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const previousUser = readStoredUser("authUser") || readStoredUser("user") || user || {};
+      const nextUser = {
+        ...previousUser,
+        ...profileUpdate,
+        user: previousUser.user
+          ? {
+              ...previousUser.user,
+              ...profileUpdate,
+            }
+          : previousUser.user,
+      };
+
+      if (profileUpdate.profileImageUrl) {
+        const nextImageStamp = profileUpdate.profileImageUpdatedAt || Date.now();
+        nextUser.profileImageUpdatedAt = nextImageStamp;
+
+        if (nextUser.user) {
+          nextUser.user.profileImageUpdatedAt = nextImageStamp;
+        }
+      }
+
+      localStorage.setItem("authUser", JSON.stringify(nextUser));
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      if (typeof setUser === "function") {
+        setUser(nextUser);
+      }
+
+      if (typeof onProfileUpdated === "function") {
+        onProfileUpdated(nextUser);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("taskora-user-updated", {
+          detail: nextUser,
+        })
+      );
+
+      return nextUser;
+    },
+    [onProfileUpdated, setUser, user]
+  );
 
   const syncProfileStateFromBackend = useCallback((profile) => {
     const fullName = profile?.fullName || "Not available";
     const nameParts = fullName.trim().split(" ").filter(Boolean);
 
     const nextProfileData = {
-      firstName: nameParts[0] || "",
-      lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+      firstName: profile?.firstName || nameParts[0] || "",
+      lastName:
+        profile?.lastName ||
+        (nameParts.length > 1 ? nameParts.slice(1).join(" ") : ""),
       jobTitle: profile?.jobTitle || "",
       companyName: profile?.companyName || "",
       email: profile?.email || "",
       fullName,
       role: profile?.role || "Employee",
       profileImageUrl: profile?.profileImageUrl || "",
+      profileImageUpdatedAt: profile?.profileImageUpdatedAt || profile?.profileImageVersion || "",
     };
 
     setProfileData(nextProfileData);
@@ -155,6 +235,10 @@ export default function EmployeeProfileSection({ user }) {
       }
 
       syncProfileStateFromBackend(data);
+      if (data.profileImageUpdatedAt || data.profileImageVersion) {
+        setImageCacheKey(data.profileImageUpdatedAt || data.profileImageVersion);
+      }
+      return data;
     } catch (error) {
       console.error("Failed to fetch employee profile from backend:", error);
     } finally {
@@ -183,6 +267,7 @@ export default function EmployeeProfileSection({ user }) {
         fullName,
         role: user?.role || "Employee",
         profileImageUrl: user?.profileImageUrl || "",
+        profileImageUpdatedAt: user?.profileImageUpdatedAt || user?.profileImageVersion || "",
       };
 
       setProfileData(fallbackProfile);
@@ -248,16 +333,12 @@ export default function EmployeeProfileSection({ user }) {
     profileData.email.trim().toLowerCase();
 
   const imagePreview = useMemo(() => {
-    if (!profileData.profileImageUrl || profileData.profileImageUrl.trim() === "") {
-      return "";
-    }
+    return buildProfileImageUrl(profileData.profileImageUrl, imageCacheKey);
+  }, [imageCacheKey, profileData.profileImageUrl]);
 
-    if (profileData.profileImageUrl.startsWith("http")) {
-      return profileData.profileImageUrl;
-    }
-
-    return `${API_BASE_URL}${profileData.profileImageUrl}`;
-  }, [profileData.profileImageUrl]);
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [imagePreview]);
 
   const onCropComplete = useCallback((_, croppedPixels) => {
     setCroppedAreaPixels(croppedPixels);
@@ -268,10 +349,13 @@ export default function EmployeeProfileSection({ user }) {
   };
 
   const openCropModalFromAvatar = async () => {
-    if (!imagePreview || imagePreview.trim() === "") return;
+    if (!imagePreview || imagePreview.trim() === "" || imageLoadFailed) {
+      openFilePicker();
+      return;
+    }
 
     try {
-      const response = await fetch(imagePreview, { mode: "cors" });
+      const response = await fetch(imagePreview, { mode: "cors", cache: "no-store" });
 
       if (!response.ok) {
         throw new Error("Could not load image.");
@@ -286,7 +370,11 @@ export default function EmployeeProfileSection({ user }) {
       setShowCropModal(true);
     } catch (error) {
       console.error("Failed to load image for editing:", error);
-      alert("Could not open current image for editing.");
+      setFormMessage({
+        type: "error",
+        text: "Could not open current image for editing. Please upload a new image.",
+      });
+      openFilePicker();
     }
   };
 
@@ -431,6 +519,18 @@ export default function EmployeeProfileSection({ user }) {
 
       await fetchProfileFromBackend();
 
+      publishUpdatedUser({
+        userId,
+        fullName: nextFullName,
+        email: cleanedData.email,
+        jobTitle: cleanedData.jobTitle,
+        companyName: cleanedData.companyName,
+        role: profileData.role || user?.role || "Employee",
+        profileImageUrl: profileData.profileImageUrl || user?.profileImageUrl || "",
+        profileImageUpdatedAt:
+          profileData.profileImageUpdatedAt || user?.profileImageUpdatedAt || imageCacheKey,
+      });
+
       setCurrentPassword("");
       setFormMessage({ type: "success", text: "Profile updated successfully." });
       setIsEditingProfile(false);
@@ -446,7 +546,7 @@ export default function EmployeeProfileSection({ user }) {
     if (isUploading) return;
 
     if (!selectedImage || !croppedAreaPixels || !userId) {
-      alert("Please wait a moment and try again.");
+      setFormMessage({ type: "error", text: "Please wait a moment and try again." });
       return;
     }
 
@@ -480,8 +580,35 @@ export default function EmployeeProfileSection({ user }) {
         throw new Error(data.message || "Image upload failed.");
       }
 
+      const nextImageUrl =
+        data.profileImageUrl || data.imageUrl || profileData.profileImageUrl || "";
+      const nextCacheKey = Date.now();
+
+      if (nextImageUrl) {
+        setImageCacheKey(nextCacheKey);
+        setImageLoadFailed(false);
+        setProfileData((prev) => ({
+          ...prev,
+          profileImageUrl: nextImageUrl,
+          profileImageUpdatedAt: nextCacheKey,
+        }));
+
+        publishUpdatedUser({
+          userId,
+          fullName: profileData.fullName,
+          email: profileData.email,
+          role: profileData.role || user?.role || "Employee",
+          companyName: profileData.companyName,
+          jobTitle: profileData.jobTitle,
+          profileImageUrl: nextImageUrl,
+          profileImageUpdatedAt: nextCacheKey,
+        });
+      }
+
       await fetchProfileFromBackend();
+      setImageCacheKey(Date.now());
       handleCloseCropModal();
+      setFormMessage({ type: "success", text: "Profile image updated successfully." });
     } catch (error) {
       console.error("Error uploading image:", error);
       alert(error.message || "Saving image failed. Check backend and try again.");
@@ -625,12 +752,12 @@ export default function EmployeeProfileSection({ user }) {
             className="profile-hero-card__avatar-button"
             onClick={openCropModalFromAvatar}
           >
-            {imagePreview && imagePreview.trim() !== "" ? (
+            {imagePreview && imagePreview.trim() !== "" && !imageLoadFailed ? (
               <img
                 src={imagePreview}
                 alt="Profile"
                 className="profile-hero-card__avatar-img"
-                onError={() => setSelectedImage("")}
+                onError={() => setImageLoadFailed(true)}
               />
             ) : (
               <div className="profile-hero-card__avatar-fallback">{initials}</div>

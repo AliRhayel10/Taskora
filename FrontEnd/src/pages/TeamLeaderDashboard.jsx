@@ -424,6 +424,7 @@ export default function TeamLeaderDashboard() {
       email: currentUser.email || "",
       role: currentUser.role || "Team Leader",
       profileImageUrl: currentUser.profileImageUrl || "",
+      profileImageUpdatedAt: currentUser.profileImageUpdatedAt || currentUser.profileImageVersion || "",
       jobTitle: currentUser.jobTitle || "",
       token: currentUser.token || "",
     };
@@ -451,6 +452,36 @@ export default function TeamLeaderDashboard() {
     localStorage.setItem("authUser", JSON.stringify(user));
   }, [user, navigate]);
 
+  const handleAuthenticatedUserUpdated = (updatedUser) => {
+    if (!updatedUser) return;
+
+    setUser((previousUser) => {
+      const mergedUser = {
+        ...(previousUser || {}),
+        ...updatedUser,
+      };
+
+      localStorage.setItem("authUser", JSON.stringify(mergedUser));
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+
+      return mergedUser;
+    });
+  };
+
+  useEffect(() => {
+    const handleStoredUserUpdate = (event) => {
+      if (event.detail) {
+        handleAuthenticatedUserUpdated(event.detail);
+      }
+    };
+
+    window.addEventListener("taskora-user-updated", handleStoredUserUpdate);
+
+    return () => {
+      window.removeEventListener("taskora-user-updated", handleStoredUserUpdate);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("authUser");
     localStorage.removeItem("user");
@@ -466,6 +497,7 @@ const searchPlaceholder = "Search";
   return (
     <div className="admin-layout">
       <TeamLeaderSidebar
+        user={user}
         activeItem={activeItem}
         onSelect={setActiveItem}
         theme={theme}
@@ -534,7 +566,11 @@ const searchPlaceholder = "Search";
               }
             />
           ) : activeItem === "Profile" ? (
-            <TeamLeaderProfileSection user={user} setUser={setUser} />
+            <TeamLeaderProfileSection
+              user={user}
+              setUser={setUser}
+              onProfileUpdated={handleAuthenticatedUserUpdated}
+            />
           ) : (
             <SectionTitle title={activeItem} />
           )}

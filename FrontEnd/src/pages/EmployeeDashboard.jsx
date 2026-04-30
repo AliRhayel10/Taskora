@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EmployeeSidebar from "../components/EmployeeSidebar";
 import AppTopbar from "../components/AppTopbar";
@@ -78,10 +78,47 @@ export default function EmployeeDashboard() {
       email: currentUser.email || "",
       role: currentUser.role || "Employee",
       profileImageUrl: currentUser.profileImageUrl || "",
+      profileImageUpdatedAt:
+        currentUser.profileImageUpdatedAt || currentUser.profileImageVersion || "",
       jobTitle: currentUser.jobTitle || "",
       token: currentUser.token || "",
     };
   });
+
+  const handleUserUpdate = useCallback((updatedUser) => {
+    if (!updatedUser) return;
+
+    setUser((prev) => {
+      const nextUser = {
+        ...(prev || {}),
+        ...updatedUser,
+        role: updatedUser.role || prev?.role || "Employee",
+      };
+
+      localStorage.setItem("authUser", JSON.stringify(nextUser));
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      return nextUser;
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleStoredUserUpdate = (event) => {
+      const updatedUser = event?.detail;
+      if (!updatedUser) return;
+
+      const updatedUserId = updatedUser.userId || updatedUser.id || updatedUser.user?.userId || 0;
+      if (updatedUserId && user?.userId && Number(updatedUserId) !== Number(user.userId)) return;
+
+      handleUserUpdate(updatedUser);
+    };
+
+    window.addEventListener("taskora-user-updated", handleStoredUserUpdate);
+
+    return () => {
+      window.removeEventListener("taskora-user-updated", handleStoredUserUpdate);
+    };
+  }, [handleUserUpdate, user?.userId]);
 
   useEffect(() => {
     localStorage.setItem("employee_theme", theme);
@@ -99,6 +136,7 @@ export default function EmployeeDashboard() {
     }
 
     localStorage.setItem("authUser", JSON.stringify(user));
+    localStorage.setItem("user", JSON.stringify(user));
   }, [user, navigate]);
 
   useEffect(() => {
@@ -135,6 +173,7 @@ export default function EmployeeDashboard() {
   return (
     <div className="admin-layout">
       <EmployeeSidebar
+        user={user}
         activeItem={activeItem}
         onSelect={handleSidebarSelect}
         theme={theme}
@@ -173,7 +212,11 @@ export default function EmployeeDashboard() {
               />
             </>
           ) : activeItem === "Profile" ? (
-            <EmployeeProfileSection user={user} />
+            <EmployeeProfileSection
+              user={user}
+              setUser={setUser}
+              onProfileUpdated={handleUserUpdate}
+            />
           ) : (
             <SectionTitle title={activeItem} />
           )}

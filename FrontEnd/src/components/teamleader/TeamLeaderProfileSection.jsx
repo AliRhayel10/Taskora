@@ -70,7 +70,27 @@ function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export default function TeamLeaderProfileSection({ user, setUser }) {
+function buildProfileImageUrl(value, cacheKey = "") {
+  const rawValue = String(value || "").trim();
+
+  if (!rawValue) return "";
+
+  if (rawValue.startsWith("blob:") || rawValue.startsWith("data:")) {
+    return rawValue;
+  }
+
+  const baseUrl =
+    rawValue.startsWith("http://") || rawValue.startsWith("https://")
+      ? rawValue
+      : `${API_BASE_URL}${rawValue.startsWith("/") ? rawValue : `/${rawValue}`}`;
+
+  if (!cacheKey) return baseUrl;
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}v=${encodeURIComponent(cacheKey)}`;
+}
+
+export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdated }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
@@ -84,6 +104,7 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
     fullName: "",
     role: "",
     profileImageUrl: "",
+    profileImageUpdatedAt: "",
   });
 
   const [draftData, setDraftData] = useState({
@@ -106,8 +127,64 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageCacheKey, setImageCacheKey] = useState(() => Date.now());
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const userId = user?.userId || user?.id || 0;
+
+  const publishUpdatedUser = useCallback(
+    (profileUpdate) => {
+      const readStoredUser = (key) => {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const previousUser = readStoredUser("authUser") || readStoredUser("user") || user || {};
+      const nextUser = {
+        ...previousUser,
+        ...profileUpdate,
+        user: previousUser.user
+          ? {
+              ...previousUser.user,
+              ...profileUpdate,
+            }
+          : previousUser.user,
+      };
+
+      if (profileUpdate.profileImageUrl) {
+        const nextImageStamp = profileUpdate.profileImageUpdatedAt || Date.now();
+        nextUser.profileImageUpdatedAt = nextImageStamp;
+
+        if (nextUser.user) {
+          nextUser.user.profileImageUpdatedAt = nextImageStamp;
+        }
+      }
+
+      localStorage.setItem("authUser", JSON.stringify(nextUser));
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      if (typeof setUser === "function") {
+        setUser(nextUser);
+      }
+
+      if (typeof onProfileUpdated === "function") {
+        onProfileUpdated(nextUser);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("taskora-user-updated", {
+          detail: nextUser,
+        })
+      );
+
+      return nextUser;
+    },
+    [onProfileUpdated, setUser, user]
+  );
 
   const syncProfileStateFromBackend = useCallback((profile) => {
     const fullName = profile?.fullName || "Not available";
@@ -124,6 +201,7 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
       fullName,
       role: profile?.role || "Team Leader",
       profileImageUrl: profile?.profileImageUrl || "",
+      profileImageUpdatedAt: profile?.profileImageUpdatedAt || profile?.profileImageVersion || "",
     };
 
     setProfileData(nextProfileData);
@@ -195,6 +273,7 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
         fullName: fallbackFullName,
         role: user?.role || "Team Leader",
         profileImageUrl: user?.profileImageUrl || "",
+        profileImageUpdatedAt: user?.profileImageUpdatedAt || user?.profileImageVersion || "",
       };
 
       setProfileData(fallbackProfile);
@@ -260,16 +339,12 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
     profileData.email.trim().toLowerCase();
 
   const imagePreview = useMemo(() => {
-    if (!profileData.profileImageUrl || profileData.profileImageUrl.trim() === "") {
-      return "";
-    }
+    return buildProfileImageUrl(profileData.profileImageUrl, imageCacheKey);
+  }, [imageCacheKey, profileData.profileImageUrl]);
 
-    if (profileData.profileImageUrl.startsWith("http")) {
-      return profileData.profileImageUrl;
-    }
-
-    return `${API_BASE_URL}${profileData.profileImageUrl}`;
-  }, [profileData.profileImageUrl]);
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [imagePreview]);
 
   const onCropComplete = useCallback((_, croppedPixels) => {
     setCroppedAreaPixels(croppedPixels);
@@ -280,10 +355,13 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
   };
 
   const openCropModalFromAvatar = async () => {
-    if (!imagePreview || imagePreview.trim() === "") return;
+    if (!imagePreview || imagePreview.trim() === "" || imageLoadFailed) {
+      openFilePicker();
+      return;
+    }
 
     try {
-      const response = await fetch(imagePreview, { mode: "cors" });
+      const response = await fetch(imagePreview, { mode: "cors", cache: "no-store" });
 
       if (!response.ok) {
         throw new Error("Could not load image.");
@@ -300,8 +378,9 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
       console.error("Failed to load image for editing:", error);
       setFormMessage({
         type: "error",
-        text: "Could not open current image for editing.",
+        text: "Could not open current image for editing. Please upload a new image.",
       });
+      openFilePicker();
     }
   };
 
@@ -458,17 +537,16 @@ export default function TeamLeaderProfileSection({ user, setUser }) {
 
       await fetchProfileFromBackend();
 
-// update parent user + localStorage
-const updatedUser = {
-  ...user,
-  fullName: nextFullName,
-  email: cleanedData.email,
-  jobTitle: cleanedData.jobTitle,
-  companyName: cleanedData.companyName,
-};
-
-setUser(updatedUser);
-localStorage.setItem("user", JSON.stringify(updatedUser));
+      publishUpdatedUser({
+        userId,
+        fullName: nextFullName,
+        email: cleanedData.email,
+        jobTitle: cleanedData.jobTitle,
+        companyName: cleanedData.companyName,
+        role: profileData.role || user?.role || "Team Leader",
+        profileImageUrl: profileData.profileImageUrl || user?.profileImageUrl || "",
+        profileImageUpdatedAt: profileData.profileImageUpdatedAt || user?.profileImageUpdatedAt || imageCacheKey,
+      });
 
       setCurrentPassword("");
       setFormMessage({
@@ -528,14 +606,31 @@ localStorage.setItem("user", JSON.stringify(updatedUser));
         throw new Error(data.message || "Image upload failed.");
       }
 
-      await fetchProfileFromBackend();
-      const updatedUser = {
-  ...user,
-  profileImageUrl: data.imageUrl,
-};
+      const nextImageUrl = data.profileImageUrl || data.imageUrl || profileData.profileImageUrl || "";
+      const nextCacheKey = Date.now();
 
-setUser(updatedUser);
-localStorage.setItem("user", JSON.stringify(updatedUser));
+      if (nextImageUrl) {
+        setImageCacheKey(nextCacheKey);
+        setProfileData((prev) => ({
+          ...prev,
+          profileImageUrl: nextImageUrl,
+          profileImageUpdatedAt: nextCacheKey,
+        }));
+
+        publishUpdatedUser({
+          userId,
+          fullName: profileData.fullName,
+          email: profileData.email,
+          role: profileData.role || user?.role || "Team Leader",
+          companyName: profileData.companyName,
+          jobTitle: profileData.jobTitle,
+          profileImageUrl: nextImageUrl,
+          profileImageUpdatedAt: nextCacheKey,
+        });
+      }
+
+      await fetchProfileFromBackend();
+      setImageCacheKey(Date.now());
       handleCloseCropModal();
       setFormMessage({
         type: "success",
@@ -687,12 +782,12 @@ localStorage.setItem("user", JSON.stringify(updatedUser));
             className="profile-hero-card__avatar-button"
             onClick={openCropModalFromAvatar}
           >
-            {imagePreview && imagePreview.trim() !== "" ? (
+            {imagePreview && imagePreview.trim() !== "" && !imageLoadFailed ? (
               <img
                 src={imagePreview}
                 alt="Profile"
                 className="profile-hero-card__avatar-img"
-                onError={() => setSelectedImage("")}
+                onError={() => setImageLoadFailed(true)}
               />
             ) : (
               <div className="profile-hero-card__avatar-fallback">{initials}</div>
