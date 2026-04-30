@@ -1942,3 +1942,65 @@ body.dark .tasks-section__title-line {
     padding: 12px 16px;
   }
 }
+/* Assignment status badge: prevent inactive users from receiving new tasks */
+.tasks-section__member-row {
+  position: relative;
+}
+
+.tasks-section__member-row--inactive {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.tasks-section__member-row--inactive:hover {
+  background: #fff4f4;
+}
+
+.tasks-section__member-row--inactive .tasks-section__member-check {
+  border-color: #fca5a5;
+  background: #fee2e2;
+}
+
+.tasks-section__member-status-badge {
+  margin-left: auto;
+  min-width: 88px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.tasks-section__member-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.tasks-section__member-status-badge--active {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.tasks-section__member-status-badge--inactive {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+@media (max-width: 760px) {
+  .tasks-section__member-status-badge {
+    min-width: 78px;
+    padding: 0 8px;
+    font-size: 0.72rem;
+  }
+}

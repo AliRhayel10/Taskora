@@ -310,6 +310,54 @@ const getInitials = (fullName = "") => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
+
+const getUserStatusValue = (user = {}) => {
+  const rawStatus =
+    user.status ??
+    user.Status ??
+    user.userStatus ??
+    user.UserStatus ??
+    user.accountStatus ??
+    user.AccountStatus ??
+    user.memberStatus ??
+    user.MemberStatus ??
+    "";
+
+  if (typeof rawStatus === "object" && rawStatus !== null) {
+    return String(
+      rawStatus.statusName ??
+        rawStatus.StatusName ??
+        rawStatus.name ??
+        rawStatus.Name ??
+        rawStatus.value ??
+        rawStatus.Value ??
+        "",
+    )
+      .trim()
+      .toLowerCase();
+  }
+
+  return String(rawStatus).trim().toLowerCase();
+};
+
+const isUserActiveForAssignment = (user = {}) => {
+  const status = getUserStatusValue(user);
+
+  if (["inactive", "disabled", "deactivated", "suspended", "blocked"].includes(status)) {
+    return false;
+  }
+
+  const activeFlag = user.isActive ?? user.IsActive ?? user.active ?? user.Active;
+  if (activeFlag === false || activeFlag === "false" || activeFlag === 0 || activeFlag === "0") {
+    return false;
+  }
+
+  return true;
+};
+
+const getUserAssignmentStatusLabel = (user = {}) =>
+  isUserActiveForAssignment(user) ? "Active" : "Inactive";
+
 const formatDate = (value) => {
   if (!value) return "—";
 
@@ -1984,10 +2032,14 @@ const resolvedCurrentUserId =
     complexityMultipliers,
   ]);
 
+  const selectedUserCanReceiveTask =
+    Boolean(selectedUser) && isUserActiveForAssignment(selectedUser);
+
   const isStepOneValid =
     formState.title.trim() !== "" &&
     formState.description.trim() !== "" &&
-    formState.assignedUserId !== "";
+    formState.assignedUserId !== "" &&
+    selectedUserCanReceiveTask;
 
   const isCreateDisabled =
     isSubmitting ||
@@ -2017,10 +2069,20 @@ const resolvedCurrentUserId =
     return (baseEffort * priorityMultiplier * complexityMultiplier).toFixed(2);
   }, [editFormState, priorityMultipliers, complexityMultipliers]);
 
+  const editAssigneeDraftUser = useMemo(
+    () =>
+      users.find(
+        (user) => String(user.userId ?? user.id) === String(editAssigneeDraftUserId),
+      ) || null,
+    [users, editAssigneeDraftUserId],
+  );
+
   const isEditAssigneeChanged =
     Boolean(editAssigneeDraftUserId) &&
     editFormState &&
-    String(editAssigneeDraftUserId) !== String(editFormState.assignedUserId ?? "");
+    String(editAssigneeDraftUserId) !== String(editFormState.assignedUserId ?? "") &&
+    Boolean(editAssigneeDraftUser) &&
+    isUserActiveForAssignment(editAssigneeDraftUser);
 
   const isEditTaskInfoValid =
     editTaskDraft.title.trim() !== "" && editTaskDraft.description.trim() !== "";
@@ -2211,6 +2273,10 @@ const resolvedCurrentUserId =
 
       if (!isUserInCurrentTeam(formState.assignedUserId)) {
         throw new Error("You can only assign tasks to members of your team.");
+      }
+
+      if (!selectedUser || !isUserActiveForAssignment(selectedUser)) {
+        throw new Error("Inactive users cannot receive new tasks.");
       }
 
       if (new Date(formState.dueDate) < new Date(formState.startDate)) {
@@ -2444,6 +2510,18 @@ const resolvedCurrentUserId =
 
     if (!nextAssigneeId || nextAssigneeId === currentAssigneeId) return;
 
+    const nextAssigneeUser = users.find(
+      (user) => String(user.userId ?? user.id) === String(nextAssigneeId),
+    );
+
+    if (!nextAssigneeUser || !isUserActiveForAssignment(nextAssigneeUser)) {
+      setFeedback({
+        type: "error",
+        message: "Inactive users cannot receive new tasks.",
+      });
+      return;
+    }
+
     handleEditFormChange("assignedUserId", nextAssigneeId);
     closeEditAssigneeModal();
   };
@@ -2498,6 +2576,16 @@ const resolvedCurrentUserId =
 
       if (nextAssigneeId && !isUserInCurrentTeam(nextAssigneeId)) {
         throw new Error("You can only assign tasks to members of your team.");
+      }
+
+      if (nextAssigneeId) {
+        const nextAssigneeUser = users.find(
+          (user) => String(user.userId ?? user.id) === String(nextAssigneeId),
+        );
+
+        if (!nextAssigneeUser || !isUserActiveForAssignment(nextAssigneeUser)) {
+          throw new Error("Inactive users cannot receive new tasks.");
+        }
       }
 
       if (hasAssigneeChanged) {
@@ -3420,6 +3508,7 @@ const resolvedCurrentUserId =
                               String(formState.assignedUserId) ===
                               String(userId);
                             const imageUrl = getProfileImage(user);
+                            const isInactive = !isUserActiveForAssignment(user);
 
                             return (
                               <button
@@ -3428,13 +3517,22 @@ const resolvedCurrentUserId =
                                 className={`tasks-section__member-row ${isSelected
                                     ? "tasks-section__member-row--selected"
                                     : ""
-                                  }`}
-                                onClick={() =>
+                                  } ${isInactive ? "tasks-section__member-row--inactive" : ""}`}
+                                onClick={() => {
+                                  if (isInactive) {
+                                    setFeedback({
+                                      type: "error",
+                                      message: "Inactive users cannot receive new tasks.",
+                                    });
+                                    return;
+                                  }
+
                                   handleFormChange(
                                     "assignedUserId",
                                     String(userId),
-                                  )
-                                }
+                                  );
+                                }}
+                                aria-disabled={isInactive}
                               >
                                 <span
                                   className={`tasks-section__member-check ${isSelected
@@ -3468,6 +3566,16 @@ const resolvedCurrentUserId =
                                       "Unknown User"}
                                   </strong>
                                   <small>{user.email || "—"}</small>
+                                </span>
+
+                                <span
+                                  className={`tasks-section__member-status-badge ${isInactive
+                                      ? "tasks-section__member-status-badge--inactive"
+                                      : "tasks-section__member-status-badge--active"
+                                    }`}
+                                >
+                                  <span className="tasks-section__member-status-dot" />
+                                  {getUserAssignmentStatusLabel(user)}
                                 </span>
                               </button>
                             );
@@ -3790,6 +3898,7 @@ const resolvedCurrentUserId =
                       String(editAssigneeDraftUserId || editFormState.assignedUserId) ===
                       String(userId);
                     const imageUrl = getProfileImage(user);
+                    const isInactive = !isUserActiveForAssignment(user);
 
                     return (
                       <button
@@ -3798,10 +3907,19 @@ const resolvedCurrentUserId =
                         className={`tasks-section__member-row ${isSelected
                             ? "tasks-section__member-row--selected"
                             : ""
-                          }`}
+                          } ${isInactive ? "tasks-section__member-row--inactive" : ""}`}
                         onClick={() => {
+                          if (isInactive) {
+                            setFeedback({
+                              type: "error",
+                              message: "Inactive users cannot receive new tasks.",
+                            });
+                            return;
+                          }
+
                           setEditAssigneeDraftUserId(String(userId));
                         }}
+                        aria-disabled={isInactive}
                       >
                         <span
                           className={`tasks-section__member-check ${isSelected
@@ -3831,6 +3949,16 @@ const resolvedCurrentUserId =
                             {user.fullName ?? user.name ?? "Unknown User"}
                           </strong>
                           <small>{user.email || "—"}</small>
+                        </span>
+
+                        <span
+                          className={`tasks-section__member-status-badge ${isInactive
+                              ? "tasks-section__member-status-badge--inactive"
+                              : "tasks-section__member-status-badge--active"
+                            }`}
+                        >
+                          <span className="tasks-section__member-status-dot" />
+                          {getUserAssignmentStatusLabel(user)}
                         </span>
                       </button>
                     );
