@@ -3,6 +3,15 @@ html {
   scroll-padding-top: 90px;
 }
 
+html,
+body,
+#root {
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+
 .navbar {
     position: sticky;
     top: 12px;
@@ -167,6 +176,8 @@ html {
     max-width: 1400px;
     margin: 0 auto;
     padding: 40px 16px 60px;
+    min-height: auto;
+    overflow: visible;
 }
 
 .hero {
