@@ -3,7 +3,6 @@ import {
   FiUsers,
   FiClipboard,
   FiClock,
-  FiBarChart2,
   FiCheckCircle,
   FiAlertTriangle,
   FiChevronDown,
@@ -858,7 +857,9 @@ export default function TeamLeaderDashboardSection({
 
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [allTeamTasks, setAllTeamTasks] = useState([]);
   const [taskRequests, setTaskRequests] = useState([]);
+  const [allTaskRequests, setAllTaskRequests] = useState([]);
   const [showAllTaskRequests, setShowAllTaskRequests] = useState(false);
   const [leaderTeamName, setLeaderTeamName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1024,6 +1025,14 @@ export default function TeamLeaderDashboardSection({
         setLoading(true);
         setErrorMessage("");
 
+        // Clear all range-dependent dashboard data immediately so the cards,
+        // requests panel, and table never keep showing numbers from the
+        // previously selected range while the new range is loading.
+        setTasks([]);
+        setTaskRequests([]);
+        setAllTaskRequests([]);
+        setShowAllTaskRequests(false);
+
         const teamsUrl = `${API_BASE}/api/Teams/company/${encodeURIComponent(companyId)}`;
         const membersUrl = `${API_BASE}/api/Teams/company/${encodeURIComponent(companyId)}/members`;
         const tasksUrl = `${API_BASE}/api/tasks/company/${encodeURIComponent(companyId)}`;
@@ -1142,6 +1151,16 @@ export default function TeamLeaderDashboardSection({
           return belongsToLeaderTeam && assignedToTeamMember && isInRange;
         });
 
+        const allTeamMemberTasks = resolvedTasks.filter((task) => {
+          const taskTeamId = Number(task?.teamId ?? task?.TeamId ?? 0);
+          const assigneeId = getTaskAssigneeId(task);
+
+          const belongsToLeaderTeam = leaderTeamIdSet.has(taskTeamId);
+          const assignedToTeamMember = leaderMemberIdSet.has(assigneeId);
+
+          return belongsToLeaderTeam && assignedToTeamMember;
+        });
+
         const requestsByTask = await Promise.all(
           filteredTasks.map(async (task) => {
             const taskId = getTaskId(task);
@@ -1195,14 +1214,8 @@ export default function TeamLeaderDashboardSection({
           })
         );
 
-        const pendingRequests = requestsByTask
+        const allRequests = requestsByTask
           .flat()
-          .filter(
-            (request) =>
-              String(request?.requestStatus ?? request?.RequestStatus ?? "")
-                .trim()
-                .toLowerCase() === "pending"
-          )
           .sort((a, b) => {
             const firstDate = new Date(a?.createdAt ?? a?.CreatedAt ?? 0).getTime();
             const secondDate = new Date(b?.createdAt ?? b?.CreatedAt ?? 0).getTime();
@@ -1210,13 +1223,24 @@ export default function TeamLeaderDashboardSection({
             return secondDate - firstDate;
           });
 
+        const pendingRequests = allRequests.filter(
+          (request) =>
+            String(request?.requestStatus ?? request?.RequestStatus ?? "")
+              .trim()
+              .toLowerCase() === "pending"
+        );
+
         setMembers(filteredMembers);
+        setAllTeamTasks(allTeamMemberTasks);
         setTasks(filteredTasks);
+        setAllTaskRequests(allRequests);
         setTaskRequests(pendingRequests);
       } catch (error) {
         console.error("Dashboard fetch error:", error);
         setMembers([]);
+        setAllTeamTasks([]);
         setTasks([]);
+        setAllTaskRequests([]);
         setTaskRequests([]);
         setLeaderTeamName("");
         setErrorMessage(error.message || "Failed to load dashboard data.");
@@ -1267,6 +1291,11 @@ export default function TeamLeaderDashboardSection({
         0
       );
 
+      const memberStatus = getDashboardMemberStatus(member);
+      const normalizedMemberStatus = String(memberStatus || "")
+        .trim()
+        .toLowerCase();
+
       return {
         userId: member.userId,
         employee: member.fullName || member.name || "Unknown Employee",
@@ -1276,6 +1305,8 @@ export default function TeamLeaderDashboardSection({
         effortValue: totalEffort,
         weight: Number(totalWeight.toFixed(2)),
         status: getWorkloadStatus(totalWeight),
+        memberStatus,
+        memberStatusKey: normalizedMemberStatus === "inactive" ? "inactive" : "active",
         profileImageUrl: member.profileImageUrl || member.ProfileImageUrl || "",
       };
     });
@@ -1314,6 +1345,10 @@ export default function TeamLeaderDashboardSection({
             firstValue = String(a.status || "").toLowerCase();
             secondValue = String(b.status || "").toLowerCase();
             break;
+          case "memberStatus":
+            firstValue = String(a.memberStatusKey || "").toLowerCase();
+            secondValue = String(b.memberStatusKey || "").toLowerCase();
+            break;
           default:
             firstValue = "";
             secondValue = "";
@@ -1337,32 +1372,75 @@ export default function TeamLeaderDashboardSection({
   }, [members, tasks, searchValue, sortConfig, user]);
 
   const summaryCards = useMemo(() => {
-    const activeTasks = tasks.filter(isActiveWorkloadTask);
+    // Every dashboard card below is intentionally based on the same
+    // selected-range team task list. This keeps the tabs synchronized with
+    // the selected date range and prevents old/all-team values from leaking
+    // into the dashboard when the user switches months.
+    const selectedRangeTeamTasks = tasks.filter((task) =>
+      doesTaskOverlapRange(task, activeRange.start, activeRange.end)
+    );
+
+    const activeTasks = selectedRangeTeamTasks.filter(isActiveWorkloadTask);
+
     const activeMembersCount = members.filter(isActiveDashboardMember).length;
     const inactiveMembersCount = Math.max(members.length - activeMembersCount, 0);
 
-    const allTasksCount = tasks.length;
-    const activeTasksCount = activeTasks.length;
-
-    const allEffort = tasks.reduce(
-      (sum, task) =>
-        sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
-      0
-    );
-    const activeEffort = activeTasks.reduce(
-      (sum, task) =>
-        sum + Number(task?.estimatedEffortHours || task?.EstimatedEffortHours || 0),
-      0
+    // Requests are fetched only from selectedRangeTeamTasks, but we still filter
+    // them by the selected task ids here so reviewed/pending counts cannot keep
+    // old values after changing the range.
+    const selectedTaskIdSet = new Set(
+      selectedRangeTeamTasks
+        .map((task) => Number(getTaskId(task)))
+        .filter((id) => id > 0)
     );
 
-    const allWeight = tasks.reduce(
-      (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
+    const rangeRequests = allTaskRequests.filter((request) => {
+      const requestTaskId = Number(
+        request?.taskId ??
+          request?.TaskId ??
+          request?.taskID ??
+          request?.TaskID ??
+          0
+      );
+
+      return selectedTaskIdSet.has(requestTaskId);
+    });
+
+    const pendingRequestsCount = rangeRequests.filter(
+      (request) =>
+        String(request?.requestStatus ?? request?.RequestStatus ?? "")
+          .trim()
+          .toLowerCase() === "pending"
+    ).length;
+
+    const reviewedRequestsCount = Math.max(
+      rangeRequests.length - pendingRequestsCount,
       0
     );
-    const activeWeight = activeTasks.reduce(
-      (sum, task) => sum + Number(task?.weight || task?.Weight || 0),
-      0
-    );
+
+    const selectedRangeStart = startOfDay(activeRange.start);
+    const selectedRangeEnd = endOfDay(activeRange.end);
+    const dueSoonWindowEnd = endOfDay(activeRange.start);
+    dueSoonWindowEnd.setDate(dueSoonWindowEnd.getDate() + 7);
+
+    const effectiveDueSoonEnd =
+      dueSoonWindowEnd < selectedRangeEnd ? dueSoonWindowEnd : selectedRangeEnd;
+
+    const dueSoonTasksCount = activeTasks.filter((task) => {
+      const dueDate = parseApiDate(task?.dueDate ?? task?.DueDate);
+      if (!dueDate) return false;
+
+      const dueDay = startOfDay(dueDate);
+      return dueDay >= selectedRangeStart && dueDay <= effectiveDueSoonEnd;
+    }).length;
+
+    const overdueTasksCount = activeTasks.filter((task) => {
+      const dueDate = parseApiDate(task?.dueDate ?? task?.DueDate);
+      if (!dueDate) return false;
+
+      const dueDay = startOfDay(dueDate);
+      return dueDay < selectedRangeStart;
+    }).length;
 
     return [
       {
@@ -1375,34 +1453,40 @@ export default function TeamLeaderDashboardSection({
         iconClass: "teamleader-dashboard-section__card-icon--members",
       },
       {
-        title: "Tasks",
-        value: allTasksCount,
-        valueLabel: "All",
-        activeValue: activeTasksCount,
-        activeValueLabel: "Active",
-        icon: <FiClipboard />,
-        iconClass: "teamleader-dashboard-section__card-icon--tasks",
+        title: "Requests",
+        value: pendingRequestsCount,
+        valueLabel: "Pending",
+        activeValue: reviewedRequestsCount,
+        activeValueLabel: "Reviewed",
+        icon: <FiEdit3 />,
+        iconClass: "teamleader-dashboard-section__card-icon--requests",
       },
       {
-        title: "Effort",
-        value: `${Number(allEffort.toFixed(2))}h`,
+        title: "Task Progress",
+        value: selectedRangeTeamTasks.length,
         valueLabel: "All",
-        activeValue: `${Number(activeEffort.toFixed(2))}h`,
+        activeValue: activeTasks.length,
         activeValueLabel: "Active",
-        icon: <FiClock />,
-        iconClass: "teamleader-dashboard-section__card-icon--effort",
+        icon: <FiCheckCircle />,
+        iconClass: "teamleader-dashboard-section__card-icon--progress",
       },
       {
-        title: "Weight",
-        value: Number(allWeight.toFixed(2)),
-        valueLabel: "All",
-        activeValue: Number(activeWeight.toFixed(2)),
-        activeValueLabel: "Active",
-        icon: <FiBarChart2 />,
-        iconClass: "teamleader-dashboard-section__card-icon--weight",
+        title: "Due Health",
+        value: dueSoonTasksCount,
+        valueLabel: "Due Soon",
+        activeValue: overdueTasksCount,
+        activeValueLabel: "Overdue",
+        icon: <FiAlertTriangle />,
+        iconClass: "teamleader-dashboard-section__card-icon--due-health",
       },
     ];
-  }, [members, tasks]);
+  }, [
+    activeRange.end,
+    activeRange.start,
+    allTaskRequests,
+    members,
+    tasks,
+  ]);
 
   const filteredTaskRequests = useMemo(() => {
     const search = String(searchValue || "").trim().toLowerCase();
@@ -1607,7 +1691,7 @@ export default function TeamLeaderDashboardSection({
     const updatedTaskId = Number(updatedTask.taskId ?? updatedTask.TaskId ?? 0);
     if (!updatedTaskId) return;
 
-    setTasks((previousTasks) =>
+    const updateTaskCollection = (previousTasks) =>
       previousTasks.map((task) => {
         if (getTaskId(task) !== updatedTaskId) return task;
 
@@ -1634,8 +1718,10 @@ export default function TeamLeaderDashboardSection({
             task.dueDate ??
             task.DueDate,
         };
-      })
-    );
+      });
+
+    setTasks(updateTaskCollection);
+    setAllTeamTasks(updateTaskCollection);
   };
 
   const confirmReviewDecision = async () => {
@@ -1701,6 +1787,10 @@ export default function TeamLeaderDashboardSection({
       }
 
       setTaskRequests((previousRequests) =>
+        previousRequests.filter((request) => Number(getRequestId(request)) !== reviewedRequestId)
+      );
+
+      setAllTaskRequests((previousRequests) =>
         previousRequests.filter((request) => Number(getRequestId(request)) !== reviewedRequestId)
       );
 
@@ -2131,14 +2221,41 @@ export default function TeamLeaderDashboardSection({
                           />
                         </button>
                       </th>
-                    </tr>
+
+
+                      <th
+                        className="teamleader-dashboard-section__member-state-header"
+                        aria-label="Member status"
+                      >
+                        <button
+                          type="button"
+                          className="teamleader-dashboard-section__sort-btn teamleader-dashboard-section__sort-btn--member-state"
+                          onClick={() => handleSort("memberStatus")}
+                        >
+                          <span>Status</span>
+                          <FiChevronDown
+                            className={`teamleader-dashboard-section__sort-icon ${
+                              sortConfig.key === "memberStatus"
+                                ? "teamleader-dashboard-section__sort-icon--active"
+                                : ""
+                            }`}
+                            style={{
+                              transform:
+                                sortConfig.key === "memberStatus" &&
+                                sortConfig.direction === "desc"
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                            }}
+                          />
+                        </button>
+                      </th>                    </tr>
                   </thead>
 
                   <tbody>
                     {paginatedRows.length === 0 ? (
                       <tr>
                         <td
-                          colSpan="5"
+                          colSpan="6"
                           className="teamleader-dashboard-section__empty-cell"
                         >
                           No workload data found for the selected range.
@@ -2187,6 +2304,15 @@ export default function TeamLeaderDashboardSection({
                                 {getStatusIcon(row.status)}
                               </span>
                               {row.status}
+                            </span>
+                          </td>
+                          <td className="teamleader-dashboard-section__member-state-cell">
+                            <span
+                              className={`teamleader-dashboard-section__member-state-icon teamleader-dashboard-section__member-state-icon--${row.memberStatusKey}`}
+                              title={row.memberStatusKey === "inactive" ? "Inactive" : "Active"}
+                              aria-label={row.memberStatusKey === "inactive" ? "Inactive member" : "Active member"}
+                            >
+                              {row.memberStatusKey === "inactive" ? <FiX /> : <FiCheckCircle />}
                             </span>
                           </td>
                         </tr>

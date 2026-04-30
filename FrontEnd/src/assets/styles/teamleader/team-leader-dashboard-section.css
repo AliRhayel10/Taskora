@@ -466,6 +466,21 @@ body,
   color: #b45309;
 }
 
+.teamleader-dashboard-section__card-icon--requests {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.teamleader-dashboard-section__card-icon--progress {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.teamleader-dashboard-section__card-icon--due-health {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .teamleader-dashboard-section__card-content {
   display: flex;
   flex-direction: column;
@@ -3942,5 +3957,262 @@ body.dark .teamleader-dashboard-section__title-line {
 
   .teamleader-dashboard-section__card-split-metric .teamleader-dashboard-section__card-value {
     font-size: 1.38rem;
+  }
+}
+
+
+/* Employee workload table: separate icon-only member status column */
+.teamleader-dashboard-section__table thead th:nth-child(1),
+.teamleader-dashboard-section__table tbody td:nth-child(1) {
+  width: 30%;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(2),
+.teamleader-dashboard-section__table tbody td:nth-child(2) {
+  width: 8%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(3),
+.teamleader-dashboard-section__table tbody td:nth-child(3) {
+  width: 16%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(4),
+.teamleader-dashboard-section__table tbody td:nth-child(4) {
+  width: 13%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(5),
+.teamleader-dashboard-section__table tbody td:nth-child(5) {
+  width: 13%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(6),
+.teamleader-dashboard-section__table tbody td:nth-child(6) {
+  width: 20%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__member-state-header,
+.teamleader-dashboard-section__member-state-cell {
+  text-align: center;
+}
+
+.teamleader-dashboard-section__member-state-header-text {
+  display: inline-block;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.teamleader-dashboard-section__member-state-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.92rem;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+.teamleader-dashboard-section__member-state-icon--active {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.teamleader-dashboard-section__member-state-icon--inactive {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.teamleader-dashboard-section__member-state-icon svg {
+  flex-shrink: 0;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(n + 3) .teamleader-dashboard-section__sort-btn {
+  width: auto;
+  margin: 0 auto;
+}
+
+/* Final employee workload table layout: member status column after workload status */
+.teamleader-dashboard-section__table thead th,
+.teamleader-dashboard-section__table tbody td {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(1),
+.teamleader-dashboard-section__table tbody td:nth-child(1) {
+  width: 31%;
+  text-align: left;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(2),
+.teamleader-dashboard-section__table tbody td:nth-child(2) {
+  width: 14%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(3),
+.teamleader-dashboard-section__table tbody td:nth-child(3) {
+  width: 11%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(4),
+.teamleader-dashboard-section__table tbody td:nth-child(4) {
+  width: 11%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(5),
+.teamleader-dashboard-section__table tbody td:nth-child(5) {
+  width: 23%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(6),
+.teamleader-dashboard-section__table tbody td:nth-child(6) {
+  width: 10%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(n + 2) .teamleader-dashboard-section__sort-btn {
+  width: auto;
+  margin: 0 auto;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.teamleader-dashboard-section__sort-btn--member-state {
+  gap: 7px;
+}
+
+.teamleader-dashboard-section__member-state-header,
+.teamleader-dashboard-section__member-state-cell {
+  text-align: center;
+}
+
+.teamleader-dashboard-section__member-state-cell {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.teamleader-dashboard-section__member-state-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.92rem;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+.teamleader-dashboard-section__member-state-icon--active {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.teamleader-dashboard-section__member-state-icon--inactive {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.teamleader-dashboard-section__member-state-icon svg,
+.teamleader-dashboard-section__sort-icon {
+  flex-shrink: 0;
+}
+
+/* Final fit fix: give the workload table more room and keep the Status sort arrow visible */
+.teamleader-dashboard-section__content-grid {
+  grid-template-columns: minmax(0, 820px) minmax(240px, 1fr);
+  gap: 14px;
+}
+
+.teamleader-dashboard-section__requests-card {
+  min-width: 0;
+}
+
+.teamleader-dashboard-section__table thead th,
+.teamleader-dashboard-section__table tbody td {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(1),
+.teamleader-dashboard-section__table tbody td:nth-child(1) {
+  width: 29%;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(2),
+.teamleader-dashboard-section__table tbody td:nth-child(2) {
+  width: 15%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(3),
+.teamleader-dashboard-section__table tbody td:nth-child(3) {
+  width: 10%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(4),
+.teamleader-dashboard-section__table tbody td:nth-child(4) {
+  width: 10%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(5),
+.teamleader-dashboard-section__table tbody td:nth-child(5) {
+  width: 23%;
+  text-align: center;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(6),
+.teamleader-dashboard-section__table tbody td:nth-child(6) {
+  width: 13%;
+  text-align: center;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(6) {
+  padding-right: 14px;
+}
+
+.teamleader-dashboard-section__table thead th:nth-child(n + 2) .teamleader-dashboard-section__sort-btn {
+  max-width: 100%;
+  width: fit-content;
+  margin: 0 auto;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.teamleader-dashboard-section__sort-btn--member-state {
+  gap: 7px;
+  min-width: 66px;
+}
+
+.teamleader-dashboard-section__sort-btn--member-state .teamleader-dashboard-section__sort-icon {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1180px) {
+  .teamleader-dashboard-section__content-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -745,42 +745,65 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
   }, [rows.length, safeCurrentPage]);
 
   const summaryCards = useMemo(() => {
-    const totalTasks = filteredRangeTasks.length;
-    const totalEffort = filteredRangeTasks.reduce((sum, task) => sum + getTaskEffort(task), 0);
-    const totalWeight = filteredRangeTasks.reduce((sum, task) => sum + getTaskWeight(task), 0);
-    const averageWorkload = teamMembers.length ? Math.round(totalWeight / teamMembers.length) : 0;
+    const allRangeTasks = tasks.filter((task) => {
+      const taskTeamId = getTaskTeamId(task);
+      if (leaderTeamIds.length && !leaderTeamIds.includes(taskTeamId)) return false;
+      return doesTaskOverlapRange(task, activeRange.start, activeRange.end);
+    });
+
+    const activeRangeTasks = allRangeTasks.filter(isActiveWorkloadTask);
+    const inactiveMembersCount = teamMembers.filter(
+      (member) => String(getMemberStatus(member)).trim().toLowerCase() === "inactive"
+    ).length;
+
+    const allTasksCount = allRangeTasks.length;
+    const activeTasksCount = activeRangeTasks.length;
+
+    const allEffort = allRangeTasks.reduce((sum, task) => sum + getTaskEffort(task), 0);
+    const activeEffort = activeRangeTasks.reduce((sum, task) => sum + getTaskEffort(task), 0);
+
+    const allWeight = allRangeTasks.reduce((sum, task) => sum + getTaskWeight(task), 0);
+    const activeWeight = activeRangeTasks.reduce((sum, task) => sum + getTaskWeight(task), 0);
 
     return [
       {
-        title: "Total Members",
+        title: "Team Members",
         value: teamMembers.length.toLocaleString(),
+        valueLabel: "All",
+        activeValue: inactiveMembersCount.toLocaleString(),
+        activeValueLabel: "Inactive",
         icon: <FiUsers />,
         iconClass: "team-leader-team-section__card-icon--members",
-        valueClass: "team-leader-team-section__card-value--blue",
       },
       {
-        title: "Active Tasks",
-        value: totalTasks.toLocaleString(),
+        title: "Tasks",
+        value: allTasksCount.toLocaleString(),
+        valueLabel: "All",
+        activeValue: activeTasksCount.toLocaleString(),
+        activeValueLabel: "Active",
         icon: <FiClipboard />,
         iconClass: "team-leader-team-section__card-icon--tasks",
-        valueClass: "team-leader-team-section__card-value--purple",
       },
       {
-        title: "Total Effort",
-        value: `${Number(totalEffort.toFixed(2)).toLocaleString()}h`,
+        title: "Effort",
+        value: `${Number(allEffort.toFixed(2)).toLocaleString()}h`,
+        valueLabel: "All",
+        activeValue: `${Number(activeEffort.toFixed(2)).toLocaleString()}h`,
+        activeValueLabel: "Active",
         icon: <FiClock />,
         iconClass: "team-leader-team-section__card-icon--effort",
-        valueClass: "team-leader-team-section__card-value--green",
       },
       {
-        title: "Average Workload",
-        value: `${averageWorkload}%`,
+        title: "Weight",
+        value: Number(allWeight.toFixed(2)).toLocaleString(),
+        valueLabel: "All",
+        activeValue: Number(activeWeight.toFixed(2)).toLocaleString(),
+        activeValueLabel: "Active",
         icon: <FiBarChart2 />,
         iconClass: "team-leader-team-section__card-icon--workload",
-        valueClass: "team-leader-team-section__card-value--orange",
       },
     ];
-  }, [filteredRangeTasks, teamMembers.length]);
+  }, [tasks, leaderTeamIds, activeRange, teamMembers]);
 
   const handleSelectPreset = (preset) => {
     if (preset === "custom") {
@@ -1075,9 +1098,38 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
 
                 <div className="team-leader-team-section__card-content">
                   <span className="team-leader-team-section__card-label">{card.title}</span>
-                  <strong className={`team-leader-team-section__card-value ${card.valueClass}`}>
-                    {card.value}
-                  </strong>
+                  {card.activeValue !== undefined && card.activeValue !== null ? (
+                    <div className="team-leader-team-section__card-split-metric">
+                      <div className="team-leader-team-section__card-metric-half">
+                        <span className="team-leader-team-section__card-metric-label">
+                          {card.valueLabel || "All"}
+                        </span>
+                        <strong className="team-leader-team-section__card-value">
+                          {card.value}
+                        </strong>
+                      </div>
+
+                      <span
+                        className="team-leader-team-section__card-metric-divider"
+                        aria-hidden="true"
+                      />
+
+                      <div className="team-leader-team-section__card-metric-half team-leader-team-section__card-metric-half--active">
+                        <span className="team-leader-team-section__card-metric-label">
+                          {card.activeValueLabel || "Active"}
+                        </span>
+                        <strong className="team-leader-team-section__card-value">
+                          {card.activeValue}
+                        </strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="team-leader-team-section__card-value-row">
+                      <strong className={`team-leader-team-section__card-value ${card.valueClass || ""}`}>
+                        {card.value}
+                      </strong>
+                    </div>
+                  )}
                 </div>
               </article>
             ))}
