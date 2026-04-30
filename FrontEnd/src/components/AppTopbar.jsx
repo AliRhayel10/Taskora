@@ -64,11 +64,23 @@ function getUserImage(user) {
 
   if (!rawValue) return "";
 
-  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
-    return rawValue;
-  }
+  const normalizedValue = String(rawValue).trim();
+  const baseUrl =
+    normalizedValue.startsWith("http://") || normalizedValue.startsWith("https://")
+      ? normalizedValue
+      : `http://localhost:5000${normalizedValue.startsWith("/") ? normalizedValue : `/${normalizedValue}`}`;
 
-  return `http://localhost:5000${rawValue}`;
+  const cacheKey =
+    user?.profileImageUpdatedAt ||
+    user?.profileImageVersion ||
+    user?.user?.profileImageUpdatedAt ||
+    user?.user?.profileImageVersion ||
+    "";
+
+  if (!cacheKey) return baseUrl;
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}v=${encodeURIComponent(cacheKey)}`;
 }
 
 export default function AppTopbar({
@@ -85,6 +97,7 @@ export default function AppTopbar({
 }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [storedUserRevision, setStoredUserRevision] = useState(0);
 
   const searchInputRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -94,13 +107,18 @@ export default function AppTopbar({
     const storedUser = parseStoredUser("user");
 
     return user || authUser || storedUser || null;
-  }, [user]);
+  }, [storedUserRevision, user]);
 
   const displayName = getUserDisplayName(effectiveUser);
   const firstName = getUserFirstName(effectiveUser);
   const email = getUserEmail(effectiveUser);
   const profileImage = getUserImage(effectiveUser);
   const initials = getInitials(displayName);
+  const [profileImageFailed, setProfileImageFailed] = useState(false);
+
+  useEffect(() => {
+    setProfileImageFailed(false);
+  }, [profileImage]);
 
   const canOpenSettings = typeof onOpenSettings === "function";
 
@@ -135,6 +153,21 @@ export default function AppTopbar({
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+
+  useEffect(() => {
+    const refreshStoredUser = () => {
+      setStoredUserRevision((prev) => prev + 1);
+    };
+
+    window.addEventListener("taskora-user-updated", refreshStoredUser);
+    window.addEventListener("storage", refreshStoredUser);
+
+    return () => {
+      window.removeEventListener("taskora-user-updated", refreshStoredUser);
+      window.removeEventListener("storage", refreshStoredUser);
     };
   }, []);
 
@@ -234,8 +267,12 @@ export default function AppTopbar({
             aria-label="Open profile menu"
           >
             <span className="admin-topbar__profile-avatar">
-              {profileImage ? (
-                <img src={profileImage} alt={displayName} />
+              {profileImage && !profileImageFailed ? (
+                <img
+                  src={profileImage}
+                  alt={displayName}
+                  onError={() => setProfileImageFailed(true)}
+                />
               ) : (
                 initials
               )}

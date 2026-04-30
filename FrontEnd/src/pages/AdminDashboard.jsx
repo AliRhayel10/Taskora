@@ -71,7 +71,8 @@ export default function AdminDashboard() {
     const fetchFreshProfile = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/auth/profile/${resolvedUser.userId}`
+          `http://localhost:5000/api/auth/profile/${resolvedUser.userId}`,
+          { cache: "no-store" }
         );
 
         const data = await response.json();
@@ -156,6 +157,39 @@ export default function AdminDashboard() {
     setSelectedUser(updatedUser);
   };
 
+  const handleAuthenticatedUserUpdated = (updatedUser) => {
+    if (!updatedUser) return;
+
+    setUser((previousUser) => {
+      const mergedUser = {
+        ...(previousUser || {}),
+        ...updatedUser,
+      };
+
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+
+      if (localStorage.getItem("authUser")) {
+        localStorage.setItem("authUser", JSON.stringify(mergedUser));
+      }
+
+      return mergedUser;
+    });
+  };
+
+  useEffect(() => {
+    const handleStoredUserUpdate = (event) => {
+      if (event.detail) {
+        handleAuthenticatedUserUpdated(event.detail);
+      }
+    };
+
+    window.addEventListener("taskora-user-updated", handleStoredUserUpdate);
+
+    return () => {
+      window.removeEventListener("taskora-user-updated", handleStoredUserUpdate);
+    };
+  }, []);
+
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
@@ -212,7 +246,7 @@ export default function AdminDashboard() {
         );
 
       case "Profile":
-        return <ProfileSection user={user} />;
+        return <ProfileSection user={user} onProfileUpdated={handleAuthenticatedUserUpdated} />;
 
       case "Settings":
         return <SettingsSection resetSignal={settingsResetSignal} />;

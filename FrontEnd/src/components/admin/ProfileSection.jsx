@@ -70,7 +70,26 @@ function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export default function ProfileSection({ user }) {
+function buildProfileImageUrl(value, cacheKey = "") {
+  const rawValue = String(value || "").trim();
+
+  if (!rawValue) return "";
+
+  if (rawValue.startsWith("blob:") || rawValue.startsWith("data:")) {
+    return rawValue;
+  }
+
+  const baseUrl = rawValue.startsWith("http://") || rawValue.startsWith("https://")
+    ? rawValue
+    : `${API_BASE_URL}${rawValue.startsWith("/") ? rawValue : `/${rawValue}`}`;
+
+  if (!cacheKey) return baseUrl;
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}v=${encodeURIComponent(cacheKey)}`;
+}
+
+export default function ProfileSection({ user, onProfileUpdated }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const profileInfoCardRef = useRef(null);
@@ -102,6 +121,59 @@ export default function ProfileSection({ user }) {
 
   const userId = user?.userId || 0;
 
+  const publishUpdatedUser = useCallback(
+    (profileUpdate = {}) => {
+      const readStoredUser = (key) => {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const previousUser = readStoredUser("user") || readStoredUser("authUser") || user || {};
+      const nextUser = {
+        ...previousUser,
+        ...profileUpdate,
+        user: previousUser.user
+          ? {
+              ...previousUser.user,
+              ...profileUpdate,
+            }
+          : previousUser.user,
+      };
+
+      if (profileUpdate.profileImageUrl) {
+        const nextImageStamp = profileUpdate.profileImageUpdatedAt || Date.now();
+        nextUser.profileImageUpdatedAt = nextImageStamp;
+
+        if (nextUser.user) {
+          nextUser.user.profileImageUpdatedAt = nextImageStamp;
+        }
+      }
+
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      if (localStorage.getItem("authUser")) {
+        localStorage.setItem("authUser", JSON.stringify(nextUser));
+      }
+
+      if (typeof onProfileUpdated === "function") {
+        onProfileUpdated(nextUser);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("taskora-user-updated", {
+          detail: nextUser,
+        })
+      );
+
+      return nextUser;
+    },
+    [onProfileUpdated, user]
+  );
+
   const syncProfileStateFromBackend = useCallback((profile) => {
     const fullName = profile?.fullName || "Not available";
     const nameParts = fullName.trim().split(" ").filter(Boolean);
@@ -115,6 +187,7 @@ export default function ProfileSection({ user }) {
       fullName,
       role: profile?.role || "Not available",
       profileImageUrl: profile?.profileImageUrl || "",
+      profileImageUpdatedAt: profile?.profileImageUpdatedAt || profile?.profileImageVersion || "",
     };
 
     setProfileData(nextProfileData);
@@ -133,7 +206,7 @@ export default function ProfileSection({ user }) {
     try {
       setIsLoadingProfile(true);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${userId}`);
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${userId}`, { cache: "no-store" });
       const rawText = await response.text();
 
       let data = {};
@@ -176,6 +249,7 @@ export default function ProfileSection({ user }) {
         fullName,
         role: user?.role || "Not available",
         profileImageUrl: user?.profileImageUrl || "",
+        profileImageUpdatedAt: user?.profileImageUpdatedAt || "",
       };
 
       setProfileData(fallbackProfile);
@@ -241,24 +315,22 @@ export default function ProfileSection({ user }) {
   const emailChanged =
     draftData.email.trim().toLowerCase() !== profileData.email.trim().toLowerCase();
 
-  const imagePreview = useMemo(() => {
-    if (!profileData.profileImageUrl || profileData.profileImageUrl.trim() === "") {
-      return "";
-    }
-
-    if (profileData.profileImageUrl.startsWith("http")) {
-      return profileData.profileImageUrl;
-    }
-
-    return `${API_BASE_URL}${profileData.profileImageUrl}`;
-  }, [profileData.profileImageUrl]);
-
   const [selectedImage, setSelectedImage] = useState("");
   const [showCropModal, setShowCropModal] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageCacheKey, setImageCacheKey] = useState(() => Date.now());
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+
+  const imagePreview = useMemo(() => {
+    return buildProfileImageUrl(profileData.profileImageUrl, imageCacheKey);
+  }, [imageCacheKey, profileData.profileImageUrl]);
+
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [imagePreview]);
 
   const onCropComplete = useCallback((_, croppedPixels) => {
     setCroppedAreaPixels(croppedPixels);
@@ -269,10 +341,13 @@ export default function ProfileSection({ user }) {
   };
 
   const openCropModalFromAvatar = async () => {
-    if (!imagePreview || imagePreview.trim() === "") return;
+    if (!imagePreview || imagePreview.trim() === "" || imageLoadFailed) {
+      openFilePicker();
+      return;
+    }
 
     try {
-      const response = await fetch(imagePreview, { mode: "cors" });
+      const response = await fetch(imagePreview, { mode: "cors", cache: "no-store" });
 
       if (!response.ok) {
         throw new Error("Could not load image.");
@@ -430,6 +505,15 @@ export default function ProfileSection({ user }) {
         return;
       }
 
+      publishUpdatedUser({
+        userId,
+        fullName: nextFullName,
+        email: cleanedData.email,
+        companyName: cleanedData.companyName,
+        jobTitle: cleanedData.jobTitle,
+        profileImageUrl: profileData.profileImageUrl,
+      });
+
       await fetchProfileFromBackend();
 
       setCurrentPassword("");
@@ -481,7 +565,31 @@ export default function ProfileSection({ user }) {
         throw new Error(data.message || "Image upload failed.");
       }
 
+      const nextImageUrl = data.profileImageUrl || data.imageUrl || profileData.profileImageUrl || "";
+      const nextCacheKey = Date.now();
+
+      if (nextImageUrl) {
+        setImageCacheKey(nextCacheKey);
+        setProfileData((prev) => ({
+          ...prev,
+          profileImageUrl: nextImageUrl,
+          profileImageUpdatedAt: nextCacheKey,
+        }));
+
+        publishUpdatedUser({
+          userId,
+          fullName: profileData.fullName,
+          email: profileData.email,
+          role: profileData.role,
+          companyName: profileData.companyName,
+          jobTitle: profileData.jobTitle,
+          profileImageUrl: nextImageUrl,
+          profileImageUpdatedAt: nextCacheKey,
+        });
+      }
+
       await fetchProfileFromBackend();
+      setImageCacheKey(Date.now());
       handleCloseCropModal();
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -626,12 +734,12 @@ export default function ProfileSection({ user }) {
             className="profile-hero-card__avatar-button"
             onClick={openCropModalFromAvatar}
           >
-            {imagePreview && imagePreview.trim() !== "" ? (
+            {imagePreview && imagePreview.trim() !== "" && !imageLoadFailed ? (
               <img
                 src={imagePreview}
                 alt="Profile"
                 className="profile-hero-card__avatar-img"
-                onError={() => setSelectedImage("")}
+                onError={() => setImageLoadFailed(true)}
               />
             ) : (
               <div className="profile-hero-card__avatar-fallback">{initials}</div>
