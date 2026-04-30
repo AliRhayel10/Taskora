@@ -56,3 +56,362 @@ body.dark .users-section__title-line {
     font-size: 1.2rem;
   }
 }
+/* Shared team leader date range selector */
+.team-leader-dashboard__range-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.team-leader-dashboard__range-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.team-leader-dashboard__range-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.team-leader-dashboard__range-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+.team-leader-dashboard__range-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 332px;
+  max-height: min(calc(100vh - 120px), 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
+  padding: 12px 12px 8px;
+  z-index: 20;
+  scrollbar-width: thin;
+}
+
+.team-leader-dashboard__range-tabs {
+  display: flex;
+  align-items: center;
+}
+
+.team-leader-dashboard__range-option {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 0.93rem;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.team-leader-dashboard__range-option:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: #cbd5e1;
+}
+
+.team-leader-dashboard__range-option:hover {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.team-leader-dashboard__range-option--active {
+  color: #1d4ed8;
+}
+
+.team-leader-dashboard__range-option--active::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  width: 60%;
+  height: 2px;
+  background: #2563eb;
+  border-radius: 2px;
+}
+
+.team-leader-dashboard__range-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 10px 0 12px;
+}
+
+.team-leader-dashboard__custom-range {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.team-leader-dashboard__custom-range-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.team-leader-dashboard__custom-range-header svg {
+  color: #2563eb;
+  font-size: 0.95rem;
+}
+
+.team-leader-dashboard__custom-range-preview {
+  min-height: 36px;
+  border: 1px solid #dbe7f5;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #1e293b;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.team-leader-dashboard__month-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.7fr);
+  gap: 8px;
+}
+
+.team-leader-dashboard__month-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.team-leader-dashboard__month-picker-field label {
+  color: #475467;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.team-leader-dashboard__month-picker-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.team-leader-dashboard__month-picker-select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0 38px 0 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.team-leader-dashboard__month-picker-select:hover {
+  background: #f8fbff;
+  border-color: #93c5fd;
+}
+
+.team-leader-dashboard__month-picker-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.team-leader-dashboard__month-picker-select-wrap svg {
+  position: absolute;
+  right: 12px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.team-leader-dashboard__calendar-shell {
+  border: 1px solid #dbe7f5;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.team-leader-dashboard__day-picker {
+  width: 100%;
+}
+
+.team-leader-dashboard__day-picker .rdp {
+  --rdp-cell-size: 34px;
+  --rdp-accent-color: #2563eb;
+  --rdp-background-color: #eff6ff;
+  margin: 0;
+}
+
+.team-leader-dashboard__day-picker .rdp-months {
+  justify-content: center;
+}
+
+.team-leader-dashboard__day-picker .rdp-month {
+  width: 100%;
+}
+
+.team-leader-dashboard__day-picker .rdp-caption {
+  padding: 0 2px 6px;
+}
+
+.team-leader-dashboard__day-picker .rdp-caption_label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.team-leader-dashboard__day-picker .rdp-head_cell,
+.team-leader-dashboard__day-picker .rdp-weekday {
+  color: #64748b !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+  opacity: 1 !important;
+}
+
+.team-leader-dashboard__day-picker .rdp-day_button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  color: #334155 !important;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.team-leader-dashboard__day-picker .rdp-day_today .rdp-day_button {
+  color: #1d4ed8 !important;
+  font-weight: 800;
+  border: 1px solid #bfdbfe !important;
+  background: #eff6ff !important;
+}
+
+.team-leader-dashboard__day-picker .rdp-selected .rdp-day_button,
+.team-leader-dashboard__day-picker .rdp-range_start .rdp-day_button,
+.team-leader-dashboard__day-picker .rdp-range_end .rdp-day_button,
+.team-leader-dashboard__day-picker .rdp-day_selected .rdp-day_button,
+.team-leader-dashboard__day-picker .rdp-day_range_start .rdp-day_button,
+.team-leader-dashboard__day-picker .rdp-day_range_end .rdp-day_button {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.team-leader-dashboard__day-picker .rdp-range_middle .rdp-day_button,
+.team-leader-dashboard__day-picker .rdp-day_range_middle .rdp-day_button {
+  background: #e0e7ff !important;
+  color: #334155 !important;
+}
+
+.team-leader-dashboard__day-picker .rdp-chevron {
+  fill: #2563eb;
+}
+
+.team-leader-dashboard__day-picker .rdp-nav_button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.team-leader-dashboard__day-picker .rdp-nav_button:hover {
+  background: #eff6ff;
+}
+
+.team-leader-dashboard__apply-btn-wrap {
+  position: sticky;
+  bottom: 0;
+  margin-top: 2px;
+  padding: 8px 0 0;
+  background: linear-gradient(to bottom, rgba(248, 250, 252, 0), #f8fafc 22%, #f8fafc 100%);
+}
+
+.team-leader-dashboard__apply-btn {
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.team-leader-dashboard__apply-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(37, 99, 235, 0.24);
+}
+
+@media (max-width: 700px) {
+  .team-leader-dashboard__range-toolbar {
+    justify-content: stretch;
+  }
+
+  .team-leader-dashboard__range-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .team-leader-dashboard__range-dropdown {
+    width: min(100%, 320px);
+  }
+}
+
+@media (max-width: 560px) {
+  .team-leader-dashboard__month-picker-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Shared range picker placed inside Dashboard, Team, and Tasks sections */
+.teamleader-dashboard-section > .team-leader-dashboard__range-toolbar,
+.team-leader-team-section > .team-leader-dashboard__range-toolbar,
+.tasks-section > .team-leader-dashboard__range-toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-top: 8px;
+  margin-bottom: 14px;
+}
+
+.tasks-section > .team-leader-dashboard__range-toolbar ~ .tasks-section__toolbar--tabs-row {
+  margin-top: 0;
+}

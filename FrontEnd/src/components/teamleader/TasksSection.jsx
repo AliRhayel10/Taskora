@@ -844,6 +844,11 @@ export default function TasksSection({
   deleteTaskEndpoint,
   pageSize = 6,
   searchValue = "",
+  dashboardSelectedPreset: sharedDashboardSelectedPreset,
+  dashboardCustomRange: sharedDashboardCustomRange,
+  hideSectionTitle = false,
+  hideDateRange = false,
+  dateRangeControl = null,
 }) {
 const storedUser = getStoredUser();
 
@@ -932,10 +937,10 @@ const resolvedCurrentUserId =
   const [feedback, setFeedback] = useState(null);
 
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedDashboardPreset, setSelectedDashboardPreset] = useState(
+  const [localSelectedDashboardPreset, setSelectedDashboardPreset] = useState(
     initialDashboardRangeState.selectedPreset,
   );
-  const [dashboardCustomRange, setDashboardCustomRange] = useState(
+  const [localDashboardCustomRange, setDashboardCustomRange] = useState(
     initialDashboardRangeState.customRange,
   );
   const [draftDashboardPreset, setDraftDashboardPreset] = useState(
@@ -950,6 +955,8 @@ const resolvedCurrentUserId =
   );
   const [isDashboardRangeMenuOpen, setIsDashboardRangeMenuOpen] =
     useState(false);
+  const selectedDashboardPreset = sharedDashboardSelectedPreset || localSelectedDashboardPreset;
+  const dashboardCustomRange = sharedDashboardCustomRange || localDashboardCustomRange;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [memberSearch, setMemberSearch] = useState("");
@@ -2675,165 +2682,14 @@ const resolvedCurrentUserId =
 
   return (
     <section className="tasks-section">
-      <div className="tasks-section__title-row">
-        <h2>Tasks</h2>
-        <div className="tasks-section__title-line" />
-      </div>
-
-      <div className="tasks-section__toolbar tasks-section__toolbar--range-row">
-        <div className="tasks-section__range-menu" ref={dashboardRangeMenuRef}>
-          <button
-            type="button"
-            className="tasks-section__range-btn"
-            onClick={openDashboardRangeMenu}
-          >
-            <span>{dashboardRangeLabel}</span>
-            <FiChevronDown />
-          </button>
-
-          {isDashboardRangeMenuOpen && (
-            <div className="tasks-section__range-dropdown">
-              <div
-                className="tasks-section__range-tabs"
-                role="tablist"
-                aria-label="Date range presets"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftDashboardPreset === "today"}
-                  className={`tasks-section__range-option ${draftDashboardPreset === "today"
-                      ? "tasks-section__range-option--active"
-                      : ""
-                    }`}
-                  onClick={() => handleSelectDashboardPreset("today")}
-                >
-                  Today
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftDashboardPreset === "thisWeek"}
-                  className={`tasks-section__range-option ${draftDashboardPreset === "thisWeek"
-                      ? "tasks-section__range-option--active"
-                      : ""
-                    }`}
-                  onClick={() => handleSelectDashboardPreset("thisWeek")}
-                >
-                  This Week
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftDashboardPreset === "custom"}
-                  className={`tasks-section__range-option ${draftDashboardPreset === "custom"
-                      ? "tasks-section__range-option--active"
-                      : ""
-                    }`}
-                  onClick={() => handleSelectDashboardPreset("custom")}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {draftDashboardPreset === "custom" && (
-                <>
-                  <div className="tasks-section__range-divider"></div>
-
-                  <div className="tasks-section__custom-range">
-                    <div className="tasks-section__custom-range-header">
-                      <FiCalendar />
-                      <span>Pick a custom range</span>
-                    </div>
-
-                    <div className="tasks-section__custom-range-preview">
-                      {dashboardCustomPreviewLabel}
-                    </div>
-
-                    <div className="tasks-section__month-picker-row">
-                      <div className="tasks-section__month-picker-field">
-                        <label htmlFor="tasks-section-month-select">
-                          Month
-                        </label>
-                        <div className="tasks-section__month-picker-select-wrap">
-                          <select
-                            id="tasks-section-month-select"
-                            className="tasks-section__month-picker-select"
-                            value={dashboardCalendarMonth.getMonth()}
-                            onChange={(event) =>
-                              handleDashboardMonthChange(event.target.value)
-                            }
-                          >
-                            {MONTH_OPTIONS.map((monthLabel, monthIndex) => (
-                              <option key={monthLabel} value={monthIndex}>
-                                {monthLabel}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
-                      </div>
-
-                      <div className="tasks-section__month-picker-field tasks-section__month-picker-field--year">
-                        <label htmlFor="tasks-section-year-select">Year</label>
-                        <div className="tasks-section__month-picker-select-wrap">
-                          <select
-                            id="tasks-section-year-select"
-                            className="tasks-section__month-picker-select"
-                            value={dashboardCalendarMonth.getFullYear()}
-                            onChange={(event) =>
-                              handleDashboardYearChange(event.target.value)
-                            }
-                          >
-                            {dashboardYearOptions.map((yearValue) => (
-                              <option key={yearValue} value={yearValue}>
-                                {yearValue}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="tasks-section__calendar-shell">
-                      <DayPicker
-                        mode="range"
-                        selected={draftDashboardCustomRange}
-                        onSelect={handleDashboardCustomRangeSelect}
-                        month={dashboardCalendarMonth}
-                        onMonthChange={setDashboardCalendarMonth}
-                        showOutsideDays={false}
-                        numberOfMonths={1}
-                        className="tasks-section__dashboard-day-picker"
-                        modifiers={{
-                          past: (date) =>
-                            startOfDay(date) < startOfDay(new Date()),
-                        }}
-                        modifiersClassNames={{
-                          past: "tasks-section__dashboard-day--past",
-                        }}
-                      />
-                    </div>
-
-                    <div className="tasks-section__apply-btn-wrap">
-                      <button
-                        type="button"
-                        className="tasks-section__apply-btn"
-                        onClick={handleApplyDashboardCustomRange}
-                      >
-                        Apply Range
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+      {!hideSectionTitle && (
+        <div className="tasks-section__title-row">
+          <h2>Tasks</h2>
+          <div className="tasks-section__title-line" />
         </div>
-      </div>
+      )}
+
+      {dateRangeControl}
 
       {feedback && (
         <div

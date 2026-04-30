@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { DayPicker } from "react-day-picker";
+import { endOfMonth, format, setMonth, setYear, startOfMonth } from "date-fns";
+import { FiCalendar, FiChevronDown } from "react-icons/fi";
+import "react-day-picker/dist/style.css";
 import TeamLeaderSidebar from "../components/TeamLeaderSidebar";
 import AppTopbar from "../components/AppTopbar";
 import TeamLeaderDashboardSection from "../components/teamleader/TeamLeaderDashboardSection";
@@ -31,6 +35,322 @@ function parseStoredJson(key) {
   }
 }
 
+
+const RANGE_STORAGE_KEY = "teamleader_shared_date_range";
+
+function startOfDay(date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function endOfDay(date) {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+}
+
+function getTodayRange() {
+  const today = new Date();
+  return { start: startOfDay(today), end: endOfDay(today) };
+}
+
+function getWeekRange(offsetWeeks = 0) {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(now);
+  start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
+  const weekStart = startOfDay(start);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  return { start: weekStart, end: endOfDay(weekEnd) };
+}
+
+function loadSharedRangeState() {
+  try {
+    const saved = localStorage.getItem(RANGE_STORAGE_KEY);
+    if (!saved) {
+      const range = getWeekRange(0);
+      return { selectedPreset: "thisWeek", customRange: { from: range.start, to: range.end } };
+    }
+    const parsed = JSON.parse(saved);
+    return {
+      selectedPreset: parsed?.selectedPreset || "thisWeek",
+      customRange: {
+        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
+        to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
+      },
+    };
+  } catch {
+    const range = getWeekRange(0);
+    return { selectedPreset: "thisWeek", customRange: { from: range.start, to: range.end } };
+  }
+}
+
+function saveSharedRangeState(selectedPreset, customRange) {
+  localStorage.setItem(
+    RANGE_STORAGE_KEY,
+    JSON.stringify({
+      selectedPreset,
+      customRange: {
+        from: customRange?.from ? customRange.from.toISOString() : null,
+        to: customRange?.to ? customRange.to.toISOString() : null,
+      },
+    })
+  );
+}
+
+function getPresetRange(preset, customRange) {
+  switch (preset) {
+    case "today":
+      return getTodayRange();
+    case "custom": {
+      if (customRange?.from instanceof Date && customRange?.to instanceof Date) {
+        const start = startOfDay(customRange.from);
+        const end = endOfDay(customRange.to);
+        if (start <= end) return { start, end };
+      }
+      return getWeekRange(0);
+    }
+    case "thisWeek":
+    default:
+      return getWeekRange(0);
+  }
+}
+
+function getRangeLabel(preset) {
+  switch (preset) {
+    case "today":
+      return "Today";
+    case "custom":
+      return "Custom";
+    case "thisWeek":
+    default:
+      return "This Week";
+  }
+}
+
+function formatDateText(date) {
+  return format(date, "MMM d, yyyy");
+}
+
+function formatMonthYearText(date) {
+  return format(date, "MMMM yyyy");
+}
+
+function isFullMonthRange(range) {
+  if (!(range?.from instanceof Date) || !(range?.to instanceof Date)) return false;
+  const monthStart = startOfMonth(range.from);
+  const monthEnd = endOfMonth(range.from);
+  return (
+    startOfDay(range.from).getTime() === startOfDay(monthStart).getTime() &&
+    endOfDay(range.to).getTime() === endOfDay(monthEnd).getTime() &&
+    range.from.getMonth() === range.to.getMonth() &&
+    range.from.getFullYear() === range.to.getFullYear()
+  );
+}
+
+function getYearOptions() {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 11 }, (_, index) => currentYear - 5 + index);
+}
+
+function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
+  const rangeMenuRef = useRef(null);
+  const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
+  const [draftPreset, setDraftPreset] = useState(selectedPreset);
+  const [draftCustomRange, setDraftCustomRange] = useState({ from: null, to: null });
+  const [draftCalendarMonth, setDraftCalendarMonth] = useState(
+    customRange?.from instanceof Date ? startOfMonth(customRange.from) : startOfMonth(new Date())
+  );
+
+  const rangeLabel = useMemo(() => {
+    if (selectedPreset === "custom" && customRange?.from instanceof Date && customRange?.to instanceof Date) {
+      if (isFullMonthRange(customRange)) return formatMonthYearText(customRange.from);
+      return `${formatDateText(customRange.from)} - ${formatDateText(customRange.to)}`;
+    }
+    return getRangeLabel(selectedPreset);
+  }, [selectedPreset, customRange]);
+
+  const draftRangePreview = useMemo(() => {
+    if (draftCustomRange?.from instanceof Date && draftCustomRange?.to instanceof Date) {
+      if (isFullMonthRange(draftCustomRange)) return formatMonthYearText(draftCustomRange.from);
+      return `${formatDateText(draftCustomRange.from)} - ${formatDateText(draftCustomRange.to)}`;
+    }
+    return formatMonthYearText(draftCalendarMonth);
+  }, [draftCalendarMonth, draftCustomRange]);
+
+  const selectedMonthIndex = draftCalendarMonth.getMonth();
+  const selectedYearValue = draftCalendarMonth.getFullYear();
+  const yearOptions = useMemo(() => getYearOptions(), []);
+
+  const syncDraftWithAppliedState = () => {
+    setDraftPreset(selectedPreset);
+    setDraftCustomRange({ from: customRange?.from || null, to: customRange?.to || null });
+    setDraftCalendarMonth(
+      customRange?.from instanceof Date ? startOfMonth(customRange.from) : startOfMonth(new Date())
+    );
+  };
+
+  const openRangeMenu = () => {
+    syncDraftWithAppliedState();
+    setIsRangeMenuOpen(true);
+  };
+
+  const closeRangeMenu = () => {
+    syncDraftWithAppliedState();
+    setIsRangeMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isRangeMenuOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (rangeMenuRef.current && !rangeMenuRef.current.contains(event.target)) closeRangeMenu();
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isRangeMenuOpen, selectedPreset, customRange]);
+
+  const applyPreset = (preset) => {
+    if (preset === "custom") {
+      setDraftPreset("custom");
+      setDraftCustomRange({ from: null, to: null });
+      setDraftCalendarMonth(startOfMonth(new Date()));
+      return;
+    }
+    const nextRange = getPresetRange(preset, null);
+    onRangeChange({ selectedPreset: preset, customRange: { from: nextRange.start, to: nextRange.end } });
+    setIsRangeMenuOpen(false);
+  };
+
+  const handleDraftMonthChange = (monthIndex) => {
+    setDraftCalendarMonth((current) => setMonth(current, Number(monthIndex)));
+    setDraftCustomRange({ from: null, to: null });
+  };
+
+  const handleDraftYearChange = (yearValue) => {
+    setDraftCalendarMonth((current) => setYear(current, Number(yearValue)));
+    setDraftCustomRange({ from: null, to: null });
+  };
+
+  const handleApplyCustomRange = () => {
+    const nextRange = draftCustomRange?.from && draftCustomRange?.to
+      ? { from: startOfDay(draftCustomRange.from), to: endOfDay(draftCustomRange.to) }
+      : { from: startOfDay(startOfMonth(draftCalendarMonth)), to: endOfDay(endOfMonth(draftCalendarMonth)) };
+    onRangeChange({ selectedPreset: "custom", customRange: nextRange });
+    setIsRangeMenuOpen(false);
+  };
+
+  return (
+    <div className="team-leader-dashboard__range-toolbar">
+      <div className="team-leader-dashboard__range-menu" ref={rangeMenuRef}>
+        <button type="button" className="team-leader-dashboard__range-btn" onClick={openRangeMenu}>
+          <span>{rangeLabel}</span>
+          <FiChevronDown />
+        </button>
+
+        {isRangeMenuOpen && (
+          <div className="team-leader-dashboard__range-dropdown">
+            <div className="team-leader-dashboard__range-tabs" role="tablist" aria-label="Date range presets">
+              {[
+                ["today", "Today"],
+                ["thisWeek", "This Week"],
+                ["custom", "Custom"],
+              ].map(([preset, label]) => (
+                <button
+                  key={preset}
+                  type="button"
+                  role="tab"
+                  aria-selected={draftPreset === preset}
+                  className={`team-leader-dashboard__range-option ${
+                    draftPreset === preset ? "team-leader-dashboard__range-option--active" : ""
+                  }`}
+                  onClick={() => applyPreset(preset)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {draftPreset === "custom" && (
+              <>
+                <div className="team-leader-dashboard__range-divider" />
+                <div className="team-leader-dashboard__custom-range">
+                  <div className="team-leader-dashboard__custom-range-header">
+                    <FiCalendar />
+                    <span>Pick a custom range</span>
+                  </div>
+                  <div className="team-leader-dashboard__custom-range-preview">{draftRangePreview}</div>
+                  <div className="team-leader-dashboard__month-picker-row">
+                    <div className="team-leader-dashboard__month-picker-field">
+                      <label htmlFor="team-leader-dashboard-month-select">Month</label>
+                      <div className="team-leader-dashboard__month-picker-select-wrap">
+                        <select
+                          id="team-leader-dashboard-month-select"
+                          className="team-leader-dashboard__month-picker-select"
+                          value={selectedMonthIndex}
+                          onChange={(event) => handleDraftMonthChange(event.target.value)}
+                        >
+                          {Array.from({ length: 12 }, (_, index) => (
+                            <option key={index} value={index}>
+                              {format(new Date(2026, index, 1), "MMMM")}
+                            </option>
+                          ))}
+                        </select>
+                        <FiChevronDown />
+                      </div>
+                    </div>
+                    <div className="team-leader-dashboard__month-picker-field">
+                      <label htmlFor="team-leader-dashboard-year-select">Year</label>
+                      <div className="team-leader-dashboard__month-picker-select-wrap">
+                        <select
+                          id="team-leader-dashboard-year-select"
+                          className="team-leader-dashboard__month-picker-select"
+                          value={selectedYearValue}
+                          onChange={(event) => handleDraftYearChange(event.target.value)}
+                        >
+                          {yearOptions.map((year) => (
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
+                          ))}
+                        </select>
+                        <FiChevronDown />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="team-leader-dashboard__calendar-shell">
+                    <DayPicker
+                      mode="range"
+                      selected={draftCustomRange}
+                      onSelect={(range) => setDraftCustomRange({ from: range?.from || null, to: range?.to || null })}
+                      month={draftCalendarMonth}
+                      onMonthChange={setDraftCalendarMonth}
+                      showOutsideDays={false}
+                      numberOfMonths={1}
+                      className="team-leader-dashboard__day-picker"
+                    />
+                  </div>
+                  <div className="team-leader-dashboard__apply-btn-wrap">
+                    <button type="button" className="team-leader-dashboard__apply-btn" onClick={handleApplyCustomRange}>
+                      Apply Range
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function normalizeRole(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
 }
@@ -56,6 +376,16 @@ export default function TeamLeaderDashboard() {
 
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [searchValue, setSearchValue] = useState("");
+
+  const initialSharedRange = useMemo(() => loadSharedRangeState(), []);
+  const [selectedPreset, setSelectedPreset] = useState(initialSharedRange.selectedPreset);
+  const [customRange, setCustomRange] = useState(initialSharedRange.customRange);
+
+  const handleSharedRangeChange = ({ selectedPreset: nextPreset, customRange: nextRange }) => {
+    setSelectedPreset(nextPreset);
+    setCustomRange(nextRange);
+    saveSharedRangeState(nextPreset, nextRange);
+  };
 
   const [user, setUser] = useState(() => {
     const routeUser = location.state?.user || null;
@@ -153,17 +483,50 @@ const searchPlaceholder = "Search";
 
         <section className="admin-main__content">
           {activeItem === "Dashboard" ? (
-            <>
-              <SectionTitle title="Dashboard" />
-              <TeamLeaderDashboardSection
-                user={user}
-                searchValue={searchValue}
-              />
-            </>
+            <TeamLeaderDashboardSection
+              user={user}
+              searchValue={searchValue}
+              selectedPreset={selectedPreset}
+              customRange={customRange}
+              hideDateRange
+              dateRangeControl={
+                <SharedDateRangePicker
+                  selectedPreset={selectedPreset}
+                  customRange={customRange}
+                  onRangeChange={handleSharedRangeChange}
+                />
+              }
+            />
           ) : activeItem === "Tasks" ? (
-            <TasksSection searchValue={searchValue} user={user} />
+            <TasksSection
+              searchValue={searchValue}
+              user={user}
+              dashboardSelectedPreset={selectedPreset}
+              dashboardCustomRange={customRange}
+              hideDateRange
+              dateRangeControl={
+                <SharedDateRangePicker
+                  selectedPreset={selectedPreset}
+                  customRange={customRange}
+                  onRangeChange={handleSharedRangeChange}
+                />
+              }
+            />
           ) : activeItem === "Team" ? (
-            <TeamLeaderTeamSection searchValue={searchValue} user={user} />
+            <TeamLeaderTeamSection
+              searchValue={searchValue}
+              user={user}
+              selectedPreset={selectedPreset}
+              customRange={customRange}
+              hideDateRange
+              dateRangeControl={
+                <SharedDateRangePicker
+                  selectedPreset={selectedPreset}
+                  customRange={customRange}
+                  onRangeChange={handleSharedRangeChange}
+                />
+              }
+            />
           ) : activeItem === "Profile" ? (
             <TeamLeaderProfileSection user={user} setUser={setUser} />
           ) : (

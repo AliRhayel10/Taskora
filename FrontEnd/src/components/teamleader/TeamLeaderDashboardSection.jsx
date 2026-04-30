@@ -852,6 +852,11 @@ function normalizeTaskRequestsResponse(data) {
 export default function TeamLeaderDashboardSection({
   user,
   searchValue = "",
+  selectedPreset: sharedSelectedPreset,
+  customRange: sharedCustomRange,
+  hideSectionTitle = false,
+  hideDateRange = false,
+  dateRangeControl = null,
 }) {
   const initialRangeState = useMemo(() => loadRangeState(), []);
 
@@ -875,10 +880,10 @@ export default function TeamLeaderDashboardSection({
   const [draftReviewAssigneeId, setDraftReviewAssigneeId] = useState(null);
   const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
 
-  const [selectedPreset, setSelectedPreset] = useState(
+  const [localSelectedPreset, setLocalSelectedPreset] = useState(
     initialRangeState.selectedPreset
   );
-  const [customRange, setCustomRange] = useState(initialRangeState.customRange);
+  const [localCustomRange, setLocalCustomRange] = useState(initialRangeState.customRange);
 
   const [draftPreset, setDraftPreset] = useState(initialRangeState.selectedPreset);
   const [draftCustomRange, setDraftCustomRange] = useState({
@@ -893,6 +898,9 @@ export default function TeamLeaderDashboardSection({
   );
 
   const [isRangeMenuOpen, setIsRangeMenuOpen] = useState(false);
+
+  const selectedPreset = sharedSelectedPreset || localSelectedPreset;
+  const customRange = sharedCustomRange || localCustomRange;
 
   const [sortConfig, setSortConfig] = useState({
     key: "",
@@ -1573,8 +1581,8 @@ export default function TeamLeaderDashboardSection({
       to: null,
     });
 
-    setSelectedPreset(preset);
-    setCustomRange({
+    setLocalSelectedPreset(preset);
+    setLocalCustomRange({
       from: nextRange.start,
       to: nextRange.end,
     });
@@ -1626,8 +1634,8 @@ export default function TeamLeaderDashboardSection({
             to: monthRange.end,
           };
 
-    setSelectedPreset("custom");
-    setCustomRange(nextRange);
+    setLocalSelectedPreset("custom");
+    setLocalCustomRange(nextRange);
     setIsRangeMenuOpen(false);
   };
 
@@ -1867,10 +1875,14 @@ export default function TeamLeaderDashboardSection({
 
   return (
     <section className="teamleader-dashboard-section">
-      <div className="teamleader-dashboard-section__title-row">
-        <h2>Dashboard</h2>
-        <span className="teamleader-dashboard-section__title-line"></span>
-      </div>
+      {!hideSectionTitle && (
+        <div className="teamleader-dashboard-section__title-row">
+          <h2>Dashboard</h2>
+          <span className="teamleader-dashboard-section__title-line"></span>
+        </div>
+      )}
+
+      {dateRangeControl}
 
       {reviewMessage && (
         <div
@@ -1881,159 +1893,6 @@ export default function TeamLeaderDashboardSection({
           <span>{reviewMessage.text}</span>
         </div>
       )}
-      <div className="teamleader-dashboard-section__toolbar">
-        <div
-          className="teamleader-dashboard-section__range-menu"
-          ref={rangeMenuRef}
-        >
-          <button
-            type="button"
-            className="teamleader-dashboard-section__range-btn"
-            onClick={openRangeMenu}
-          >
-            <span>{rangeLabel}</span>
-            <FiChevronDown />
-          </button>
-
-          {isRangeMenuOpen && (
-            <div className="teamleader-dashboard-section__range-dropdown">
-              <div
-                className="teamleader-dashboard-section__range-tabs"
-                role="tablist"
-                aria-label="Date range presets"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftPreset === "today"}
-                  className={`teamleader-dashboard-section__range-option ${
-                    draftPreset === "today"
-                      ? "teamleader-dashboard-section__range-option--active"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectPreset("today")}
-                >
-                  Today
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftPreset === "thisWeek"}
-                  className={`teamleader-dashboard-section__range-option ${
-                    draftPreset === "thisWeek"
-                      ? "teamleader-dashboard-section__range-option--active"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectPreset("thisWeek")}
-                >
-                  This Week
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draftPreset === "custom"}
-                  className={`teamleader-dashboard-section__range-option ${
-                    draftPreset === "custom"
-                      ? "teamleader-dashboard-section__range-option--active"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectPreset("custom")}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {draftPreset === "custom" && (
-                <>
-                  <div className="teamleader-dashboard-section__range-divider"></div>
-
-                  <div className="teamleader-dashboard-section__custom-range">
-                    <div className="teamleader-dashboard-section__custom-range-header">
-                      <FiCalendar />
-                      <span>Pick a custom range</span>
-                    </div>
-
-                    <div className="teamleader-dashboard-section__custom-range-preview">
-                      {draftRangePreview}
-                    </div>
-
-                    <div className="teamleader-dashboard-section__month-picker-row">
-                      <div className="teamleader-dashboard-section__month-picker-field">
-                        <label htmlFor="teamleader-dashboard-month-select">Month</label>
-                        <div className="teamleader-dashboard-section__month-picker-select-wrap">
-                          <select
-                            id="teamleader-dashboard-month-select"
-                            className="teamleader-dashboard-section__month-picker-select"
-                            value={selectedMonthIndex}
-                            onChange={(event) => handleDraftMonthChange(event.target.value)}
-                          >
-                            {Array.from({ length: 12 }, (_, index) => (
-                              <option key={index} value={index}>
-                                {format(new Date(2026, index, 1), "MMMM")}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
-                      </div>
-
-                      <div className="teamleader-dashboard-section__month-picker-field">
-                        <label htmlFor="teamleader-dashboard-year-select">Year</label>
-                        <div className="teamleader-dashboard-section__month-picker-select-wrap">
-                          <select
-                            id="teamleader-dashboard-year-select"
-                            className="teamleader-dashboard-section__month-picker-select"
-                            value={selectedYearValue}
-                            onChange={(event) => handleDraftYearChange(event.target.value)}
-                          >
-                            {yearOptions.map((year) => (
-                              <option key={year} value={year}>
-                                {year}
-                              </option>
-                            ))}
-                          </select>
-                          <FiChevronDown />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="teamleader-dashboard-section__calendar-shell">
-                      <DayPicker
-                        mode="range"
-                        month={draftCalendarMonth}
-                        onMonthChange={(month) => setDraftCalendarMonth(startOfMonth(month))}
-                        selected={draftCustomRange}
-                        onSelect={handleCustomRangeSelect}
-                        showOutsideDays={false}
-                        numberOfMonths={1}
-                        className="teamleader-dashboard-section__day-picker"
-                        modifiers={{
-                          past: (date) => startOfDay(date) < startOfDay(new Date()),
-                        }}
-                        modifiersClassNames={{
-                          past: "teamleader-dashboard-section__day--past",
-                        }}
-                      />
-                    </div>
-
-                    <div className="teamleader-dashboard-section__apply-btn-wrap">
-                      <button
-                        type="button"
-                        className="teamleader-dashboard-section__apply-btn"
-                        onClick={handleApplyCustomRange}
-                      >
-                        Apply Range
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
 
       {loading ? (
         <div className="teamleader-dashboard-section__state-card">

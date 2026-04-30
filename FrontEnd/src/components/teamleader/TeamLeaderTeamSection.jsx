@@ -451,7 +451,16 @@ function normalizeSearch(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMember }) {
+export default function TeamLeaderTeamSection({
+  user,
+  searchValue = "",
+  onViewMember,
+  selectedPreset: sharedSelectedPreset,
+  customRange: sharedCustomRange,
+  hideSectionTitle = false,
+  hideDateRange = false,
+  dateRangeControl = null,
+}) {
   const initialRangeState = useMemo(() => loadRangeState(), []);
 
   const [selectedMember, setSelectedMember] = useState(null);
@@ -462,8 +471,11 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
   const [errorMessage, setErrorMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [selectedPreset, setSelectedPreset] = useState(initialRangeState.selectedPreset);
-  const [customRange, setCustomRange] = useState(initialRangeState.customRange);
+  const [localSelectedPreset, setLocalSelectedPreset] = useState(initialRangeState.selectedPreset);
+  const [localCustomRange, setLocalCustomRange] = useState(initialRangeState.customRange);
+
+  const selectedPreset = sharedSelectedPreset || localSelectedPreset;
+  const customRange = sharedCustomRange || localCustomRange;
   const [draftPreset, setDraftPreset] = useState(initialRangeState.selectedPreset);
   const [draftCustomRange, setDraftCustomRange] = useState(initialRangeState.customRange);
   const [draftCalendarMonth, setDraftCalendarMonth] = useState(
@@ -475,7 +487,9 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
   const rangeMenuRef = useRef(null);
 
   useEffect(() => {
-    saveRangeState(selectedPreset, customRange);
+    if (!sharedSelectedPreset && !sharedCustomRange) {
+      saveRangeState(selectedPreset, customRange);
+    }
   }, [selectedPreset, customRange]);
 
   const syncDraftWithAppliedState = () => {
@@ -828,8 +842,8 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
 
     setDraftPreset(preset);
     setDraftCustomRange({ from: null, to: null });
-    setSelectedPreset(preset);
-    setCustomRange({ from: range.start, to: range.end });
+    setLocalSelectedPreset(preset);
+    setLocalCustomRange({ from: range.start, to: range.end });
     setDraftCalendarMonth(startOfMonth(range.start));
     setIsRangeMenuOpen(false);
   };
@@ -883,8 +897,8 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
           }
         : getVisibleMonthRange();
 
-    setSelectedPreset("custom");
-    setCustomRange(nextRange);
+    setLocalSelectedPreset("custom");
+    setLocalCustomRange(nextRange);
     setIsRangeMenuOpen(false);
     setDraftCustomRange({ from: null, to: null });
   };
@@ -946,11 +960,16 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
 
   return (
     <section className="team-leader-team-section">
-      <div className="users-section__title-row team-leader-team-section__title-row">
-        <h2>Team</h2>
-        <div className="users-section__title-line team-leader-team-section__title-line" />
-      </div>
+      {!hideSectionTitle && (
+        <div className="users-section__title-row team-leader-team-section__title-row">
+          <h2>Team</h2>
+          <div className="users-section__title-line team-leader-team-section__title-line" />
+        </div>
+      )}
 
+      {dateRangeControl}
+
+      {!hideDateRange && (
       <div className="team-leader-team-section__toolbar">
         <div className="team-leader-team-section__range-menu" ref={rangeMenuRef}>
           <button
@@ -1089,6 +1108,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
           )}
         </div>
       </div>
+      )}
 
       {loading ? (
         <div className="team-leader-team-section__state-card">Loading team...</div>
