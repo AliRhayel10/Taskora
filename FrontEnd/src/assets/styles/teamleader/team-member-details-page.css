@@ -208,12 +208,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border-radius: 999px;
   padding: 0 15px;
   font-size: 0.86rem;
   font-weight: 900;
   border: 1px solid transparent;
   margin-left: 24px;
+}
+
+.team-member-details-page__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 .team-member-details-page__status-badge--active {
@@ -229,9 +239,9 @@
 }
 
 .team-member-details-page__status-badge--inactive {
-  background: #f1f5f9;
-  color: #64748b;
-  border-color: #e2e8f0;
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 
 .team-member-details-page__overview-card {

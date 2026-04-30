@@ -1138,6 +1138,7 @@ export default function TeamLeaderTeamSection({ user, searchValue = "", onViewMe
                               row.memberStatus
                             )}`}
                           >
+                            <span className="team-leader-team-section__member-status-dot" />
                             {row.memberStatus}
                           </span>
                         </td>

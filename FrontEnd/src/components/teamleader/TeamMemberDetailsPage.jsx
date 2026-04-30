@@ -378,6 +378,7 @@ export default function TeamMemberDetailsPage({
                 <span>Status</span>
               </div>
               <span className={`team-member-details-page__status-badge ${getStatusClass(details.status)}`}>
+                <span className="team-member-details-page__status-dot" />
                 {details.status}
               </span>
             </div>

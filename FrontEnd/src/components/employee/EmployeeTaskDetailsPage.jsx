@@ -869,7 +869,7 @@ const latestReviewedRequestMessage = useMemo(() => {
         () =>
             showAllFeedbackHistory
                 ? feedbackHistoryEntries
-                : feedbackHistoryEntries.slice(0, 3),
+                : feedbackHistoryEntries.slice(0, 5),
         [feedbackHistoryEntries, showAllFeedbackHistory]
     );
 
@@ -1752,7 +1752,7 @@ const latestReviewedRequestMessage = useMemo(() => {
                                     <h3>Feedback Summary</h3>
                                 </div>
 
-                                {feedbackHistoryEntries.length > 2 ? (
+                                {feedbackHistoryEntries.length > 4 ? (
                                     <button
                                         type="button"
                                         className="employee-task-details-page__view-all-btn"

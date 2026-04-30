@@ -703,7 +703,7 @@ export default function TaskDetailsPage({
   );
 
   const visibleFeedbackHistoryEntries = useMemo(
-    () => (showAllFeedbackHistory ? feedbackHistoryEntries : feedbackHistoryEntries.slice(0, 3)),
+    () => (showAllFeedbackHistory ? feedbackHistoryEntries : feedbackHistoryEntries.slice(0, 5)),
     [feedbackHistoryEntries, showAllFeedbackHistory],
   );
 
@@ -1610,7 +1610,7 @@ export default function TaskDetailsPage({
                   <h3>Feedback Summary</h3>
                 </div>
 
-                {feedbackHistoryEntries.length > 2 ? (
+                {feedbackHistoryEntries.length > 4 ? (
                   <button
                     type="button"
                     className="task-details-page__view-all-btn"

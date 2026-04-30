@@ -735,9 +735,9 @@
 }
 
 .team-leader-team-section__member-status--inactive {
-  background: #f1f5f9;
-  color: #64748b;
-  border-color: #e2e8f0;
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 
 .team-leader-team-section__action-btn {
@@ -949,8 +949,13 @@ body.dark .team-leader-team-section__pagination {
   overflow-y: hidden;
 }
 
-.team-leader-team-section__member-status > span {
-  display: none;
+.team-leader-team-section__member-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 .team-leader-team-section__job-title-cell {
