@@ -111,3 +111,4 @@
 /Users/alirhayel/Desktop/Taskora/BackEnd/obj/Debug/net8.0/BackEnd.pdb
 /Users/alirhayel/Desktop/Taskora/BackEnd/obj/Debug/net8.0/BackEnd.genruntimeconfig.cache
 /Users/alirhayel/Desktop/Taskora/BackEnd/obj/Debug/net8.0/ref/BackEnd.dll
+/Users/alirhayel/Desktop/Taskora/BackEnd/obj/Debug/net8.0/BackEnd.sourcelink.json

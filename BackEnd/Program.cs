@@ -47,6 +47,6 @@ app.UseStaticFiles();
 
 app.UseAuthorization();
 
-app.MapControllers().RequireCors("AllowReactApp");
+app.MapControllers();
 
 app.Run();
