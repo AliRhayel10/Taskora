@@ -320,10 +320,24 @@ const getTeamsArrayFromPayload = (payload) => {
 };
 
 const getBackendStatusName = (status) =>
-  status?.statusName || status?.name || status?.taskStatusName || status?.label || "";
+  status?.statusName ||
+  status?.StatusName ||
+  status?.name ||
+  status?.Name ||
+  status?.taskStatusName ||
+  status?.TaskStatusName ||
+  status?.label ||
+  status?.Label ||
+  "";
 
 const getBackendStatusId = (status) =>
-  status?.taskStatusId || status?.statusId || status?.id || status?.TaskStatusId || null;
+  status?.taskStatusId ||
+  status?.TaskStatusId ||
+  status?.statusId ||
+  status?.StatusId ||
+  status?.id ||
+  status?.Id ||
+  null;
 
 const buildTaskUpdatePayload = ({ currentTask, editFormState, companyId, teamId }) => ({
   taskId: Number(currentTask.id),
@@ -958,7 +972,9 @@ export default function TaskDetailsPage({
   };
 
   const updateStatus = async (nextStatusId, successMessage, patch, feedbackText = "") => {
-    if (!currentTask?.id || !nextStatusId || !resolvedCurrentUserId) {
+    const taskId = currentTask?.id ?? currentTask?.taskId ?? currentTask?.TaskId ?? currentTaskId;
+
+    if (!taskId || !nextStatusId || !resolvedCurrentUserId) {
       throw new Error("Missing required task status data.");
     }
 
@@ -970,7 +986,7 @@ export default function TaskDetailsPage({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          TaskId: Number(currentTask.id),
+          TaskId: Number(taskId),
           NewTaskStatusId: Number(nextStatusId),
           ChangedByUserId: Number(resolvedCurrentUserId),
           Feedback: feedbackText || "",
@@ -1119,6 +1135,7 @@ export default function TaskDetailsPage({
       if (confirmAction === "approve") {
         await updateStatus(approvedStatusId, "Task approved successfully.", {
           status: "Approved",
+          effectiveStatus: "Approved",
           taskStatusId: approvedStatusId,
         });
       }
@@ -1156,9 +1173,10 @@ export default function TaskDetailsPage({
     event.preventDefault();
 
     const trimmedFeedback = taskFeedbackText.trim();
+    const taskId = currentTask?.id ?? currentTask?.taskId ?? currentTask?.TaskId ?? currentTaskId;
 
     if (!trimmedFeedback || isSubmittingTaskFeedback) return;
-    if (!currentTask?.id || !resolvedCurrentUserId || !currentStatusId) {
+    if (!taskId || !resolvedCurrentUserId || !currentStatusId) {
       setFeedback({
         type: "error",
         message: "Unable to submit feedback right now.",
@@ -1174,7 +1192,7 @@ export default function TaskDetailsPage({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          TaskId: Number(currentTask.id),
+          TaskId: Number(taskId),
           NewTaskStatusId: Number(currentStatusId),
           ChangedByUserId: Number(resolvedCurrentUserId),
           Feedback: trimmedFeedback,
