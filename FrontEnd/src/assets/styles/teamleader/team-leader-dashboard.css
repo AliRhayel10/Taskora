@@ -63,11 +63,13 @@ body.dark .users-section__title-line {
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .dashboard-section__range-menu {
   position: relative;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .dashboard-section__range-btn {
@@ -106,11 +108,29 @@ body.dark .users-section__title-line {
   border-radius: 16px;
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
   padding: 12px;
-  z-index: 30;
-  max-height: min(calc(100vh - 120px), 760px);
+  z-index: 999;
+  max-height: calc(100vh - 250px);
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+}
+
+.dashboard-section__range-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-section__range-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-section__range-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.25);
+  border-radius: 999px;
+}
+
+.dashboard-section__range-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.4);
 }
 
 .dashboard-section__range-tabs {
@@ -528,6 +548,7 @@ body.dark .users-section__title-line {
 
   .dashboard-section__range-dropdown {
     width: min(100%, 320px);
+    max-height: calc(100vh - 180px);
   }
 }
 
@@ -536,7 +557,6 @@ body.dark .users-section__title-line {
     grid-template-columns: 1fr;
   }
 }
-
 
 /* Shared picker placement inside Team Leader pages */
 .teamleader-dashboard-section > .dashboard-section__toolbar,
@@ -548,6 +568,7 @@ body.dark .users-section__title-line {
   flex-shrink: 0;
   margin-top: 8px;
   margin-bottom: 14px;
+  overflow: visible;
 }
 
 .tasks-section > .dashboard-section__toolbar ~ .tasks-section__toolbar--tabs-row {
@@ -563,6 +584,7 @@ body.dark .users-section__title-line {
   flex-shrink: 0;
   margin-top: 8px;
   margin-bottom: 14px;
+  overflow: visible;
 }
 
 .teamleader-dashboard-section > .dashboard-section__range-toolbar,
@@ -575,4 +597,5 @@ body.dark .users-section__title-line {
   flex-shrink: 0;
   margin-top: 8px;
   margin-bottom: 14px;
+  overflow: visible;
 }

@@ -19,21 +19,21 @@ const API_BASE_URL = "http://localhost:5000";
 const RANGE_STORAGE_KEY = "admin_dashboard_range";
 
 const STATUS_COLOR_MAP = {
-  new: "#9ca3af",          // grey
-  pending: "#f59e0b",      // orange-yellow
-  acknowledged: "#8b5cf6", // purple
-  done: "#3b82f6",         // blue
-  approved: "#22c55e",     // green
-  archived: "#ef4444",     // red
+  new: "#9ca3af",
+  pending: "#f59e0b",
+  acknowledged: "#8b5cf6",
+  done: "#3b82f6",
+  approved: "#22c55e",
+  archived: "#ef4444",
 };
 
 const FALLBACK_STATUS_COLORS = [
-  "#9ca3af", // grey
-  "#f59e0b", // orange
-  "#8b5cf6", // purple
-  "#3b82f6", // blue
-  "#22c55e", // green
-  "#ef4444", // red
+  "#9ca3af",
+  "#f59e0b",
+  "#8b5cf6",
+  "#3b82f6",
+  "#22c55e",
+  "#ef4444",
 ];
 
 function getStoredUser() {
@@ -48,6 +48,7 @@ function getStoredUser() {
 
 async function readJsonSafe(response) {
   const raw = await response.text();
+
   try {
     return raw ? JSON.parse(raw) : {};
   } catch {
@@ -135,6 +136,7 @@ function getUserStatus(user) {
 
   const rawStatus = String(user?.status || "").trim().toLowerCase();
   if (!rawStatus) return "Active";
+
   return rawStatus === "active" ? "Active" : "Inactive";
 }
 
@@ -303,6 +305,7 @@ function getTaskTeamName(task) {
 
 function isCompletedStatus(status) {
   const normalized = normalizeStatus(status);
+
   return [
     "done",
     "completed",
@@ -312,44 +315,6 @@ function isCompletedStatus(status) {
     "resolved",
     "approved",
   ].includes(normalized);
-}
-
-function isApprovedStatus(status) {
-  return normalizeStatus(status) === "approved";
-}
-
-function isApprovedTask(task) {
-  if (isApprovedStatus(getTaskStatus(task))) return true;
-
-  const approvalStatus = normalizeStatus(
-    task?.approvalStatus ||
-      task?.ApprovalStatus ||
-      task?.taskApprovalStatus ||
-      task?.TaskApprovalStatus ||
-      task?.approval?.status ||
-      task?.approval?.Status ||
-      ""
-  );
-
-  if (approvalStatus === "approved") return true;
-
-  if (
-    task?.isApproved === true ||
-    task?.IsApproved === true ||
-    task?.approved === true ||
-    task?.Approved === true
-  ) {
-    return true;
-  }
-
-  return Boolean(
-    task?.approvedAt ||
-      task?.ApprovedAt ||
-      task?.approvedById ||
-      task?.ApprovedById ||
-      task?.approvedBy ||
-      task?.ApprovedBy
-  );
 }
 
 function getStatusColor(statusName, index) {
@@ -374,12 +339,9 @@ async function fetchFirstSuccessful(urls) {
   return { ok: false, data: [] };
 }
 
-function getPluralLabel(count, singular, plural = `${singular}s`) {
-  return count === 1 ? singular : plural;
-}
-
 function polarToCartesian(cx, cy, radius, angleInDegrees) {
   const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
+
   return {
     x: cx + radius * Math.cos(angleInRadians),
     y: cy + radius * Math.sin(angleInRadians),
@@ -474,6 +436,7 @@ function toDateKey(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
@@ -495,34 +458,9 @@ function endOfDay(date) {
   return value;
 }
 
-function getTodayRange() {
-  const today = new Date();
-  return {
-    start: startOfDay(today),
-    end: endOfDay(today),
-  };
-}
+function getMonthRange(monthDate = new Date()) {
+  const base = startOfMonth(monthDate);
 
-function getWeekRange(offsetWeeks = 0) {
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-
-  const start = new Date(now);
-  start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
-
-  const weekStart = startOfDay(start);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-
-  return {
-    start: weekStart,
-    end: endOfDay(weekEnd),
-  };
-}
-
-function getMonthRange(monthDate) {
-  const base = startOfMonth(monthDate || new Date());
   return {
     start: startOfDay(base),
     end: endOfDay(endOfMonth(base)),
@@ -607,6 +545,7 @@ function buildYearOptions(tasks) {
   for (const task of Array.isArray(tasks) ? tasks : []) {
     const start = parseApiDate(task?.startDate ?? task?.StartDate);
     const due = parseApiDate(task?.dueDate ?? task?.DueDate);
+
     if (start) candidateYears.push(start.getFullYear());
     if (due) candidateYears.push(due.getFullYear());
   }
@@ -614,40 +553,20 @@ function buildYearOptions(tasks) {
   const earliestDataYear = candidateYears.length ? Math.min(...candidateYears) : currentYear - 5;
   const startYear = Math.min(earliestDataYear, currentYear);
   const endYear = currentYear + 5;
+
   return Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index);
 }
 
 function loadRangeState() {
-  try {
-    const saved = localStorage.getItem(RANGE_STORAGE_KEY);
+  const currentMonthRange = getMonthRange(new Date());
 
-    if (!saved) {
-      return {
-        selectedPreset: "thisMonth",
-        customRange: { from: null, to: null },
-      };
-    }
-
-    const parsed = JSON.parse(saved);
-
-    const selectedPreset =
-      ["today", "thisWeek", "nextWeek"].includes(parsed?.selectedPreset)
-        ? "thisMonth"
-        : parsed?.selectedPreset || "thisMonth";
-
-    return {
-      selectedPreset,
-      customRange: {
-        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
-        to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
-      },
-    };
-  } catch {
-    return {
-      selectedPreset: "thisMonth",
-      customRange: { from: null, to: null },
-    };
-  }
+  return {
+    selectedPreset: "custom",
+    customRange: {
+      from: currentMonthRange.start,
+      to: currentMonthRange.end,
+    },
+  };
 }
 
 function saveRangeState(selectedPreset, customRange) {
@@ -682,6 +601,7 @@ function getPresetRange(preset, customRange) {
 
       return getMonthRange(new Date());
     }
+
     case "thisMonth":
     default:
       return getMonthRange(new Date());
@@ -698,36 +618,6 @@ function getRangeLabel(preset) {
   }
 }
 
-function getDateRange(period, tasksWithDates) {
-  const today = startOfDay(new Date());
-
-  if (period === "this-week") {
-    const day = today.getDay();
-    const diffToMonday = (day + 6) % 7;
-    const start = addDays(today, -diffToMonday);
-    const end = addDays(start, 6);
-    return { start, end };
-  }
-
-  if (period === "this-month") {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return { start, end };
-  }
-
-  const datedTasks = tasksWithDates.filter((item) => item.date instanceof Date);
-  if (datedTasks.length === 0) {
-    return { start: addDays(today, -6), end: today };
-  }
-
-  const sortedDates = datedTasks.map((item) => item.date).sort((a, b) => a - b);
-  return {
-    start: startOfDay(sortedDates[0]),
-    end: startOfDay(sortedDates[sortedDates.length - 1]),
-  };
-}
-
-
 function buildTasksActivitySeriesByRange(range, tasksWithDates) {
   const start = startOfDay(range.start);
   const end = endOfDay(range.end);
@@ -738,6 +628,7 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
   const filteredTasks = tasksWithDates.filter((item) => {
     const itemDate = item.date instanceof Date ? startOfDay(item.date) : startOfDay(new Date());
     const itemTime = itemDate.getTime();
+
     return itemTime >= startTime && itemTime <= end.getTime();
   });
 
@@ -792,6 +683,7 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
 
     for (let time = startTime; time <= startOfDay(end).getTime(); time += dayMs) {
       const bucketDate = new Date(time);
+
       bucketMap.set(toDateKey(bucketDate), {
         key: toDateKey(bucketDate),
         date: bucketDate,
@@ -803,6 +695,7 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
     filteredTasks.forEach((item) => {
       const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
       const bucketKey = toDateKey(itemDate);
+
       if (bucketMap.has(bucketKey)) {
         bucketMap.get(bucketKey).value += 1;
       }
@@ -822,9 +715,11 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
 
   for (let index = 0; index < bucketCount; index += 1) {
     const bucketStart = addDays(start, index * step);
+
     if (bucketStart > end) break;
 
     const bucketEnd = index === bucketCount - 1 ? end : addDays(bucketStart, step - 1);
+
     buckets.push({
       key: `${toDateKey(bucketStart)}-${toDateKey(bucketEnd)}`,
       start: bucketStart,
@@ -838,6 +733,7 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
   filteredTasks.forEach((item) => {
     const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
     const bucket = buckets.find((entry) => itemDate >= startOfDay(entry.start) && itemDate <= endOfDay(entry.end));
+
     if (bucket) {
       bucket.value += 1;
     }
@@ -847,84 +743,6 @@ function buildTasksActivitySeriesByRange(range, tasksWithDates) {
     start,
     end,
     series: buckets,
-    totalCount: filteredTasks.length,
-  };
-}
-
-function buildTasksActivitySeries(period, tasksWithDates) {
-  const { start, end } = getDateRange(period, tasksWithDates);
-  const startTime = startOfDay(start).getTime();
-  const endTime = startOfDay(end).getTime();
-  const filteredTasks = tasksWithDates.filter((item) => {
-    const itemDate = item.date instanceof Date ? startOfDay(item.date) : startOfDay(new Date());
-    const itemTime = itemDate.getTime();
-    return itemTime >= startTime && itemTime <= endTime;
-  });
-
-  if (period === "this-month") {
-    const lastDayOfMonth = end.getDate();
-    const milestoneDays = Array.from(
-      new Set([1, 5, 10, 15, 20, 25, lastDayOfMonth].filter((day) => day <= lastDayOfMonth))
-    );
-
-    const buckets = milestoneDays.map((day) => {
-      const bucketDate = new Date(start.getFullYear(), start.getMonth(), day);
-      return {
-        key: toDateKey(bucketDate),
-        date: bucketDate,
-        label: formatShortDate(bucketDate),
-        value: 0,
-      };
-    });
-
-    filteredTasks.forEach((item) => {
-      const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
-      const itemDay = itemDate.getDate();
-
-      let bucketIndex = milestoneDays.findIndex((day, index) => {
-        const nextDay = milestoneDays[index + 1];
-        if (!nextDay) return itemDay >= day;
-        return itemDay >= day && itemDay < nextDay;
-      });
-
-      if (bucketIndex === -1) {
-        bucketIndex = milestoneDays.length - 1;
-      }
-
-      buckets[bucketIndex].value += 1;
-    });
-
-    return {
-      start,
-      end,
-      series: buckets,
-      totalCount: filteredTasks.length,
-    };
-  }
-
-  const bucketMap = new Map();
-  for (let time = startTime; time <= endTime; time += 24 * 60 * 60 * 1000) {
-    const bucketDate = new Date(time);
-    bucketMap.set(toDateKey(bucketDate), {
-      key: toDateKey(bucketDate),
-      date: bucketDate,
-      label: formatShortDate(bucketDate),
-      value: 0,
-    });
-  }
-
-  filteredTasks.forEach((item) => {
-    const itemDate = item.date instanceof Date ? startOfDay(item.date) : end;
-    const bucketKey = toDateKey(itemDate);
-    if (bucketMap.has(bucketKey)) {
-      bucketMap.get(bucketKey).value += 1;
-    }
-  });
-
-  return {
-    start,
-    end,
-    series: Array.from(bucketMap.values()),
     totalCount: filteredTasks.length,
   };
 }
@@ -951,7 +769,6 @@ function buildAreaPath(points, baseY) {
   return `${buildSmoothedLinePath(points)} L ${points[points.length - 1].x} ${baseY} L ${points[0].x} ${baseY} Z`;
 }
 
-
 function getNiceAxisConfig(maxValue, rowCount = 4) {
   if (maxValue <= 0) {
     return {
@@ -967,6 +784,7 @@ function getNiceAxisConfig(maxValue, rowCount = 4) {
   const residual = roughStep / magnitude;
 
   let niceMultiplier = 1;
+
   if (residual > 5) {
     niceMultiplier = 10;
   } else if (residual > 2) {
@@ -1053,7 +871,6 @@ function TaskSummaryDonut({ segments, totalTasks }) {
   );
 }
 
-
 function TasksActivityChart({ dataPoints }) {
   const [hoveredPointKey, setHoveredPointKey] = useState(null);
 
@@ -1070,6 +887,7 @@ function TasksActivityChart({ dataPoints }) {
     const x =
       margin.left +
       (dataPoints.length === 1 ? chartWidth / 2 : (index / (dataPoints.length - 1)) * chartWidth);
+
     const normalizedValue = axis.max === 0 ? 0 : point.value / axis.max;
     const y = baseY - normalizedValue * chartHeight;
 
@@ -1087,13 +905,16 @@ function TasksActivityChart({ dataPoints }) {
   const tooltipWidth = hoveredPoint
     ? Math.max(118, String(hoveredPoint.label || "").length * 8 + 74)
     : 0;
+
   const tooltipHeight = 54;
+
   const tooltipX = hoveredPoint
     ? Math.min(
         Math.max(hoveredPoint.x - tooltipWidth / 2, margin.left - 16),
         width - tooltipWidth - 18
       )
     : 0;
+
   const tooltipY = hoveredPoint
     ? Math.max(hoveredPoint.y - tooltipHeight - 18, margin.top + 2)
     : 0;
@@ -1127,6 +948,7 @@ function TasksActivityChart({ dataPoints }) {
 
         {axis.values.map((value, index) => {
           const y = margin.top + (chartHeight / axis.rowCount) * index;
+
           return (
             <g key={`row-${value}-${index}`}>
               <line
@@ -1173,7 +995,11 @@ function TasksActivityChart({ dataPoints }) {
         ) : null}
 
         {areaPath ? (
-          <path d={areaPath} className="dashboard-section__tasks-chart-area" fill="url(#dashboardTasksActivityGradient)" />
+          <path
+            d={areaPath}
+            className="dashboard-section__tasks-chart-area"
+            fill="url(#dashboardTasksActivityGradient)"
+          />
         ) : null}
 
         {linePath ? (
@@ -1279,7 +1105,7 @@ export default function DashboardSection({ searchValue = "" }) {
   const [selectedPreset, setSelectedPreset] = useState(initialRangeState.selectedPreset);
   const [customRange, setCustomRange] = useState(initialRangeState.customRange);
   const [draftPreset, setDraftPreset] = useState(initialRangeState.selectedPreset);
-  const [draftCustomRange, setDraftCustomRange] = useState({ from: null, to: null });
+  const [draftCustomRange, setDraftCustomRange] = useState(initialRangeState.customRange);
   const [draftCalendarMonth, setDraftCalendarMonth] = useState(
     getInitialCalendarMonth(initialRangeState.selectedPreset, initialRangeState.customRange)
   );
@@ -1290,7 +1116,6 @@ export default function DashboardSection({ searchValue = "" }) {
   const currentUser = useMemo(() => getStoredUser(), []);
   const companyId = currentUser?.companyId || currentUser?.CompanyId;
   const normalizedSearch = String(searchValue || "").trim().toLowerCase();
-
 
   useEffect(() => {
     saveRangeState(selectedPreset, customRange);
@@ -1306,7 +1131,12 @@ export default function DashboardSection({ searchValue = "" }) {
       });
       setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
     } else {
-      setDraftCustomRange({ from: null, to: null });
+      const currentMonthRange = getMonthRange(new Date());
+
+      setDraftCustomRange({
+        from: currentMonthRange.start,
+        to: currentMonthRange.end,
+      });
       setDraftCalendarMonth(startOfMonth(new Date()));
     }
   };
@@ -1322,7 +1152,7 @@ export default function DashboardSection({ searchValue = "" }) {
   };
 
   useEffect(() => {
-    if (!isRangeMenuOpen) return;
+    if (!isRangeMenuOpen) return undefined;
 
     const handleClickOutside = (event) => {
       if (rangeMenuRef.current && !rangeMenuRef.current.contains(event.target)) {
@@ -1380,19 +1210,30 @@ export default function DashboardSection({ searchValue = "" }) {
   const selectedYearValue = draftCalendarMonth.getFullYear();
 
   const handleSelectPreset = (preset) => {
+    const currentMonthRange = getMonthRange(new Date());
+
     if (preset === "custom") {
       setDraftPreset("custom");
-      setDraftCustomRange({ from: null, to: null });
-      setDraftCalendarMonth(getInitialCalendarMonth(selectedPreset, customRange));
+      setDraftCalendarMonth(startOfMonth(new Date()));
+      setDraftCustomRange({
+        from: currentMonthRange.start,
+        to: currentMonthRange.end,
+      });
+
       return;
     }
 
-    const nextRange = getMonthRange(new Date());
-
     setDraftPreset("thisMonth");
-    setDraftCustomRange({ from: null, to: null });
+    setDraftCalendarMonth(startOfMonth(new Date()));
+    setDraftCustomRange({
+      from: currentMonthRange.start,
+      to: currentMonthRange.end,
+    });
     setSelectedPreset("thisMonth");
-    setCustomRange({ from: nextRange.start, to: nextRange.end });
+    setCustomRange({
+      from: currentMonthRange.start,
+      to: currentMonthRange.end,
+    });
     setIsRangeMenuOpen(false);
   };
 
@@ -1410,16 +1251,38 @@ export default function DashboardSection({ searchValue = "" }) {
 
   const handleDraftMonthChange = (monthIndex) => {
     const nextMonth = startOfMonth(setMonth(new Date(draftCalendarMonth), Number(monthIndex)));
+    const monthRange = getMonthRange(nextMonth);
+
     setDraftCalendarMonth(nextMonth);
     setDraftPreset("custom");
-    setDraftCustomRange({ from: null, to: null });
+    setDraftCustomRange({
+      from: monthRange.start,
+      to: monthRange.end,
+    });
   };
 
   const handleDraftYearChange = (yearValue) => {
     const nextMonth = startOfMonth(setYear(new Date(draftCalendarMonth), Number(yearValue)));
+    const monthRange = getMonthRange(nextMonth);
+
     setDraftCalendarMonth(nextMonth);
     setDraftPreset("custom");
-    setDraftCustomRange({ from: null, to: null });
+    setDraftCustomRange({
+      from: monthRange.start,
+      to: monthRange.end,
+    });
+  };
+
+  const handleCalendarMonthChange = (month) => {
+    const nextMonth = startOfMonth(month);
+    const monthRange = getMonthRange(nextMonth);
+
+    setDraftCalendarMonth(nextMonth);
+    setDraftPreset("custom");
+    setDraftCustomRange({
+      from: monthRange.start,
+      to: monthRange.end,
+    });
   };
 
   const handleApplyCustomRange = () => {
@@ -1482,6 +1345,7 @@ export default function DashboardSection({ searchValue = "" }) {
         setTeams(normalizeTeamsResponse(teamsResult.data));
         setTasks(normalizeTasksResponse(tasksResult.data));
         setTaskStatuses(normalizeStatusesResponse(statusesResult.data));
+
         const setupRules = prioritiesResult.data?.data || prioritiesResult.data || {};
         const setupRulePriorityEntries = Object.keys(
           setupRules?.priorityMultipliers || setupRules?.PriorityMultipliers || {}
@@ -1527,7 +1391,9 @@ export default function DashboardSection({ searchValue = "" }) {
 
     const countByStatusId = rangedTasks.reduce((accumulator, task) => {
       const taskStatusId = getTaskStatusId(task);
+
       if (!taskStatusId) return accumulator;
+
       accumulator[taskStatusId] = (accumulator[taskStatusId] || 0) + 1;
       return accumulator;
     }, {});
@@ -1539,7 +1405,9 @@ export default function DashboardSection({ searchValue = "" }) {
 
     const fallbackNameCounts = rangedTasks.reduce((accumulator, task) => {
       const normalizedName = normalizeStatus(getTaskStatus(task));
+
       if (!normalizedName) return accumulator;
+
       accumulator[normalizedName] = (accumulator[normalizedName] || 0) + 1;
       return accumulator;
     }, {});
@@ -1587,10 +1455,14 @@ export default function DashboardSection({ searchValue = "" }) {
       .sort((a, b) => a.order - b.order);
 
     const fallbackPriorityMap = new Map();
+
     rangedTasks.forEach((task) => {
       const taskPriorityName = getTaskPriorityName(task);
+
       if (!taskPriorityName) return;
+
       const normalized = normalizeStatus(taskPriorityName);
+
       if (!fallbackPriorityMap.has(normalized)) {
         fallbackPriorityMap.set(normalized, {
           id: getTaskPriorityId(task) || normalized,
@@ -1604,6 +1476,7 @@ export default function DashboardSection({ searchValue = "" }) {
     orderedPriorityOptions.forEach((priority, index) => {
       const normalizedLabel = normalizeStatus(priority.label);
       const key = priority.id || normalizedLabel || `priority-${index}`;
+
       mergedPriorityMap.set(key, {
         id: priority.id || normalizedLabel || `priority-${index}`,
         label: priority.label,
@@ -1622,6 +1495,7 @@ export default function DashboardSection({ searchValue = "" }) {
 
       if (!existingKey) {
         const key = priority.id || normalizedLabel || `fallback-priority-${index}`;
+
         mergedPriorityMap.set(key, {
           id: priority.id || normalizedLabel || `fallback-priority-${index}`,
           label: priority.label,
@@ -1641,10 +1515,14 @@ export default function DashboardSection({ searchValue = "" }) {
       .filter((team) => team.label);
 
     const fallbackTeamMap = new Map();
+
     rangedTasks.forEach((task) => {
       const taskTeamName = getTaskTeamName(task);
+
       if (!taskTeamName) return;
+
       const id = getTaskTeamId(task) || normalizeStatus(taskTeamName);
+
       if (!fallbackTeamMap.has(id)) {
         fallbackTeamMap.set(id, { id, label: taskTeamName });
       }
@@ -1657,25 +1535,26 @@ export default function DashboardSection({ searchValue = "" }) {
           order: index,
         }));
 
-    const activityTasks = rangedTasks
-      .map((task) => ({
-        task,
-        date: getTaskRelevantDate(task) || startOfDay(new Date()),
-        priorityId: getTaskPriorityId(task),
-        priorityName: getTaskPriorityName(task),
-        teamId: getTaskTeamId(task),
-        teamName: getTaskTeamName(task),
-      }));
+    const activityTasks = rangedTasks.map((task) => ({
+      task,
+      date: getTaskRelevantDate(task) || startOfDay(new Date()),
+      priorityId: getTaskPriorityId(task),
+      priorityName: getTaskPriorityName(task),
+      teamId: getTaskTeamId(task),
+      teamName: getTaskTeamName(task),
+    }));
 
     const priorityFilteredTasks = activityTasks.filter((item) => {
       if (selectedPriority === "all") return true;
 
       const normalizedTaskPriority = normalizeStatus(item.priorityName);
+
       return item.priorityId === selectedPriority || normalizedTaskPriority === selectedPriority;
     });
 
     const teamFilteredTasks = priorityFilteredTasks.filter((item) => {
       if (selectedTeam === "all") return true;
+
       return item.teamId === selectedTeam || normalizeStatus(item.teamName) === selectedTeam;
     });
 
@@ -1724,7 +1603,17 @@ export default function DashboardSection({ searchValue = "" }) {
       tasksActivitySeries,
       activityTaskCount,
     };
-  }, [users, teams, tasks, taskStatuses, priorities, selectedPriority, selectedTeam, normalizedSearch, activeRange]);
+  }, [
+    users,
+    teams,
+    tasks,
+    taskStatuses,
+    priorities,
+    selectedPriority,
+    selectedTeam,
+    normalizedSearch,
+    activeRange,
+  ]);
 
   const selectedPriorityLabel =
     selectedPriority === "all"
@@ -1787,7 +1676,6 @@ export default function DashboardSection({ searchValue = "" }) {
         <div className="dashboard-section__title-line"></div>
       </div>
 
-
       <div className="dashboard-section__toolbar">
         <div className="dashboard-section__range-menu" ref={rangeMenuRef}>
           <button
@@ -1848,6 +1736,7 @@ export default function DashboardSection({ searchValue = "" }) {
                     <div className="dashboard-section__month-picker-row">
                       <div className="dashboard-section__month-picker-field">
                         <label htmlFor="dashboard-month-select">Month</label>
+
                         <div className="dashboard-section__month-picker-select-wrap">
                           <select
                             id="dashboard-month-select"
@@ -1861,12 +1750,14 @@ export default function DashboardSection({ searchValue = "" }) {
                               </option>
                             ))}
                           </select>
+
                           <FiChevronDown />
                         </div>
                       </div>
 
                       <div className="dashboard-section__month-picker-field">
                         <label htmlFor="dashboard-year-select">Year</label>
+
                         <div className="dashboard-section__month-picker-select-wrap">
                           <select
                             id="dashboard-year-select"
@@ -1880,6 +1771,7 @@ export default function DashboardSection({ searchValue = "" }) {
                               </option>
                             ))}
                           </select>
+
                           <FiChevronDown />
                         </div>
                       </div>
@@ -1889,7 +1781,7 @@ export default function DashboardSection({ searchValue = "" }) {
                       <DayPicker
                         mode="range"
                         month={draftCalendarMonth}
-                        onMonthChange={(month) => setDraftCalendarMonth(startOfMonth(month))}
+                        onMonthChange={handleCalendarMonthChange}
                         selected={draftCustomRange}
                         onSelect={handleCustomRangeSelect}
                         showOutsideDays={false}
@@ -1955,6 +1847,7 @@ export default function DashboardSection({ searchValue = "" }) {
                   className={`dashboard-section__stat-card dashboard-section__stat-card--${card.tone}`}
                 >
                   <div className="dashboard-section__stat-icon">{card.icon}</div>
+
                   <div className="dashboard-section__stat-copy">
                     <small>{card.label}</small>
                     <strong>{card.value}</strong>
@@ -1971,6 +1864,7 @@ export default function DashboardSection({ searchValue = "" }) {
                     <h3>Task Summary</h3>
                     <p>Live distribution of this company&apos;s backend task statuses</p>
                   </div>
+
                   <button
                     type="button"
                     className="dashboard-section__summary-menu"
@@ -2003,6 +1897,7 @@ export default function DashboardSection({ searchValue = "" }) {
                                 style={{ backgroundColor: item.color }}
                                 aria-hidden="true"
                               ></span>
+
                               <div className="dashboard-section__summary-copy">
                                 <span>{item.label}</span>
                               </div>
@@ -2026,12 +1921,14 @@ export default function DashboardSection({ searchValue = "" }) {
                     <label className="dashboard-section__activity-filter-trigger">
                       <span>{selectedTeamLabel}</span>
                       <FiChevronDown />
+
                       <select
                         value={selectedTeam}
                         onChange={(event) => setSelectedTeam(event.target.value)}
                         aria-label="Filter tasks by team"
                       >
                         <option value="all">All Teams</option>
+
                         {dashboardData.teamOptions.map((team) => (
                           <option key={team.id || team.label} value={team.id || normalizeStatus(team.label)}>
                             {team.label}
@@ -2043,14 +1940,17 @@ export default function DashboardSection({ searchValue = "" }) {
                     <label className="dashboard-section__activity-filter-trigger">
                       <span>{selectedPriorityLabel}</span>
                       <FiChevronDown />
+
                       <select
                         value={selectedPriority}
                         onChange={(event) => setSelectedPriority(event.target.value)}
                         aria-label="Filter tasks by priority"
                       >
                         <option value="all">Priority</option>
+
                         {dashboardData.priorityOptions.map((priority) => {
                           const priorityValue = priority.id || normalizeStatus(priority.label);
+
                           return (
                             <option key={priorityValue} value={priorityValue}>
                               {priority.label}

@@ -35,7 +35,6 @@ function parseStoredJson(key) {
   }
 }
 
-
 const RANGE_STORAGE_KEY = "teamleader_shared_date_range";
 
 function startOfDay(date) {
@@ -61,30 +60,79 @@ function getWeekRange(offsetWeeks = 0) {
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const start = new Date(now);
   start.setDate(now.getDate() + diffToMonday + offsetWeeks * 7);
+
   const weekStart = startOfDay(start);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
+
   return { start: weekStart, end: endOfDay(weekEnd) };
 }
 
+function getMonthRange(date = new Date()) {
+  return {
+    start: startOfDay(startOfMonth(date)),
+    end: endOfDay(endOfMonth(date)),
+  };
+}
+
 function loadSharedRangeState() {
+  const currentMonthRange = getMonthRange(new Date());
+
   try {
     const saved = localStorage.getItem(RANGE_STORAGE_KEY);
+
     if (!saved) {
-      const range = getWeekRange(0);
-      return { selectedPreset: "thisWeek", customRange: { from: range.start, to: range.end } };
+      return {
+        selectedPreset: "custom",
+        customRange: {
+          from: currentMonthRange.start,
+          to: currentMonthRange.end,
+        },
+      };
     }
+
     const parsed = JSON.parse(saved);
+    const savedPreset = parsed?.selectedPreset || "custom";
+
+    if (savedPreset === "today") {
+      const todayRange = getTodayRange();
+
+      return {
+        selectedPreset: "today",
+        customRange: {
+          from: todayRange.start,
+          to: todayRange.end,
+        },
+      };
+    }
+
+    if (savedPreset === "thisWeek") {
+      const thisWeekRange = getWeekRange(0);
+
+      return {
+        selectedPreset: "thisWeek",
+        customRange: {
+          from: thisWeekRange.start,
+          to: thisWeekRange.end,
+        },
+      };
+    }
+
     return {
-      selectedPreset: parsed?.selectedPreset || "thisWeek",
+      selectedPreset: "custom",
       customRange: {
-        from: parsed?.customRange?.from ? new Date(parsed.customRange.from) : null,
-        to: parsed?.customRange?.to ? new Date(parsed.customRange.to) : null,
+        from: currentMonthRange.start,
+        to: currentMonthRange.end,
       },
     };
   } catch {
-    const range = getWeekRange(0);
-    return { selectedPreset: "thisWeek", customRange: { from: range.start, to: range.end } };
+    return {
+      selectedPreset: "custom",
+      customRange: {
+        from: currentMonthRange.start,
+        to: currentMonthRange.end,
+      },
+    };
   }
 }
 
@@ -105,14 +153,18 @@ function getPresetRange(preset, customRange) {
   switch (preset) {
     case "today":
       return getTodayRange();
+
     case "custom": {
       if (customRange?.from instanceof Date && customRange?.to instanceof Date) {
         const start = startOfDay(customRange.from);
         const end = endOfDay(customRange.to);
+
         if (start <= end) return { start, end };
       }
-      return getWeekRange(0);
+
+      return getMonthRange(new Date());
     }
+
     case "thisWeek":
     default:
       return getWeekRange(0);
@@ -141,8 +193,10 @@ function formatMonthYearText(date) {
 
 function isFullMonthRange(range) {
   if (!(range?.from instanceof Date) || !(range?.to instanceof Date)) return false;
+
   const monthStart = startOfMonth(range.from);
   const monthEnd = endOfMonth(range.from);
+
   return (
     startOfDay(range.from).getTime() === startOfDay(monthStart).getTime() &&
     endOfDay(range.to).getTime() === endOfDay(monthEnd).getTime() &&
@@ -170,6 +224,7 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
       if (isFullMonthRange(customRange)) return formatMonthYearText(customRange.from);
       return `${formatDateText(customRange.from)} - ${formatDateText(customRange.to)}`;
     }
+
     return getRangeLabel(selectedPreset);
   }, [selectedPreset, customRange]);
 
@@ -178,6 +233,7 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
       if (isFullMonthRange(draftCustomRange)) return formatMonthYearText(draftCustomRange.from);
       return `${formatDateText(draftCustomRange.from)} - ${formatDateText(draftCustomRange.to)}`;
     }
+
     return formatMonthYearText(draftCalendarMonth);
   }, [draftCalendarMonth, draftCustomRange]);
 
@@ -187,7 +243,10 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
 
   const syncDraftWithAppliedState = () => {
     setDraftPreset(selectedPreset);
-    setDraftCustomRange({ from: customRange?.from || null, to: customRange?.to || null });
+    setDraftCustomRange({
+      from: customRange?.from || null,
+      to: customRange?.to || null,
+    });
     setDraftCalendarMonth(
       customRange?.from instanceof Date ? startOfMonth(customRange.from) : startOfMonth(new Date())
     );
@@ -205,11 +264,16 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
 
   useEffect(() => {
     if (!isRangeMenuOpen) return undefined;
+
     const handleClickOutside = (event) => {
-      if (rangeMenuRef.current && !rangeMenuRef.current.contains(event.target)) closeRangeMenu();
+      if (rangeMenuRef.current && !rangeMenuRef.current.contains(event.target)) {
+        closeRangeMenu();
+      }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
@@ -218,31 +282,89 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
 
   const applyPreset = (preset) => {
     if (preset === "custom") {
+      const currentMonthRange = getMonthRange(new Date());
+
       setDraftPreset("custom");
-      setDraftCustomRange({ from: null, to: null });
       setDraftCalendarMonth(startOfMonth(new Date()));
+      setDraftCustomRange({
+        from: currentMonthRange.start,
+        to: currentMonthRange.end,
+      });
+
       return;
     }
+
     const nextRange = getPresetRange(preset, null);
-    onRangeChange({ selectedPreset: preset, customRange: { from: nextRange.start, to: nextRange.end } });
+
+    onRangeChange({
+      selectedPreset: preset,
+      customRange: {
+        from: nextRange.start,
+        to: nextRange.end,
+      },
+    });
+
     setIsRangeMenuOpen(false);
   };
 
   const handleDraftMonthChange = (monthIndex) => {
-    setDraftCalendarMonth((current) => setMonth(current, Number(monthIndex)));
-    setDraftCustomRange({ from: null, to: null });
+    setDraftCalendarMonth((current) => {
+      const nextMonth = startOfMonth(setMonth(current, Number(monthIndex)));
+      const monthRange = getMonthRange(nextMonth);
+
+      setDraftCustomRange({
+        from: monthRange.start,
+        to: monthRange.end,
+      });
+
+      return nextMonth;
+    });
   };
 
   const handleDraftYearChange = (yearValue) => {
-    setDraftCalendarMonth((current) => setYear(current, Number(yearValue)));
-    setDraftCustomRange({ from: null, to: null });
+    setDraftCalendarMonth((current) => {
+      const nextMonth = startOfMonth(setYear(current, Number(yearValue)));
+      const monthRange = getMonthRange(nextMonth);
+
+      setDraftCustomRange({
+        from: monthRange.start,
+        to: monthRange.end,
+      });
+
+      return nextMonth;
+    });
+  };
+
+  const handleCalendarMonthChange = (month) => {
+    const nextMonth = startOfMonth(month);
+    const monthRange = getMonthRange(nextMonth);
+
+    setDraftCalendarMonth(nextMonth);
+    setDraftCustomRange({
+      from: monthRange.start,
+      to: monthRange.end,
+    });
   };
 
   const handleApplyCustomRange = () => {
-    const nextRange = draftCustomRange?.from && draftCustomRange?.to
-      ? { from: startOfDay(draftCustomRange.from), to: endOfDay(draftCustomRange.to) }
-      : { from: startOfDay(startOfMonth(draftCalendarMonth)), to: endOfDay(endOfMonth(draftCalendarMonth)) };
-    onRangeChange({ selectedPreset: "custom", customRange: nextRange });
+    const monthRange = getMonthRange(draftCalendarMonth);
+
+    const nextRange =
+      draftCustomRange?.from && draftCustomRange?.to
+        ? {
+            from: startOfDay(draftCustomRange.from),
+            to: endOfDay(draftCustomRange.to),
+          }
+        : {
+            from: monthRange.start,
+            to: monthRange.end,
+          };
+
+    onRangeChange({
+      selectedPreset: "custom",
+      customRange: nextRange,
+    });
+
     setIsRangeMenuOpen(false);
   };
 
@@ -280,15 +402,21 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
             {draftPreset === "custom" && (
               <>
                 <div className="dashboard-section__range-divider" />
+
                 <div className="dashboard-section__custom-range">
                   <div className="dashboard-section__custom-range-header">
                     <FiCalendar />
                     <span>Pick a custom range</span>
                   </div>
-                  <div className="dashboard-section__custom-range-preview">{draftRangePreview}</div>
+
+                  <div className="dashboard-section__custom-range-preview">
+                    {draftRangePreview}
+                  </div>
+
                   <div className="dashboard-section__month-picker-row">
                     <div className="dashboard-section__month-picker-field">
                       <label htmlFor="dashboard-month-select">Month</label>
+
                       <div className="dashboard-section__month-picker-select-wrap">
                         <select
                           id="dashboard-month-select"
@@ -302,11 +430,14 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                             </option>
                           ))}
                         </select>
+
                         <FiChevronDown />
                       </div>
                     </div>
+
                     <div className="dashboard-section__month-picker-field">
                       <label htmlFor="dashboard-year-select">Year</label>
+
                       <div className="dashboard-section__month-picker-select-wrap">
                         <select
                           id="dashboard-year-select"
@@ -320,17 +451,24 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                             </option>
                           ))}
                         </select>
+
                         <FiChevronDown />
                       </div>
                     </div>
                   </div>
+
                   <div className="dashboard-section__calendar-shell">
                     <DayPicker
                       mode="range"
                       selected={draftCustomRange}
-                      onSelect={(range) => setDraftCustomRange({ from: range?.from || null, to: range?.to || null })}
+                      onSelect={(range) =>
+                        setDraftCustomRange({
+                          from: range?.from || null,
+                          to: range?.to || null,
+                        })
+                      }
                       month={draftCalendarMonth}
-                      onMonthChange={setDraftCalendarMonth}
+                      onMonthChange={handleCalendarMonthChange}
                       showOutsideDays={false}
                       numberOfMonths={1}
                       className="dashboard-section__day-picker"
@@ -342,8 +480,13 @@ function SharedDateRangePicker({ selectedPreset, customRange, onRangeChange }) {
                       }}
                     />
                   </div>
+
                   <div className="dashboard-section__apply-btn-wrap">
-                    <button type="button" className="dashboard-section__apply-btn" onClick={handleApplyCustomRange}>
+                    <button
+                      type="button"
+                      className="dashboard-section__apply-btn"
+                      onClick={handleApplyCustomRange}
+                    >
                       Apply Range
                     </button>
                   </div>
@@ -441,9 +584,7 @@ export default function TeamLeaderDashboard() {
 
   useEffect(() => {
     if (!user) {
-      console.warn(
-        "[TeamLeaderDashboard] No valid team leader user found. Redirecting to login."
-      );
+      console.warn("[TeamLeaderDashboard] No valid team leader user found. Redirecting to login.");
       navigate("/login", { replace: true });
       return;
     }
@@ -488,7 +629,7 @@ export default function TeamLeaderDashboard() {
     navigate("/login", { replace: true });
   };
 
-const searchPlaceholder = "Search";
+  const searchPlaceholder = "Search";
 
   if (!user) {
     return null;
