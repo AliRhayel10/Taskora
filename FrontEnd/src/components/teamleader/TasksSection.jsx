@@ -3697,7 +3697,7 @@ const resolvedCurrentUserId =
 
                       {isDatePickerOpen && (
                         <div className="tasks-section__date-picker-popover">
-                          <div className="tasks-section__date-picker-calendar">
+                          <div className="dashboard-section__calendar-shell">
                             <DayPicker
                               mode="range"
                               selected={draftRange}
@@ -3713,18 +3713,20 @@ const resolvedCurrentUserId =
                                 ),
                               }}
                               showOutsideDays={false}
-                              className="tasks-section__day-picker"
+                              className="dashboard-section__day-picker"
                             />
                           </div>
 
-                          <button
-                            type="button"
-                            className="tasks-section__apply-btn"
-                            onClick={applyDateRange}
-                            disabled={!draftRange?.from || !draftRange?.to}
-                          >
-                            Apply Range
-                          </button>
+                          <div className="dashboard-section__apply-btn-wrap">
+                            <button
+                              type="button"
+                              className="dashboard-section__apply-btn"
+                              onClick={applyDateRange}
+                              disabled={!draftRange?.from || !draftRange?.to}
+                            >
+                              Apply Range
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -4013,7 +4015,7 @@ const resolvedCurrentUserId =
               </button>
             </div>
 
-            <div className="tasks-section__date-picker-calendar">
+            <div className="dashboard-section__calendar-shell">
               <DayPicker
                 mode="range"
                 selected={editDueDateDraft}
@@ -4028,7 +4030,7 @@ const resolvedCurrentUserId =
                   before: new Date(new Date().setHours(0, 0, 0, 0)),
                 }}
                 numberOfMonths={1}
-                className="tasks-section__day-picker"
+                className="dashboard-section__day-picker"
               />
             </div>
 

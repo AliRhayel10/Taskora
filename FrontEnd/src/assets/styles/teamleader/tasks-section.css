@@ -2004,3 +2004,15 @@ body.dark .tasks-section__title-line {
     font-size: 0.72rem;
   }
 }
+
+/* Reuse the dashboard DayPicker skin inside task modals/forms. */
+.tasks-section__date-picker-popover .dashboard-section__calendar-shell,
+.tasks-section__confirm-modal--date .dashboard-section__calendar-shell {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.tasks-section__date-picker-popover .dashboard-section__apply-btn-wrap {
+  margin-top: 8px;
+}
