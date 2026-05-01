@@ -79,9 +79,10 @@ function buildProfileImageUrl(value, cacheKey = "") {
     return rawValue;
   }
 
-  const baseUrl = rawValue.startsWith("http://") || rawValue.startsWith("https://")
-    ? rawValue
-    : `${API_BASE_URL}${rawValue.startsWith("/") ? rawValue : `/${rawValue}`}`;
+  const baseUrl =
+    rawValue.startsWith("http://") || rawValue.startsWith("https://")
+      ? rawValue
+      : `${API_BASE_URL}${rawValue.startsWith("/") ? rawValue : `/${rawValue}`}`;
 
   if (!cacheKey) return baseUrl;
 
@@ -109,7 +110,6 @@ export default function ProfileSection({ user, onProfileUpdated }) {
     firstName: "",
     lastName: "",
     jobTitle: "",
-    companyName: "",
     email: "",
   });
 
@@ -132,7 +132,9 @@ export default function ProfileSection({ user, onProfileUpdated }) {
         }
       };
 
-      const previousUser = readStoredUser("user") || readStoredUser("authUser") || user || {};
+      const previousUser =
+        readStoredUser("user") || readStoredUser("authUser") || user || {};
+
       const nextUser = {
         ...previousUser,
         ...profileUpdate,
@@ -187,15 +189,16 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       fullName,
       role: profile?.role || "Not available",
       profileImageUrl: profile?.profileImageUrl || "",
-      profileImageUpdatedAt: profile?.profileImageUpdatedAt || profile?.profileImageVersion || "",
+      profileImageUpdatedAt:
+        profile?.profileImageUpdatedAt || profile?.profileImageVersion || "",
     };
 
     setProfileData(nextProfileData);
+
     setDraftData({
       firstName: nextProfileData.firstName,
       lastName: nextProfileData.lastName,
       jobTitle: nextProfileData.jobTitle,
-      companyName: nextProfileData.companyName,
       email: nextProfileData.email,
     });
   }, []);
@@ -206,7 +209,10 @@ export default function ProfileSection({ user, onProfileUpdated }) {
     try {
       setIsLoadingProfile(true);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${userId}`, { cache: "no-store" });
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${userId}`, {
+        cache: "no-store",
+      });
+
       const rawText = await response.text();
 
       let data = {};
@@ -253,11 +259,11 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       };
 
       setProfileData(fallbackProfile);
+
       setDraftData({
         firstName: fallbackProfile.firstName,
         lastName: fallbackProfile.lastName,
         jobTitle: fallbackProfile.jobTitle,
-        companyName: fallbackProfile.companyName,
         email: fallbackProfile.email,
       });
     }
@@ -268,9 +274,9 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       jobTitle: profileData.jobTitle,
-      companyName: profileData.companyName,
       email: profileData.email,
     });
+
     setCurrentPassword("");
     setFormMessage({ type: "", text: "" });
     setIsEditingProfile(false);
@@ -304,16 +310,17 @@ export default function ProfileSection({ user, onProfileUpdated }) {
   const initials =
     fullName !== "Not available"
       ? fullName
-        .split(" ")
-        .filter(Boolean)
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+          .split(" ")
+          .filter(Boolean)
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
       : "AU";
 
   const emailChanged =
-    draftData.email.trim().toLowerCase() !== profileData.email.trim().toLowerCase();
+    draftData.email.trim().toLowerCase() !==
+    profileData.email.trim().toLowerCase();
 
   const [selectedImage, setSelectedImage] = useState("");
   const [showCropModal, setShowCropModal] = useState(false);
@@ -347,7 +354,10 @@ export default function ProfileSection({ user, onProfileUpdated }) {
     }
 
     try {
-      const response = await fetch(imagePreview, { mode: "cors", cache: "no-store" });
+      const response = await fetch(imagePreview, {
+        mode: "cors",
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         throw new Error("Could not load image.");
@@ -395,9 +405,9 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       jobTitle: profileData.jobTitle,
-      companyName: profileData.companyName,
       email: profileData.email,
     });
+
     setCurrentPassword("");
     setFormMessage({ type: "", text: "" });
     setIsEditingProfile(true);
@@ -430,8 +440,8 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       firstName: draftData.firstName.trim(),
       lastName: draftData.lastName.trim(),
       jobTitle: draftData.jobTitle.trim(),
-      companyName: draftData.companyName.trim(),
       email: draftData.email.trim(),
+      companyName: profileData.companyName.trim(),
     };
 
     setFormMessage({ type: "", text: "" });
@@ -440,7 +450,6 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       !cleanedData.firstName ||
       !cleanedData.lastName ||
       !cleanedData.jobTitle ||
-      !cleanedData.companyName ||
       !cleanedData.email
     ) {
       setFormMessage({ type: "error", text: "Invalid email or password." });
@@ -517,7 +526,10 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       await fetchProfileFromBackend();
 
       setCurrentPassword("");
-      setFormMessage({ type: "success", text: "Profile updated successfully." });
+      setFormMessage({
+        type: "success",
+        text: "Profile updated successfully.",
+      });
       setIsEditingProfile(false);
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -538,7 +550,10 @@ export default function ProfileSection({ user, onProfileUpdated }) {
     try {
       setIsUploading(true);
 
-      const croppedFile = await getCroppedImage(selectedImage, croppedAreaPixels);
+      const croppedFile = await getCroppedImage(
+        selectedImage,
+        croppedAreaPixels
+      );
 
       const formData = new FormData();
       formData.append("file", croppedFile);
@@ -565,11 +580,17 @@ export default function ProfileSection({ user, onProfileUpdated }) {
         throw new Error(data.message || "Image upload failed.");
       }
 
-      const nextImageUrl = data.profileImageUrl || data.imageUrl || profileData.profileImageUrl || "";
+      const nextImageUrl =
+        data.profileImageUrl ||
+        data.imageUrl ||
+        profileData.profileImageUrl ||
+        "";
+
       const nextCacheKey = Date.now();
 
       if (nextImageUrl) {
         setImageCacheKey(nextCacheKey);
+
         setProfileData((prev) => ({
           ...prev,
           profileImageUrl: nextImageUrl,
@@ -686,15 +707,7 @@ export default function ProfileSection({ user, onProfileUpdated }) {
       key: "companyName",
       label: "Company Name",
       icon: <FiBriefcase />,
-      value: isEditingProfile ? (
-        <input
-          type="text"
-          className="profile-info-input"
-          value={draftData.companyName}
-          onChange={(e) => handleInputChange("companyName", e.target.value)}
-          placeholder="Enter company name"
-        />
-      ) : (
+      value: (
         <strong className="profile-info-item__value">
           {profileData.companyName || "Not available"}
         </strong>
@@ -702,21 +715,21 @@ export default function ProfileSection({ user, onProfileUpdated }) {
     },
     ...(isEditingProfile && emailChanged
       ? [
-        {
-          key: "currentPassword",
-          label: "Current Password",
-          icon: <FiLock />,
-          value: (
-            <input
-              type="password"
-              className="profile-info-input"
-              value={currentPassword}
-              onChange={(e) => handlePasswordChange(e.target.value)}
-              placeholder="Enter current password"
-            />
-          ),
-        },
-      ]
+          {
+            key: "currentPassword",
+            label: "Current Password",
+            icon: <FiLock />,
+            value: (
+              <input
+                type="password"
+                className="profile-info-input"
+                value={currentPassword}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                placeholder="Enter current password"
+              />
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -742,7 +755,9 @@ export default function ProfileSection({ user, onProfileUpdated }) {
                 onError={() => setImageLoadFailed(true)}
               />
             ) : (
-              <div className="profile-hero-card__avatar-fallback">{initials}</div>
+              <div className="profile-hero-card__avatar-fallback">
+                {initials}
+              </div>
             )}
           </button>
 
@@ -790,12 +805,20 @@ export default function ProfileSection({ user, onProfileUpdated }) {
 
             <button
               type="button"
-              className={`profile-edit-btn ${isEditingProfile ? "profile-edit-btn--primary" : ""}`.trim()}
-              onClick={isEditingProfile ? handleSaveProfile : handleStartEditingProfile}
+              className={`profile-edit-btn ${
+                isEditingProfile ? "profile-edit-btn--primary" : ""
+              }`.trim()}
+              onClick={
+                isEditingProfile ? handleSaveProfile : handleStartEditingProfile
+              }
               disabled={isSavingProfile || isLoadingProfile}
             >
               {isEditingProfile ? <FiCheck /> : <FiEdit2 />}
-              {isSavingProfile ? "Saving..." : isEditingProfile ? "Save Changes" : "Edit"}
+              {isSavingProfile
+                ? "Saving..."
+                : isEditingProfile
+                  ? "Save Changes"
+                  : "Edit"}
             </button>
           </div>
         </div>
@@ -814,7 +837,9 @@ export default function ProfileSection({ user, onProfileUpdated }) {
           {infoItems.map((item) => (
             <div className="profile-info-item" key={item.key}>
               <span className="profile-info-item__label">
-                <span className="profile-info-item__label-icon">{item.icon}</span>
+                <span className="profile-info-item__label-icon">
+                  {item.icon}
+                </span>
                 {item.label}
               </span>
               {item.value}

@@ -111,7 +111,6 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
     firstName: "",
     lastName: "",
     jobTitle: "",
-    companyName: "",
     email: "",
   });
 
@@ -209,7 +208,6 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       firstName: nextProfileData.firstName,
       lastName: nextProfileData.lastName,
       jobTitle: nextProfileData.jobTitle,
-      companyName: nextProfileData.companyName,
       email: nextProfileData.email,
     });
   }, []);
@@ -235,9 +233,11 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       }
 
       syncProfileStateFromBackend(data);
+
       if (data.profileImageUpdatedAt || data.profileImageVersion) {
         setImageCacheKey(data.profileImageUpdatedAt || data.profileImageVersion);
       }
+
       return data;
     } catch (error) {
       console.error("Failed to fetch employee profile from backend:", error);
@@ -275,7 +275,6 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
         firstName: fallbackProfile.firstName,
         lastName: fallbackProfile.lastName,
         jobTitle: fallbackProfile.jobTitle,
-        companyName: fallbackProfile.companyName,
         email: fallbackProfile.email,
       });
     }
@@ -286,9 +285,9 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       jobTitle: profileData.jobTitle,
-      companyName: profileData.companyName,
       email: profileData.email,
     });
+
     setCurrentPassword("");
     setFormMessage({ type: "", text: "" });
     setIsEditingProfile(false);
@@ -407,9 +406,9 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       jobTitle: profileData.jobTitle,
-      companyName: profileData.companyName,
       email: profileData.email,
     });
+
     setCurrentPassword("");
     setFormMessage({ type: "", text: "" });
     setIsEditingProfile(true);
@@ -442,7 +441,7 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       firstName: draftData.firstName.trim(),
       lastName: draftData.lastName.trim(),
       jobTitle: draftData.jobTitle.trim(),
-      companyName: draftData.companyName.trim(),
+      companyName: profileData.companyName.trim(),
       email: draftData.email.trim(),
     };
 
@@ -452,7 +451,6 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       !cleanedData.firstName ||
       !cleanedData.lastName ||
       !cleanedData.jobTitle ||
-      !cleanedData.companyName ||
       !cleanedData.email
     ) {
       setFormMessage({ type: "error", text: "Invalid email or password." });
@@ -559,13 +557,10 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       formData.append("file", croppedFile);
       formData.append("userId", String(userId));
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/auth/upload-profile-image`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/auth/upload-profile-image`, {
+        method: "POST",
+        body: formData,
+      });
 
       const rawText = await response.text();
       let data;
@@ -704,15 +699,7 @@ export default function EmployeeProfileSection({ user, setUser, onProfileUpdated
       key: "companyName",
       label: "Company Name",
       icon: <FiBriefcase />,
-      value: isEditingProfile ? (
-        <input
-          type="text"
-          className="profile-info-input"
-          value={draftData.companyName}
-          onChange={(e) => handleInputChange("companyName", e.target.value)}
-          placeholder="Enter company name"
-        />
-      ) : (
+      value: (
         <strong className="profile-info-item__value">
           {profileData.companyName || "Not available"}
         </strong>

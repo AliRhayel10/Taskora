@@ -111,7 +111,6 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
     firstName: "",
     lastName: "",
     jobTitle: "",
-    companyName: "",
     email: "",
   });
 
@@ -209,7 +208,6 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
       firstName: nextProfileData.firstName,
       lastName: nextProfileData.lastName,
       jobTitle: nextProfileData.jobTitle,
-      companyName: nextProfileData.companyName,
       email: nextProfileData.email,
     });
   }, []);
@@ -281,7 +279,6 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
         firstName: fallbackProfile.firstName,
         lastName: fallbackProfile.lastName,
         jobTitle: fallbackProfile.jobTitle,
-        companyName: fallbackProfile.companyName,
         email: fallbackProfile.email,
       });
     }
@@ -292,7 +289,6 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       jobTitle: profileData.jobTitle,
-      companyName: profileData.companyName,
       email: profileData.email,
     });
     setCurrentPassword("");
@@ -413,7 +409,6 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       jobTitle: profileData.jobTitle,
-      companyName: profileData.companyName,
       email: profileData.email,
     });
     setCurrentPassword("");
@@ -448,7 +443,7 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
       firstName: draftData.firstName.trim(),
       lastName: draftData.lastName.trim(),
       jobTitle: draftData.jobTitle.trim(),
-      companyName: draftData.companyName.trim(),
+      companyName: profileData.companyName.trim(),
       email: draftData.email.trim(),
     };
 
@@ -458,7 +453,6 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
       !cleanedData.firstName ||
       !cleanedData.lastName ||
       !cleanedData.jobTitle ||
-      !cleanedData.companyName ||
       !cleanedData.email
     ) {
       setFormMessage({
@@ -734,15 +728,7 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
       key: "companyName",
       label: "Company Name",
       icon: <FiBriefcase />,
-      value: isEditingProfile ? (
-        <input
-          type="text"
-          className="profile-info-input"
-          value={draftData.companyName}
-          onChange={(e) => handleInputChange("companyName", e.target.value)}
-          placeholder="Enter company name"
-        />
-      ) : (
+      value: (
         <strong className="profile-info-item__value">
           {profileData.companyName || "Not available"}
         </strong>
@@ -850,8 +836,8 @@ export default function TeamLeaderProfileSection({ user, setUser, onProfileUpdat
               {isSavingProfile
                 ? "Saving..."
                 : isEditingProfile
-                ? "Save Changes"
-                : "Edit"}
+                  ? "Save Changes"
+                  : "Edit"}
             </button>
           </div>
         </div>
