@@ -733,9 +733,9 @@ export default function TaskDetailsPage({
 
     const assignedUserId = Number(
       currentTask?.assignedUserId ??
-        currentTask?.assignedToUserId ??
-        currentTask?.AssignedToUserId ??
-        0,
+      currentTask?.assignedToUserId ??
+      currentTask?.AssignedToUserId ??
+      0,
     );
 
     if (!assignedUserId) return 0;
@@ -748,10 +748,10 @@ export default function TaskDetailsPage({
           : [];
       const leaderId = Number(
         team?.teamLeaderUserId ??
-          team?.teamLeaderId ??
-          team?.TeamLeaderUserId ??
-          team?.TeamLeaderId ??
-          0,
+        team?.teamLeaderId ??
+        team?.TeamLeaderUserId ??
+        team?.TeamLeaderId ??
+        0,
       );
 
       return (
@@ -780,10 +780,10 @@ export default function TaskDetailsPage({
       .filter((user) => {
         const directTeamId = Number(
           user?.teamId ??
-            user?.TeamId ??
-            user?.team?.teamId ??
-            user?.team?.TeamId ??
-            0,
+          user?.TeamId ??
+          user?.team?.teamId ??
+          user?.team?.TeamId ??
+          0,
         );
         const teamIds = user?.teamIds ?? user?.TeamIds;
 
@@ -862,8 +862,8 @@ export default function TaskDetailsPage({
 
   const canContinueEdit = Boolean(
     editFormState.title.trim() &&
-      editFormState.description.trim() &&
-      editFormState.assignedUserId,
+    editFormState.description.trim() &&
+    editFormState.assignedUserId,
   );
 
   const resolveTeamIdForUser = (userId) => {
@@ -1561,10 +1561,10 @@ export default function TaskDetailsPage({
                       <div key={item.id} className="task-details-page__timeline-item">
                         <div
                           className={`task-details-page__timeline-marker ${item.type === "status"
-                              ? "task-details-page__timeline-marker--status"
-                              : item.type === "request"
-                                ? "task-details-page__timeline-marker--request"
-                                : "task-details-page__timeline-marker--feedback"
+                            ? "task-details-page__timeline-marker--status"
+                            : item.type === "request"
+                              ? "task-details-page__timeline-marker--request"
+                              : "task-details-page__timeline-marker--feedback"
                             }`}
                         />
                         <div className="task-details-page__timeline-content">
@@ -1572,10 +1572,10 @@ export default function TaskDetailsPage({
                             {item.type === "status" ? (
                               item.isRejectedReassignmentToPending ? (
                                 <>
-<span>Task rejected and reassigned to </span>
-<span className={getStatusClass(item.newStatusName)}>
-  {mapStatusLabel(item.newStatusName)}
-</span>
+                                  <span>Task rejected and reassigned to </span>
+                                  <span className={getStatusClass(item.newStatusName)}>
+                                    {mapStatusLabel(item.newStatusName)}
+                                  </span>
                                 </>
                               ) : (
                                 <>
@@ -1816,8 +1816,8 @@ export default function TaskDetailsPage({
                                 key={userId}
                                 type="button"
                                 className={`tasks-section__member-row ${isSelected
-                                    ? "tasks-section__member-row--selected"
-                                    : ""
+                                  ? "tasks-section__member-row--selected"
+                                  : ""
                                   }`}
                                 onClick={() =>
                                   handleEditFormChange("assignedUserId", String(userId))
@@ -1825,8 +1825,8 @@ export default function TaskDetailsPage({
                               >
                                 <span
                                   className={`tasks-section__member-check ${isSelected
-                                      ? "tasks-section__member-check--selected"
-                                      : ""
+                                    ? "tasks-section__member-check--selected"
+                                    : ""
                                     }`}
                                 >
                                   {isSelected ? "✓" : ""}
@@ -1990,10 +1990,10 @@ export default function TaskDetailsPage({
                         value={
                           editSelectedUser
                             ? editSelectedUser?.fullName ??
-                              editSelectedUser?.FullName ??
-                              editSelectedUser?.name ??
-                              editSelectedUser?.Name ??
-                              "Selected employee"
+                            editSelectedUser?.FullName ??
+                            editSelectedUser?.name ??
+                            editSelectedUser?.Name ??
+                            "Selected employee"
                             : "Not selected"
                         }
                         disabled
@@ -2127,8 +2127,8 @@ export default function TaskDetailsPage({
                   <button
                     type="button"
                     className={`task-details-page__confirm-submit ${confirmAction === "approve"
-                        ? "task-details-page__confirm-submit--approve"
-                        : "task-details-page__confirm-submit--reject"
+                      ? "task-details-page__confirm-submit--approve"
+                      : "task-details-page__confirm-submit--reject"
                       }`}
                     onClick={handleConfirmAction}
                     disabled={
